@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# My Invest Master
 
-## Getting Started
+A modern, beautiful web app for tracking your investment portfolio and planning your retirement.
 
-First, run the development server:
+Built with Next.js, Supabase, and Tailwind CSS.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Portfolio Management** — Add and track stocks, crypto, and other assets
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Real-time Prices** — Live market data for stocks and cryptocurrencies
 
-## Learn More
+- **Performance Tracking** — Profit/Loss, returns, and portfolio allocation
 
-To learn more about Next.js, take a look at the following resources:
+- **Clean Dashboard** — Beautiful, responsive UI
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚀 Getting Started
 
-## Deploy on Vercel
+### Prerequisites
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Node.js (v18+)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Supabase account
+
+### Local Setup
+
+1. Clone the repository:
+
+   ```bash
+
+   git clone [https://github.com/0xamars/My-Invest-Master.git](https://github.com/0xamars/My-Invest-Master.git)
+
+   cd My-Invest-Master
+
+
+
+- Install dependencies:
+  Bash
+  ```
+  npm install
+  ```
+- Create .env.local file and add your Supabase credentials.
+- Run the development server:
+  Bash
+  ```
+  npm run dev
+  ```
+- Open [http://localhost:3000](http://localhost:3000)
+
+
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS
+- **Backend**: Supabase (Auth + Database)
+- **UI**: shadcn/ui
+
+---
+
+## Roadmap
+
+- Basic Portfolio tracking
+- Advanced charts and analytics
+- Retirement planning module
+- Subscription system
+
