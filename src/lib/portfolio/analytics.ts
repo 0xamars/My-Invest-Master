@@ -3,7 +3,9 @@ import {
   CHART_NEGATIVE_COLOR,
   CHART_POSITIVE_COLOR,
   CHART_TYPE_COLORS,
+  getChartSeriesColor,
 } from "@/lib/portfolio/chart-theme";
+import { normalizeSector } from "@/lib/portfolio/sectors";
 import type { PortfolioHoldingWithPrices } from "@/types/portfolio";
 import type { AssetType } from "@/types/portfolio";
 
@@ -15,6 +17,15 @@ export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
 };
 
 export const ASSET_TYPE_COLORS = CHART_TYPE_COLORS;
+
+export interface SectorBreakdownItem {
+  id: string;
+  label: string;
+  value: number;
+  count: number;
+  percent: number;
+  fill: string;
+}
 
 export interface AssetTypeBreakdownItem {
   id: AssetType;
@@ -86,6 +97,34 @@ export function buildAssetTypeBreakdown(
       count: data.count,
       percent: total > 0 ? (data.value / total) * 100 : 0,
       fill: ASSET_TYPE_COLORS[type],
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
+export function buildSectorBreakdown(
+  holdings: PortfolioHoldingWithPrices[],
+): SectorBreakdownItem[] {
+  const bySector = new Map<string, { value: number; count: number }>();
+
+  for (const holding of getPricedHoldings(holdings)) {
+    const sector = normalizeSector(holding.sector);
+    const existing = bySector.get(sector) ?? { value: 0, count: 0 };
+    bySector.set(sector, {
+      value: existing.value + (holding.currentValue ?? 0),
+      count: existing.count + 1,
+    });
+  }
+
+  const total = [...bySector.values()].reduce((sum, item) => sum + item.value, 0);
+
+  return [...bySector.entries()]
+    .map(([sector, data], index) => ({
+      id: sector,
+      label: sector,
+      value: data.value,
+      count: data.count,
+      percent: total > 0 ? (data.value / total) * 100 : 0,
+      fill: getChartSeriesColor(index),
     }))
     .sort((a, b) => b.value - a.value);
 }

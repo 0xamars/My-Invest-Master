@@ -5,8 +5,7 @@ import { getCashCurrency } from "@/types/portfolio";
 
 export type SortColumn =
   | "ticker"
-  | "category"
-  | "subCategory"
+  | "sector"
   | "currentPrice"
   | "costPrice"
   | "quantity"
@@ -61,10 +60,8 @@ function compareHoldings(
   switch (column) {
     case "ticker":
       return compareStrings(a.symbol, b.symbol);
-    case "category":
-      return compareStrings(a.category, b.category);
-    case "subCategory":
-      return compareStrings(a.subCategory, b.subCategory);
+    case "sector":
+      return compareStrings(a.sector, b.sector);
     case "currentPrice":
       return compareNullableNumbers(a.currentPrice, b.currentPrice);
     case "costPrice":

@@ -27,7 +27,7 @@ export function AnalyticsContent() {
 
   if (!isLoaded) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center py-24">
         <RefreshCw className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -36,14 +36,14 @@ export function AnalyticsContent() {
   const hasData = hasAnalyticsData(enrichedHoldings);
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex flex-1 flex-col gap-10">
+      <div className="page-header">
         <div>
-          <h1 className="page-title metallic-text">Analytics</h1>
+          <h1 className="page-title">Analytics</h1>
           <p className="page-description">
-            Visual breakdown of allocation, performance, and exposure
+            Allocation, performance, and exposure across your portfolio
             {lastUpdated && !isLoading
-              ? ` · Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · Refreshing…" : ""}`
+              ? ` · updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}`
               : ""}
           </p>
         </div>
@@ -56,7 +56,7 @@ export function AnalyticsContent() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">
           {error}
         </div>
       )}

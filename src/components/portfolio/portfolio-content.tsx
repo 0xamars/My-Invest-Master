@@ -3,12 +3,14 @@
 import { useMemo, useState } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/ui/stat-card";
 import {
-  AddAssetButton,
-  AddAssetDialog,
-} from "@/components/portfolio/add-asset-dialog";
+  AddTransactionButton,
+  AddTransactionDialog,
+} from "@/components/portfolio/add-transaction-dialog";
 import { DeleteHoldingDialog } from "@/components/portfolio/delete-holding-dialog";
 import { EditHoldingDialog } from "@/components/portfolio/edit-holding-dialog";
+import { HoldingDetailsDialog } from "@/components/portfolio/holding-details-dialog";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
@@ -19,13 +21,19 @@ import {
   enrichHoldings,
   getPortfolioTotals,
 } from "@/lib/portfolio/calculations";
+import { isArchivedHolding, isHoldingVisible } from "@/lib/portfolio/transactions";
+import {
+  hasStoredData,
+  portfolioStorageKeys,
+  readJsonFromStorage,
+} from "@/lib/portfolio/local-storage";
 import {
   formatDisplayMoney,
   formatPercent,
   profitLossClass,
 } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
-import type { PortfolioHolding } from "@/types/portfolio";
+import type { PortfolioHolding, PortfolioHoldingWithPrices } from "@/types/portfolio";
 
 export function PortfolioContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,7 +42,9 @@ export function PortfolioContent() {
   );
   const [deletingHolding, setDeletingHolding] =
     useState<PortfolioHolding | null>(null);
-  const { holdings, addHolding, updateHolding, removeHolding, isLoaded } =
+  const [viewingHolding, setViewingHolding] =
+    useState<PortfolioHoldingWithPrices | null>(null);
+  const { holdings, addTransaction, updateHolding, removeHolding, isLoaded } =
     usePortfolioStorage();
   const { currency, setCurrency, isLoaded: isCurrencyLoaded } =
     useDisplayCurrency();
@@ -49,9 +59,19 @@ export function PortfolioContent() {
     refetch,
   } = usePortfolioPrices(holdings);
 
+  const visibleHoldings = useMemo(
+    () => holdings.filter(isHoldingVisible),
+    [holdings],
+  );
+
+  const archivedHoldings = useMemo(
+    () => holdings.filter(isArchivedHolding),
+    [holdings],
+  );
+
   const enrichedHoldings = useMemo(
-    () => enrichHoldings(holdings, prices, loadingSymbols, rates),
-    [holdings, prices, loadingSymbols, rates],
+    () => enrichHoldings(visibleHoldings, prices, loadingSymbols, rates),
+    [visibleHoldings, prices, loadingSymbols, rates],
   );
 
   const totals = useMemo(
@@ -59,87 +79,112 @@ export function PortfolioContent() {
     [enrichedHoldings],
   );
 
+  const enrichedArchived = useMemo(
+    () => enrichHoldings(archivedHoldings, prices, loadingSymbols, rates),
+    [archivedHoldings, prices, loadingSymbols, rates],
+  );
+
+  const handleRestoreBackup = () => {
+    const backup = readJsonFromStorage<PortfolioHolding[]>(
+      portfolioStorageKeys.backupKey,
+    );
+    if (!backup?.length) return;
+    window.location.reload();
+  };
+
+  const showBackupHint =
+    isLoaded &&
+    holdings.length === 0 &&
+    hasStoredData(portfolioStorageKeys.key, portfolioStorageKeys.backupKey);
+
   const totalPlPercent =
     totals.costValue === 0 ? 0 : (totals.profitLoss / totals.costValue) * 100;
 
   if (!isLoaded || !isCurrencyLoaded) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center py-24">
         <RefreshCw className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex flex-1 flex-col gap-10">
+      <div className="page-header">
         <div>
-          <h1 className="page-title metallic-text">Portfolio</h1>
+          <h1 className="page-title">Portfolio</h1>
           <p className="page-description">
             {isLoading
               ? "Fetching live prices…"
               : lastUpdated
-                ? `Live prices · Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · Refreshing…" : ""}`
-                : "Track stocks, crypto, custom assets, and cash"}
+                ? `Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}`
+                : "Track stocks, crypto, custom assets, and cash in one place."}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-start gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <CurrencyToggle
             currency={currency}
             onChange={setCurrency}
             rates={rates}
             isLoading={isFxLoading}
           />
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isLoading || holdings.length === 0}
-              title="Refresh prices"
-            >
-              <RefreshCw
-                className={cn("size-4", isRefreshing && "animate-spin")}
-              />
-            </Button>
-            <AddAssetButton onClick={() => setDialogOpen(true)} />
-          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-10 rounded-xl border-border/80 bg-card transition-colors hover:bg-muted/60"
+            onClick={() => refetch()}
+            disabled={isLoading || holdings.length === 0}
+            title="Refresh prices"
+          >
+            <RefreshCw
+              className={cn("size-4", isRefreshing && "animate-spin")}
+            />
+          </Button>
+          <AddTransactionButton onClick={() => setDialogOpen(true)} />
         </div>
       </div>
 
+      {showBackupHint && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p>
+              Saved portfolio data was found in this browser, but nothing loaded.
+              Try refreshing the page, or sign in under Settings to sync data from
+              the cloud instead of this browser.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleRestoreBackup}>
+            Reload page
+          </Button>
+        </div>
+      )}
+
       {(error || fxError) && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="flex items-center gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">
           <AlertCircle className="size-4 shrink-0" />
           {error ?? fxError}
         </div>
       )}
 
       {enrichedHoldings.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <SummaryCard
-            label={`Total Value (${currency})`}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label={`Total value · ${currency}`}
             value={
               totals.hasLoadingPrices
                 ? "Loading…"
-                : formatDisplayMoney(
-                    totals.currentValue,
-                    currency,
-                    rates,
-                  )
+                : formatDisplayMoney(totals.currentValue, currency, rates)
             }
             isLoading={totals.hasLoadingPrices}
           />
-          <SummaryCard
-            label={`Total Cost (${currency})`}
-            value={formatDisplayMoney(
-              totals.costValue,
-              currency,
-              rates,
-            )}
+          <StatCard
+            label={`Total cost · ${currency}`}
+            value={formatDisplayMoney(totals.costValue, currency, rates)}
           />
-          <SummaryCard
-            label={`Total P/L (${currency})`}
+          <StatCard
+            label={`Total P/L · ${currency}`}
             value={
               totals.hasLoadingPrices
                 ? "Loading…"
@@ -158,19 +203,57 @@ export function PortfolioContent() {
         </div>
       )}
 
-      <PortfolioTable
-        holdings={enrichedHoldings}
-        isLoading={isLoading}
-        currency={currency}
-        rates={rates}
-        onEdit={(holding) => setEditingHolding(holding)}
-        onDelete={(holding) => setDeletingHolding(holding)}
-      />
+      <div className="flex flex-col gap-6">
+        <PortfolioTable
+          holdings={enrichedHoldings}
+          isLoading={isLoading}
+          currency={currency}
+          rates={rates}
+          onRowClick={setViewingHolding}
+          onEdit={(holding) => setEditingHolding(holding)}
+          onDelete={(holding) => setDeletingHolding(holding)}
+        />
 
-      <AddAssetDialog
+        {enrichedArchived.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Closed Positions (zero quantity)
+            </h2>
+            <PortfolioTable
+              holdings={enrichedArchived}
+              currency={currency}
+              rates={rates}
+              onRowClick={setViewingHolding}
+              onEdit={(holding) => setEditingHolding(holding)}
+              onDelete={(holding) => setDeletingHolding(holding)}
+            />
+          </section>
+        )}
+      </div>
+
+      <AddTransactionDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onAdd={addHolding}
+        onAdd={addTransaction}
+        holdings={holdings}
+      />
+
+      <HoldingDetailsDialog
+        holding={viewingHolding}
+        open={viewingHolding !== null}
+        onOpenChange={(open) => {
+          if (!open) setViewingHolding(null);
+        }}
+        currency={currency}
+        rates={rates}
+        onEdit={(holding) => {
+          setViewingHolding(null);
+          setEditingHolding(holding);
+        }}
+        onDelete={(holding) => {
+          setViewingHolding(null);
+          setDeletingHolding(holding);
+        }}
       />
 
       <EditHoldingDialog
@@ -190,40 +273,6 @@ export function PortfolioContent() {
         }}
         onConfirm={removeHolding}
       />
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  subValue,
-  valueClassName,
-  isLoading,
-}: {
-  label: string;
-  value: string;
-  subValue?: string;
-  valueClassName?: string;
-  isLoading?: boolean;
-}) {
-  return (
-    <div className="glass-panel rounded-xl px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-1 text-xl font-semibold tabular-nums",
-          isLoading && "animate-pulse text-muted-foreground",
-          valueClassName,
-        )}
-      >
-        {value}
-      </p>
-      {subValue && (
-        <p className={cn("text-sm tabular-nums", valueClassName)}>{subValue}</p>
-      )}
     </div>
   );
 }

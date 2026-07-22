@@ -23,14 +23,18 @@ export function AnalyticsChartCard({
   contentClassName,
 }: AnalyticsChartCardProps) {
   return (
-    <Card className={cn("glass-panel overflow-hidden", className)}>
-      <CardHeader className="border-b border-white/10 px-5 py-4">
+    <Card className={cn("surface-card gap-0 py-0 shadow-none", className)}>
+      <CardHeader className="border-b border-border/60 px-6 py-5">
         <CardTitle className="text-base font-semibold tracking-tight">
           {title}
         </CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+        {description && (
+          <CardDescription className="text-sm leading-relaxed">
+            {description}
+          </CardDescription>
+        )}
       </CardHeader>
-      <CardContent className={cn("px-4 py-5", contentClassName)}>
+      <CardContent className={cn("px-6 py-6", contentClassName)}>
         {children}
       </CardContent>
     </Card>
@@ -43,7 +47,7 @@ export function AnalyticsChartEmpty({
   message?: string;
 }) {
   return (
-    <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/10 px-6 py-10 text-center text-sm text-muted-foreground">
+    <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/15 px-6 py-10 text-center text-sm leading-relaxed text-muted-foreground">
       {message}
     </div>
   );

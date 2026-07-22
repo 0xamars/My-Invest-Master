@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Banknote, Loader2, Save } from "lucide-react";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
+import { SectorSelect } from "@/components/portfolio/sector-select";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,8 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAssetPrice } from "@/hooks/use-asset-price";
-import { formatPrice } from "@/lib/portfolio/format";
+import { formatPrice, formatQuantity } from "@/lib/portfolio/format";
+import {
+  resolveSectorChoice,
+  toSectorChoiceValue,
+} from "@/lib/portfolio/sectors";
 import type { DisplayCurrency } from "@/types/currency";
 import { DISPLAY_CURRENCIES } from "@/types/currency";
 import type {
@@ -44,93 +48,59 @@ export function EditHoldingDialog({
   onOpenChange,
   onSave,
 }: EditHoldingDialogProps) {
-  const [costPrice, setCostPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
   const [manualCurrentPrice, setManualCurrentPrice] = useState("");
   const [customName, setCustomName] = useState("");
-  const [cashAmount, setCashAmount] = useState("");
   const [cashCurrency, setCashCurrency] = useState<DisplayCurrency>("USD");
+  const [sectorChoice, setSectorChoice] = useState("Other");
+  const [customSector, setCustomSector] = useState("");
 
-  const liveAsset =
-    holding && isLivePricedAsset(holding.type)
-      ? {
-          symbol: holding.symbol,
-          name: holding.name,
-          type: holding.type,
-          category: holding.category,
-          subCategory: holding.subCategory,
-          priceId: holding.priceId,
-          logoUrl: holding.logoUrl,
-        }
-      : null;
-
-  const { price: livePrice, isLoading: isPriceLoading, error: priceError } =
-    useAssetPrice(liveAsset);
+  const resolvedSector = resolveSectorChoice(sectorChoice, customSector);
 
   useEffect(() => {
     if (!holding || !open) return;
 
-    setCostPrice(holding.costPrice.toString());
-    setQuantity(holding.quantity.toString());
     setManualCurrentPrice(holding.manualCurrentPrice?.toString() ?? "");
     setCustomName(holding.name);
-    setCashAmount(holding.quantity.toString());
     setCashCurrency(getCashCurrency(holding));
+    const sectorFields = toSectorChoiceValue(holding.sector);
+    setSectorChoice(sectorFields.choice);
+    setCustomSector(sectorFields.customValue);
   }, [holding, open]);
 
   if (!holding) return null;
 
   const handleSave = () => {
     if (holding.type === "cash") {
-      const parsedAmount = parseFloat(cashAmount);
-      if (!parsedAmount || parsedAmount <= 0) return;
-
-      onSave(holding.id, {
-        quantity: parsedAmount,
-        cashCurrency,
-        costPrice: 1,
-      });
+      onSave(holding.id, { cashCurrency });
       onOpenChange(false);
       return;
     }
 
     if (holding.type === "custom") {
       const parsedCurrent = parseFloat(manualCurrentPrice);
-      const parsedCost = parseFloat(costPrice);
-      const parsedQty = parseFloat(quantity);
-
       if (!parsedCurrent || parsedCurrent <= 0) return;
-      if (!parsedCost || parsedCost <= 0 || !parsedQty || parsedQty <= 0) return;
 
       onSave(holding.id, {
         name: customName.trim() || holding.symbol,
+        sector: resolvedSector ?? holding.sector,
         manualCurrentPrice: parsedCurrent,
-        costPrice: parsedCost,
-        quantity: parsedQty,
       });
       onOpenChange(false);
       return;
     }
 
-    const parsedCost = parseFloat(costPrice);
-    const parsedQty = parseFloat(quantity);
-    if (!parsedCost || parsedCost <= 0 || !parsedQty || parsedQty <= 0) return;
-
     onSave(holding.id, {
-      costPrice: parsedCost,
-      quantity: parsedQty,
+      sector: resolvedSector ?? holding.sector,
     });
     onOpenChange(false);
   };
 
   const isValid =
     holding.type === "cash"
-      ? parseFloat(cashAmount) > 0
+      ? true
       : holding.type === "custom"
-        ? parseFloat(manualCurrentPrice) > 0 &&
-          parseFloat(costPrice) > 0 &&
-          parseFloat(quantity) > 0
-        : parseFloat(costPrice) > 0 && parseFloat(quantity) > 0 && !isPriceLoading;
+        ? parseFloat(manualCurrentPrice) > 0 && !!resolvedSector
+        : !!resolvedSector;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,7 +108,8 @@ export function EditHoldingDialog({
         <DialogHeader>
           <DialogTitle>Edit Holding</DialogTitle>
           <DialogDescription>
-            Update quantity, cost basis, or manual prices for this entry.
+            Update sector or manual prices. Quantity and cost are managed via
+            transactions.
           </DialogDescription>
         </DialogHeader>
 
@@ -158,56 +129,21 @@ export function EditHoldingDialog({
                 {holding.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {holding.category} · {holding.subCategory}
+                {formatQuantity(holding.quantity, holding.type)} @{" "}
+                {formatPrice(holding.costPrice, holding.type)} avg
               </p>
             </div>
           </div>
 
-          {isLivePricedAsset(holding.type) && (
-            <>
-              <div className="rounded-md border bg-background px-3 py-2">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Current Market Price
-                </p>
-                {isPriceLoading ? (
-                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" />
-                    Fetching live price…
-                  </div>
-                ) : priceError ? (
-                  <p className="mt-1 text-sm text-destructive">{priceError}</p>
-                ) : livePrice !== null ? (
-                  <p className="mt-1 text-lg font-semibold tabular-nums">
-                    {formatPrice(livePrice, holding.type)}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-cost-price">Average Cost Price</Label>
-                  <Input
-                    id="edit-cost-price"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={costPrice}
-                    onChange={(e) => setCostPrice(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-quantity">Quantity</Label>
-                  <Input
-                    id="edit-quantity"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                  />
-                </div>
-              </div>
-            </>
+          {holding.type !== "cash" && (
+            <SectorSelect
+              assetType={holding.type}
+              sectorChoice={sectorChoice}
+              customSector={customSector}
+              onSectorChoiceChange={setSectorChoice}
+              onCustomSectorChange={setCustomSector}
+              idPrefix="edit"
+            />
           )}
 
           {holding.type === "custom" && (
@@ -231,30 +167,6 @@ export function EditHoldingDialog({
                   onChange={(e) => setManualCurrentPrice(e.target.value)}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-custom-cost">Average Cost Price</Label>
-                  <Input
-                    id="edit-custom-cost"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={costPrice}
-                    onChange={(e) => setCostPrice(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-custom-qty">Quantity</Label>
-                  <Input
-                    id="edit-custom-qty"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                  />
-                </div>
-              </div>
             </div>
           )}
 
@@ -265,46 +177,41 @@ export function EditHoldingDialog({
                   <Banknote className="size-5" />
                 </div>
                 <div>
-                  <p className="font-semibold">Cash Balance</p>
+                  <p className="font-semibold">Cash Currency</p>
                   <p className="text-sm text-muted-foreground">
-                    Update the amount or currency for this cash entry.
+                    Use Add Transaction to deposit or withdraw cash.
                   </p>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-cash-currency">Currency</Label>
-                  <Select
-                    value={cashCurrency}
-                    onValueChange={(value) =>
-                      setCashCurrency(value as DisplayCurrency)
-                    }
-                  >
-                    <SelectTrigger id="edit-cash-currency" className="w-full">
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DISPLAY_CURRENCIES.map((code) => (
-                        <SelectItem key={code} value={code}>
-                          {code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-cash-amount">Amount</Label>
-                  <Input
-                    id="edit-cash-amount"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={cashAmount}
-                    onChange={(e) => setCashAmount(e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-cash-currency">Currency</Label>
+                <Select
+                  value={cashCurrency}
+                  onValueChange={(value) => {
+                    if (value) setCashCurrency(value as DisplayCurrency);
+                  }}
+                >
+                  <SelectTrigger id="edit-cash-currency" className="w-full">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DISPLAY_CURRENCIES.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+          )}
+
+          {isLivePricedAsset(holding.type) && (
+            <p className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+              To change quantity or average cost, use{" "}
+              <span className="font-medium text-foreground">Add Transaction</span>{" "}
+              with a buy or sell entry.
+            </p>
           )}
         </div>
 
@@ -313,11 +220,7 @@ export function EditHoldingDialog({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={!isValid} className="gap-2">
-            {isLivePricedAsset(holding.type) && isPriceLoading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
+            <Save className="size-4" />
             Save Changes
           </Button>
         </DialogFooter>

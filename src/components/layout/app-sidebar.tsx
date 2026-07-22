@@ -1,23 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Home,
+  Layers,
   LineChart,
+  Lock,
   PieChart,
   Settings,
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -25,126 +27,104 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { useAuth } from "@/hooks/use-auth";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
-const mainNavItems = [
-  { title: "Portfolio", href: "/portfolio", icon: PieChart },
-];
-
-const secondaryNavItems = [
-  { title: "Holdings", href: "/holdings", icon: Wallet },
+const publicNavItems = [
+  { title: "Home", href: "/", icon: Home },
   { title: "Performance", href: "/performance", icon: TrendingUp },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Markets", href: "/markets", icon: LineChart },
 ];
 
-function navButtonClass(isActive: boolean) {
-  return cn(
-    "transition-colors hover:bg-white/5",
-    isActive && "bg-white/8 font-medium text-foreground ring-1 ring-white/10",
-  );
+const protectedNavItems = [
+  { title: "Portfolio", href: "/portfolio", icon: PieChart },
+  { title: "Options", href: "/options", icon: Layers },
+  { title: "Holdings", href: "/holdings", icon: Wallet },
+];
+
+function navClass(isActive: boolean) {
+  return cn("nav-item", isActive && "nav-item-active");
 }
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user, isLoading } = useAuth();
+  const authRequired = isSupabaseConfigured();
+  const canAccessProtected = !authRequired || Boolean(user);
 
   return (
     <Sidebar collapsible="icon" className="portal-sidebar">
-      <SidebarHeader className="border-b border-white/10 pb-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              className="hover:bg-white/5"
-              render={<Link href="/portfolio" />}
-            >
-              <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg ring-1 ring-white/15 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)]">
-                <Image
-                  src="/logo.png"
-                  alt="My Invest Master"
-                  width={32}
-                  height={32}
-                  className="size-full object-cover"
-                  priority
-                />
-              </div>
-              <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold tracking-wide metallic-text">
-                  My Invest Master
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  Portfolio Tracker
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="brand-sidebar-header">
+        <Link href="/" className="brand-sidebar-mark">
+          <BrandLogo variant="sidebar" priority />
+        </Link>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/80">
-            Main
-          </SidebarGroupLabel>
+      <SidebarContent className="px-2">
+        <SidebarGroup className="p-0">
           <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNavItems.map((item) => (
+            <SidebarMenu className="gap-1">
+              {publicNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     isActive={pathname === item.href}
                     tooltip={item.title}
-                    className={navButtonClass(pathname === item.href)}
+                    className={navClass(pathname === item.href)}
                     render={<Link href={item.href} />}
                   >
-                    <item.icon />
+                    <item.icon className="size-[1.125rem] opacity-80" />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/80">
-            Insights
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {secondaryNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    tooltip={item.title}
-                    className={navButtonClass(pathname === item.href)}
-                    render={<Link href={item.href} />}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {protectedNavItems.map((item) => {
+                const isLocked = !isLoading && !canAccessProtected;
+                const href = isLocked ? "/?signin=1" : item.href;
+
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={pathname === item.href}
+                      tooltip={
+                        isLocked ? `${item.title} (sign in required)` : item.title
+                      }
+                      className={navClass(pathname === item.href)}
+                      render={<Link href={href} />}
+                    >
+                      <item.icon className="size-[1.125rem] opacity-80" />
+                      <span>{item.title}</span>
+                      {isLocked && (
+                        <Lock className="ml-auto size-3.5 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-white/10 pt-2">
-        <SidebarMenu>
+      <SidebarFooter className="gap-2 px-2 pb-4">
+        <SidebarMenu className="gap-1">
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Settings"
-              className="hover:bg-white/5"
+              isActive={pathname === "/settings"}
+              className={navClass(pathname === "/settings")}
               render={<Link href="/settings" />}
             >
-              <Settings />
+              <Settings className="size-[1.125rem] opacity-80" />
               <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <div className="flex items-center justify-between px-2 py-1">
+            <div className="flex items-center justify-between rounded-xl px-2 py-1.5">
               <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                Theme
+                Appearance
               </span>
               <ThemeToggle />
             </div>

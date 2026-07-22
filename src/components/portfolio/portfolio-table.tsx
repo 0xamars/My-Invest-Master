@@ -53,70 +53,85 @@ interface PortfolioTableProps {
   isLoading?: boolean;
   currency: DisplayCurrency;
   rates: FxRates;
+  onRowClick: (holding: PortfolioHoldingWithPrices) => void;
   onEdit: (holding: PortfolioHoldingWithPrices) => void;
   onDelete: (holding: PortfolioHoldingWithPrices) => void;
 }
+
+const CELL = "px-4 py-3.5";
+const NUMERIC = cn(CELL, "text-right text-sm tabular-nums");
 
 const COLUMNS: {
   id: SortColumn;
   label: string;
   align?: "left" | "right";
   className?: string;
+  width?: string;
 }[] = [
   {
     id: "ticker",
     label: "Ticker",
-    className: "sticky left-0 z-10 min-w-[90px] bg-muted/40 pl-4",
+    className: cn(
+      CELL,
+      "sticky left-0 z-10 bg-card pl-5 backdrop-blur-sm group-hover:bg-muted/25",
+    ),
+    width: "minmax(168px, 1.4fr)",
   },
-  { id: "category", label: "Category", className: "min-w-[100px]" },
-  { id: "subCategory", label: "Sub Category", className: "min-w-[140px]" },
   {
     id: "currentPrice",
     label: "Current Price",
     align: "right",
-    className: "min-w-[110px]",
+    className: NUMERIC,
+    width: "minmax(112px, 1fr)",
   },
   {
     id: "costPrice",
     label: "Cost Price",
     align: "right",
-    className: "min-w-[100px]",
+    className: cn(NUMERIC, "text-muted-foreground"),
+    width: "minmax(104px, 1fr)",
   },
   {
     id: "quantity",
     label: "Quantity",
     align: "right",
-    className: "min-w-[90px]",
+    className: NUMERIC,
+    width: "minmax(96px, 0.9fr)",
   },
   {
     id: "costValue",
     label: "Cost Value",
     align: "right",
-    className: "min-w-[110px]",
+    className: cn(NUMERIC, "text-muted-foreground"),
+    width: "minmax(112px, 1fr)",
   },
   {
     id: "currentValue",
     label: "Current Value",
     align: "right",
-    className: "min-w-[110px]",
+    className: cn(NUMERIC, "font-medium"),
+    width: "minmax(112px, 1fr)",
   },
   {
     id: "profitLoss",
     label: "Profit/Loss",
     align: "right",
-    className: "min-w-[110px]",
+    className: NUMERIC,
+    width: "minmax(112px, 1fr)",
   },
   {
     id: "profitLossPercent",
-    label: "Profit/Loss %",
+    label: "P/L %",
     align: "right",
-    className: "min-w-[100px]",
+    className: NUMERIC,
+    width: "minmax(88px, 0.8fr)",
   },
   {
     id: "portfolioPercent",
     label: "Portfolio %",
     align: "right",
-    className: "min-w-[90px] pr-4",
+    className: cn(NUMERIC, "pr-5"),
+    width: "minmax(96px, 0.85fr)",
   },
 ];
 
@@ -168,7 +183,8 @@ function SortableHeader({
         size="sm"
         onClick={() => onSort(column)}
         className={cn(
-          "-ml-2 h-8 gap-1 px-2 font-medium hover:bg-muted/60",
+          "h-8 gap-1.5 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          align === "left" && "-ml-2",
           align === "right" && "ml-auto -mr-2 flex-row-reverse",
           isActive && "text-foreground",
         )}
@@ -190,6 +206,7 @@ export function PortfolioTable({
   isLoading,
   currency,
   rates,
+  onRowClick,
   onEdit,
   onDelete,
 }: PortfolioTableProps) {
@@ -206,27 +223,32 @@ export function PortfolioTable({
 
   if (holdings.length === 0) {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 px-6 py-16 text-center">
-        <p className="text-lg font-medium">No assets in your portfolio yet</p>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Click &quot;Add Asset&quot; to start tracking stocks, crypto, custom
-          assets, or cash.
+      <div className="surface-card flex min-h-[360px] flex-col items-center justify-center px-8 py-20 text-center">
+        <p className="text-lg font-semibold tracking-tight">No assets yet</p>
+        <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          Add your first holding to start tracking performance and allocation.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="glass-panel overflow-hidden rounded-xl">
+    <div className="table-shell">
       {isLoading && (
-        <div className="border-b bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
-          Loading live prices…
+        <div className="border-b border-border/60 px-5 py-3 text-xs text-muted-foreground">
+          Updating live prices…
         </div>
       )}
       <ScrollArea className="w-full">
-        <Table>
+        <Table className="min-w-[960px] table-fixed">
+          <colgroup>
+            {COLUMNS.map((col) => (
+              <col key={col.id} style={{ width: col.width }} />
+            ))}
+            <col style={{ width: "52px" }} />
+          </colgroup>
           <TableHeader>
-            <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableRow className="border-border/60 hover:bg-transparent">
               {COLUMNS.map((col) => (
                 <SortableHeader
                   key={col.id}
@@ -238,7 +260,12 @@ export function PortfolioTable({
                   className={col.className}
                 />
               ))}
-              <TableHead className="sticky right-0 z-10 w-12 bg-muted/40 pr-4">
+              <TableHead
+                className={cn(
+                  CELL,
+                  "sticky right-0 z-10 w-[52px] bg-card pr-5 backdrop-blur-sm",
+                )}
+              >
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
@@ -248,9 +275,18 @@ export function PortfolioTable({
               const loading = holding.isPriceLoading;
 
               return (
-                <TableRow key={holding.id} className="group">
-                  <TableCell className="sticky left-0 z-10 bg-card pl-4 font-semibold group-hover:bg-muted/50">
-                    <div className="flex items-center gap-2.5">
+                <TableRow
+                  key={holding.id}
+                  onClick={() => onRowClick(holding)}
+                  className="group cursor-pointer border-border/50 transition-colors duration-150 hover:bg-muted/30"
+                >
+                  <TableCell
+                    className={cn(
+                      CELL,
+                      "sticky left-0 z-10 bg-card pl-5 font-medium group-hover:bg-muted/30",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
                       <AssetLogo
                         symbol={holding.symbol}
                         name={holding.name}
@@ -260,10 +296,12 @@ export function PortfolioTable({
                         size="sm"
                       />
                       <div className="flex min-w-0 items-center gap-2">
-                        {holding.symbol}
+                        <span className="font-semibold tracking-tight">
+                          {holding.symbol}
+                        </span>
                         <Badge
                           variant="outline"
-                          className="text-[10px] font-normal uppercase"
+                          className="border-border/70 bg-muted/30 px-1.5 py-0 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"
                         >
                           {holding.type === "cash"
                             ? getCashCurrency(holding)
@@ -272,16 +310,7 @@ export function PortfolioTable({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {holding.category}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {holding.subCategory}
-                  </TableCell>
-                  <PriceCell
-                    loading={loading}
-                    className="text-right tabular-nums"
-                  >
+                  <PriceCell loading={loading} className={NUMERIC}>
                     {holding.currentPrice !== null
                       ? formatPrice(
                           holding.currentPrice,
@@ -291,7 +320,7 @@ export function PortfolioTable({
                         )
                       : "—"}
                   </PriceCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                  <TableCell className={cn(NUMERIC, "text-muted-foreground")}>
                     {formatPrice(
                       holding.costPrice,
                       holding.type,
@@ -299,7 +328,7 @@ export function PortfolioTable({
                       rates,
                     )}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className={NUMERIC}>
                     {holding.type === "cash"
                       ? formatCashAmount(
                           holding.quantity,
@@ -309,17 +338,10 @@ export function PortfolioTable({
                         )
                       : formatQuantity(holding.quantity, holding.type)}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {formatDisplayMoney(
-                      holding.costValue,
-                      currency,
-                      rates,
-                    )}
+                  <TableCell className={cn(NUMERIC, "text-muted-foreground")}>
+                    {formatDisplayMoney(holding.costValue, currency, rates)}
                   </TableCell>
-                  <PriceCell
-                    loading={loading}
-                    className="text-right tabular-nums font-medium"
-                  >
+                  <PriceCell loading={loading} className={cn(NUMERIC, "font-medium")}>
                     {holding.currentValue !== null
                       ? formatDisplayMoney(
                           holding.currentValue,
@@ -331,7 +353,7 @@ export function PortfolioTable({
                   <PriceCell
                     loading={loading}
                     className={cn(
-                      "text-right tabular-nums",
+                      NUMERIC,
                       holding.profitLoss !== null &&
                         profitLossClass(holding.profitLoss),
                     )}
@@ -352,7 +374,7 @@ export function PortfolioTable({
                   <PriceCell
                     loading={loading}
                     className={cn(
-                      "text-right tabular-nums",
+                      NUMERIC,
                       holding.profitLossPercent !== null &&
                         profitLossClass(holding.profitLossPercent),
                     )}
@@ -361,22 +383,25 @@ export function PortfolioTable({
                       ? formatPercent(holding.profitLossPercent)
                       : "—"}
                   </PriceCell>
-                  <PriceCell
-                    loading={loading}
-                    className="pr-4 text-right tabular-nums"
-                  >
+                  <PriceCell loading={loading} className={cn(NUMERIC, "pr-5")}>
                     {holding.portfolioPercent !== null
                       ? `${holding.portfolioPercent.toFixed(2)}%`
                       : "—"}
                   </PriceCell>
-                  <TableCell className="sticky right-0 z-10 bg-card pr-4 group-hover:bg-muted/50">
+                  <TableCell
+                    className={cn(
+                      CELL,
+                      "sticky right-0 z-10 w-[52px] bg-card pr-5 group-hover:bg-muted/30",
+                    )}
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         render={
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 text-muted-foreground hover:text-foreground"
+                            className="size-8 rounded-lg text-muted-foreground opacity-0 transition-all duration-150 group-hover:opacity-100 hover:bg-muted hover:text-foreground data-popup-open:opacity-100"
                           >
                             <MoreHorizontal className="size-4" />
                             <span className="sr-only">Open actions</span>

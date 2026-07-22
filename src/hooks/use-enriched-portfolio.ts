@@ -9,6 +9,7 @@ import {
   enrichHoldings,
   getPortfolioTotals,
 } from "@/lib/portfolio/calculations";
+import { isHoldingVisible } from "@/lib/portfolio/transactions";
 
 export function useEnrichedPortfolio() {
   const { holdings, isLoaded: isStorageLoaded } = usePortfolioStorage();
@@ -28,9 +29,14 @@ export function useEnrichedPortfolio() {
     refetch,
   } = usePortfolioPrices(holdings);
 
+  const visibleHoldings = useMemo(
+    () => holdings.filter(isHoldingVisible),
+    [holdings],
+  );
+
   const enrichedHoldings = useMemo(
-    () => enrichHoldings(holdings, prices, loadingSymbols, rates),
-    [holdings, prices, loadingSymbols, rates],
+    () => enrichHoldings(visibleHoldings, prices, loadingSymbols, rates),
+    [visibleHoldings, prices, loadingSymbols, rates],
   );
 
   const totals = useMemo(

@@ -1,8 +1,15 @@
+import { AccountSettings } from "@/components/settings/account-settings";
+
 export default function SettingsPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Settings</h1>
-      <p className="text-muted-foreground">Coming soon.</p>
+    <div className="flex flex-1 flex-col gap-8">
+      <div>
+        <h1 className="page-title">Settings</h1>
+        <p className="page-description">
+          Manage account and cloud sync for your portfolio data.
+        </p>
+      </div>
+      <AccountSettings />
     </div>
   );
 }

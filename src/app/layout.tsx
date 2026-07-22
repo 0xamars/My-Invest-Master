@@ -16,11 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "My Invest Master",
-  description: "Portfolio tracking web app for personal finance",
+  title: "Invest Salsa",
+  description: "Market news, S&P 500 heatmap, and portfolio tracking with secure cloud sync",
   icons: {
     icon: "/logo.png",
-    apple: "/logo.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 

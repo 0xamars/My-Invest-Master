@@ -62,9 +62,9 @@ export function PortfolioAllocationChart({
 
   if (chartData.length === 0) {
     return (
-      <Card className="glass-panel overflow-hidden">
-        <CardHeader className="border-b border-white/10 px-6 py-5">
-          <CardTitle className="text-xl font-semibold tracking-tight metallic-text">
+      <Card className="surface-card gap-0 py-0 shadow-none">
+        <CardHeader className="border-b border-border/60 px-6 py-5">
+          <CardTitle className="text-lg font-semibold tracking-tight">
             Portfolio Allocation
           </CardTitle>
           <CardDescription>
@@ -81,11 +81,11 @@ export function PortfolioAllocationChart({
   }
 
   return (
-    <Card className="glass-panel overflow-hidden">
-      <CardHeader className="border-b border-white/10 px-6 py-5">
+    <Card className="surface-card gap-0 py-0 shadow-none">
+      <CardHeader className="border-b border-border/60 px-6 py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-xl font-semibold tracking-tight metallic-text">
+            <CardTitle className="text-lg font-semibold tracking-tight">
               Portfolio Allocation
             </CardTitle>
             <CardDescription>
@@ -94,10 +94,8 @@ export function PortfolioAllocationChart({
             </CardDescription>
           </div>
           <div className="sm:text-right">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Total value
-            </p>
-            <p className="text-2xl font-semibold tabular-nums tracking-tight">
+            <p className="stat-label">Total value</p>
+            <p className="stat-value text-2xl">
               {formatDisplayMoney(totalValue, currency, rates)}
             </p>
           </div>

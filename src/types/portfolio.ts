@@ -2,6 +2,18 @@ import type { DisplayCurrency } from "@/types/currency";
 
 export type AssetType = "stock" | "crypto" | "custom" | "cash";
 
+export type TransactionType = "buy" | "sell";
+
+export interface PortfolioTransaction {
+  id: string;
+  type: TransactionType;
+  quantity: number;
+  pricePerUnit: number;
+  /** ISO date string (YYYY-MM-DD) */
+  date: string;
+  createdAt: string;
+}
+
 export interface AssetCatalogItem {
   symbol: string;
   name: string;
@@ -19,11 +31,17 @@ export interface PortfolioHolding {
   symbol: string;
   name: string;
   type: AssetType;
+  /** Sector for allocation charts (e.g. AI Tech, Software). */
+  sector: string;
+  /** @deprecated Legacy — use sector. Kept for search API mapping. */
   category: string;
+  /** @deprecated Legacy — use sector. Kept for search API mapping. */
   subCategory: string;
   costPrice: number;
   quantity: number;
   addedAt: string;
+  /** Ledger of buy/sell events — source of truth for quantity & avg cost. */
+  transactions: PortfolioTransaction[];
   priceId?: string;
   /** Logo image URL */
   logoUrl?: string;
@@ -43,8 +61,22 @@ export interface PortfolioHoldingWithPrices extends PortfolioHolding {
   isPriceLoading: boolean;
 }
 
+export interface AddTransactionInput {
+  asset: AssetCatalogItem;
+  type: TransactionType;
+  quantity: number;
+  pricePerUnit: number;
+  date: string;
+  /** Required when creating a new holding. */
+  sector?: string;
+  manualCurrentPrice?: number;
+  cashCurrency?: DisplayCurrency;
+}
+
+/** @deprecated Use AddTransactionInput */
 export interface AddAssetInput {
   asset: AssetCatalogItem;
+  sector: string;
   costPrice: number;
   quantity: number;
   manualCurrentPrice?: number;
@@ -52,10 +84,9 @@ export interface AddAssetInput {
 }
 
 export interface UpdateHoldingInput {
-  costPrice?: number;
-  quantity?: number;
   manualCurrentPrice?: number;
   name?: string;
+  sector?: string;
   cashCurrency?: DisplayCurrency;
 }
 

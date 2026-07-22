@@ -16,7 +16,6 @@ import {
   formatPercent,
   profitLossClass,
 } from "@/lib/portfolio/format";
-import { cn } from "@/lib/utils";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
 import type { PortfolioHoldingWithPrices } from "@/types/portfolio";
 
@@ -30,47 +29,6 @@ interface AnalyticsKpiCardsProps {
   };
   currency: DisplayCurrency;
   rates: FxRates;
-}
-
-function KpiCard({
-  label,
-  value,
-  subValue,
-  icon: Icon,
-  valueClassName,
-  isLoading,
-}: {
-  label: string;
-  value: string;
-  subValue?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  valueClassName?: string;
-  isLoading?: boolean;
-}) {
-  return (
-    <div className="glass-panel rounded-xl px-4 py-3.5">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-          {label}
-        </p>
-        <Icon className="size-4 shrink-0 text-muted-foreground/70" />
-      </div>
-      <p
-        className={cn(
-          "mt-2 text-xl font-semibold tabular-nums tracking-tight",
-          isLoading && "animate-pulse text-muted-foreground",
-          valueClassName,
-        )}
-      >
-        {value}
-      </p>
-      {subValue && (
-        <p className={cn("mt-0.5 text-xs text-muted-foreground", valueClassName)}>
-          {subValue}
-        </p>
-      )}
-    </div>
-  );
 }
 
 export function AnalyticsKpiCards({
@@ -88,83 +46,86 @@ export function AnalyticsKpiCards({
   const returnPercent =
     totals.costValue > 0 ? (totals.profitLoss / totals.costValue) * 100 : 0;
 
+  const cards = [
+    {
+      label: `Total value · ${currency}`,
+      value: isLoading
+        ? "Loading…"
+        : formatDisplayMoney(totals.currentValue, currency, rates),
+      subValue: `Cost ${formatDisplayMoney(totals.costValue, currency, rates)}`,
+      icon: Wallet,
+      isLoading,
+    },
+    {
+      label: `Total P/L · ${currency}`,
+      value: isLoading
+        ? "Loading…"
+        : `${totals.profitLoss >= 0 ? "+" : ""}${formatDisplayMoney(totals.profitLoss, currency, rates)}`,
+      subValue: formatPercent(returnPercent),
+      icon: TrendingUp,
+      valueClassName: profitLossClass(totals.profitLoss),
+      isLoading,
+    },
+    {
+      label: "Return",
+      value: isLoading ? "Loading…" : formatPercent(summary.returnPercent),
+      subValue: `${summary.holdingsCount} holdings`,
+      icon: PieChart,
+      valueClassName: profitLossClass(summary.returnPercent),
+      isLoading,
+    },
+    {
+      label: "Winners / losers",
+      value: `${summary.winnersCount} / ${summary.losersCount}`,
+      subValue: "Positions in profit vs loss",
+      icon: Layers,
+    },
+    {
+      label: "Best performer",
+      value: summary.bestPerformer
+        ? getHoldingChartLabel(summary.bestPerformer)
+        : "—",
+      subValue: summary.bestPerformer
+        ? formatPercent(summary.bestPerformer.profitLossPercent ?? 0)
+        : "No P/L data",
+      icon: ArrowUpRight,
+      valueClassName: summary.bestPerformer
+        ? profitLossClass(summary.bestPerformer.profitLoss ?? 0)
+        : undefined,
+    },
+    {
+      label: "Worst performer",
+      value: summary.worstPerformer
+        ? getHoldingChartLabel(summary.worstPerformer)
+        : "—",
+      subValue: summary.worstPerformer
+        ? formatPercent(summary.worstPerformer.profitLossPercent ?? 0)
+        : "No P/L data",
+      icon: ArrowDownRight,
+      valueClassName: summary.worstPerformer
+        ? profitLossClass(summary.worstPerformer.profitLoss ?? 0)
+        : undefined,
+    },
+  ];
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-      <KpiCard
-        label={`Total Value (${currency})`}
-        value={
-          isLoading
-            ? "Loading…"
-            : formatDisplayMoney(totals.currentValue, currency, rates)
-        }
-        subValue={`Cost ${formatDisplayMoney(totals.costValue, currency, rates)}`}
-        icon={Wallet}
-        isLoading={isLoading}
-      />
-      <KpiCard
-        label={`Total P/L (${currency})`}
-        value={
-          isLoading
-            ? "Loading…"
-            : `${totals.profitLoss >= 0 ? "+" : ""}${formatDisplayMoney(totals.profitLoss, currency, rates)}`
-        }
-        subValue={formatPercent(returnPercent)}
-        icon={TrendingUp}
-        valueClassName={profitLossClass(totals.profitLoss)}
-        isLoading={isLoading}
-      />
-      <KpiCard
-        label="Return"
-        value={isLoading ? "Loading…" : formatPercent(summary.returnPercent)}
-        subValue={`${summary.holdingsCount} active holdings`}
-        icon={PieChart}
-        valueClassName={profitLossClass(summary.returnPercent)}
-        isLoading={isLoading}
-      />
-      <KpiCard
-        label="Winners / Losers"
-        value={`${summary.winnersCount} / ${summary.losersCount}`}
-        subValue="Positions in profit vs loss"
-        icon={Layers}
-      />
-      <KpiCard
-        label="Best Performer"
-        value={
-          summary.bestPerformer
-            ? getHoldingChartLabel(summary.bestPerformer)
-            : "—"
-        }
-        subValue={
-          summary.bestPerformer
-            ? formatPercent(summary.bestPerformer.profitLossPercent ?? 0)
-            : "No P/L data"
-        }
-        icon={ArrowUpRight}
-        valueClassName={
-          summary.bestPerformer
-            ? profitLossClass(summary.bestPerformer.profitLoss ?? 0)
-            : undefined
-        }
-      />
-      <KpiCard
-        label="Worst Performer"
-        value={
-          summary.worstPerformer
-            ? getHoldingChartLabel(summary.worstPerformer)
-            : "—"
-        }
-        subValue={
-          summary.worstPerformer
-            ? formatPercent(summary.worstPerformer.profitLossPercent ?? 0)
-            : "No P/L data"
-        }
-        icon={ArrowDownRight}
-        valueClassName={
-          summary.worstPerformer
-            ? profitLossClass(summary.worstPerformer.profitLoss ?? 0)
-            : undefined
-        }
-      />
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      {cards.map((card) => (
+        <div key={card.label} className="stat-card relative">
+          <card.icon className="absolute top-5 right-5 size-4 text-muted-foreground/40" />
+          <p className="stat-label pr-6">{card.label}</p>
+          <p
+            className={`stat-value ${card.isLoading ? "animate-pulse text-muted-foreground" : ""} ${card.valueClassName ?? ""}`}
+          >
+            {card.value}
+          </p>
+          {card.subValue && (
+            <p className={`stat-sub ${card.valueClassName ?? ""}`}>
+              {card.subValue}
+            </p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
