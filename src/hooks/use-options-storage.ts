@@ -2,14 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { migrateLocalDataToCloud } from "@/lib/portfolio/migrate-local-data";
-import {
-  hasStoredData,
-  loadWithBackup,
-  optionsStorageKeys,
-  readJsonFromStorage,
-  writeJsonToStorage,
-} from "@/lib/portfolio/local-storage";
+import { importLegacyLocalDataOnce } from "@/lib/portfolio/legacy-import";
 import {
   loadOptionsFromCloud,
   saveOptionsToCloud,
@@ -22,20 +15,13 @@ import type {
   UpdateOptionsPositionInput,
 } from "@/types/options";
 
-const { key: STORAGE_KEY, backupKey: BACKUP_KEY } = optionsStorageKeys;
 const SAVE_DEBOUNCE_MS = 500;
 
-function loadPositionsFromLocal(): OptionsPosition[] {
-  return loadWithBackup<OptionsPosition>(STORAGE_KEY, BACKUP_KEY).map(
-    (position) => ({
-      ...position,
-      ticker: position.ticker.toUpperCase(),
-    }),
-  );
-}
-
-function savePositionsToLocal(positions: OptionsPosition[]) {
-  writeJsonToStorage(STORAGE_KEY, BACKUP_KEY, positions);
+function normalizePositions(positions: OptionsPosition[]): OptionsPosition[] {
+  return positions.map((position) => ({
+    ...position,
+    ticker: position.ticker.toUpperCase(),
+  }));
 }
 
 export function useOptionsStorage() {
@@ -55,20 +41,19 @@ export function useOptionsStorage() {
       setIsLoaded(false);
       setSyncError(null);
 
+      if (!user || !isSupabaseConfigured()) {
+        if (!cancelled && version === loadVersionRef.current) {
+          setPositions([]);
+          setIsLoaded(true);
+        }
+        return;
+      }
+
       try {
-        if (user && isSupabaseConfigured()) {
-          await migrateLocalDataToCloud(user.id);
-          const remote = await loadOptionsFromCloud(user.id);
-          if (!cancelled && version === loadVersionRef.current) {
-            setPositions(
-              (remote ?? []).map((position) => ({
-                ...position,
-                ticker: position.ticker.toUpperCase(),
-              })),
-            );
-          }
-        } else if (!cancelled && version === loadVersionRef.current) {
-          setPositions(loadPositionsFromLocal());
+        await importLegacyLocalDataOnce(user.id);
+        const remote = await loadOptionsFromCloud(user.id);
+        if (!cancelled && version === loadVersionRef.current) {
+          setPositions(normalizePositions(remote ?? []));
         }
       } catch (error) {
         if (!cancelled && version === loadVersionRef.current) {
@@ -77,7 +62,7 @@ export function useOptionsStorage() {
               ? error.message
               : "Failed to load options from cloud.",
           );
-          setPositions(loadPositionsFromLocal());
+          setPositions([]);
         }
       } finally {
         if (!cancelled && version === loadVersionRef.current) {
@@ -94,22 +79,14 @@ export function useOptionsStorage() {
   }, [user, isAuthLoading]);
 
   useEffect(() => {
-    if (!isLoaded || isAuthLoading) return;
+    if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) {
+      return;
+    }
 
     const timer = window.setTimeout(async () => {
       try {
-        if (user && isSupabaseConfigured()) {
-          await saveOptionsToCloud(user.id, positions);
-          setSyncError(null);
-          return;
-        }
-
-        if (positions.length === 0 && hasStoredData(STORAGE_KEY, BACKUP_KEY)) {
-          const existing = readJsonFromStorage<OptionsPosition[]>(STORAGE_KEY);
-          if (existing && existing.length > 0) return;
-        }
-
-        savePositionsToLocal(positions);
+        await saveOptionsToCloud(user.id, positions);
+        setSyncError(null);
       } catch (error) {
         setSyncError(
           error instanceof Error

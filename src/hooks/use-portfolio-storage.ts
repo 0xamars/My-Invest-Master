@@ -2,15 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { migrateLocalDataToCloud } from "@/lib/portfolio/migrate-local-data";
 import { resolveHoldingSector } from "@/lib/portfolio/sectors";
-import {
-  hasStoredData,
-  loadWithBackup,
-  portfolioStorageKeys,
-  readJsonFromStorage,
-  writeJsonToStorage,
-} from "@/lib/portfolio/local-storage";
+import { importLegacyLocalDataOnce } from "@/lib/portfolio/legacy-import";
 import {
   loadPortfolioFromCloud,
   savePortfolioToCloud,
@@ -29,7 +22,6 @@ import type {
 } from "@/types/portfolio";
 import { getCashCurrency } from "@/types/portfolio";
 
-const { key: STORAGE_KEY, backupKey: BACKUP_KEY } = portfolioStorageKeys;
 const SAVE_DEBOUNCE_MS = 500;
 
 function processHoldings(raw: PortfolioHolding[]): PortfolioHolding[] {
@@ -48,17 +40,6 @@ function processHoldings(raw: PortfolioHolding[]): PortfolioHolding[] {
       return holding;
     }
   });
-}
-
-function loadHoldingsFromLocal(): PortfolioHolding[] {
-  if (typeof window === "undefined") return [];
-  return processHoldings(
-    loadWithBackup<PortfolioHolding>(STORAGE_KEY, BACKUP_KEY),
-  );
-}
-
-function saveHoldingsToLocal(holdings: PortfolioHolding[]) {
-  writeJsonToStorage(STORAGE_KEY, BACKUP_KEY, holdings);
 }
 
 function isSameCashHolding(
@@ -130,15 +111,19 @@ export function usePortfolioStorage() {
       setIsLoaded(false);
       setSyncError(null);
 
+      if (!user || !isSupabaseConfigured()) {
+        if (!cancelled && version === loadVersionRef.current) {
+          setHoldings([]);
+          setIsLoaded(true);
+        }
+        return;
+      }
+
       try {
-        if (user && isSupabaseConfigured()) {
-          await migrateLocalDataToCloud(user.id);
-          const remote = await loadPortfolioFromCloud(user.id);
-          if (!cancelled && version === loadVersionRef.current) {
-            setHoldings(processHoldings(remote ?? []));
-          }
-        } else if (!cancelled && version === loadVersionRef.current) {
-          setHoldings(loadHoldingsFromLocal());
+        await importLegacyLocalDataOnce(user.id);
+        const remote = await loadPortfolioFromCloud(user.id);
+        if (!cancelled && version === loadVersionRef.current) {
+          setHoldings(processHoldings(remote ?? []));
         }
       } catch (error) {
         if (!cancelled && version === loadVersionRef.current) {
@@ -147,7 +132,7 @@ export function usePortfolioStorage() {
               ? error.message
               : "Failed to load portfolio from cloud.",
           );
-          setHoldings(loadHoldingsFromLocal());
+          setHoldings([]);
         }
       } finally {
         if (!cancelled && version === loadVersionRef.current) {
@@ -164,25 +149,14 @@ export function usePortfolioStorage() {
   }, [user, isAuthLoading]);
 
   useEffect(() => {
-    if (!isLoaded || isAuthLoading) return;
+    if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) {
+      return;
+    }
 
     const timer = window.setTimeout(async () => {
       try {
-        if (user && isSupabaseConfigured()) {
-          await savePortfolioToCloud(user.id, holdings);
-          setSyncError(null);
-          return;
-        }
-
-        if (
-          holdings.length === 0 &&
-          hasStoredData(STORAGE_KEY, BACKUP_KEY)
-        ) {
-          const existing = readJsonFromStorage<PortfolioHolding[]>(STORAGE_KEY);
-          if (existing && existing.length > 0) return;
-        }
-
-        saveHoldingsToLocal(holdings);
+        await savePortfolioToCloud(user.id, holdings);
+        setSyncError(null);
       } catch (error) {
         setSyncError(
           error instanceof Error

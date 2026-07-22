@@ -23,11 +23,6 @@ import {
 } from "@/lib/portfolio/calculations";
 import { isArchivedHolding, isHoldingVisible } from "@/lib/portfolio/transactions";
 import {
-  hasStoredData,
-  portfolioStorageKeys,
-  readJsonFromStorage,
-} from "@/lib/portfolio/local-storage";
-import {
   formatDisplayMoney,
   formatPercent,
   profitLossClass,
@@ -44,7 +39,7 @@ export function PortfolioContent() {
     useState<PortfolioHolding | null>(null);
   const [viewingHolding, setViewingHolding] =
     useState<PortfolioHoldingWithPrices | null>(null);
-  const { holdings, addTransaction, updateHolding, removeHolding, isLoaded } =
+  const { holdings, addTransaction, updateHolding, removeHolding, isLoaded, syncError } =
     usePortfolioStorage();
   const { currency, setCurrency, isLoaded: isCurrencyLoaded } =
     useDisplayCurrency();
@@ -84,18 +79,7 @@ export function PortfolioContent() {
     [archivedHoldings, prices, loadingSymbols, rates],
   );
 
-  const handleRestoreBackup = () => {
-    const backup = readJsonFromStorage<PortfolioHolding[]>(
-      portfolioStorageKeys.backupKey,
-    );
-    if (!backup?.length) return;
-    window.location.reload();
-  };
-
-  const showBackupHint =
-    isLoaded &&
-    holdings.length === 0 &&
-    hasStoredData(portfolioStorageKeys.key, portfolioStorageKeys.backupKey);
+  const showEmptyHint = isLoaded && holdings.length === 0;
 
   const totalPlPercent =
     totals.costValue === 0 ? 0 : (totals.profitLoss / totals.costValue) * 100;
@@ -145,26 +129,23 @@ export function PortfolioContent() {
         </div>
       </div>
 
-      {showBackupHint && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm">
+      {showEmptyHint && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/30 px-4 py-3.5 text-sm">
           <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <p>
-              Saved portfolio data was found in this browser, but nothing loaded.
-              Try refreshing the page, or sign in under Settings to sync data from
-              the cloud instead of this browser.
+              No holdings in your account yet. Add a transaction to get started —
+              your portfolio is saved to the cloud and available on any browser
+              or device.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleRestoreBackup}>
-            Reload page
-          </Button>
         </div>
       )}
 
-      {(error || fxError) && (
+      {(syncError || error || fxError) && (
         <div className="flex items-center gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">
           <AlertCircle className="size-4 shrink-0" />
-          {error ?? fxError}
+          {syncError ?? error ?? fxError}
         </div>
       )}
 

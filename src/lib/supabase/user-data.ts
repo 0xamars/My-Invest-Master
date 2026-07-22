@@ -7,9 +7,27 @@ function getClient() {
   return createClient();
 }
 
+export async function waitForSupabaseSession(
+  timeoutMs = 5000,
+): Promise<void> {
+  const supabase = getClient();
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+
+  throw new Error("Unable to establish auth session for cloud sync.");
+}
+
 export async function loadPortfolioFromCloud(
   userId: string,
 ): Promise<PortfolioHolding[] | null> {
+  await waitForSupabaseSession();
   const supabase = getClient();
   const { data, error } = await supabase
     .from("user_portfolios")
@@ -26,6 +44,7 @@ export async function savePortfolioToCloud(
   userId: string,
   holdings: PortfolioHolding[],
 ): Promise<void> {
+  await waitForSupabaseSession();
   const supabase = getClient();
   const { error } = await supabase.from("user_portfolios").upsert(
     {
@@ -42,6 +61,7 @@ export async function savePortfolioToCloud(
 export async function loadOptionsFromCloud(
   userId: string,
 ): Promise<OptionsPosition[] | null> {
+  await waitForSupabaseSession();
   const supabase = getClient();
   const { data, error } = await supabase
     .from("user_options")
@@ -58,6 +78,7 @@ export async function saveOptionsToCloud(
   userId: string,
   positions: OptionsPosition[],
 ): Promise<void> {
+  await waitForSupabaseSession();
   const supabase = getClient();
   const { error } = await supabase.from("user_options").upsert(
     {
@@ -74,6 +95,7 @@ export async function saveOptionsToCloud(
 export async function loadPreferencesFromCloud(
   userId: string,
 ): Promise<DisplayCurrency | null> {
+  await waitForSupabaseSession();
   const supabase = getClient();
   const { data, error } = await supabase
     .from("user_preferences")
@@ -90,6 +112,7 @@ export async function savePreferencesToCloud(
   userId: string,
   displayCurrency: DisplayCurrency,
 ): Promise<void> {
+  await waitForSupabaseSession();
   const supabase = getClient();
   const { error } = await supabase.from("user_preferences").upsert(
     {

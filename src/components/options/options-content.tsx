@@ -33,7 +33,7 @@ export function OptionsContent() {
   const [deletingPosition, setDeletingPosition] =
     useState<OptionsPositionWithMetrics | null>(null);
 
-  const { positions, addPosition, updatePosition, removePosition, isLoaded } =
+  const { positions, addPosition, updatePosition, removePosition, isLoaded, syncError } =
     useOptionsStorage();
   const { currency, setCurrency, isLoaded: isCurrencyLoaded } =
     useDisplayCurrency();
@@ -142,10 +142,10 @@ export function OptionsContent() {
         </div>
       </div>
 
-      {(error || fxError) && (
+      {(syncError || error || fxError) && (
         <div className="flex items-center gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">
           <AlertCircle className="size-4 shrink-0" />
-          {error ?? fxError}
+          {syncError ?? error ?? fxError}
         </div>
       )}
 

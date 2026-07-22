@@ -2,29 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { migrateLocalDataToCloud } from "@/lib/portfolio/migrate-local-data";
+import { importLegacyLocalDataOnce } from "@/lib/portfolio/legacy-import";
 import {
   loadPreferencesFromCloud,
   savePreferencesToCloud,
 } from "@/lib/supabase/user-data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { DisplayCurrency } from "@/types/currency";
-import { isDisplayCurrency } from "@/types/currency";
 
-const STORAGE_KEY = "my-invest-master-currency";
 const SAVE_DEBOUNCE_MS = 500;
-
-function loadCurrencyFromLocal(): DisplayCurrency {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && isDisplayCurrency(stored)) {
-      return stored;
-    }
-  } catch {
-    // ignore
-  }
-  return "USD";
-}
 
 export function useDisplayCurrency() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -41,19 +27,23 @@ export function useDisplayCurrency() {
     async function load() {
       setIsLoaded(false);
 
+      if (!user || !isSupabaseConfigured()) {
+        if (!cancelled && version === loadVersionRef.current) {
+          setCurrencyState("USD");
+          setIsLoaded(true);
+        }
+        return;
+      }
+
       try {
-        if (user && isSupabaseConfigured()) {
-          await migrateLocalDataToCloud(user.id);
-          const remote = await loadPreferencesFromCloud(user.id);
-          if (!cancelled && version === loadVersionRef.current) {
-            setCurrencyState(remote ?? loadCurrencyFromLocal());
-          }
-        } else if (!cancelled && version === loadVersionRef.current) {
-          setCurrencyState(loadCurrencyFromLocal());
+        await importLegacyLocalDataOnce(user.id);
+        const remote = await loadPreferencesFromCloud(user.id);
+        if (!cancelled && version === loadVersionRef.current) {
+          setCurrencyState(remote ?? "USD");
         }
       } catch {
         if (!cancelled && version === loadVersionRef.current) {
-          setCurrencyState(loadCurrencyFromLocal());
+          setCurrencyState("USD");
         }
       } finally {
         if (!cancelled && version === loadVersionRef.current) {
@@ -69,25 +59,20 @@ export function useDisplayCurrency() {
     };
   }, [user, isAuthLoading]);
 
-  const setCurrency = useCallback(
-    (next: DisplayCurrency) => {
-      setCurrencyState(next);
-    },
-    [],
-  );
+  const setCurrency = useCallback((next: DisplayCurrency) => {
+    setCurrencyState(next);
+  }, []);
 
   useEffect(() => {
-    if (!isLoaded || isAuthLoading) return;
+    if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) {
+      return;
+    }
 
     const timer = window.setTimeout(async () => {
       try {
-        if (user && isSupabaseConfigured()) {
-          await savePreferencesToCloud(user.id, currency);
-          return;
-        }
-        localStorage.setItem(STORAGE_KEY, currency);
+        await savePreferencesToCloud(user.id, currency);
       } catch {
-        localStorage.setItem(STORAGE_KEY, currency);
+        // Preference save failures are non-blocking for the UI.
       }
     }, SAVE_DEBOUNCE_MS);
 

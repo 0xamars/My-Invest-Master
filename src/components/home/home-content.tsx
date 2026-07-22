@@ -102,9 +102,8 @@ export function HomeContent() {
           <CardHeader>
             <CardTitle>Unlock portfolio &amp; options</CardTitle>
             <CardDescription>
-              Sign in to manage holdings and options. Passwords are hashed and
-              stored securely by Supabase Auth — never in browser localStorage.
-              Existing data in this browser imports automatically on first sign-in.
+              Sign in to manage holdings and options. Data is stored securely in
+              Supabase and works on any browser or device.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
@@ -128,7 +127,7 @@ export function HomeContent() {
         defaultMode={authMode}
         onSuccess={() => {
           setWelcomeMessage(
-            "Signed in successfully. Your local portfolio and options data will sync to your account. Open Portfolio or Options from the sidebar.",
+            "Signed in successfully. Your portfolio and options are loaded from the cloud.",
           );
         }}
       />

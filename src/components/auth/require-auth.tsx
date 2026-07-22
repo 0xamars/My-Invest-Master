@@ -24,7 +24,7 @@ interface RequireAuthProps {
 export function RequireAuth({
   children,
   title = "Sign in required",
-  description = "Portfolio and options are available after you sign in. Your data syncs securely to the cloud and works on any browser or URL.",
+  description = "Portfolio and options are available after you sign in. Your data is stored in Supabase and works on any browser or device.",
 }: RequireAuthProps) {
   const { user, isLoading } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);

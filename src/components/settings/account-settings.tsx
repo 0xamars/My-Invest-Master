@@ -55,8 +55,8 @@ export function AccountSettings() {
             Account
           </CardTitle>
           <CardDescription>
-            Signed in as {user.email}. Portfolio, options, and preferences sync
-            across browsers and URLs.
+            Signed in as {user.email}. Portfolio, options, and preferences are
+            stored in Supabase and available on any browser or device.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -78,8 +78,8 @@ export function AccountSettings() {
             Account
           </CardTitle>
           <CardDescription>
-            Sign in to access portfolio and options. Passwords are stored
-            securely by Supabase Auth. Local data imports on first sign-in.
+            Sign in to access portfolio and options. Your holdings are stored
+            securely in Supabase, not in the browser.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">

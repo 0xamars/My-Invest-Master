@@ -83,7 +83,7 @@ export function AuthDialog({
           <DialogDescription>
             {mode === "sign-in"
               ? "Sign in to access your portfolio and options. Credentials are stored securely by Supabase Auth."
-              : "Create an account to sync portfolio and options across browsers and URLs. Existing local data imports on first sign-in."}
+              : "Create an account to store portfolio and options in Supabase. Access your holdings from any browser or device."}
           </DialogDescription>
         </DialogHeader>
 
