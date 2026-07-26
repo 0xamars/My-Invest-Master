@@ -39,7 +39,7 @@ export function PortfolioContent() {
     useState<PortfolioHolding | null>(null);
   const [viewingHolding, setViewingHolding] =
     useState<PortfolioHoldingWithPrices | null>(null);
-  const { holdings, addTransaction, updateHolding, removeHolding, isLoaded, syncError } =
+  const { holdings, addTransaction, updateHolding, removeHolding, isLoaded, syncError, hasLegacyPortfolioBackup, reloadFromCloud } =
     usePortfolioStorage();
   const { currency, setCurrency, isLoaded: isCurrencyLoaded } =
     useDisplayCurrency();
@@ -79,7 +79,9 @@ export function PortfolioContent() {
     [archivedHoldings, prices, loadingSymbols, rates],
   );
 
-  const showEmptyHint = isLoaded && holdings.length === 0;
+  const showEmptyHint = isLoaded && visibleHoldings.length === 0 && archivedHoldings.length === 0 && !hasLegacyPortfolioBackup;
+
+  const showLegacyRestoreHint = isLoaded && visibleHoldings.length === 0 && archivedHoldings.length === 0 && hasLegacyPortfolioBackup;
 
   const totalPlPercent =
     totals.costValue === 0 ? 0 : (totals.profitLoss / totals.costValue) * 100;
@@ -128,6 +130,21 @@ export function PortfolioContent() {
           <AddTransactionButton onClick={() => setDialogOpen(true)} />
         </div>
       </div>
+
+      {showLegacyRestoreHint && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p>
+              Portfolio backup data was found in this browser but is not in your
+              cloud account yet. Click restore to upload it to Supabase.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void reloadFromCloud()}>
+            Restore to cloud
+          </Button>
+        </div>
+      )}
 
       {showEmptyHint && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/30 px-4 py-3.5 text-sm">

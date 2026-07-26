@@ -7,7 +7,7 @@ import { LogIn, LogOut, PieChart } from "lucide-react";
 import { AuthDialog } from "@/components/auth/auth-dialog";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { MarketNewsSection } from "@/components/home/market-news-section";
-import { Sp500Heatmap } from "@/components/home/sp500-heatmap";
+import { IndexHeatmap } from "@/components/home/index-heatmap";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -89,6 +89,8 @@ export function HomeContent() {
         </div>
       </section>
 
+      <IndexHeatmap />
+
       {welcomeMessage && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="py-4 text-sm text-foreground">
@@ -118,7 +120,6 @@ export function HomeContent() {
         </Card>
       )}
 
-      <Sp500Heatmap />
       <MarketNewsSection />
 
       <AuthDialog

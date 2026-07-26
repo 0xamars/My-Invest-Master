@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { resolveHoldingSector } from "@/lib/portfolio/sectors";
-import { importLegacyLocalDataOnce } from "@/lib/portfolio/legacy-import";
 import {
-  loadPortfolioFromCloud,
+  hasLegacyPortfolioData,
+  importLegacyPortfolioIfNeeded,
+} from "@/lib/portfolio/legacy-import";
+import { resolveHoldingSector } from "@/lib/portfolio/sectors";
+import {
   savePortfolioToCloud,
 } from "@/lib/supabase/user-data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -100,56 +102,63 @@ export function usePortfolioStorage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const loadVersionRef = useRef(0);
+  const hasCompletedInitialLoadRef = useRef(false);
+  const userMutatedRef = useRef(false);
+
+  const loadFromCloud = useCallback(async () => {
+    if (!user || !isSupabaseConfigured()) {
+      setHoldings([]);
+      setIsLoaded(true);
+      return;
+    }
+
+    const version = ++loadVersionRef.current;
+    setIsLoaded(false);
+    setSyncError(null);
+
+    try {
+      const remote = await importLegacyPortfolioIfNeeded(user.id);
+      if (version !== loadVersionRef.current) return;
+
+      setHoldings(processHoldings(remote ?? []));
+      hasCompletedInitialLoadRef.current = true;
+    } catch (error) {
+      if (version !== loadVersionRef.current) return;
+
+      setSyncError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load portfolio from cloud.",
+      );
+      setHoldings([]);
+      hasCompletedInitialLoadRef.current = true;
+    } finally {
+      if (version === loadVersionRef.current) {
+        setIsLoaded(true);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     if (isAuthLoading) return;
 
-    const version = ++loadVersionRef.current;
-    let cancelled = false;
-
-    async function load() {
-      setIsLoaded(false);
-      setSyncError(null);
-
-      if (!user || !isSupabaseConfigured()) {
-        if (!cancelled && version === loadVersionRef.current) {
-          setHoldings([]);
-          setIsLoaded(true);
-        }
-        return;
-      }
-
-      try {
-        await importLegacyLocalDataOnce(user.id);
-        const remote = await loadPortfolioFromCloud(user.id);
-        if (!cancelled && version === loadVersionRef.current) {
-          setHoldings(processHoldings(remote ?? []));
-        }
-      } catch (error) {
-        if (!cancelled && version === loadVersionRef.current) {
-          setSyncError(
-            error instanceof Error
-              ? error.message
-              : "Failed to load portfolio from cloud.",
-          );
-          setHoldings([]);
-        }
-      } finally {
-        if (!cancelled && version === loadVersionRef.current) {
-          setIsLoaded(true);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, isAuthLoading]);
+    hasCompletedInitialLoadRef.current = false;
+    userMutatedRef.current = false;
+    void loadFromCloud();
+  }, [isAuthLoading, loadFromCloud]);
 
   useEffect(() => {
-    if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) {
+    if (
+      !isLoaded ||
+      isAuthLoading ||
+      !user ||
+      !isSupabaseConfigured() ||
+      !hasCompletedInitialLoadRef.current
+    ) {
+      return;
+    }
+
+    if (holdings.length === 0 && !userMutatedRef.current) {
       return;
     }
 
@@ -169,7 +178,12 @@ export function usePortfolioStorage() {
     return () => window.clearTimeout(timer);
   }, [holdings, isLoaded, isAuthLoading, user]);
 
+  const markMutated = useCallback(() => {
+    userMutatedRef.current = true;
+  }, []);
+
   const addTransaction = useCallback((input: AddTransactionInput) => {
+    markMutated();
     setHoldings((prev) => {
       const symbol = input.asset.symbol.toUpperCase();
       const existing = findMatchingHolding(prev, input);
@@ -232,13 +246,15 @@ export function usePortfolioStorage() {
 
       return [...prev, appendTransaction(holding, input)];
     });
-  }, []);
+  }, [markMutated]);
 
   const removeHolding = useCallback((id: string) => {
+    markMutated();
     setHoldings((prev) => prev.filter((h) => h.id !== id));
-  }, []);
+  }, [markMutated]);
 
   const updateHolding = useCallback((id: string, input: UpdateHoldingInput) => {
+    markMutated();
     setHoldings((prev) =>
       prev.map((holding) => {
         if (holding.id !== id) return holding;
@@ -261,7 +277,14 @@ export function usePortfolioStorage() {
         return updated;
       }),
     );
-  }, []);
+  }, [markMutated]);
+
+  const importLegacyPortfolio = useCallback(async () => {
+    if (!user) return;
+    userMutatedRef.current = false;
+    hasCompletedInitialLoadRef.current = false;
+    await loadFromCloud();
+  }, [loadFromCloud, user]);
 
   return {
     holdings,
@@ -271,5 +294,8 @@ export function usePortfolioStorage() {
     isLoaded,
     syncError,
     isCloudSynced: Boolean(user && isSupabaseConfigured()),
+    hasLegacyPortfolioBackup: hasLegacyPortfolioData(),
+    reloadFromCloud: loadFromCloud,
+    importLegacyPortfolio,
   };
 }

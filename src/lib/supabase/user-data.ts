@@ -37,7 +37,20 @@ export async function loadPortfolioFromCloud(
 
   if (error) throw error;
   if (!data) return null;
-  return data.holdings ?? [];
+  return parseJsonArray<PortfolioHolding>(data.holdings);
+}
+
+function parseJsonArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed) ? (parsed as T[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 export async function savePortfolioToCloud(
@@ -71,7 +84,7 @@ export async function loadOptionsFromCloud(
 
   if (error) throw error;
   if (!data) return null;
-  return data.positions ?? [];
+  return parseJsonArray<OptionsPosition>(data.positions);
 }
 
 export async function saveOptionsToCloud(

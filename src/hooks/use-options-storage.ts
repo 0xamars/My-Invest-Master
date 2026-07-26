@@ -30,9 +30,14 @@ export function useOptionsStorage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const loadVersionRef = useRef(0);
+  const hasCompletedInitialLoadRef = useRef(false);
+  const userMutatedRef = useRef(false);
 
   useEffect(() => {
     if (isAuthLoading) return;
+
+    hasCompletedInitialLoadRef.current = false;
+    userMutatedRef.current = false;
 
     const version = ++loadVersionRef.current;
     let cancelled = false;
@@ -54,6 +59,7 @@ export function useOptionsStorage() {
         const remote = await loadOptionsFromCloud(user.id);
         if (!cancelled && version === loadVersionRef.current) {
           setPositions(normalizePositions(remote ?? []));
+          hasCompletedInitialLoadRef.current = true;
         }
       } catch (error) {
         if (!cancelled && version === loadVersionRef.current) {
@@ -63,6 +69,7 @@ export function useOptionsStorage() {
               : "Failed to load options from cloud.",
           );
           setPositions([]);
+          hasCompletedInitialLoadRef.current = true;
         }
       } finally {
         if (!cancelled && version === loadVersionRef.current) {
@@ -79,7 +86,17 @@ export function useOptionsStorage() {
   }, [user, isAuthLoading]);
 
   useEffect(() => {
-    if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) {
+    if (
+      !isLoaded ||
+      isAuthLoading ||
+      !user ||
+      !isSupabaseConfigured() ||
+      !hasCompletedInitialLoadRef.current
+    ) {
+      return;
+    }
+
+    if (positions.length === 0 && !userMutatedRef.current) {
       return;
     }
 
@@ -100,6 +117,7 @@ export function useOptionsStorage() {
   }, [positions, isLoaded, isAuthLoading, user]);
 
   const addPosition = useCallback((input: AddOptionsTransactionInput) => {
+    userMutatedRef.current = true;
     const ticker = input.ticker.toUpperCase();
     const cost = calculateOptionsCost(
       input.contracts,
@@ -127,6 +145,7 @@ export function useOptionsStorage() {
 
   const updatePosition = useCallback(
     (id: string, input: UpdateOptionsPositionInput) => {
+      userMutatedRef.current = true;
       setPositions((prev) =>
         prev.map((position) => {
           if (position.id !== id) return position;
@@ -162,6 +181,7 @@ export function useOptionsStorage() {
   );
 
   const removePosition = useCallback((id: string) => {
+    userMutatedRef.current = true;
     setPositions((prev) => prev.filter((position) => position.id !== id));
   }, []);
 
