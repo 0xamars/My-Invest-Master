@@ -28,7 +28,15 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       id: "home",
       path: pathname,
       title: "Home",
-      description: "Market news, heatmaps, and app overview.",
+      description: "Public marketing homepage for InvestSalsa.",
+    };
+  }
+  if (pathname === "/home") {
+    return {
+      id: "home",
+      path: pathname,
+      title: "Home",
+      description: "Signed-in account overview across Budget, Invest, and Retire.",
     };
   }
   if (pathname === "/invest") {

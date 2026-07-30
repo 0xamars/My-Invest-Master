@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { BudgetPlansProvider, useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
+import { useAuth } from "@/hooks/use-auth";
 
 function resolvePageTitle(pathname: string, planName?: string | null): string {
   if (pathname === "/retire/plans") return "Retirement Planning Models";
@@ -33,6 +34,7 @@ function resolvePageTitle(pathname: string, planName?: string | null): string {
 
   const pageTitles: Record<string, string> = {
     "/": "Home",
+    "/home": "Home",
     "/invest": "Invest",
     "/options": "Options",
     "/market": "Market",
@@ -70,19 +72,45 @@ function AppShellHeader() {
   );
 }
 
+function AppShellInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const { isLoading } = useAuth();
+
+  // Full-bleed public marketing homepage (logo always lands here)
+  const isPublicMarketingHome = pathname === "/";
+
+  if (isPublicMarketingHome) {
+    return (
+      <div className="min-h-svh w-full bg-[#050505]">
+        {isLoading ? (
+          <div className="flex min-h-svh items-center justify-center">
+            <div className="size-5 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset className="bg-background">
+        <AppShellHeader />
+        <main className="flex flex-1 flex-col px-6 py-8 lg:px-8 lg:py-10">
+          <div className="page-shell">{children}</div>
+        </main>
+        <AssistantChat />
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <BudgetPlansProvider>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset className="bg-background">
-          <AppShellHeader />
-          <main className="flex flex-1 flex-col px-6 py-8 lg:px-8 lg:py-10">
-            <div className="page-shell">{children}</div>
-          </main>
-          <AssistantChat />
-        </SidebarInset>
-      </SidebarProvider>
+      <AppShellInner>{children}</AppShellInner>
     </BudgetPlansProvider>
   );
 }

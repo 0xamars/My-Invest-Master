@@ -24,11 +24,12 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
+import { APP_HOME_PATH, MARKETING_HOME_PATH } from "@/lib/routes";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
 const primaryNavItems = [
-  { title: "Home", href: "/", category: "home" as const },
+  { title: "Home", href: APP_HOME_PATH, category: "home" as const },
   { title: "Budget", href: "/budget", category: "budget" as const },
   { title: "Invest", href: "/invest", category: "invest" as const },
   { title: "Retire", href: "/retire", category: "retire" as const },
@@ -88,7 +89,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="portal-sidebar">
       <SidebarHeader className="brand-sidebar-header">
-        <Link href="/" className="brand-sidebar-mark">
+        <Link href={MARKETING_HOME_PATH} className="brand-sidebar-mark">
           <BrandLogo variant="sidebar" priority />
         </Link>
       </SidebarHeader>
@@ -238,8 +239,8 @@ export function AppSidebar() {
                 }
 
                 const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
+                  item.href === APP_HOME_PATH
+                    ? pathname === APP_HOME_PATH
                     : pathname.startsWith(item.href);
 
                 return (
