@@ -1,15 +1,20 @@
 import {
   loadOptionsFromCloud,
+  loadOrMigratePortfolioPlans,
   loadPortfolioFromCloud,
+  loadPortfolioPlansFromCloud,
   loadPreferencesFromCloud,
   saveOptionsToCloud,
-  savePortfolioToCloud,
+  savePortfolioPlanToCloud,
   savePreferencesToCloud,
 } from "@/lib/supabase/user-data";
 import type { DisplayCurrency } from "@/types/currency";
 import { isDisplayCurrency } from "@/types/currency";
 import type { OptionsPosition } from "@/types/options";
-import type { PortfolioHolding } from "@/types/portfolio";
+import {
+  createEmptyPortfolio,
+  type PortfolioHolding,
+} from "@/types/portfolio";
 
 const LEGACY_PORTFOLIO_KEY = "my-invest-master-portfolio";
 const LEGACY_PORTFOLIO_BACKUP_KEY = "my-invest-master-portfolio-backup";
@@ -45,6 +50,11 @@ function clearLegacyPortfolioKeys() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(LEGACY_PORTFOLIO_KEY);
   localStorage.removeItem(LEGACY_PORTFOLIO_BACKUP_KEY);
+}
+
+/** Clear stale single-portfolio browser backups after cloud is authoritative. */
+export function clearStaleLegacyPortfolioKeys() {
+  clearLegacyPortfolioKeys();
 }
 
 function clearLegacyOptionsKeys() {
@@ -92,13 +102,27 @@ async function runLegacyImport(userId: string): Promise<void> {
 
   if (!hasLegacyData) return;
 
-  const [remotePortfolio, remoteOptions, remoteCurrency] = await Promise.all([
-    loadPortfolioFromCloud(userId),
+  let existingPlanHoldingCount = 0;
+  try {
+    const remotePlans = await loadPortfolioPlansFromCloud(userId);
+    existingPlanHoldingCount = remotePlans.reduce(
+      (sum, plan) => sum + plan.holdings.length,
+      0,
+    );
+  } catch {
+    existingPlanHoldingCount = 0;
+  }
+
+  if (existingPlanHoldingCount === 0) {
+    const remoteLegacy = await loadPortfolioFromCloud(userId);
+    existingPlanHoldingCount = remoteLegacy?.length ?? 0;
+  }
+
+  const [remoteOptions, remoteCurrency] = await Promise.all([
     loadOptionsFromCloud(userId),
     loadPreferencesFromCloud(userId),
   ]);
 
-  const remotePortfolioCount = remotePortfolio?.length ?? 0;
   const remoteOptionsCount = remoteOptions?.length ?? 0;
 
   const uploads: Promise<void>[] = [];
@@ -106,21 +130,34 @@ async function runLegacyImport(userId: string): Promise<void> {
   let willUploadOptions = false;
   let willUploadCurrency = false;
 
-  if (legacyPortfolio.length > 0 && remotePortfolioCount === 0) {
+  if (legacyPortfolio.length > 0 && existingPlanHoldingCount === 0) {
     willUploadPortfolio = true;
-    uploads.push(savePortfolioToCloud(userId, legacyPortfolio));
+    const portfolio = createEmptyPortfolio("My Portfolio", { isPrimary: true });
+    portfolio.holdings = legacyPortfolio;
+    uploads.push(savePortfolioPlanToCloud(userId, portfolio));
+  } else if (legacyPortfolio.length > 0) {
+    // Cloud already has portfolio data — discard stale browser backup so the
+    // restore banner does not stick around incorrectly.
+    clearLegacyPortfolioKeys();
   }
 
   if (legacyOptions.length > 0 && remoteOptionsCount === 0) {
     willUploadOptions = true;
     uploads.push(saveOptionsToCloud(userId, legacyOptions));
+  } else if (legacyOptions.length > 0) {
+    clearLegacyOptionsKeys();
   }
 
   if (legacyCurrency !== null && remoteCurrency === null) {
     willUploadCurrency = true;
     uploads.push(
-      savePreferencesToCloud(userId, legacyCurrency as DisplayCurrency),
+      savePreferencesToCloud(userId, {
+        displayCurrency: legacyCurrency as DisplayCurrency,
+        plan: "free",
+      }),
     );
+  } else if (legacyCurrency !== null) {
+    clearLegacyCurrencyKey();
   }
 
   if (uploads.length === 0) return;
@@ -147,20 +184,16 @@ export async function importLegacyLocalDataOnce(userId: string): Promise<void> {
   return importPromise;
 }
 
-/** Force-import legacy portfolio into cloud when cloud is empty. */
+/**
+ * Ensure legacy browser / single-portfolio cloud data is migrated, then return
+ * primary (or first) portfolio holdings.
+ */
 export async function importLegacyPortfolioIfNeeded(
   userId: string,
 ): Promise<PortfolioHolding[] | null> {
   await importLegacyLocalDataOnce(userId);
 
-  const legacyPortfolio = readLegacyPortfolio();
-  const remote = await loadPortfolioFromCloud(userId);
-  const remoteCount = remote?.length ?? 0;
-
-  if (remoteCount > 0) return remote;
-  if (legacyPortfolio.length === 0) return remote;
-
-  await savePortfolioToCloud(userId, legacyPortfolio);
-  clearLegacyPortfolioKeys();
-  return legacyPortfolio;
+  const plans = await loadOrMigratePortfolioPlans(userId);
+  const primary = plans.find((plan) => plan.isPrimary) ?? plans[0];
+  return primary?.holdings ?? [];
 }

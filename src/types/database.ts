@@ -1,6 +1,9 @@
+import type { BudgetData, BudgetPlan } from "@/types/budget";
 import type { DisplayCurrency } from "@/types/currency";
 import type { OptionsPosition } from "@/types/options";
-import type { PortfolioHolding } from "@/types/portfolio";
+import type { UserPlan } from "@/types/plan";
+import type { PortfolioHolding, UserPortfolio } from "@/types/portfolio";
+import type { RetirementPlan } from "@/types/retirement";
 
 export type Json =
   | string
@@ -31,6 +34,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_portfolio_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          data: UserPortfolio;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          data: UserPortfolio;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          data?: UserPortfolio;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_options: {
         Row: {
           user_id: string;
@@ -53,16 +77,79 @@ export interface Database {
         Row: {
           user_id: string;
           display_currency: DisplayCurrency;
+          plan: UserPlan;
           updated_at: string;
         };
         Insert: {
           user_id: string;
           display_currency?: DisplayCurrency;
+          plan?: UserPlan;
           updated_at?: string;
         };
         Update: {
           user_id?: string;
           display_currency?: DisplayCurrency;
+          plan?: UserPlan;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_retirement_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          data: RetirementPlan;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          data: RetirementPlan;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          data?: RetirementPlan;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_budget_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          data: BudgetPlan;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          data: BudgetPlan;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          data?: BudgetPlan;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_budgets: {
+        Row: {
+          user_id: string;
+          data: BudgetData;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          data?: BudgetData;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          data?: BudgetData;
           updated_at?: string;
         };
         Relationships: [];

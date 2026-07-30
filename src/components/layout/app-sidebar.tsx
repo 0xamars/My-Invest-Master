@@ -1,19 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  Home,
-  Layers,
-  LineChart,
-  Lock,
-  PieChart,
-  Settings,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
+import { ChevronDown, Layers, LineChart, Lock, PieChart, Settings, Sparkles, Target } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { BudgetSidebarNav } from "@/components/layout/budget-sidebar-nav";
+import { NavCategoryIcon } from "@/components/layout/nav-category-icon";
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +17,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -31,21 +27,42 @@ import { useAuth } from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
-const publicNavItems = [
-  { title: "Home", href: "/", icon: Home },
-  { title: "Performance", href: "/performance", icon: TrendingUp },
-  { title: "Analytics", href: "/analytics", icon: BarChart3 },
-  { title: "Markets", href: "/markets", icon: LineChart },
+const primaryNavItems = [
+  { title: "Home", href: "/", category: "home" as const },
+  { title: "Budget", href: "/budget", category: "budget" as const },
+  { title: "Invest", href: "/invest", category: "invest" as const },
+  { title: "Retire", href: "/retire", category: "retire" as const },
 ];
 
-const protectedNavItems = [
+const investSubItems = [
   { title: "Portfolio", href: "/portfolio", icon: PieChart },
   { title: "Options", href: "/options", icon: Layers },
-  { title: "Holdings", href: "/holdings", icon: Wallet },
+  { title: "Market", href: "/market", icon: LineChart },
+];
+
+const retireSubItems = [
+  {
+    title: "Plan",
+    href: "/retire/plans",
+    icon: Target,
+  },
 ];
 
 function navClass(isActive: boolean) {
   return cn("nav-item", isActive && "nav-item-active");
+}
+
+function isInvestPath(pathname: string) {
+  return (
+    pathname === "/invest" ||
+    pathname.startsWith("/portfolio") ||
+    pathname.startsWith("/options") ||
+    pathname.startsWith("/market")
+  );
+}
+
+function isRetirePath(pathname: string) {
+  return pathname === "/retire" || pathname.startsWith("/retire/plans");
 }
 
 export function AppSidebar() {
@@ -53,6 +70,20 @@ export function AppSidebar() {
   const { user, isLoading } = useAuth();
   const authRequired = isSupabaseConfigured();
   const canAccessProtected = !authRequired || Boolean(user);
+  const [investOpen, setInvestOpen] = useState(isInvestPath(pathname));
+  const [retireOpen, setRetireOpen] = useState(isRetirePath(pathname));
+
+  useEffect(() => {
+    if (isInvestPath(pathname)) {
+      setInvestOpen(true);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isRetirePath(pathname)) {
+      setRetireOpen(true);
+    }
+  }, [pathname]);
 
   return (
     <Sidebar collapsible="icon" className="portal-sidebar">
@@ -66,39 +97,161 @@ export function AppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {publicNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    tooltip={item.title}
-                    className={navClass(pathname === item.href)}
-                    render={<Link href={item.href} />}
-                  >
-                    <item.icon className="size-[1.125rem] opacity-80" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {primaryNavItems.map((item) => {
+                if (item.category === "budget") {
+                  return (
+                    <BudgetSidebarNav
+                      key={item.href}
+                      isLoading={isLoading}
+                      canAccessProtected={canAccessProtected}
+                    />
+                  );
+                }
 
-              {protectedNavItems.map((item) => {
-                const isLocked = !isLoading && !canAccessProtected;
-                const href = isLocked ? "/?signin=1" : item.href;
+                if (item.category === "invest") {
+                  const investActive = isInvestPath(pathname);
+
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <div className="flex items-center gap-0.5">
+                        <SidebarMenuButton
+                          isActive={investActive}
+                          tooltip={item.title}
+                          className={cn(navClass(investActive), "min-w-0 flex-1")}
+                          render={<Link href={item.href} />}
+                        >
+                          <NavCategoryIcon category="invest" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                        <button
+                          type="button"
+                          className="nav-invest-toggle group-data-[collapsible=icon]:hidden"
+                          onClick={() => setInvestOpen((open) => !open)}
+                          aria-expanded={investOpen}
+                          aria-label={investOpen ? "Collapse Invest menu" : "Expand Invest menu"}
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "size-4 transition-transform duration-200",
+                              investOpen && "rotate-180",
+                            )}
+                          />
+                        </button>
+                      </div>
+
+                      {investOpen && (
+                        <SidebarMenuSub className="nav-invest-submenu mt-1 border-l border-border/60 px-2.5 py-0.5">
+                          {investSubItems.map((subItem) => {
+                            const isLocked = !isLoading && !canAccessProtected;
+                            const href = isLocked ? "/?signin=1" : subItem.href;
+
+                            return (
+                              <SidebarMenuSubItem key={subItem.href}>
+                                <SidebarMenuSubButton
+                                  isActive={
+                                    pathname === subItem.href ||
+                                    pathname.startsWith(`${subItem.href}/`)
+                                  }
+                                  className={navClass(
+                                    pathname === subItem.href ||
+                                      pathname.startsWith(`${subItem.href}/`),
+                                  )}
+                                  render={<Link href={href} />}
+                                >
+                                  <subItem.icon className="size-4 opacity-80" />
+                                  <span>{subItem.title}</span>
+                                  {isLocked && (
+                                    <Lock className="ml-auto size-3.5 text-muted-foreground" />
+                                  )}
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                }
+
+                if (item.category === "retire") {
+                  const retireActive = isRetirePath(pathname);
+
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <div className="flex items-center gap-0.5">
+                        <SidebarMenuButton
+                          isActive={retireActive}
+                          tooltip={item.title}
+                          className={cn(navClass(retireActive), "min-w-0 flex-1")}
+                          render={<Link href={item.href} />}
+                        >
+                          <NavCategoryIcon category="retire" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                        <button
+                          type="button"
+                          className="nav-invest-toggle group-data-[collapsible=icon]:hidden"
+                          onClick={() => setRetireOpen((open) => !open)}
+                          aria-expanded={retireOpen}
+                          aria-label={
+                            retireOpen ? "Collapse Retire menu" : "Expand Retire menu"
+                          }
+                        >
+                          <ChevronDown
+                            className={cn(
+                              "size-4 transition-transform duration-200",
+                              retireOpen && "rotate-180",
+                            )}
+                          />
+                        </button>
+                      </div>
+
+                      {retireOpen && (
+                        <SidebarMenuSub className="nav-invest-submenu mt-1 border-l border-border/60 px-2.5 py-0.5">
+                          {retireSubItems.map((subItem) => {
+                            const isLocked = !isLoading && !canAccessProtected;
+                            const href = isLocked ? "/?signin=1" : subItem.href;
+                            const isSubActive =
+                              pathname === subItem.href ||
+                              pathname.startsWith(`${subItem.href}/`);
+
+                            return (
+                              <SidebarMenuSubItem key={subItem.href}>
+                                <SidebarMenuSubButton
+                                  isActive={isSubActive}
+                                  className={navClass(isSubActive)}
+                                  render={<Link href={href} />}
+                                >
+                                  <subItem.icon className="size-4 opacity-80" />
+                                  <span>{subItem.title}</span>
+                                  {isLocked && (
+                                    <Lock className="ml-auto size-3.5 text-muted-foreground" />
+                                  )}
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      )}
+                    </SidebarMenuItem>
+                  );
+                }
+
+                const isActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(item.href);
 
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname === item.href}
-                      tooltip={
-                        isLocked ? `${item.title} (sign in required)` : item.title
-                      }
-                      className={navClass(pathname === item.href)}
-                      render={<Link href={href} />}
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className={navClass(isActive)}
+                      render={<Link href={item.href} />}
                     >
-                      <item.icon className="size-[1.125rem] opacity-80" />
+                      <NavCategoryIcon category={item.category} />
                       <span>{item.title}</span>
-                      {isLocked && (
-                        <Lock className="ml-auto size-3.5 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -110,6 +263,17 @@ export function AppSidebar() {
 
       <SidebarFooter className="gap-2 px-2 pb-4">
         <SidebarMenu className="gap-1">
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Pricing"
+              isActive={pathname === "/pricing"}
+              className={navClass(pathname === "/pricing")}
+              render={<Link href="/pricing" />}
+            >
+              <Sparkles className="size-[1.125rem] opacity-80" />
+              <span>Pricing</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Settings"

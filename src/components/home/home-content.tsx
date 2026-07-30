@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { LogIn, LogOut, PieChart } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import { AuthDialog } from "@/components/auth/auth-dialog";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { HomeDashboard } from "@/components/home/home-dashboard";
 import { MarketNewsSection } from "@/components/home/market-news-section";
 import { IndexHeatmap } from "@/components/home/index-heatmap";
 import { Button } from "@/components/ui/button";
@@ -53,8 +54,9 @@ export function HomeContent() {
                 Spicy markets. Smarter portfolios.
               </p>
               <p className="text-[0.9375rem] leading-relaxed text-muted-foreground">
-                Track stocks and crypto news, explore the S&amp;P 500 heatmap, and
-                manage your portfolio securely from anywhere.
+                {user
+                  ? "Your personal dashboard for Budget, Retire, and Invest — all in one place."
+                  : "Track stocks and crypto news, explore market heatmaps, and manage your portfolio securely from anywhere."}
               </p>
             </div>
           </div>
@@ -62,12 +64,8 @@ export function HomeContent() {
           <div className="flex flex-wrap items-center gap-3">
             {isLoading ? null : user ? (
               <>
-                <span className="w-full text-sm text-muted-foreground sm:w-auto">
-                  Signed in as {user.email}
-                </span>
-                <Button className="premium-cta" render={<Link href="/portfolio" />}>
-                  <PieChart className="size-4" />
-                  Open portfolio
+                <Button className="premium-cta" render={<Link href="/invest" />}>
+                  Open Invest
                 </Button>
                 <Button variant="outline" onClick={() => void signOut()}>
                   <LogOut className="size-4" />
@@ -89,7 +87,9 @@ export function HomeContent() {
         </div>
       </section>
 
-      <IndexHeatmap />
+      {!isLoading && user ? <HomeDashboard /> : null}
+
+      {!isLoading && !user ? <IndexHeatmap /> : null}
 
       {welcomeMessage && (
         <Card className="border-primary/20 bg-primary/5">

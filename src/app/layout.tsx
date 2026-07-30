@@ -18,10 +18,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Invest Salsa",
   description: "Market news, S&P 500 heatmap, and portfolio tracking with secure cloud sync",
-  icons: {
-    icon: "/logo.png",
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 export default function RootLayout({

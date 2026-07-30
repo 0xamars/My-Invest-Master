@@ -32,6 +32,38 @@ export function formatDisplayMoney(
   return formatCurrency(convertFromUsd(usdValue, currency, rates), currency);
 }
 
+/** Compact axis labels: $1.2M, $10M, ₹100M, etc. */
+export function formatCompactMoney(
+  usdValue: number,
+  currency: DisplayCurrency = "USD",
+  rates: FxRates = DEFAULT_FX_RATES,
+): string {
+  const value = convertFromUsd(usdValue, currency, rates);
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  const prefix =
+    currency === "INR" ? "₹" : currency === "CAD" ? "CA$" : "$";
+
+  if (abs >= 1_000_000_000_000) {
+    return `${sign}${prefix}${(abs / 1_000_000_000_000).toFixed(1)}T`;
+  }
+  if (abs >= 1_000_000_000) {
+    return `${sign}${prefix}${(abs / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (abs >= 1_000_000) {
+    const decimals = abs >= 10_000_000 ? 0 : 1;
+    return `${sign}${prefix}${(abs / 1_000_000).toFixed(decimals)}M`;
+  }
+  if (abs >= 1_000) {
+    return `${sign}${prefix}${(abs / 1_000).toFixed(0)}K`;
+  }
+  if (abs >= 100) {
+    return `${sign}${prefix}${abs.toFixed(0)}`;
+  }
+  return formatDisplayMoney(usdValue, currency, rates);
+}
+
 export function formatPercent(value: number): string {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;

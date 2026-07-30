@@ -1,4 +1,5 @@
 import { AccountSettings } from "@/components/settings/account-settings";
+import { PlanSettingsCard } from "@/components/settings/plan-settings-card";
 
 export default function SettingsPage() {
   return (
@@ -6,10 +7,11 @@ export default function SettingsPage() {
       <div>
         <h1 className="page-title">Settings</h1>
         <p className="page-description">
-          Manage account and cloud sync for your portfolio data.
+          Manage account, plan, and cloud sync for your portfolio data.
         </p>
       </div>
       <AccountSettings />
+      <PlanSettingsCard />
     </div>
   );
 }

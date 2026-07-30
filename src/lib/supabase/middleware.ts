@@ -2,7 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/types/database";
 
-const PROTECTED_ROUTES = ["/portfolio", "/options", "/holdings"];
+const PROTECTED_ROUTES = [
+  "/portfolio",
+  "/options",
+  "/holdings",
+  "/retire/plans",
+  "/budget",
+  "/market",
+];
 
 function isProtectedRoute(pathname: string): boolean {
   return PROTECTED_ROUTES.some(

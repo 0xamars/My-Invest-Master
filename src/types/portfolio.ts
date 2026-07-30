@@ -109,3 +109,48 @@ export function isLivePricedAsset(type: AssetType): boolean {
 export function getCashCurrency(holding: PortfolioHolding): DisplayCurrency {
   return holding.cashCurrency ?? "USD";
 }
+
+/** Multi-portfolio record (cloud `user_portfolio_plans.data`). */
+export interface UserPortfolio {
+  id: string;
+  name: string;
+  isPrimary: boolean;
+  holdings: PortfolioHolding[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserPortfolioSummary {
+  id: string;
+  name: string;
+  isPrimary: boolean;
+  holdingCount: number;
+  updatedAt: string;
+}
+
+export function createEmptyPortfolio(
+  name = "My Portfolio",
+  options?: { isPrimary?: boolean },
+): UserPortfolio {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    name,
+    isPrimary: options?.isPrimary ?? false,
+    holdings: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function toPortfolioSummary(
+  portfolio: UserPortfolio,
+): UserPortfolioSummary {
+  return {
+    id: portfolio.id,
+    name: portfolio.name,
+    isPrimary: portfolio.isPrimary,
+    holdingCount: portfolio.holdings.length,
+    updatedAt: portfolio.updatedAt,
+  };
+}

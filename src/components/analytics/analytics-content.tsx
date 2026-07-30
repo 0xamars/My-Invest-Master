@@ -23,6 +23,8 @@ export function AnalyticsContent() {
     isRefreshing,
     lastUpdated,
     error,
+    portfolioName,
+    isViewingPrimary,
   } = useEnrichedPortfolio();
 
   if (!isLoaded) {
@@ -34,6 +36,11 @@ export function AnalyticsContent() {
   }
 
   const hasData = hasAnalyticsData(enrichedHoldings);
+  const showingLabel = portfolioName
+    ? isViewingPrimary
+      ? `Showing Primary · ${portfolioName}`
+      : `Showing · ${portfolioName}`
+    : "Showing Primary portfolio";
 
   return (
     <div className="flex flex-1 flex-col gap-10">
@@ -41,7 +48,7 @@ export function AnalyticsContent() {
         <div>
           <h1 className="page-title">Analytics</h1>
           <p className="page-description">
-            Allocation, performance, and exposure across your portfolio
+            {showingLabel}
             {lastUpdated && !isLoading
               ? ` · updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}`
               : ""}
