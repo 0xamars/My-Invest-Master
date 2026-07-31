@@ -215,7 +215,7 @@ export function buildHoldingInsight(
       status: "coming_soon",
       title: "InvestSalsa Rating",
       description:
-        "A proprietary holding rating will appear here in a future release. Today’s insight uses transparent portfolio math only.",
+        "Open Analysis for this ticker to see the live InvestSalsa Rating, radar breakdown, and technical confluence.",
     },
   };
 }

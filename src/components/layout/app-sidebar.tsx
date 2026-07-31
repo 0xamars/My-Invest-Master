@@ -39,7 +39,7 @@ const primaryNavItems = [
 const investSubItems = [
   { title: "Market", href: "/market", icon: LineChart },
   { title: "Watchlist", href: "/watchlist", icon: Eye },
-  { title: "Analysis", href: "/analytics", icon: Search },
+  { title: "Analysis", href: "/analysis", icon: Search },
   { title: "Portfolio", href: "/portfolio", icon: PieChart },
   { title: "Options", href: "/options", icon: Layers },
 ];
@@ -61,6 +61,7 @@ function isInvestPath(pathname: string) {
     pathname === "/invest" ||
     pathname.startsWith("/market") ||
     pathname.startsWith("/watchlist") ||
+    pathname.startsWith("/analysis") ||
     pathname.startsWith("/analytics") ||
     pathname.startsWith("/portfolio") ||
     pathname.startsWith("/options")

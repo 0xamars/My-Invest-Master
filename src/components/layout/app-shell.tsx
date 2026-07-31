@@ -38,13 +38,18 @@ function resolvePageTitle(pathname: string, planName?: string | null): string {
     return planName ?? "Watchlist";
   }
 
+  if (pathname === "/analysis") return "Analysis";
+  if (pathname.startsWith("/analysis/")) {
+    return planName ?? "Analysis";
+  }
+
   const pageTitles: Record<string, string> = {
     "/": "Home",
     "/home": "Home",
     "/invest": "Invest",
     "/options": "Options",
     "/market": "Market",
-    "/analytics": "Analysis",
+    "/analytics": "Portfolio Analytics",
     "/pricing": "Pricing",
     "/settings": "Settings",
   };
@@ -60,6 +65,7 @@ function AppShellHeader() {
   const planMatch = pathname.match(/^\/budget\/plans\/([^/]+)/);
   const portfolioMatch = pathname.match(/^\/portfolio\/([^/]+)/);
   const watchlistMatch = pathname.match(/^\/watchlist\/([^/]+)/);
+  const analysisMatch = pathname.match(/^\/analysis\/([^/]+)/);
   const planName = planMatch ? getPlan(planMatch[1])?.name : null;
   const portfolioName = portfolioMatch
     ? portfolios.find((portfolio) => portfolio.id === portfolioMatch[1])?.name
@@ -67,9 +73,12 @@ function AppShellHeader() {
   const watchlistName = watchlistMatch
     ? lists.find((list) => list.id === watchlistMatch[1])?.name
     : null;
+  const analysisSymbol = analysisMatch
+    ? decodeURIComponent(analysisMatch[1]).toUpperCase()
+    : null;
   const title = resolvePageTitle(
     pathname,
-    planName ?? portfolioName ?? watchlistName,
+    planName ?? portfolioName ?? watchlistName ?? analysisSymbol,
   );
 
   return (

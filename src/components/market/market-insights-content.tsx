@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ArrowUpRight,
   Compass,
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { buildAnalysisHref } from "@/lib/analysis/types";
 import { cn } from "@/lib/utils";
 import {
   CUSTOM_THEME_CATALOG,
@@ -84,7 +86,10 @@ function qualityClass(quality: MarketStockQuality): string {
 
 function StockRow({ stock }: { stock: MarketThemeStock }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-background/30 px-3 py-2.5 transition-colors hover:border-border">
+    <Link
+      href={buildAnalysisHref(stock.ticker, "stock")}
+      className="block rounded-xl border border-border/50 bg-background/30 px-3 py-2.5 transition-colors hover:border-border hover:bg-muted/20"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -112,7 +117,7 @@ function StockRow({ stock }: { stock: MarketThemeStock }) {
           {qualityLabel(stock.quality)}
         </span>
       </div>
-    </div>
+    </Link>
   );
 }
 

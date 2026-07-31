@@ -47,7 +47,7 @@ export function AnalyticsContent() {
     <div className="flex flex-1 flex-col gap-10">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Analysis</h1>
+          <h1 className="page-title">Portfolio Analytics</h1>
           <p className="page-description">
             {showingLabel}
             {lastUpdated && !isLoading

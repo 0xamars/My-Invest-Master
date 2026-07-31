@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   Check,
@@ -8,6 +9,7 @@ import {
   Info,
   Loader2,
   Pencil,
+  Search,
   ShieldAlert,
   Sparkles,
   Trash2,
@@ -32,6 +34,7 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
+import { buildAnalysisHref } from "@/lib/analysis/types";
 import {
   buildHoldingInsight,
   concentrationLevelLabel,
@@ -652,10 +655,29 @@ export function HoldingDetailsDialog({
                       Ticker analysis
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      A dedicated analysis page for this ticker is not available
-                      yet. Portfolio-level Analysis remains under Invest →
-                      Analysis.
+                      Open the dedicated research page for quote context,
+                      placeholders for fundamentals/technicals, and the future
+                      InvestSalsa Rating.
                     </p>
+                    {(holding.type === "stock" ||
+                      holding.type === "crypto") && (
+                      <Button
+                        className="mt-3 gap-2"
+                        size="sm"
+                        render={
+                          <Link
+                            href={buildAnalysisHref(
+                              holding.symbol,
+                              holding.type,
+                              holding.priceId,
+                            )}
+                          />
+                        }
+                      >
+                        <Search className="size-3.5" />
+                        View analysis
+                      </Button>
+                    )}
                   </div>
                 </>
               )}
