@@ -57,6 +57,16 @@ export function canOpenBudgetPlanOnPlan(
   return allowedId !== null && allowedId === planId;
 }
 
+export function canOpenWatchlistOnPlan(
+  plan: UserPlan,
+  lists: DatedPlan[],
+  listId: string,
+): boolean {
+  if (plan === "premium") return true;
+  const allowedId = pickFreeAllowedPlanId(lists);
+  return allowedId !== null && allowedId === listId;
+}
+
 /** Create-from-portfolio retirement import is Premium-only. */
 export function canCreateRetirementFromPortfolio(plan: UserPlan): boolean {
   return plan === "premium";

@@ -6,12 +6,19 @@ import { HomeDashboard } from "@/components/home/home-dashboard";
 import { MarketNewsSection } from "@/components/home/market-news-section";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
 
 /** Logged-in account overview (not the public marketing homepage). */
 export function AppHomeContent() {
   const { user, signOut } = useAuth();
+  const goToMarketingHome = useGoToMarketingHome();
 
   if (!user) return null;
+
+  async function handleSignOut() {
+    await signOut();
+    goToMarketingHome();
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-8">
@@ -26,7 +33,7 @@ export function AppHomeContent() {
           <Button className="premium-cta" render={<Link href="/invest" />}>
             Open Invest
           </Button>
-          <Button variant="outline" onClick={() => void signOut()}>
+          <Button variant="outline" onClick={() => void handleSignOut()}>
             <LogOut className="size-4" />
             Sign out
           </Button>

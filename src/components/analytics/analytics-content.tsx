@@ -23,6 +23,7 @@ export function AnalyticsContent() {
     isRefreshing,
     lastUpdated,
     error,
+    fxError,
     portfolioName,
     isViewingPrimary,
   } = useEnrichedPortfolio();
@@ -46,7 +47,7 @@ export function AnalyticsContent() {
     <div className="flex flex-1 flex-col gap-10">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Analytics</h1>
+          <h1 className="page-title">Analysis</h1>
           <p className="page-description">
             {showingLabel}
             {lastUpdated && !isLoading
@@ -59,6 +60,7 @@ export function AnalyticsContent() {
           onChange={setCurrency}
           rates={rates}
           isLoading={isLoading}
+          error={fxError}
         />
       </div>
 

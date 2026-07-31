@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowLeft, RefreshCw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AddTransactionButton,
   AddTransactionDialog,
@@ -14,6 +15,7 @@ import { DeleteHoldingDialog } from "@/components/portfolio/delete-holding-dialo
 import { EditHoldingDialog } from "@/components/portfolio/edit-holding-dialog";
 import { HoldingDetailsDialog } from "@/components/portfolio/holding-details-dialog";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
+import { PortfolioIntelligenceContent } from "@/components/portfolio/intelligence/portfolio-intelligence-content";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -35,11 +37,17 @@ import {
 import { cn } from "@/lib/utils";
 import type { PortfolioHolding, PortfolioHoldingWithPrices } from "@/types/portfolio";
 
+type PortfolioTab = "holdings" | "intelligence";
+
 export function PortfolioContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const portfolioId = params.id;
 
+  const initialTab =
+    searchParams.get("tab") === "intelligence" ? "intelligence" : "holdings";
+  const [tab, setTab] = useState<PortfolioTab>(initialTab);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHolding, setEditingHolding] = useState<PortfolioHolding | null>(
     null,
@@ -69,6 +77,7 @@ export function PortfolioContent() {
   const { rates, isLoading: isFxLoading, error: fxError } = useFxRate();
   const {
     prices,
+    changes,
     isLoading,
     isRefreshing,
     loadingSymbols,
@@ -148,6 +157,7 @@ export function PortfolioContent() {
     totals.costValue === 0 ? 0 : (totals.profitLoss / totals.costValue) * 100;
 
   const isActiveReady = activePortfolio?.id === portfolioId;
+  const multiPortfolio = portfolios.length > 1;
 
   if (!isLoaded || !isPlanLoaded) {
     return (
@@ -170,7 +180,7 @@ export function PortfolioContent() {
           <RefreshCw className="size-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex flex-1 flex-col gap-10">
+        <div className="flex flex-1 flex-col gap-8">
           <div className="page-header">
             <div className="space-y-3">
               <Button
@@ -211,6 +221,7 @@ export function PortfolioContent() {
                 onChange={setCurrency}
                 rates={rates}
                 isLoading={isFxLoading}
+                error={fxError}
               />
               <Button
                 variant="outline"
@@ -228,110 +239,177 @@ export function PortfolioContent() {
             </div>
           </div>
 
-          {showLegacyRestoreHint && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <p>
-                  A browser backup of holdings was found and is not in this
-                  portfolio yet. Restore uploads it into your cloud portfolios
-                  (only when cloud holdings are empty).
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void reloadFromCloud()}
-              >
-                Restore to cloud
-              </Button>
-            </div>
-          )}
-
-          {showEmptyHint && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/30 px-4 py-3.5 text-sm">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <p>
-                  No holdings in this portfolio yet. Use Add transaction to get
-                  started — your data syncs to the cloud.
-                </p>
-              </div>
-              <AddTransactionButton onClick={() => setDialogOpen(true)} />
-            </div>
-          )}
-
-          {(syncError || error || fxError) && (
-            <div className="flex items-center gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">
-              <AlertCircle className="size-4 shrink-0" />
-              {syncError ?? error ?? fxError}
-            </div>
-          )}
-
-          {enrichedHoldings.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard
-                label={`Total value · ${currency}`}
-                value={
-                  totals.hasLoadingPrices
-                    ? "Loading…"
-                    : formatDisplayMoney(totals.currentValue, currency, rates)
+          <Tabs
+            value={tab}
+            onValueChange={(value) => {
+              if (value === "holdings" || value === "intelligence") {
+                setTab(value);
+                const next = new URLSearchParams(searchParams.toString());
+                if (value === "intelligence") {
+                  next.set("tab", "intelligence");
+                } else {
+                  next.delete("tab");
                 }
-                isLoading={totals.hasLoadingPrices}
-              />
-              <StatCard
-                label={`Total cost · ${currency}`}
-                value={formatDisplayMoney(totals.costValue, currency, rates)}
-              />
-              <StatCard
-                label={`Total P/L · ${currency}`}
-                value={
-                  totals.hasLoadingPrices
-                    ? "Loading…"
-                    : `${totals.profitLoss >= 0 ? "+" : ""}${formatDisplayMoney(totals.profitLoss, currency, rates)}`
-                }
-                subValue={
-                  totals.hasLoadingPrices
-                    ? undefined
-                    : formatPercent(totalPlPercent)
-                }
-                valueClassName={
-                  totals.hasLoadingPrices
-                    ? undefined
-                    : profitLossClass(totals.profitLoss)
-                }
-                isLoading={totals.hasLoadingPrices}
-              />
-            </div>
-          )}
+                const query = next.toString();
+                router.replace(
+                  query
+                    ? `/portfolio/${portfolioId}?${query}`
+                    : `/portfolio/${portfolioId}`,
+                  { scroll: false },
+                );
+              }
+            }}
+            className="gap-6"
+          >
+            <TabsList variant="line" className="w-full justify-start sm:w-auto">
+              <TabsTrigger value="holdings" className="px-3">
+                Holdings
+              </TabsTrigger>
+              <TabsTrigger value="intelligence" className="px-3">
+                Intelligence
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="flex flex-col gap-6">
-            <PortfolioTable
-              holdings={enrichedHoldings}
-              isLoading={isLoading}
-              currency={currency}
-              rates={rates}
-              onRowClick={setViewingHolding}
-              onEdit={(holding) => setEditingHolding(holding)}
-              onDelete={(holding) => setDeletingHolding(holding)}
-            />
+            <TabsContent value="holdings" className="flex flex-col gap-10">
+              {showLegacyRestoreHint && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <p>
+                      A browser backup of holdings was found and is not in this
+                      portfolio yet. Restore uploads it into your cloud portfolios
+                      (only when cloud holdings are empty).
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void reloadFromCloud()}
+                  >
+                    Restore to cloud
+                  </Button>
+                </div>
+              )}
 
-            {enrichedArchived.length > 0 && (
-              <section className="space-y-4">
-                <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Closed Positions (zero quantity)
-                </h2>
+              {showEmptyHint && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/30 px-4 py-3.5 text-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <p>
+                      No holdings in this portfolio yet. Use Add transaction to get
+                      started — your data syncs to the cloud.
+                    </p>
+                  </div>
+                  <AddTransactionButton onClick={() => setDialogOpen(true)} />
+                </div>
+              )}
+
+              {(syncError || error || fxError) && (
+                <div
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm",
+                    syncError || error
+                      ? "border border-destructive/25 bg-destructive/5 text-destructive"
+                      : "border border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200",
+                  )}
+                >
+                  <AlertCircle className="size-4 shrink-0" />
+                  {syncError ?? error ?? fxError}
+                </div>
+              )}
+
+              {enrichedHoldings.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <StatCard
+                    label={`Total value · ${currency}`}
+                    value={
+                      totals.hasLoadingPrices
+                        ? "Loading…"
+                        : formatDisplayMoney(totals.currentValue, currency, rates)
+                    }
+                    isLoading={totals.hasLoadingPrices}
+                  />
+                  <StatCard
+                    label={`Total cost · ${currency}`}
+                    value={formatDisplayMoney(totals.costValue, currency, rates)}
+                  />
+                  <StatCard
+                    label={`Total P/L · ${currency}`}
+                    value={
+                      totals.hasLoadingPrices
+                        ? "Loading…"
+                        : `${totals.profitLoss >= 0 ? "+" : ""}${formatDisplayMoney(totals.profitLoss, currency, rates)}`
+                    }
+                    subValue={
+                      totals.hasLoadingPrices
+                        ? undefined
+                        : formatPercent(totalPlPercent)
+                    }
+                    valueClassName={
+                      totals.hasLoadingPrices
+                        ? undefined
+                        : profitLossClass(totals.profitLoss)
+                    }
+                    isLoading={totals.hasLoadingPrices}
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-6">
                 <PortfolioTable
-                  holdings={enrichedArchived}
+                  holdings={enrichedHoldings}
+                  isLoading={isLoading}
                   currency={currency}
                   rates={rates}
                   onRowClick={setViewingHolding}
                   onEdit={(holding) => setEditingHolding(holding)}
                   onDelete={(holding) => setDeletingHolding(holding)}
                 />
-              </section>
-            )}
-          </div>
+
+                {enrichedArchived.length > 0 && (
+                  <section className="space-y-4">
+                    <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Closed Positions (zero quantity)
+                    </h2>
+                    <PortfolioTable
+                      holdings={enrichedArchived}
+                      currency={currency}
+                      rates={rates}
+                      onRowClick={setViewingHolding}
+                      onEdit={(holding) => setEditingHolding(holding)}
+                      onDelete={(holding) => setDeletingHolding(holding)}
+                    />
+                  </section>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="intelligence" className="outline-none">
+              {(syncError || error || fxError) && (
+                <div
+                  className={cn(
+                    "mb-6 flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm",
+                    syncError || error
+                      ? "border border-destructive/25 bg-destructive/5 text-destructive"
+                      : "border border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200",
+                  )}
+                >
+                  <AlertCircle className="size-4 shrink-0" />
+                  {syncError ?? error ?? fxError}
+                </div>
+              )}
+              <PortfolioIntelligenceContent
+                holdings={enrichedHoldings}
+                totals={totals}
+                currency={currency}
+                rates={rates}
+                portfolioName={activePortfolio.name}
+                isPrimary={activePortfolio.isPrimary}
+                multiPortfolio={multiPortfolio}
+                onAddHolding={() => setDialogOpen(true)}
+              />
+            </TabsContent>
+          </Tabs>
 
           <AddTransactionDialog
             open={dialogOpen}
@@ -348,6 +426,12 @@ export function PortfolioContent() {
             }}
             currency={currency}
             rates={rates}
+            portfolioHoldings={enrichedHoldings}
+            dayChange={
+              viewingHolding
+                ? (changes[viewingHolding.symbol] ?? null)
+                : null
+            }
             onEdit={(holding) => {
               setViewingHolding(null);
               setEditingHolding(holding);

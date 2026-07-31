@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Layers, LineChart, Lock, PieChart, Settings, Sparkles, Target } from "lucide-react";
+import { ChevronDown, Eye, Layers, LineChart, Lock, PieChart, Search, Settings, Sparkles, Target } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { BudgetSidebarNav } from "@/components/layout/budget-sidebar-nav";
+import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { NavCategoryIcon } from "@/components/layout/nav-category-icon";
 import {
   Sidebar,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
-import { APP_HOME_PATH, MARKETING_HOME_PATH } from "@/lib/routes";
+import { APP_HOME_PATH } from "@/lib/routes";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +37,11 @@ const primaryNavItems = [
 ];
 
 const investSubItems = [
+  { title: "Market", href: "/market", icon: LineChart },
+  { title: "Watchlist", href: "/watchlist", icon: Eye },
+  { title: "Analysis", href: "/analytics", icon: Search },
   { title: "Portfolio", href: "/portfolio", icon: PieChart },
   { title: "Options", href: "/options", icon: Layers },
-  { title: "Market", href: "/market", icon: LineChart },
 ];
 
 const retireSubItems = [
@@ -56,9 +59,11 @@ function navClass(isActive: boolean) {
 function isInvestPath(pathname: string) {
   return (
     pathname === "/invest" ||
+    pathname.startsWith("/market") ||
+    pathname.startsWith("/watchlist") ||
+    pathname.startsWith("/analytics") ||
     pathname.startsWith("/portfolio") ||
-    pathname.startsWith("/options") ||
-    pathname.startsWith("/market")
+    pathname.startsWith("/options")
   );
 }
 
@@ -89,9 +94,9 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="portal-sidebar">
       <SidebarHeader className="brand-sidebar-header">
-        <Link href={MARKETING_HOME_PATH} className="brand-sidebar-mark">
+        <MarketingHomeLink className="brand-sidebar-mark">
           <BrandLogo variant="sidebar" priority />
-        </Link>
+        </MarketingHomeLink>
       </SidebarHeader>
 
       <SidebarContent className="px-2">

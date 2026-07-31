@@ -1,6 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
-import { MARKETING_HOME_PATH } from "@/lib/routes";
+import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
@@ -130,12 +129,9 @@ export function BrandLogo({
 
   if (asLink) {
     return (
-      <Link
-        href={MARKETING_HOME_PATH}
-        className="inline-flex transition-opacity hover:opacity-90"
-      >
+      <MarketingHomeLink className="inline-flex transition-opacity hover:opacity-90">
         {content}
-      </Link>
+      </MarketingHomeLink>
     );
   }
 

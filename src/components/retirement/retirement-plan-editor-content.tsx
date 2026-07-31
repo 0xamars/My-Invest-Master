@@ -240,6 +240,7 @@ export function RetirementPlanEditorContent({
           onChange={setCurrency}
           rates={rates}
           isLoading={isFxLoading}
+          error={fxError}
         />
       </div>
 

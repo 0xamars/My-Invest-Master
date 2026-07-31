@@ -1,10 +1,19 @@
 import type { DisplayCurrency, FxRates } from "@/types/currency";
-import { DEFAULT_FX_RATES } from "@/types/currency";
+import { DEFAULT_FX_RATES, getCurrencySymbol } from "@/types/currency";
 import { convertFromUsd } from "@/lib/portfolio/prices/fx";
 
 function currencyLocale(currency: DisplayCurrency): string {
   if (currency === "CAD") return "en-CA";
   if (currency === "INR") return "en-IN";
+  if (currency === "GBP") return "en-GB";
+  if (currency === "EUR") return "en-IE";
+  if (currency === "JPY") return "ja-JP";
+  if (currency === "CNY") return "zh-CN";
+  if (currency === "AUD") return "en-AU";
+  if (currency === "CHF") return "de-CH";
+  if (currency === "KRW") return "ko-KR";
+  if (currency === "BRL") return "pt-BR";
+  if (currency === "MXN") return "es-MX";
   return "en-US";
 }
 
@@ -46,9 +55,7 @@ export function formatProjectionCompactMoney(
   const value = Math.round(convertFromUsd(usdValue, currency, rates));
   const abs = Math.abs(value);
   const sign = value < 0 ? "-" : "";
-
-  const prefix =
-    currency === "INR" ? "₹" : currency === "CAD" ? "CA$" : "$";
+  const prefix = getCurrencySymbol(currency);
 
   if (abs >= 1_000_000_000_000) {
     return `${sign}${prefix}${Math.round(abs / 1_000_000_000_000)}T`;

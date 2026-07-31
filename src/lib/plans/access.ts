@@ -18,6 +18,7 @@ const FREE_FEATURE_ACCESS: Record<PlanFeature, boolean> = {
   plaid_integration: false,
   ai_portfolio_insights: false,
   unlimited_portfolios: false,
+  unlimited_watchlists: false,
 };
 
 const PREMIUM_FEATURE_ACCESS: Record<PlanFeature, boolean> = {
@@ -29,6 +30,7 @@ const PREMIUM_FEATURE_ACCESS: Record<PlanFeature, boolean> = {
   plaid_integration: true,
   ai_portfolio_insights: true,
   unlimited_portfolios: true,
+  unlimited_watchlists: true,
 };
 
 function parseEmailList(value: string | undefined): string[] {
@@ -90,6 +92,7 @@ export function getPlanLimit(
 
   if (resource === "retirement") return FREE_PLAN_LIMITS.retirementPlans;
   if (resource === "budget") return FREE_PLAN_LIMITS.budgetPlans;
+  if (resource === "watchlist") return FREE_PLAN_LIMITS.watchlists;
   return FREE_PLAN_LIMITS.portfolios;
 }
 

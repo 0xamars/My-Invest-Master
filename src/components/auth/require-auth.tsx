@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Lock, LogIn } from "lucide-react";
 import { AuthDialog } from "@/components/auth/auth-dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 interface RequireAuthProps {
@@ -27,6 +27,7 @@ export function RequireAuth({
   description = "Portfolio and options are available after you sign in. Your data is stored in Supabase and works on any browser or device.",
 }: RequireAuthProps) {
   const { user, isLoading } = useAuth();
+  const goToMarketingHome = useGoToMarketingHome();
   const [authOpen, setAuthOpen] = useState(false);
 
   if (isLoading) {
@@ -48,7 +49,7 @@ export function RequireAuth({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" render={<Link href="/" />}>
+          <Button variant="outline" type="button" onClick={goToMarketingHome}>
             Back to Home
           </Button>
         </CardContent>
@@ -72,7 +73,7 @@ export function RequireAuth({
               <LogIn className="size-4" />
               Sign in
             </Button>
-            <Button variant="outline" render={<Link href="/" />}>
+            <Button variant="outline" type="button" onClick={goToMarketingHome}>
               Back to Home
             </Button>
           </CardContent>

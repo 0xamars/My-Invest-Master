@@ -8,6 +8,12 @@ import { isUserPlan, type UserPlan } from "@/types/plan";
 import type { PortfolioHolding, UserPortfolio } from "@/types/portfolio";
 import { createEmptyPortfolio } from "@/types/portfolio";
 import type { RetirementPlan } from "@/types/retirement";
+import {
+  isWatchlistAssetType,
+  type UserWatchlist,
+  type WatchlistItem,
+} from "@/types/watchlist";
+import { parseDisplayCurrency } from "@/types/currency";
 
 function getClient() {
   return createClient();
@@ -279,7 +285,7 @@ export async function loadPreferencesFromCloud(
     if (!fallback.data) return null;
 
     return {
-      displayCurrency: fallback.data.display_currency,
+      displayCurrency: parseDisplayCurrency(fallback.data.display_currency),
       plan: "free",
     };
   }
@@ -287,7 +293,7 @@ export async function loadPreferencesFromCloud(
   if (!data) return null;
 
   return {
-    displayCurrency: data.display_currency,
+    displayCurrency: parseDisplayCurrency(data.display_currency),
     plan: isUserPlan(data.plan) ? data.plan : "free",
   };
 }
@@ -469,6 +475,111 @@ export async function saveBudgetToCloud(
     },
     { onConflict: "user_id" },
   );
+
+  if (error) throw error;
+}
+
+function normalizeWatchlistItem(raw: unknown): WatchlistItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const item = raw as Partial<WatchlistItem>;
+  if (
+    typeof item.id !== "string" ||
+    typeof item.symbol !== "string" ||
+    typeof item.name !== "string" ||
+    typeof item.type !== "string" ||
+    !isWatchlistAssetType(item.type)
+  ) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    symbol: item.symbol.toUpperCase(),
+    name: item.name,
+    type: item.type,
+    priceId: typeof item.priceId === "string" ? item.priceId : undefined,
+    logoUrl: typeof item.logoUrl === "string" ? item.logoUrl : undefined,
+    addedAt:
+      typeof item.addedAt === "string"
+        ? item.addedAt
+        : new Date().toISOString(),
+  };
+}
+
+export function normalizeWatchlist(raw: unknown): UserWatchlist | null {
+  if (!raw || typeof raw !== "object") return null;
+  const list = raw as Partial<UserWatchlist>;
+  if (typeof list.id !== "string" || typeof list.name !== "string") {
+    return null;
+  }
+
+  const items = Array.isArray(list.items)
+    ? list.items
+        .map(normalizeWatchlistItem)
+        .filter((item): item is WatchlistItem => item !== null)
+    : [];
+
+  const now = new Date().toISOString();
+  return {
+    id: list.id,
+    name: list.name.trim() || "Watchlist",
+    items,
+    createdAt: typeof list.createdAt === "string" ? list.createdAt : now,
+    updatedAt: typeof list.updatedAt === "string" ? list.updatedAt : now,
+  };
+}
+
+export async function loadWatchlistPlansFromCloud(
+  userId: string,
+): Promise<UserWatchlist[]> {
+  await waitForSupabaseSession();
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from("user_watchlist_plans")
+    .select("id, data")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  if (!data) return [];
+
+  return data
+    .map((row) => {
+      const normalized = normalizeWatchlist(row.data);
+      if (!normalized) return null;
+      return { ...normalized, id: row.id };
+    })
+    .filter((list): list is UserWatchlist => list !== null);
+}
+
+export async function saveWatchlistPlanToCloud(
+  userId: string,
+  list: UserWatchlist,
+): Promise<void> {
+  await waitForSupabaseSession();
+  const supabase = getClient();
+  const { error } = await supabase.from("user_watchlist_plans").upsert(
+    {
+      id: list.id,
+      user_id: userId,
+      data: list,
+      updated_at: list.updatedAt,
+    },
+    { onConflict: "id" },
+  );
+
+  if (error) throw error;
+}
+
+export async function deleteWatchlistPlanFromCloud(
+  listId: string,
+): Promise<void> {
+  await waitForSupabaseSession();
+  const supabase = getClient();
+  const { error } = await supabase
+    .from("user_watchlist_plans")
+    .delete()
+    .eq("id", listId);
 
   if (error) throw error;
 }

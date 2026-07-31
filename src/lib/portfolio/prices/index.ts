@@ -21,6 +21,7 @@ export async function fetchAssetPrices(assets: PriceRequestAsset[]) {
 
   return {
     prices: { ...stockResult.prices, ...cryptoResult.prices },
+    changes: { ...stockResult.changes, ...cryptoResult.changes },
     errors: { ...stockResult.errors, ...cryptoResult.errors },
     fetchedAt: new Date().toISOString(),
   };

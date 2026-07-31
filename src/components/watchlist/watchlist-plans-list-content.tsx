@@ -5,18 +5,17 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   Crown,
+  Eye,
   Loader2,
   Lock,
   Pencil,
-  PieChart,
   Plus,
-  Star,
   Trash2,
 } from "lucide-react";
 import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callout";
 import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
-import { DeletePortfolioDialog } from "@/components/portfolio/delete-portfolio-dialog";
-import { PortfolioNameDialog } from "@/components/portfolio/portfolio-name-dialog";
+import { DeleteWatchlistDialog } from "@/components/watchlist/delete-watchlist-dialog";
+import { WatchlistNameDialog } from "@/components/watchlist/watchlist-name-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,15 +24,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
+import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { usePremiumUpgradePrompt } from "@/hooks/use-premium-upgrade-prompt";
 import { useUserPlan } from "@/hooks/use-user-preferences";
 import {
   canCreateLimitedResource,
   isPlanLimitError,
 } from "@/lib/plans/access";
-import { canOpenPortfolioOnPlan } from "@/lib/plans/free-access";
-import type { UserPortfolio } from "@/types/portfolio";
+import { canOpenWatchlistOnPlan } from "@/lib/plans/free-access";
+import type { UserWatchlist } from "@/types/watchlist";
 
 function formatUpdatedAt(iso: string): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -43,46 +42,40 @@ function formatUpdatedAt(iso: string): string {
   }).format(new Date(iso));
 }
 
-export function PortfolioPlansListContent() {
+export function WatchlistPlansListContent() {
   const router = useRouter();
   const {
     summaries,
-    portfolios,
-    createPortfolio,
-    renamePortfolio,
-    setPrimaryPortfolio,
-    deletePortfolio,
-    setActivePortfolioId,
+    lists,
+    createWatchlistAndSave,
+    renameWatchlist,
+    deleteWatchlist,
     isLoaded,
     syncError,
-  } = usePortfolioPlans();
+    isPlanReady,
+  } = useWatchlistPlans();
   const { plan: userPlan, prefsLoadSucceeded, isLoaded: isPlanLoaded } =
     useUserPlan();
   const upgrade = usePremiumUpgradePrompt();
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [renaming, setRenaming] = useState<UserPortfolio | null>(null);
-  const [deleting, setDeleting] = useState<UserPortfolio | null>(null);
+  const [renaming, setRenaming] = useState<UserWatchlist | null>(null);
+  const [deleting, setDeleting] = useState<UserWatchlist | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const isPlanReady = isPlanLoaded;
   const effectivePlan = prefsLoadSucceeded ? userPlan : "free";
   const atFreeLimit =
     isPlanReady &&
-    !canCreateLimitedResource(effectivePlan, "portfolio", portfolios.length);
+    !canCreateLimitedResource(effectivePlan, "watchlist", lists.length);
   const freeHasExtras =
-    prefsLoadSucceeded &&
-    userPlan === "free" &&
-    portfolios.length > 1;
-  const canDelete = portfolios.length > 1;
+    prefsLoadSucceeded && userPlan === "free" && lists.length > 1;
 
   async function handleCreate(name: string) {
     setIsCreating(true);
     try {
-      const portfolio = await createPortfolio(name);
+      const list = await createWatchlistAndSave(name);
       setCreateOpen(false);
-      setActivePortfolioId(portfolio.id);
-      router.push(`/portfolio/${portfolio.id}`);
+      router.push(`/watchlist/${list.id}`);
     } catch (error) {
       if (isPlanLimitError(error)) {
         setCreateOpen(false);
@@ -98,26 +91,25 @@ export function PortfolioPlansListContent() {
   function openCreate() {
     if (!isPlanReady) return;
     if (atFreeLimit) {
-      upgrade.promptLimit("portfolio");
+      upgrade.promptLimit("watchlist");
       return;
     }
     setCreateOpen(true);
   }
 
-  function openPortfolio(portfolio: UserPortfolio) {
-    if (!canOpenPortfolioOnPlan(effectivePlan, portfolio)) {
-      upgrade.promptOpen("portfolio");
+  function openWatchlist(list: UserWatchlist) {
+    if (!canOpenWatchlistOnPlan(effectivePlan, lists, list.id)) {
+      upgrade.promptOpen("watchlist");
       return;
     }
-    setActivePortfolioId(portfolio.id);
-    router.push(`/portfolio/${portfolio.id}`);
+    router.push(`/watchlist/${list.id}`);
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || !isPlanLoaded) {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading portfolios…
+        Loading watchlists…
       </div>
     );
   }
@@ -126,12 +118,10 @@ export function PortfolioPlansListContent() {
     <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Portfolios</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Watchlists</h1>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Manage your investment portfolios. Mark one as Primary — that is the
-            default used on Invest, Analytics, and AI. Open a portfolio for
-            holdings or Intelligence (allocation, concentration, and risk). Free
-            can open only the Primary portfolio; extras stay listed for cleanup.
+            Stage tickers you are researching — not holdings you own. Free
+            includes 1 watchlist; Premium unlocks unlimited lists.
           </p>
         </div>
 
@@ -147,17 +137,17 @@ export function PortfolioPlansListContent() {
           ) : (
             <Plus className="size-4" />
           )}
-          Create New Portfolio
+          Create Watchlist
         </Button>
       </div>
 
-      {atFreeLimit && <PremiumUpgradeCallout resource="portfolio" />}
+      {atFreeLimit && <PremiumUpgradeCallout resource="watchlist" />}
 
       {freeHasExtras && (
         <div className="rounded-lg border border-border/80 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          You currently have {portfolios.length} portfolios. Extra portfolios
-          were kept so no data was lost — delete ones you do not need, or upgrade
-          to Premium for unlimited portfolios.
+          You currently have {lists.length} watchlists. Extra lists stay listed
+          so you can delete them, or upgrade to Premium for unlimited
+          watchlists.
         </div>
       )}
 
@@ -172,13 +162,12 @@ export function PortfolioPlansListContent() {
         <Card className="surface-card border-dashed shadow-none">
           <CardHeader className="text-center">
             <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <PieChart className="size-6" />
+              <Eye className="size-6" />
             </div>
-            <CardTitle>No portfolios yet</CardTitle>
+            <CardTitle>No watchlists yet</CardTitle>
             <CardDescription>
-              Start with zero portfolios, then create your first one. After that
-              you must keep at least one portfolio (the last one cannot be
-              deleted).
+              Create a watchlist to track stocks and crypto you are researching
+              before they become portfolio holdings.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pb-8">
@@ -188,17 +177,17 @@ export function PortfolioPlansListContent() {
               disabled={isCreating || !isPlanReady}
             >
               <Plus className="size-4" />
-              Create your first portfolio
+              Create your first watchlist
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {
-            const portfolio = portfolios.find((item) => item.id === summary.id);
+            const list = lists.find((item) => item.id === summary.id);
             const canOpen =
-              portfolio != null &&
-              canOpenPortfolioOnPlan(effectivePlan, portfolio);
+              list != null &&
+              canOpenWatchlistOnPlan(effectivePlan, lists, summary.id);
 
             return (
               <Card
@@ -210,24 +199,16 @@ export function PortfolioPlansListContent() {
                     <CardTitle className="truncate text-base font-semibold">
                       {summary.name}
                     </CardTitle>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {!canOpen && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
-                          <Lock className="size-3" />
-                          Premium
-                        </span>
-                      )}
-                      {summary.isPrimary && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[0.7rem] font-medium text-primary">
-                          <Star className="size-3 fill-primary" />
-                          Primary
-                        </span>
-                      )}
-                    </div>
+                    {!canOpen && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
+                        <Lock className="size-3" />
+                        Premium
+                      </span>
+                    )}
                   </div>
                   <CardDescription>
-                    {summary.holdingCount} holding
-                    {summary.holdingCount === 1 ? "" : "s"}
+                    {summary.itemCount} ticker
+                    {summary.itemCount === 1 ? "" : "s"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 px-5 py-4">
@@ -240,7 +221,7 @@ export function PortfolioPlansListContent() {
                       variant="outline"
                       size="sm"
                       className="flex-1 gap-1.5"
-                      onClick={() => portfolio && openPortfolio(portfolio)}
+                      onClick={() => list && openWatchlist(list)}
                     >
                       {canOpen ? (
                         <Pencil className="size-3.5" />
@@ -253,56 +234,15 @@ export function PortfolioPlansListContent() {
                       variant="outline"
                       size="sm"
                       className="gap-1.5"
-                      disabled={!canOpen}
-                      title={
-                        canOpen
-                          ? "Open Portfolio Intelligence"
-                          : "Upgrade to open this portfolio"
-                      }
-                      onClick={() => {
-                        if (!portfolio) return;
-                        if (!canOpenPortfolioOnPlan(effectivePlan, portfolio)) {
-                          upgrade.promptOpen("portfolio");
-                          return;
-                        }
-                        setActivePortfolioId(portfolio.id);
-                        router.push(
-                          `/portfolio/${portfolio.id}?tab=intelligence`,
-                        );
-                      }}
-                    >
-                      Intelligence
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => portfolio && setRenaming(portfolio)}
+                      onClick={() => list && setRenaming(list)}
                     >
                       Rename
                     </Button>
-                    {!summary.isPrimary && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => setPrimaryPortfolio(summary.id)}
-                      >
-                        <Crown className="size-3.5" />
-                        Primary
-                      </Button>
-                    )}
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-1.5 text-destructive hover:text-destructive"
-                      disabled={!canDelete}
-                      title={
-                        canDelete
-                          ? "Delete portfolio"
-                          : "You must keep at least one portfolio"
-                      }
-                      onClick={() => portfolio && setDeleting(portfolio)}
+                      onClick={() => list && setDeleting(list)}
                     >
                       <Trash2 className="size-3.5" />
                       Delete
@@ -315,37 +255,36 @@ export function PortfolioPlansListContent() {
         </div>
       )}
 
-      <PortfolioNameDialog
+      <WatchlistNameDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        title="Create portfolio"
-        description="Give your portfolio a name so you can find it easily."
-        confirmLabel="Create portfolio"
+        title="Create watchlist"
+        description="Name this research list so you can find it easily."
+        confirmLabel="Create watchlist"
         onConfirm={handleCreate}
         isSubmitting={isCreating}
       />
 
-      <PortfolioNameDialog
+      <WatchlistNameDialog
         open={Boolean(renaming)}
         onOpenChange={(open) => !open && setRenaming(null)}
-        title="Rename portfolio"
-        description="Update the display name for this portfolio."
+        title="Rename watchlist"
+        description="Update the display name for this watchlist."
         confirmLabel="Save name"
         defaultName={renaming?.name ?? ""}
         onConfirm={async (name) => {
           if (!renaming) return;
-          renamePortfolio(renaming.id, name);
+          renameWatchlist(renaming.id, name);
           setRenaming(null);
         }}
       />
 
-      <DeletePortfolioDialog
-        portfolio={deleting}
+      <DeleteWatchlistDialog
+        watchlist={deleting}
         open={Boolean(deleting)}
         onOpenChange={(open) => !open && setDeleting(null)}
-        canDelete={canDelete}
         onConfirm={async (id) => {
-          await deletePortfolio(id);
+          await deleteWatchlist(id);
           setDeleting(null);
         }}
       />

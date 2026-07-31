@@ -18,6 +18,7 @@ const RESOURCE_LABELS: Record<
   portfolio: { singular: "portfolio", plural: "portfolios" },
   retirement: { singular: "retirement plan", plural: "retirement plans" },
   budget: { singular: "budget plan", plural: "budget plans" },
+  watchlist: { singular: "watchlist", plural: "watchlists" },
 };
 
 const OPEN_COPY: Record<PlanLimitedResource, UpgradeCopy> = {
@@ -39,6 +40,12 @@ const OPEN_COPY: Record<PlanLimitedResource, UpgradeCopy> = {
       "Free can open only 1 budget plan. Extra plans stay listed so you can delete them, but opening them requires Premium.",
     ctaLabel: "Upgrade to Premium",
   },
+  watchlist: {
+    title: "Upgrade to Premium to open more watchlists",
+    description:
+      "Free can open only 1 watchlist. Extra watchlists stay listed so you can delete them, but opening them requires Premium.",
+    ctaLabel: "Upgrade to Premium",
+  },
 };
 
 const FEATURE_COPY: Record<PlanFeature, UpgradeCopy> = {
@@ -58,6 +65,12 @@ const FEATURE_COPY: Record<PlanFeature, UpgradeCopy> = {
     title: "Upgrade to Premium for unlimited budget plans",
     description:
       "Free includes 1 budget plan. Upgrade to Premium for unlimited budget plans and upcoming Premium features.",
+    ctaLabel: "Upgrade to Premium",
+  },
+  unlimited_watchlists: {
+    title: "Upgrade to Premium for unlimited watchlists",
+    description:
+      "Free includes 1 watchlist. Upgrade to Premium for unlimited watchlists and upcoming Premium features.",
     ctaLabel: "Upgrade to Premium",
   },
   retirement_from_portfolio: {
@@ -85,9 +98,9 @@ const FEATURE_COPY: Record<PlanFeature, UpgradeCopy> = {
     ctaLabel: "Upgrade to Premium",
   },
   ai_portfolio_insights: {
-    title: "Upgrade to Premium for AI portfolio insights",
+    title: "Upgrade to Premium for deeper portfolio intelligence",
     description:
-      "AI portfolio insights are a Premium feature. Upgrade to Premium to unlock advanced analysis when available.",
+      "Free includes rules-based allocation, concentration, and risk insights on your Primary portfolio. Premium will unlock deeper analysis and AI explanations as they roll out.",
     ctaLabel: "Upgrade to Premium",
   },
 };
@@ -119,5 +132,6 @@ export function planLimitFeature(
 ): PlanFeature {
   if (resource === "portfolio") return "unlimited_portfolios";
   if (resource === "retirement") return "unlimited_retirement_plans";
+  if (resource === "watchlist") return "unlimited_watchlists";
   return "unlimited_budget_plans";
 }

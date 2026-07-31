@@ -98,6 +98,8 @@ export interface PriceRequestAsset {
 
 export interface PricesResponse {
   prices: Record<string, number>;
+  /** Daily (or 24h) change vs previous close / prior period when available. */
+  changes?: Record<string, { change: number; changePercent: number }>;
   fetchedAt: string;
   errors?: Record<string, string>;
 }

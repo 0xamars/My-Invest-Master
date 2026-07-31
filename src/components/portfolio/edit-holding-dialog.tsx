@@ -27,8 +27,12 @@ import {
   resolveSectorChoice,
   toSectorChoiceValue,
 } from "@/lib/portfolio/sectors";
-import type { DisplayCurrency } from "@/types/currency";
-import { DISPLAY_CURRENCIES } from "@/types/currency";
+import {
+  DISPLAY_CURRENCIES,
+  getCurrencyMeta,
+  getCurrencySymbol,
+  type DisplayCurrency,
+} from "@/types/currency";
 import type {
   PortfolioHolding,
   UpdateHoldingInput,
@@ -197,7 +201,15 @@ export function EditHoldingDialog({
                   <SelectContent>
                     {DISPLAY_CURRENCIES.map((code) => (
                       <SelectItem key={code} value={code}>
-                        {code}
+                        <span className="flex items-center gap-2">
+                          <span className="text-muted-foreground">
+                            {getCurrencySymbol(code)}
+                          </span>
+                          <span className="font-medium">{code}</span>
+                          <span className="text-muted-foreground">
+                            {getCurrencyMeta(code).name}
+                          </span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

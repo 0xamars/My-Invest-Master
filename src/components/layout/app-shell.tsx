@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { BudgetPlansProvider, useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
+import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { useAuth } from "@/hooks/use-auth";
 
 function resolvePageTitle(pathname: string, planName?: string | null): string {
@@ -32,12 +33,18 @@ function resolvePageTitle(pathname: string, planName?: string | null): string {
     return planName ?? "Portfolio";
   }
 
+  if (pathname === "/watchlist") return "Watchlists";
+  if (pathname.startsWith("/watchlist/")) {
+    return planName ?? "Watchlist";
+  }
+
   const pageTitles: Record<string, string> = {
     "/": "Home",
     "/home": "Home",
     "/invest": "Invest",
     "/options": "Options",
     "/market": "Market",
+    "/analytics": "Analysis",
     "/pricing": "Pricing",
     "/settings": "Settings",
   };
@@ -49,13 +56,21 @@ function AppShellHeader() {
   const pathname = usePathname();
   const { getPlan } = useBudgetPlans();
   const { portfolios } = usePortfolioPlans();
+  const { lists } = useWatchlistPlans();
   const planMatch = pathname.match(/^\/budget\/plans\/([^/]+)/);
   const portfolioMatch = pathname.match(/^\/portfolio\/([^/]+)/);
+  const watchlistMatch = pathname.match(/^\/watchlist\/([^/]+)/);
   const planName = planMatch ? getPlan(planMatch[1])?.name : null;
   const portfolioName = portfolioMatch
     ? portfolios.find((portfolio) => portfolio.id === portfolioMatch[1])?.name
     : null;
-  const title = resolvePageTitle(pathname, planName ?? portfolioName);
+  const watchlistName = watchlistMatch
+    ? lists.find((list) => list.id === watchlistMatch[1])?.name
+    : null;
+  const title = resolvePageTitle(
+    pathname,
+    planName ?? portfolioName ?? watchlistName,
+  );
 
   return (
     <header className="portal-header sticky top-0 z-20 flex h-16 shrink-0 items-center px-6 lg:px-8">

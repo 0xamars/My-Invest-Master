@@ -125,6 +125,7 @@ export function OptionsContent() {
             onChange={setCurrency}
             rates={rates}
             isLoading={isFxLoading}
+            error={fxError}
           />
           <Button
             variant="outline"

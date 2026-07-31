@@ -23,6 +23,7 @@ import {
   savePreferencesToCloud,
 } from "@/lib/supabase/user-data";
 import type { DisplayCurrency } from "@/types/currency";
+import { parseDisplayCurrency } from "@/types/currency";
 import type { PlanFeature, UserPlan } from "@/types/plan";
 
 const SAVE_DEBOUNCE_MS = 500;
@@ -86,7 +87,9 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
         await importLegacyLocalDataOnce(user.id);
         const remote = await loadPreferencesFromCloud(user.id);
         if (!cancelled && version === loadVersionRef.current) {
-          setCurrencyState(remote?.displayCurrency ?? "USD");
+          setCurrencyState(
+            parseDisplayCurrency(remote?.displayCurrency, "USD"),
+          );
           setStoredPlanState(remote?.plan ?? "free");
           setPrefsLoadSucceeded(true);
         }
@@ -113,7 +116,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   }, [user, isAuthLoading]);
 
   const setCurrency = useCallback((next: DisplayCurrency) => {
-    setCurrencyState(next);
+    setCurrencyState(parseDisplayCurrency(next));
   }, []);
 
   const setStoredPlan = useCallback((next: UserPlan) => {

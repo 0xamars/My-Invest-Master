@@ -12,14 +12,17 @@ export function useFxRate() {
   const [error, setError] = useState<string | null>(null);
 
   const loadRates = useCallback(async () => {
-    setError(null);
     try {
       const response = await fetch("/api/fx");
       if (!response.ok) throw new Error("Failed to fetch FX rates");
       const data = (await response.json()) as FxRates;
       setRates(data);
+      setError(null);
     } catch {
-      setError("Unable to load exchange rates");
+      // Keep last-known or default rates so values still format; surface clearly.
+      setError(
+        "Unable to load live exchange rates. Showing values with fallback FX rates.",
+      );
     } finally {
       setIsLoading(false);
     }

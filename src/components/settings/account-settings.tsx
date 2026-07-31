@@ -12,9 +12,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
 
 export function AccountSettings() {
   const { user, isLoading, isConfigured, signOut } = useAuth();
+  const goToMarketingHome = useGoToMarketingHome();
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
 
@@ -60,7 +62,15 @@ export function AccountSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={() => void signOut()}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              void (async () => {
+                await signOut();
+                goToMarketingHome();
+              })();
+            }}
+          >
             <LogOut className="size-4" />
             Sign out
           </Button>

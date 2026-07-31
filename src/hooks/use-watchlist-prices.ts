@@ -2,21 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchPricesFromApi } from "@/lib/portfolio/price-client";
-import type { PortfolioHolding, PriceRequestAsset } from "@/types/portfolio";
-import { isLivePricedAsset } from "@/types/portfolio";
+import type { PriceRequestAsset } from "@/types/portfolio";
+import type { WatchlistItem } from "@/types/watchlist";
 
 const REFRESH_INTERVAL_MS = 60_000;
 
-function toPriceRequest(holding: PortfolioHolding): PriceRequestAsset | null {
-  if (!isLivePricedAsset(holding.type)) return null;
+function toPriceRequest(item: WatchlistItem): PriceRequestAsset {
   return {
-    symbol: holding.symbol,
-    type: holding.type,
-    priceId: holding.priceId,
+    symbol: item.symbol,
+    type: item.type,
+    priceId: item.priceId,
   };
 }
 
-export function usePortfolioPrices(holdings: PortfolioHolding[]) {
+export function useWatchlistPrices(items: WatchlistItem[]) {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [changes, setChanges] = useState<
     Record<string, { change: number; changePercent: number }>
@@ -27,35 +26,25 @@ export function usePortfolioPrices(holdings: PortfolioHolding[]) {
   const [error, setError] = useState<string | null>(null);
   const hasFetched = useRef(false);
 
-  const assets = useMemo(
-    () =>
-      holdings
-        .map(toPriceRequest)
-        .filter((asset): asset is PriceRequestAsset => asset !== null),
-    [holdings],
-  );
+  const assets = useMemo(() => items.map(toPriceRequest), [items]);
 
   const assetsKey = useMemo(
     () =>
-      holdings
-        .filter((h) => isLivePricedAsset(h.type))
-        .map((h) => `${h.symbol}:${h.type}:${h.priceId ?? ""}`)
+      items
+        .map((item) => `${item.symbol}:${item.type}:${item.priceId ?? ""}`)
         .sort()
         .join("|"),
-    [holdings],
+    [items],
   );
 
   const loadingSymbols = useMemo(() => {
     if (!isLoading && !isRefreshing) return new Set<string>();
     return new Set(
-      holdings
-        .filter(
-          (h) =>
-            isLivePricedAsset(h.type) && prices[h.symbol] === undefined,
-        )
-        .map((h) => h.symbol),
+      items
+        .filter((item) => prices[item.symbol] === undefined)
+        .map((item) => item.symbol),
     );
-  }, [holdings, isLoading, isRefreshing, prices]);
+  }, [items, isLoading, isRefreshing, prices]);
 
   const loadPrices = useCallback(
     async (isBackground = false) => {
@@ -108,21 +97,21 @@ export function usePortfolioPrices(holdings: PortfolioHolding[]) {
   useEffect(() => {
     if (assets.length === 0) return;
 
-    const interval = setInterval(() => {
+    const timer = window.setInterval(() => {
       void loadPrices(true);
     }, REFRESH_INTERVAL_MS);
 
-    return () => clearInterval(interval);
-  }, [assets.length, assetsKey, loadPrices]);
+    return () => window.clearInterval(timer);
+  }, [assets.length, loadPrices]);
 
   return {
     prices,
     changes,
-    isLoading: isLoading && !hasFetched.current,
+    isLoading,
     isRefreshing,
-    loadingSymbols,
     lastUpdated,
     error,
-    refetch: () => loadPrices(false),
+    loadingSymbols,
+    refresh: () => loadPrices(false),
   };
 }

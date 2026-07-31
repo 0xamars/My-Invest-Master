@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/use-auth";
 import { UserPreferencesProvider } from "@/hooks/use-user-preferences";
 import { PortfolioPlansProvider } from "@/contexts/portfolio-plans-context";
+import { WatchlistPlansProvider } from "@/contexts/watchlist-plans-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -17,7 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <UserPreferencesProvider>
           <PortfolioPlansProvider>
-            <TooltipProvider>{children}</TooltipProvider>
+            <WatchlistPlansProvider>
+              <TooltipProvider>{children}</TooltipProvider>
+            </WatchlistPlansProvider>
           </PortfolioPlansProvider>
         </UserPreferencesProvider>
       </AuthProvider>

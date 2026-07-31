@@ -3,21 +3,33 @@ import type { PriceRequestAsset } from "@/types/portfolio";
 
 const yahooFinance = new YahooFinance();
 
-function extractPrice(quote: unknown): number | null {
-  const q = quote as {
-    regularMarketPrice?: number;
-    postMarketPrice?: number;
-    preMarketPrice?: number;
-  };
+type QuoteLike = {
+  symbol?: string;
+  regularMarketPrice?: number;
+  postMarketPrice?: number;
+  preMarketPrice?: number;
+  regularMarketChange?: number;
+  regularMarketChangePercent?: number;
+};
+
+function extractPrice(quote: QuoteLike): number | null {
   const price =
-    q.regularMarketPrice ?? q.postMarketPrice ?? q.preMarketPrice ?? null;
+    quote.regularMarketPrice ??
+    quote.postMarketPrice ??
+    quote.preMarketPrice ??
+    null;
   return typeof price === "number" && price > 0 ? price : null;
 }
 
 export async function fetchStockPrices(
   assets: PriceRequestAsset[],
-): Promise<{ prices: Record<string, number>; errors: Record<string, string> }> {
+): Promise<{
+  prices: Record<string, number>;
+  changes: Record<string, { change: number; changePercent: number }>;
+  errors: Record<string, string>;
+}> {
   const prices: Record<string, number> = {};
+  const changes: Record<string, { change: number; changePercent: number }> = {};
   const errors: Record<string, string> = {};
 
   const stockSymbols = [
@@ -26,16 +38,17 @@ export async function fetchStockPrices(
     ),
   ];
 
-  if (stockSymbols.length === 0) return { prices, errors };
+  if (stockSymbols.length === 0) return { prices, changes, errors };
 
   try {
     const quotes = await yahooFinance.quote(stockSymbols);
     const quoteList = Array.isArray(quotes) ? quotes : [quotes];
 
-    const quoteBySymbol = new Map<string, (typeof quoteList)[number]>();
+    const quoteBySymbol = new Map<string, QuoteLike>();
     for (const quote of quoteList) {
-      if (quote.symbol) {
-        quoteBySymbol.set(quote.symbol.toUpperCase(), quote);
+      const typed = quote as QuoteLike;
+      if (typed.symbol) {
+        quoteBySymbol.set(typed.symbol.toUpperCase(), typed);
       }
     }
 
@@ -49,6 +62,17 @@ export async function fetchStockPrices(
       const price = extractPrice(quote);
       if (price !== null) {
         prices[symbol] = price;
+        const change =
+          typeof quote.regularMarketChange === "number"
+            ? quote.regularMarketChange
+            : null;
+        const changePercent =
+          typeof quote.regularMarketChangePercent === "number"
+            ? quote.regularMarketChangePercent
+            : null;
+        if (change !== null && changePercent !== null) {
+          changes[symbol] = { change, changePercent };
+        }
       } else {
         errors[symbol] = "Price unavailable from Yahoo Finance";
       }
@@ -60,5 +84,5 @@ export async function fetchStockPrices(
     }
   }
 
-  return { prices, errors };
+  return { prices, changes, errors };
 }

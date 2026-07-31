@@ -103,6 +103,7 @@ export function useEnrichedPortfolio(
     isRefreshing,
     lastUpdated,
     error: pricesError ?? fxError,
+    fxError,
     refetch,
     portfolio,
     portfolioId: portfolio?.id ?? null,

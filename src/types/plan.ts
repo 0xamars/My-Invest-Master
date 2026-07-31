@@ -16,6 +16,7 @@ export const PLAN_FEATURES = [
   "plaid_integration",
   "ai_portfolio_insights",
   "unlimited_portfolios",
+  "unlimited_watchlists",
 ] as const;
 
 export type PlanFeature = (typeof PLAN_FEATURES)[number];
@@ -24,6 +25,11 @@ export const FREE_PLAN_LIMITS = {
   retirementPlans: 1,
   budgetPlans: 1,
   portfolios: 1,
+  watchlists: 1,
 } as const;
 
-export type PlanLimitedResource = "retirement" | "budget" | "portfolio";
+export type PlanLimitedResource =
+  | "retirement"
+  | "budget"
+  | "portfolio"
+  | "watchlist";

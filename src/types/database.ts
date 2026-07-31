@@ -4,6 +4,7 @@ import type { OptionsPosition } from "@/types/options";
 import type { UserPlan } from "@/types/plan";
 import type { PortfolioHolding, UserPortfolio } from "@/types/portfolio";
 import type { RetirementPlan } from "@/types/retirement";
+import type { UserWatchlist } from "@/types/watchlist";
 
 export type Json =
   | string
@@ -150,6 +151,27 @@ export interface Database {
         Update: {
           user_id?: string;
           data?: BudgetData;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_watchlist_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          data: UserWatchlist;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          data: UserWatchlist;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          data?: UserWatchlist;
           updated_at?: string;
         };
         Relationships: [];

@@ -78,6 +78,7 @@ export function InvestSummaryPanel({ compact = false }: InvestSummaryPanelProps)
             label={portfolioId ? "Manage portfolios" : "Create portfolio"}
           />
           <CategorySummaryLink href="/options" label="Open options" />
+          <CategorySummaryLink href="/watchlist" label="Open watchlist" />
         </div>
       </div>
     );
@@ -197,6 +198,7 @@ export function InvestSummaryPanel({ compact = false }: InvestSummaryPanelProps)
         <div className="flex flex-wrap gap-2">
           <CategorySummaryLink href="/invest" label="Open Invest" />
           <CategorySummaryLink href={portfolioHref} label="View portfolio" />
+          <CategorySummaryLink href="/watchlist" label="Watchlist" />
           <CategorySummaryLink href="/options" label="Options" />
         </div>
       )}
@@ -210,7 +212,7 @@ export function InvestHomeContent() {
       <CategoryPageHeader
         category="invest"
         title="Invest"
-        description="Your portfolio and options at a glance — drill into each area for full detail."
+        description="Your portfolio, watchlist, and options at a glance — drill into each area for full detail."
       />
       <InvestSummaryPanel />
     </div>

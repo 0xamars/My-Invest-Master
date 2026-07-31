@@ -17,6 +17,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       prices: result.prices,
+      changes: result.changes,
       errors: result.errors,
       fetchedAt: result.fetchedAt,
     });
