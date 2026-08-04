@@ -59,6 +59,20 @@ export function buildInvestSalsaRating(input: {
   peerContext?: FundamentalPeerContext;
   dailyBars: OhlcBar[] | null;
   hourlyBars: OhlcBar[] | null;
+  /** Optional profile fields for ETF/fund/trust detection. */
+  vehicleProfile?: {
+    name?: string | null;
+    industry?: string | null;
+    industryKey?: string | null;
+    sector?: string | null;
+    sectorKey?: string | null;
+    description?: string | null;
+    exchange?: string | null;
+    isEtf?: boolean | null;
+    isFund?: boolean | null;
+    raw?: Record<string, unknown> | null;
+  } | null;
+  symbol?: string | null;
 }): InvestSalsaRating {
   const fundamental = computeFundamentalScore(
     input.assetType === "stock" ? input.fundamentals : null,
@@ -66,6 +80,8 @@ export function buildInvestSalsaRating(input: {
       applicable: input.assetType === "stock",
       peers: input.peers,
       peerContext: input.peerContext,
+      vehicleProfile: input.vehicleProfile,
+      symbol: input.symbol,
     },
   );
 

@@ -508,6 +508,18 @@ async function buildAnalysisPackage(
           currency,
           description: row.description as string | null,
           marketCap,
+          isEtf:
+            raw && typeof raw.isEtf === "boolean"
+              ? (raw.isEtf as boolean)
+              : raw && typeof raw.isETF === "boolean"
+                ? (raw.isETF as boolean)
+                : null,
+          isFund:
+            raw && typeof raw.isFund === "boolean"
+              ? (raw.isFund as boolean)
+              : raw && typeof raw.isMutualFund === "boolean"
+                ? (raw.isMutualFund as boolean)
+                : null,
           raw,
         },
         updatedAt: (row.updated_at as string) ?? null,
@@ -528,7 +540,9 @@ async function buildAnalysisPackage(
         currency: p.currency,
         description: p.description,
         marketCap: p.marketCap,
-        raw: p as unknown as JsonRow,
+        isEtf: p.isEtf,
+        isFund: p.isFund,
+        raw: p.raw ?? (p as unknown as JsonRow),
       };
     },
     write: async (v) => {
@@ -1156,6 +1170,9 @@ async function buildAnalysisPackage(
           currency: profile.currency,
           description: profile.description,
           marketCap,
+          isEtf: profile.isEtf ?? null,
+          isFund: profile.isFund ?? null,
+          raw: profile.raw ?? null,
         }
       : null,
     statements,

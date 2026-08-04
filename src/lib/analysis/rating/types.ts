@@ -120,6 +120,21 @@ export type FundamentalResult = {
   missingMetrics: string[];
   dataAsOf: string | null;
   notes: string[];
+  /**
+   * Present when the symbol is an ETF/fund/trust vehicle.
+   * Corporate FS/Profitability/Growth/Valuation are not scored.
+   */
+  nonOperatingVehicle: {
+    kind: "etf" | "fund" | "trust" | "closed_end_fund";
+    label: string;
+    reason: string;
+    message: string;
+    meta: {
+      name: string | null;
+      category: string | null;
+      provider: string | null;
+    };
+  } | null;
 };
 
 export type FibZoneResult = {

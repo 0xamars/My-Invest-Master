@@ -41,6 +41,10 @@ export type AnalysisPackage = {
     currency: string | null;
     description: string | null;
     marketCap: number | null;
+    isEtf: boolean | null;
+    isFund: boolean | null;
+    /** Raw FMP/profile payload for vehicle detection & optional fund meta. */
+    raw: JsonRow | null;
   } | null;
   /** Raw statement rows (latest-first) by type × period. */
   statements: {

@@ -133,6 +133,21 @@ export async function GET(request: Request) {
             peerContext: pkg.peerContext,
             dailyBars: pkg.dailyBars,
             hourlyBars: pkg.hourlyBars,
+            symbol: symbol.toUpperCase(),
+            vehicleProfile: pkg.profile
+              ? {
+                  name: pkg.profile.name,
+                  industry: pkg.profile.industry,
+                  industryKey: pkg.profile.industryKey,
+                  sector: pkg.profile.sector,
+                  sectorKey: pkg.profile.sectorKey,
+                  description: pkg.profile.description,
+                  exchange: pkg.profile.exchange,
+                  isEtf: pkg.profile.isEtf,
+                  isFund: pkg.profile.isFund,
+                  raw: pkg.profile.raw,
+                }
+              : null,
           });
 
           const chartBars =

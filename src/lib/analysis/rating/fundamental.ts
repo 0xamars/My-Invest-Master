@@ -15,6 +15,11 @@ import {
   classifyCapitalProfile,
 } from "@/lib/analysis/rating/industry-model";
 import {
+  detectNonOperatingVehicle,
+  nonOperatingVehicleFundamentalsMessage,
+  type VehicleProfileInput,
+} from "@/lib/analysis/rating/non-operating-vehicle";
+import {
   average,
   clamp,
   formatPercentDecimal,
@@ -88,6 +93,7 @@ function pillarFromWeighted(
 function emptyFundamental(
   notes: string[],
   peerContext?: FundamentalPeerContext,
+  nonOperatingVehicle: FundamentalResult["nonOperatingVehicle"] = null,
 ): FundamentalResult {
   return {
     available: false,
@@ -98,7 +104,9 @@ function emptyFundamental(
       company: "Neutral",
       industry: "Neutral",
       adjustment: 0,
-      reason: "Fundamentals not applicable.",
+      reason: nonOperatingVehicle
+        ? "Company fundamentals do not apply to fund vehicles."
+        : "Fundamentals not applicable.",
     },
     classification: {
       businessModel: "industry_peer",
@@ -113,7 +121,9 @@ function emptyFundamental(
       sector: null,
       sectorKey: null,
       growthProfile: "cyclical_mixed",
-      growthProfileLabel: "Cyclical / mixed",
+      growthProfileLabel: nonOperatingVehicle
+        ? "Fund / ETF vehicle"
+        : "Cyclical / mixed",
       criticalFlags: [],
       reinvestmentSoftWeighting: false,
       fundamentalPeriod: null,
@@ -135,6 +145,7 @@ function emptyFundamental(
     missingMetrics: [],
     dataAsOf: null,
     notes,
+    nonOperatingVehicle,
   };
 }
 
@@ -284,8 +295,34 @@ export function computeFundamentalScore(
     applicable?: boolean;
     peers?: PeerMetricRow[];
     peerContext?: FundamentalPeerContext;
+    /** Profile fields used to detect ETF/fund/trust vehicles. */
+    vehicleProfile?: VehicleProfileInput | null;
+    symbol?: string | null;
   },
 ): FundamentalResult {
+  const vehicle = detectNonOperatingVehicle(options?.vehicleProfile);
+  if (vehicle.isNonOperating) {
+    const message = nonOperatingVehicleFundamentalsMessage(
+      vehicle,
+      options?.symbol,
+    );
+    return emptyFundamental(
+      [
+        message,
+        vehicle.reason,
+        "Technical rating may still reflect price location; it is not company quality.",
+      ],
+      options?.peerContext,
+      {
+        kind: vehicle.kind,
+        label: vehicle.label,
+        reason: vehicle.reason,
+        message,
+        meta: vehicle.meta,
+      },
+    );
+  }
+
   if (options?.applicable === false || !rawInputs) {
     return emptyFundamental([
       "Fundamental scoring is not applicable for this asset type.",
@@ -873,5 +910,6 @@ export function computeFundamentalScore(
     missingMetrics,
     dataAsOf: inputs.dataAsOf,
     notes,
+    nonOperatingVehicle: null,
   };
 }

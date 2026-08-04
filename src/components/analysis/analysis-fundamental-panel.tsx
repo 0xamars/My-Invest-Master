@@ -149,16 +149,53 @@ export function AnalysisFundamentalPanel({
   const [showMethod, setShowMethod] = useState(false);
 
   if (!fundamental.available) {
+    const vehicle = fundamental.nonOperatingVehicle;
     return (
       <Card className="surface-card shadow-none">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Fundamental detail</CardTitle>
+          {vehicle ? (
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Fund / ETF vehicle — company fundamentals do not apply
+            </p>
+          ) : null}
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Fundamentals aren’t applied for this asset. The Technical score
-            drives the rating.
+        <CardContent className="space-y-3">
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {vehicle
+              ? vehicle.message
+              : "Fundamentals aren’t applied for this asset. The Technical score drives the rating."}
           </p>
+          {vehicle ? (
+            <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground/85">
+                {vehicle.label.toUpperCase()}
+                {vehicle.meta.name ? ` · ${vehicle.meta.name}` : ""}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {vehicle.meta.category ? (
+                  <span>
+                    <span className="text-muted-foreground/80">Category </span>
+                    <span className="text-foreground/85">
+                      {vehicle.meta.category}
+                    </span>
+                  </span>
+                ) : null}
+                {vehicle.meta.provider ? (
+                  <span>
+                    <span className="text-muted-foreground/80">Provider </span>
+                    <span className="text-foreground/85">
+                      {vehicle.meta.provider}
+                    </span>
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[11px] leading-snug text-muted-foreground/90">
+                Technical detail may still show price location. That is not a
+                company-quality score.
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     );

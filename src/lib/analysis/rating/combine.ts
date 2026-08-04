@@ -157,7 +157,9 @@ export function combineInvestSalsaRating(
     score = round1(clamp(technical.score));
     weights = { fundamental: 0, technical: 1 };
     notes.push(
-      "InvestSalsa Rating uses Technical only — fundamentals not applicable.",
+      fundamental.nonOperatingVehicle
+        ? `InvestSalsa Rating uses Technical only — ${fundamental.nonOperatingVehicle.label} vehicles are not scored with company fundamentals.`
+        : "InvestSalsa Rating uses Technical only — fundamentals not applicable.",
     );
   } else if (fundamental.score != null && technical.score == null) {
     score = round1(clamp(fundamental.score));

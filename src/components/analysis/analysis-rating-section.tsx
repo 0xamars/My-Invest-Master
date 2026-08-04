@@ -125,12 +125,20 @@ export function AnalysisRatingSection({
             <div>
               <CardTitle className="text-base">InvestSalsa Rating</CardTitle>
               <CardDescription>
-                Rules-based v1.2 · 60% Fundamental · 40% Technical
-                {rating.weights.fundamental === 0
+                {fundamental.nonOperatingVehicle
+                  ? `Rules-based v1.2 · Fundamentals N/A (${fundamental.nonOperatingVehicle.label}) · Technical from price`
+                  : rating.weights.fundamental === 0
+                    ? "Rules-based v1.2 · Technical only for this asset"
+                    : "Rules-based v1.2 · 60% Fundamental · 40% Technical"}
+                {rating.weights.fundamental === 0 && !fundamental.nonOperatingVehicle
                   ? " (technical-only for this asset)"
-                  : rating.fundamental.peerContext.basis !== "none"
+                  : rating.fundamental.peerContext.basis !== "none" &&
+                      !fundamental.nonOperatingVehicle
                     ? ` · peers: ${rating.fundamental.peerContext.basis.replace("_", " ")}`
-                    : " · absolute fundamentals"}
+                    : !fundamental.nonOperatingVehicle &&
+                        rating.weights.fundamental > 0
+                      ? " · absolute fundamentals"
+                      : ""}
               </CardDescription>
             </div>
             <Badge
@@ -169,10 +177,18 @@ export function AnalysisRatingSection({
                   )}
                   style={scoreTextStyle(fundamental.score)}
                 >
-                  {fundamental.score != null
-                    ? Math.round(fundamental.score)
-                    : "N/A"}
+                  {fundamental.nonOperatingVehicle
+                    ? "N/A"
+                    : fundamental.score != null
+                      ? Math.round(fundamental.score)
+                      : "N/A"}
                 </p>
+                {fundamental.nonOperatingVehicle ? (
+                  <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+                    {fundamental.nonOperatingVehicle.label.toUpperCase()}{" "}
+                    vehicle
+                  </p>
+                ) : null}
               </div>
               <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">

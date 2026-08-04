@@ -17,9 +17,28 @@ export type FmpProfile = {
   currency: string | null;
   exchange: string | null;
   description: string | null;
+  /** FMP vehicle flags when present on /profile. */
+  isEtf: boolean | null;
+  isFund: boolean | null;
+  /** Original FMP profile row for vehicle/meta detection. */
+  raw: Record<string, unknown> | null;
 };
 
 type FmpProfileRow = Record<string, unknown>;
+
+function asBool(v: unknown): boolean | null {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (s === "true" || s === "1" || s === "yes") return true;
+    if (s === "false" || s === "0" || s === "no") return false;
+  }
+  if (typeof v === "number") {
+    if (v === 1) return true;
+    if (v === 0) return false;
+  }
+  return null;
+}
 
 export async function fetchFmpProfile(symbol: string): Promise<FmpProfile | null> {
   const upper = symbol.toUpperCase();
@@ -55,6 +74,9 @@ export async function fetchFmpProfile(symbol: string): Promise<FmpProfile | null
       currency: str(row.currency),
       exchange: str(row.exchangeShortName) ?? str(row.exchange),
       description: str(row.description),
+      isEtf: asBool(row.isEtf) ?? asBool(row.isETF),
+      isFund: asBool(row.isFund) ?? asBool(row.isMutualFund),
+      raw: row as Record<string, unknown>,
     };
   } catch {
     return null;
