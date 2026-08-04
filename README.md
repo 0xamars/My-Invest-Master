@@ -43,8 +43,28 @@ Built with Next.js, Supabase, and Tailwind CSS.
   ```
   npm install
   ```
-- Create .env.local file and add your Supabase credentials.
+- Create `.env.local` and add credentials (see below).
 - Run the development server:
+
+### Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+| `FMP_API_KEY` | Yes (Analysis equities) | [Financial Modeling Prep](https://financialmodelingprep.com/) API key — primary source for company profile, statements, ratios, quotes, and historical prices used by Analysis / InvestSalsa Rating |
+| `FMP_API_BASE` | No | Override FMP API base (default `https://financialmodelingprep.com/stable`) |
+| `MARKET_DATA_YAHOO_FALLBACK` | No | `0` disables Yahoo secondary fallback. Default: FMP first, Yahoo if FMP fails |
+
+CoinGecko remains the crypto price source (no FMP key needed for crypto). Set `FMP_API_KEY` in Vercel project settings for production.
+
+Example `.env.local` fragment:
+
+```bash
+FMP_API_KEY=your_fmp_key_here
+# MARKET_DATA_YAHOO_FALLBACK=0
+```
+
   Bash
   ```
   npm run dev

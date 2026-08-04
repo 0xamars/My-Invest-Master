@@ -53,6 +53,107 @@ const REIT_UTILITIES_KEYS = new Set([
   "utilities-independent-power-producers",
 ]);
 
+/** Industry keys that typically run with high invested capital. */
+const CAPITAL_INTENSIVE_KEYS = new Set([
+  "auto-manufacturers",
+  "auto-parts",
+  "auto-truck-dealerships",
+  "aerospace-defense",
+  "airlines",
+  "airports-air-services",
+  "railroads",
+  "marine-shipping",
+  "trucking",
+  "integrated-freight-logistics",
+  "farm-heavy-construction-machinery",
+  "specialty-industrial-machinery",
+  "industrial-distribution",
+  "metal-fabrication",
+  "steel",
+  "aluminum",
+  "copper",
+  "other-industrial-metals-mining",
+  "gold",
+  "silver",
+  "oil-gas-integrated",
+  "oil-gas-ep",
+  "oil-gas-midstream",
+  "oil-gas-refining-marketing",
+  "oil-gas-equipment-services",
+  "uranium",
+  "telecom-services",
+  "entertainment",
+  "building-materials",
+  "building-products-equipment",
+  "residential-construction",
+  "packaging-containers",
+  "paper-paper-products",
+  "lumber-wood-production",
+  "semiconductors",
+  "semiconductor-equipment-materials",
+  "solar",
+  ...REIT_UTILITIES_KEYS,
+]);
+
+const CAPITAL_INTENSIVE_SECTORS = new Set([
+  "industrials",
+  "energy",
+  "utilities",
+  "basic-materials",
+  "real-estate",
+  "communication-services",
+]);
+
+/**
+ * True when the industry/sector typically requires heavy invested capital.
+ * Used to temper absolute ROIC/ROE hurdles in Profitability.
+ */
+export function isCapitalIntensiveIndustry(input: {
+  industryKey: string | null;
+  sectorKey: string | null;
+  industry: string | null;
+  sector: string | null;
+}): boolean {
+  const key = (input.industryKey ?? "").toLowerCase();
+  const sectorKey = (input.sectorKey ?? "").toLowerCase();
+  const industry = (input.industry ?? "").toLowerCase();
+  const sector = (input.sector ?? "").toLowerCase();
+
+  if (CAPITAL_INTENSIVE_KEYS.has(key)) return true;
+  if (CAPITAL_INTENSIVE_SECTORS.has(sectorKey)) {
+    // Communication services is mixed — only telecom/infrastructure-like
+    if (sectorKey === "communication-services") {
+      return (
+        industry.includes("telecom") ||
+        industry.includes("wireless") ||
+        key.includes("telecom")
+      );
+    }
+    return true;
+  }
+
+  return (
+    industry.includes("auto manufacturer") ||
+    industry.includes("automaker") ||
+    industry.includes("airline") ||
+    industry.includes("railroad") ||
+    industry.includes("steel") ||
+    industry.includes("mining") ||
+    industry.includes("oil & gas") ||
+    industry.includes("oil and gas") ||
+    industry.includes("utility") ||
+    industry.includes("utilities") ||
+    industry.includes("telecom") ||
+    industry.includes("semiconductor") ||
+    industry.includes("heavy construction") ||
+    industry.includes("industrial machinery") ||
+    sector.includes("energy") ||
+    sector.includes("utilities") ||
+    sector.includes("industrials") ||
+    sector.includes("basic materials")
+  );
+}
+
 export function classifyCapitalProfile(input: {
   industryKey: string | null;
   sectorKey: string | null;

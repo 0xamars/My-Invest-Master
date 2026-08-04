@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AnalysisPriceChart } from "@/components/analysis/analysis-price-chart";
 import { AnalysisRatingSection } from "@/components/analysis/analysis-rating-section";
+import { AnalysisTickerSearch } from "@/components/analysis/analysis-ticker-search";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import {
   AnalyticsChartCard,
@@ -28,6 +29,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -64,7 +71,16 @@ async function fetchRatingPayload(params: {
   name?: string;
   range: AnalysisChartRange;
   chartOnly?: boolean;
+  force?: boolean;
 }): Promise<Partial<AnalysisRatingPayload> & { chart: AnalysisRatingPayload["chart"] }> {
+  const cacheKey = `${params.type}:${params.symbol}:${params.range}:${params.priceId ?? ""}:${params.chartOnly ? "c" : "f"}`;
+  if (!params.chartOnly && !params.force) {
+    const warm = clientRatingCache.get(cacheKey);
+    if (warm && warm.expiresAt > Date.now()) {
+      return warm.payload;
+    }
+  }
+
   const search = new URLSearchParams({
     symbol: params.symbol,
     type: params.type,
@@ -73,15 +89,58 @@ async function fetchRatingPayload(params: {
   if (params.priceId) search.set("priceId", params.priceId);
   if (params.name) search.set("name", params.name);
   if (params.chartOnly) search.set("chartOnly", "1");
+  if (params.force) search.set("refresh", "1");
 
   const response = await fetch(`/api/analysis/rating?${search.toString()}`);
   if (!response.ok) {
     throw new Error("Unable to load analysis rating");
   }
-  return response.json() as Promise<
-    Partial<AnalysisRatingPayload> & { chart: AnalysisRatingPayload["chart"] }
-  >;
+  const payload = (await response.json()) as Partial<AnalysisRatingPayload> & {
+    chart: AnalysisRatingPayload["chart"];
+  };
+
+  if (
+    process.env.NODE_ENV === "development" &&
+    payload.meta &&
+    !params.chartOnly
+  ) {
+    const wh = payload.meta.warehouse ?? payload.meta.fmp?.warehouse;
+    if (wh) {
+      console.info(
+        `[warehouse client] ${params.symbol} cacheHits=${wh.fromCache} network=${wh.fromFmp} stale=${wh.stale} missing=${wh.missing}`,
+      );
+    } else if (payload.meta.fmp) {
+      console.info(
+        `[FMP client] ${params.symbol} network=${payload.meta.fmp.networkCalls} cacheHits=${payload.meta.fmp.cacheHits}`,
+        payload.meta.fmp.byCategory,
+      );
+    }
+  }
+
+  if (!params.chartOnly && payload.quote && payload.rating) {
+    clientRatingCache.set(cacheKey, {
+      expiresAt: Date.now() + CLIENT_RATING_TTL_MS,
+      payload,
+    });
+    if (clientRatingCache.size > 40) {
+      const first = clientRatingCache.keys().next().value;
+      if (first) clientRatingCache.delete(first);
+    }
+  }
+
+  return payload;
 }
+
+const clientRatingCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    payload: Partial<AnalysisRatingPayload> & {
+      chart: AnalysisRatingPayload["chart"];
+    };
+  }
+>();
+const CLIENT_RATING_TTL_MS = 60_000;
 
 export function AnalysisTickerContent({
   symbol,
@@ -110,7 +169,10 @@ export function AnalysisTickerContent({
   const upper = symbol.toUpperCase();
 
   const load = useCallback(
-    async (nextRange: AnalysisChartRange, opts?: { soft?: boolean }) => {
+    async (
+      nextRange: AnalysisChartRange,
+      opts?: { soft?: boolean; force?: boolean },
+    ) => {
       const soft = opts?.soft === true;
       if (soft) setIsChartLoading(true);
       else setIsLoading(true);
@@ -123,6 +185,7 @@ export function AnalysisTickerContent({
           name: nameHint,
           range: nextRange,
           chartOnly: soft,
+          force: opts?.force === true,
         });
         if (soft) {
           setChartPoints(payload.chart.points);
@@ -225,35 +288,72 @@ export function AnalysisTickerContent({
 
   if (isLoading && !quote) {
     return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading analysis…
+      <div className="flex flex-1 flex-col gap-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2 w-fit gap-1.5 text-muted-foreground"
+            render={<Link href="/analysis" />}
+          >
+            <ArrowLeft className="size-4" />
+            All analysis
+          </Button>
+          <AnalysisTickerSearch
+            defaultType={type}
+            currentSymbol={upper}
+            currentType={type}
+            className="sm:ml-auto"
+          />
+        </div>
+        <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
+          <Loader2 className="mr-2 size-4 animate-spin" />
+          Loading analysis…
+        </div>
       </div>
     );
   }
 
   if (!quote || (error && quote.price == null)) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24 text-center">
-        <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-          <AlertCircle className="size-5" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-lg font-semibold">Ticker unavailable</p>
-          <p className="max-w-md text-sm text-muted-foreground">
-            {error ??
-              `We could not load market data for ${upper}. Check the symbol or try again.`}
-          </p>
-        </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button variant="outline" render={<Link href="/analysis" />}>
+      <div className="flex flex-1 flex-col gap-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2 w-fit gap-1.5 text-muted-foreground"
+            render={<Link href="/analysis" />}
+          >
             <ArrowLeft className="size-4" />
-            Back to Analysis
+            All analysis
           </Button>
-          <Button variant="outline" onClick={() => void load(range)}>
-            <RefreshCw className="size-4" />
-            Retry
-          </Button>
+          <AnalysisTickerSearch
+            defaultType={type}
+            currentSymbol={upper}
+            currentType={type}
+            className="sm:ml-auto"
+          />
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <AlertCircle className="size-5" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-lg font-semibold">Ticker unavailable</p>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {error ??
+                `We could not load market data for ${upper}. Search another ticker above, or try again.`}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => void load(range, { force: true })}
+            >
+              <RefreshCw className="size-4" />
+              Retry
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -264,18 +364,26 @@ export function AnalysisTickerContent({
   return (
     <div className="flex flex-1 flex-col gap-8">
       <div className="page-header !items-start">
-        <div className="space-y-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 w-fit gap-1.5 text-muted-foreground"
-            render={<Link href="/analysis" />}
-          >
-            <ArrowLeft className="size-4" />
-            All analysis
-          </Button>
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-2 w-fit gap-1.5 text-muted-foreground"
+              render={<Link href="/analysis" />}
+            >
+              <ArrowLeft className="size-4" />
+              All analysis
+            </Button>
+            <AnalysisTickerSearch
+              defaultType={type}
+              currentSymbol={quote.symbol}
+              currentType={type}
+              className="sm:max-w-sm sm:flex-1"
+            />
+          </div>
 
-          <div className="flex items-start gap-4">
+          <div className="flex w-full items-start gap-4">
             <AssetLogo
               symbol={quote.symbol}
               name={quote.name}
@@ -284,7 +392,7 @@ export function AnalysisTickerContent({
               priceId={quote.priceId}
               size="md"
             />
-            <div className="min-w-0 space-y-2">
+            <div className="min-w-0 shrink-0 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="page-title">{quote.symbol}</h1>
                 <Badge
@@ -318,6 +426,27 @@ export function AnalysisTickerContent({
                 )}
               </div>
             </div>
+            {quote.description?.trim() ? (
+              <TooltipProvider delay={200}>
+                <Tooltip>
+                  <TooltipTrigger
+                    type="button"
+                    className="ml-1 hidden min-w-0 flex-1 cursor-default border-0 bg-transparent p-0 text-left outline-none md:block"
+                  >
+                    <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                      {quote.description.trim()}
+                    </p>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    align="start"
+                    className="max-w-md text-xs leading-relaxed"
+                  >
+                    {quote.description.trim()}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
           </div>
         </div>
 
@@ -327,7 +456,7 @@ export function AnalysisTickerContent({
               variant="outline"
               size="icon"
               className="size-10 rounded-xl"
-              onClick={() => void load(range)}
+              onClick={() => void load(range, { force: true })}
               disabled={isLoading}
               title="Refresh analysis"
             >
@@ -407,7 +536,7 @@ export function AnalysisTickerContent({
 
       <AnalyticsChartCard
         title="Price chart"
-        description="Historical closes for context — signals live in Technical detail above"
+        description="Historical closes for context — price mean extension lives in Technical detail above"
       >
         <div className="mb-4 flex flex-wrap gap-1.5">
           {ANALYSIS_CHART_RANGES.map((item) => (

@@ -21,24 +21,30 @@ import type {
   FundamentalResult,
   PillarScore,
 } from "@/lib/analysis/rating/types";
+import { scoreHeatTextClass, scoreTextStyle } from "@/lib/analysis/rating/tech-palette";
+import { ScoreBar } from "@/components/analysis/score-bar";
 import { cn } from "@/lib/utils";
 
-function scoreTone(score: number | null): string {
-  if (score == null) return "text-muted-foreground";
-  if (score >= 80) return "text-emerald-400";
-  if (score >= 65) return "text-primary";
-  if (score >= 45) return "text-foreground";
-  if (score >= 30) return "text-amber-400";
-  return "text-orange-400";
-}
-
-function scoreBarColor(score: number | null): string {
-  if (score == null) return "bg-muted";
-  if (score >= 80) return "bg-emerald-400";
-  if (score >= 65) return "bg-primary";
-  if (score >= 45) return "bg-foreground/60";
-  if (score >= 30) return "bg-amber-400";
-  return "bg-orange-400";
+function MetricScoreValue({
+  display,
+  score,
+}: {
+  display: string | null;
+  score: number | null;
+}) {
+  return (
+    <span className="tabular-nums text-foreground/90">
+      {display ?? "—"}
+      {score != null ? (
+        <span
+          className={cn("ml-2", scoreHeatTextClass(score))}
+          style={scoreTextStyle(score)}
+        >
+          {Math.round(score)}
+        </span>
+      ) : null}
+    </span>
+  );
 }
 
 function PillarCard({
@@ -68,19 +74,15 @@ function PillarCard({
         <p
           className={cn(
             "shrink-0 text-2xl font-semibold tabular-nums tracking-tight",
-            scoreTone(score),
+            scoreHeatTextClass(score),
           )}
+          style={scoreTextStyle(score)}
         >
           {score != null ? Math.round(score) : "—"}
         </p>
       </div>
 
-      <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted/60">
-        <div
-          className={cn("h-full rounded-full transition-all", scoreBarColor(score))}
-          style={{ width: `${score != null ? Math.min(100, Math.max(0, score)) : 0}%` }}
-        />
-      </div>
+      <ScoreBar score={score} className="mt-3" />
 
       {visible.length > 0 && (
         <div className="mt-3 space-y-2">
@@ -90,22 +92,13 @@ function PillarCard({
               className="flex items-center justify-between gap-3 text-xs"
             >
               <span className="text-muted-foreground">{m.label}</span>
-              <span className="tabular-nums text-foreground/90">
-                {m.display ?? "—"}
-                {m.score != null ? (
-                  <span className="ml-2 text-muted-foreground">
-                    {Math.round(m.score)}
-                  </span>
-                ) : null}
-              </span>
+              <MetricScoreValue display={m.display} score={m.score} />
             </div>
           ))}
         </div>
       )}
 
-      {(rest.length > 0 ||
-        visible.some((m) => m.note) ||
-        pillar.metrics.some((m) => m.skipped)) && (
+      {(rest.length > 0 || visible.some((m) => m.note)) && (
         <div className="mt-2">
           <Button
             type="button"
@@ -130,14 +123,7 @@ function PillarCard({
                   <div key={`detail-${m.id}`} className="space-y-0.5 text-xs">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted-foreground">{m.label}</span>
-                      <span className="tabular-nums text-foreground/90">
-                        {m.display ?? "—"}
-                        {m.score != null ? (
-                          <span className="ml-2 text-muted-foreground">
-                            {Math.round(m.score)}
-                          </span>
-                        ) : null}
-                      </span>
+                      <MetricScoreValue display={m.display} score={m.score} />
                     </div>
                     {plain ? (
                       <p className="text-[11px] text-muted-foreground/90">
@@ -147,15 +133,6 @@ function PillarCard({
                   </div>
                 );
               })}
-              {pillar.metrics.filter((m) => m.skipped).length > 0 && (
-                <p className="text-[11px] text-muted-foreground">
-                  Unavailable:{" "}
-                  {pillar.metrics
-                    .filter((m) => m.skipped)
-                    .map((m) => m.label)
-                    .join(", ")}
-                </p>
-              )}
             </div>
           )}
         </div>
@@ -190,11 +167,33 @@ export function AnalysisFundamentalPanel({
   return (
     <Card className="surface-card shadow-none">
       <CardHeader className="space-y-3 pb-2">
-        <CardTitle className="text-base">Fundamental detail</CardTitle>
+        <div>
+          <CardTitle className="text-base">Fundamental detail</CardTitle>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Company quality for buy / hold / avoid — ownership-friendly vs
+            deteriorating risk
+          </p>
+        </div>
         <p className="text-sm leading-relaxed text-muted-foreground">
           {shortOutlookLine(fundamental)}
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>
+            <span className="text-muted-foreground/80">Period </span>
+            <span className="text-foreground/85">
+              {fundamental.classification.fundamentalPeriod
+                ? fundamental.classification.fundamentalPeriod.toUpperCase()
+                : "—"}
+            </span>
+          </span>
+          <span className="hidden text-border sm:inline">·</span>
+          <span>
+            <span className="text-muted-foreground/80">Profile </span>
+            <span className="text-foreground/85">
+              {fundamental.classification.growthProfileLabel}
+            </span>
+          </span>
+          <span className="hidden text-border sm:inline">·</span>
           <span>
             <span className="text-muted-foreground/80">Industry </span>
             <span className="text-foreground/85">
@@ -246,6 +245,50 @@ export function AnalysisFundamentalPanel({
           {showMethod && (
             <div className="mt-2 space-y-2 rounded-xl border border-border/50 bg-muted/10 px-3 py-3 text-xs text-muted-foreground">
               <p>
+                <span className="text-foreground/80">Fundamental Period: </span>
+                {fundamental.classification.fundamentalPeriod
+                  ? fundamental.classification.fundamentalPeriod.toUpperCase()
+                  : "—"}
+                {fundamental.classification.periodSelectionReason
+                  ? ` — ${fundamental.classification.periodSelectionReason}`
+                  : " — all pillars score on this same period"}
+              </p>
+              {fundamental.classification.ttmSource && (
+                <p>
+                  <span className="text-foreground/80">TTM source: </span>
+                  {fundamental.classification.ttmSource}
+                  {fundamental.classification.constructedTtmFields.length > 0
+                    ? ` · constructed ${fundamental.classification.constructedTtmFields.length} fields from quarters`
+                    : ""}
+                </p>
+              )}
+              {fundamental.classification.constructedTtmFields.length > 0 && (
+                <p>
+                  <span className="text-foreground/80">
+                    Constructed TTM fields:{" "}
+                  </span>
+                  {fundamental.classification.constructedTtmFields
+                    .slice(0, 16)
+                    .join(", ")}
+                  {fundamental.classification.constructedTtmFields.length > 16
+                    ? "…"
+                    : ""}
+                </p>
+              )}
+              <p>
+                <span className="text-foreground/80">Business profile: </span>
+                {fundamental.classification.growthProfileLabel}
+                {fundamental.classification.reinvestmentSoftWeighting
+                  ? " · reinvestment soft-weighting on"
+                  : ""}
+              </p>
+              {fundamental.classification.criticalFlags.length > 0 && (
+                <p>
+                  <span className="text-foreground/80">Critical flags: </span>
+                  {fundamental.classification.criticalFlags.join("; ")}
+                </p>
+              )}
+              <p>
                 <span className="text-foreground/80">Assessment frame: </span>
                 {fundamental.classification.businessModelLabel}
               </p>
@@ -267,6 +310,11 @@ export function AnalysisFundamentalPanel({
                   {fundamental.missingMetrics.join(", ")}
                 </p>
               )}
+              <p>
+                <span className="text-foreground/80">Fundamental model: </span>
+                v{fundamental.version} (same-period · growth-aware · FS ·
+                Profitability · Growth · Valuation)
+              </p>
               {fundamental.notes.length > 0 && (
                 <ul className="list-inside list-disc space-y-1">
                   {fundamental.notes.map((note) => (

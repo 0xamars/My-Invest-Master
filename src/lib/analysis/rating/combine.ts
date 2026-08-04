@@ -34,9 +34,11 @@ function completenessRatio(
   techParts += 1;
   if (technical.fib.score != null) techHave += 1;
   techParts += 1;
+  if (technical.h4.available) techHave += 1;
+  techParts += 1;
   if (technical.daily.available) techHave += 1;
   techParts += 1;
-  if (technical.h4.available) techHave += 1;
+  if (technical.weekly.available) techHave += 1;
   const techRatio = techParts > 0 ? techHave / techParts : 0;
 
   if (!fundamental.available) {
@@ -59,6 +61,7 @@ export function resolveConfidence(
     if (
       technical.h4.available &&
       technical.daily.available &&
+      technical.weekly.available &&
       technical.fib.score != null
     ) {
       return "Medium";
@@ -70,13 +73,44 @@ export function resolveConfidence(
   const basis = fundamental.peerContext.basis;
   const classified = Boolean(fundamental.classification.industryKey);
   const sparseMissing = fundamental.missingMetrics.length >= 8;
+  const manipulationRisk = fundamental.notes.some((n) =>
+    n.toLowerCase().includes("manipulation risk"),
+  );
+  const criticalFlags =
+    fundamental.classification.criticalFlags.length > 0;
+  const quarterPeriod =
+    fundamental.classification.fundamentalPeriod === "quarter";
+  const thinStrength = fundamental.notes.some((n) =>
+    n.toLowerCase().includes("financial strength coverage is thin"),
+  );
+  const thinProfitability = fundamental.notes.some((n) =>
+    n.toLowerCase().includes("profitability coverage is thin"),
+  );
+  const thinValuation = fundamental.notes.some((n) =>
+    n.toLowerCase().includes("valuation coverage is thin"),
+  );
+
+  if (manipulationRisk || criticalFlags) {
+    return "Low";
+  }
+
+  if (quarterPeriod) {
+    // Last-resort period — cap confidence at Medium
+    if (ratio >= 0.55 && (basis === "sub_industry" || basis === "industry")) {
+      return "Medium";
+    }
+    return "Low";
+  }
 
   if (
     ratio >= 0.7 &&
     technical.h4.available &&
     basis === "sub_industry" &&
     classified &&
-    !sparseMissing
+    !sparseMissing &&
+    !thinStrength &&
+    !thinProfitability &&
+    !thinValuation
   ) {
     return "High";
   }
@@ -138,9 +172,11 @@ export function combineInvestSalsaRating(
   const pillar = (id: string) =>
     fundamental.pillars.find((p) => p.id === id)?.score ?? null;
 
-  const momentumParts = [technical.daily.score, technical.h4.score].filter(
-    (s): s is number => s != null,
-  );
+  const momentumParts = [
+    technical.h4.score,
+    technical.daily.score,
+    technical.weekly.score,
+  ].filter((s): s is number => s != null);
   const momentum =
     momentumParts.length > 0
       ? round1(
@@ -170,7 +206,7 @@ export function combineInvestSalsaRating(
       { key: "valuation", label: "Valuation", value: pillar("valuation") },
       {
         key: "fib",
-        label: "Fib / Structure",
+        label: "Price structure",
         value: technical.fib.score,
       },
       {
@@ -180,5 +216,37 @@ export function combineInvestSalsaRating(
       },
     ],
     notes,
+    fairValue: {
+      available: false,
+      version: "v1",
+      label: null,
+      takeaway: null,
+      confidence: "Low",
+      price: null,
+      scenarios: { base: null, upside: null, disruptive: null },
+      range: { low: null, mid: null, high: null },
+      bands: {
+        plus30: null,
+        plus10: null,
+        fairLow: null,
+        fairHigh: null,
+        minus10: null,
+        minus30: null,
+      },
+      upsidePctVsBase: null,
+      downsidePctVsBase: null,
+      upsidePctVsMid: null,
+      optionality: {
+        score: null,
+        label: null,
+        reasons: [],
+        reasonCodes: [],
+      },
+      inputsUsed: [],
+      missingInputs: [],
+      notes: ["Fair Value Assessment is disabled in Analysis UI."],
+      disruptiveEnabled: false,
+      disruptiveDisabledReason: "Fair Value removed from product surface.",
+    },
   };
 }

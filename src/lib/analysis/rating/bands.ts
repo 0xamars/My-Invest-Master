@@ -91,6 +91,37 @@ export const PROFIT_MARGIN_BANDS: Band[] = [
   { max: Number.POSITIVE_INFINITY, score: 95 },
 ];
 
+/** EBITDA margin (decimal). */
+export const EBITDA_MARGIN_BANDS: Band[] = [
+  { max: 0, score: 5 },
+  { max: 0.08, score: 25 },
+  { max: 0.15, score: 45 },
+  { max: 0.22, score: 65 },
+  { max: 0.35, score: 80 },
+  { max: Number.POSITIVE_INFINITY, score: 95 },
+];
+
+/** Free-cash-flow / revenue (decimal). */
+export const FCF_MARGIN_BANDS: Band[] = [
+  { max: -0.05, score: 5 },
+  { max: 0, score: 20 },
+  { max: 0.04, score: 40 },
+  { max: 0.08, score: 55 },
+  { max: 0.12, score: 70 },
+  { max: 0.2, score: 85 },
+  { max: Number.POSITIVE_INFINITY, score: 95 },
+];
+
+/** Operating-cash-flow / revenue (decimal). */
+export const OCF_MARGIN_BANDS: Band[] = [
+  { max: 0, score: 5 },
+  { max: 0.05, score: 25 },
+  { max: 0.1, score: 45 },
+  { max: 0.15, score: 65 },
+  { max: 0.25, score: 80 },
+  { max: Number.POSITIVE_INFINITY, score: 95 },
+];
+
 /** ROE / ROIC as decimals (1.0 = 100%). */
 export const ROE_BANDS: Band[] = [
   { max: 0, score: 5 },
@@ -149,6 +180,46 @@ export const P_FCF_BANDS: Band[] = [
   { max: Number.POSITIVE_INFINITY, score: 10 },
 ];
 
+/** EV / Free Cash Flow — lower is better. */
+export const EV_FCF_BANDS: Band[] = [
+  { max: 12, score: 95 },
+  { max: 18, score: 80 },
+  { max: 28, score: 60 },
+  { max: 40, score: 40 },
+  { max: 60, score: 20 },
+  { max: Number.POSITIVE_INFINITY, score: 10 },
+];
+
+/** Price / Operating Cash Flow — lower is better. */
+export const P_OCF_BANDS: Band[] = [
+  { max: 8, score: 95 },
+  { max: 12, score: 80 },
+  { max: 18, score: 60 },
+  { max: 28, score: 40 },
+  { max: 40, score: 20 },
+  { max: Number.POSITIVE_INFINITY, score: 10 },
+];
+
+/** EV / Sales — lower is better. */
+export const EV_SALES_BANDS: Band[] = [
+  { max: 1, score: 95 },
+  { max: 2, score: 80 },
+  { max: 4, score: 60 },
+  { max: 8, score: 40 },
+  { max: 15, score: 20 },
+  { max: Number.POSITIVE_INFINITY, score: 10 },
+];
+
+/** EV / EBIT — lower is better. */
+export const EV_EBIT_BANDS: Band[] = [
+  { max: 10, score: 95 },
+  { max: 15, score: 80 },
+  { max: 22, score: 60 },
+  { max: 30, score: 40 },
+  { max: 45, score: 20 },
+  { max: Number.POSITIVE_INFINITY, score: 10 },
+];
+
 export const P_S_BANDS: Band[] = [
   { max: 1, score: 95 },
   { max: 2, score: 80 },
@@ -175,19 +246,22 @@ export const FIB_ZONE_SCORES = {
   red: 20,
 } as const;
 
+/** User-facing price-zone labels (internal ids unchanged). */
 export const FIB_ZONE_LABELS = {
-  grey: "Grey Zone",
-  dark_green: "Dark Green Zone",
-  green: "Green Zone",
-  yellow: "Yellow Zone",
-  orange: "Orange Zone",
-  red: "Red Zone",
+  grey: "BLOOD IN THE STREETS!",
+  dark_green: "BUY THE FEAR",
+  green: "DIP SEASON",
+  yellow: "CHOP ZONE",
+  orange: "GETTING SPICY",
+  red: "FOMO ZONE",
 } as const;
 
 export const CONFLUENCE_SCORES = {
+  /** Deferred — explicit Buy trade signal scoring not user-facing. */
   buy: 90,
   none_green: 65,
   none_red: 35,
+  /** Deferred — explicit Sell trade signal scoring not user-facing. */
   sell: 15,
 } as const;
 
@@ -200,9 +274,10 @@ export const OUTLOOK_POINTS = {
 export const FUNDAMENTAL_WEIGHT = 0.6;
 export const TECHNICAL_WEIGHT = 0.4;
 
-export const TECH_FIB_WEIGHT = 0.4;
-export const TECH_1D_WEIGHT = 0.3;
-export const TECH_4H_WEIGHT = 0.3;
+export const TECH_FIB_WEIGHT = 0.34;
+export const TECH_4H_WEIGHT = 0.22;
+export const TECH_1D_WEIGHT = 0.22;
+export const TECH_1W_WEIGHT = 0.22;
 
 export const MACD_FAST = 8;
 export const MACD_SLOW = 21;

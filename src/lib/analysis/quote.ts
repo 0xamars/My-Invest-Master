@@ -1,116 +1,107 @@
 import type { AnalysisAssetType, AnalysisQuote } from "@/lib/analysis/types";
 import { resolvePriceId } from "@/lib/portfolio/asset-catalog";
-import YahooFinance from "yahoo-finance2";
+import { allowYahooFallback, isFmpConfigured } from "@/lib/market-data/config";
+import { isFmpRateLimited } from "@/lib/market-data/fmp/client";
+import { fetchFmpQuote } from "@/lib/market-data/fmp/quote";
 
-const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
-
-type YahooQuoteLike = {
-  symbol?: string;
-  shortName?: string;
-  longName?: string;
-  displayName?: string;
-  regularMarketPrice?: number;
-  postMarketPrice?: number;
-  preMarketPrice?: number;
-  regularMarketChange?: number;
-  regularMarketChangePercent?: number;
-  marketCap?: number;
-  regularMarketVolume?: number;
-  averageDailyVolume3Month?: number;
-  regularMarketDayLow?: number;
-  regularMarketDayHigh?: number;
-  fiftyTwoWeekLow?: number;
-  fiftyTwoWeekHigh?: number;
-  currency?: string;
-};
 
 function num(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function extractPrice(quote: YahooQuoteLike): number | null {
-  const price =
-    quote.regularMarketPrice ??
-    quote.postMarketPrice ??
-    quote.preMarketPrice ??
-    null;
-  return typeof price === "number" && price > 0 ? price : null;
 }
 
 async function fetchStockAnalysisQuote(
   symbol: string,
 ): Promise<AnalysisQuote> {
   const upper = symbol.toUpperCase();
-  try {
-    const raw = await yahooFinance.quote(upper);
-    const quote = (
-      Array.isArray(raw) ? raw[0] : raw
-    ) as YahooQuoteLike | undefined;
 
-    if (!quote) {
+  if (isFmpConfigured() && !isFmpRateLimited()) {
+    // Quote only — skip extra /profile call to conserve FMP rate limit.
+    const quote = await fetchFmpQuote(upper);
+    if (quote?.price != null) {
       return {
-        symbol: upper,
-        name: upper,
+        symbol: quote.symbol,
+        name: quote.name ?? upper,
         type: "stock",
-        price: null,
-        change: null,
-        changePercent: null,
-        marketCap: null,
-        volume: null,
-        averageVolume: null,
-        dayLow: null,
-        dayHigh: null,
-        week52Low: null,
-        week52High: null,
-        currency: "USD",
+        price: quote.price,
+        change: quote.change,
+        changePercent: quote.changePercent,
+        marketCap: quote.marketCap,
+        volume: quote.volume,
+        averageVolume: quote.averageVolume,
+        dayLow: quote.dayLow,
+        dayHigh: quote.dayHigh,
+        week52Low: quote.week52Low,
+        week52High: quote.week52High,
+        currency: quote.currency ?? "USD",
         fetchedAt: new Date().toISOString(),
-        error: "Quote not found",
       };
     }
-
-    const price = extractPrice(quote);
-    const name =
-      quote.longName ?? quote.shortName ?? quote.displayName ?? upper;
-
-    return {
-      symbol: (quote.symbol ?? upper).toUpperCase(),
-      name,
-      type: "stock",
-      price,
-      change: num(quote.regularMarketChange),
-      changePercent: num(quote.regularMarketChangePercent),
-      marketCap: num(quote.marketCap),
-      volume: num(quote.regularMarketVolume),
-      averageVolume: num(quote.averageDailyVolume3Month),
-      dayLow: num(quote.regularMarketDayLow),
-      dayHigh: num(quote.regularMarketDayHigh),
-      week52Low: num(quote.fiftyTwoWeekLow),
-      week52High: num(quote.fiftyTwoWeekHigh),
-      currency: quote.currency ?? "USD",
-      fetchedAt: new Date().toISOString(),
-      error: price == null ? "Price unavailable from Yahoo Finance" : undefined,
-    };
-  } catch {
-    return {
-      symbol: upper,
-      name: upper,
-      type: "stock",
-      price: null,
-      change: null,
-      changePercent: null,
-      marketCap: null,
-      volume: null,
-      averageVolume: null,
-      dayLow: null,
-      dayHigh: null,
-      week52Low: null,
-      week52High: null,
-      currency: "USD",
-      fetchedAt: new Date().toISOString(),
-      error: "Failed to fetch stock quote",
-    };
   }
+
+  if (allowYahooFallback()) {
+    try {
+      const YahooFinance = (await import("yahoo-finance2")).default;
+      const yahooFinance = new YahooFinance({
+        suppressNotices: ["yahooSurvey"],
+      });
+      const raw = await yahooFinance.quote(upper);
+      const q = (Array.isArray(raw) ? raw[0] : raw) as
+        | Record<string, unknown>
+        | undefined;
+      if (q) {
+        const price =
+          num(q.regularMarketPrice) ??
+          num(q.postMarketPrice) ??
+          num(q.preMarketPrice);
+        return {
+          symbol: upper,
+          name:
+            (typeof q.longName === "string" && q.longName) ||
+            (typeof q.shortName === "string" && q.shortName) ||
+            upper,
+          type: "stock",
+          price,
+          change: num(q.regularMarketChange),
+          changePercent: num(q.regularMarketChangePercent),
+          marketCap: num(q.marketCap),
+          volume: num(q.regularMarketVolume),
+          averageVolume: num(q.averageDailyVolume3Month),
+          dayLow: num(q.regularMarketDayLow),
+          dayHigh: num(q.regularMarketDayHigh),
+          week52Low: num(q.fiftyTwoWeekLow),
+          week52High: num(q.fiftyTwoWeekHigh),
+          currency:
+            typeof q.currency === "string" ? q.currency : "USD",
+          fetchedAt: new Date().toISOString(),
+          error: price == null ? "Price unavailable" : undefined,
+        };
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  return {
+    symbol: upper,
+    name: upper,
+    type: "stock",
+    price: null,
+    change: null,
+    changePercent: null,
+    marketCap: null,
+    volume: null,
+    averageVolume: null,
+    dayLow: null,
+    dayHigh: null,
+    week52Low: null,
+    week52High: null,
+    currency: "USD",
+    fetchedAt: new Date().toISOString(),
+    error: isFmpConfigured()
+      ? "Quote unavailable from FMP"
+      : "FMP_API_KEY is not configured",
+  };
 }
 
 async function fetchCryptoAnalysisQuote(

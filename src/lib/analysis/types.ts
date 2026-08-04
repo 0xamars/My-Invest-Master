@@ -29,6 +29,8 @@ export type AnalysisQuote = {
   week52High: number | null;
   currency: string;
   fetchedAt: string;
+  /** Brief company description from FMP profile when available. */
+  description?: string | null;
   error?: string;
 };
 
@@ -44,6 +46,39 @@ export type AnalysisRatingPayload = {
     ath: number | null;
     dailyBars: number;
     hourlyBars: number;
+    peerBasis?: string;
+    peerCount?: number;
+    businessModel?: string;
+    cache?: "cold" | "warm";
+    fmpRateLimited?: boolean;
+    dataSource?: "fmp-warehouse" | "crypto" | string;
+    packageDegraded?: boolean;
+    packageConfidenceNote?: string | null;
+    warehouse?: {
+      fromFmp: number;
+      fromCache: number;
+      stale: number;
+      missing: number;
+    };
+    datasetStatus?: Array<{
+      dataset: string;
+      source: string;
+      updatedAt: string | null;
+      error?: string;
+    }>;
+    fmp?: {
+      networkCalls: number;
+      cacheHits: number;
+      coalesced: number;
+      byCategory: Record<string, number>;
+      fmpMemory?: { networkCalls: number; cacheHits: number };
+      warehouse?: {
+        fromFmp: number;
+        fromCache: number;
+        stale: number;
+        missing: number;
+      } | null;
+    };
   };
 };
 

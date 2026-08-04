@@ -1,24 +1,15 @@
 import {
-  CURRENT_RATIO_BANDS,
-  DEBT_TO_EQUITY_BANDS,
-  EV_EBITDA_BANDS,
-  FCF_QUALITY_BANDS,
   GROWTH_BANDS,
-  GROSS_MARGIN_BANDS,
-  OPERATING_MARGIN_BANDS,
   OUTLOOK_POINTS,
-  PEG_BANDS,
-  PE_BANDS,
-  PROFIT_MARGIN_BANDS,
-  P_FCF_BANDS,
-  P_S_BANDS,
-  QUICK_RATIO_BANDS,
-  ROE_BANDS,
-  ROIC_BANDS,
   scoreAscending,
-  scoreDescending,
-  type Band,
 } from "@/lib/analysis/rating/bands";
+import {
+  fundamentalPillarWeights,
+  resolveBusinessProfilePolicy,
+} from "@/lib/analysis/rating/business-profile";
+import { computeFinancialStrengthV12 } from "@/lib/analysis/rating/financial-strength";
+import { computeProfitabilityV12 } from "@/lib/analysis/rating/profitability";
+import { computeValuationV12 } from "@/lib/analysis/rating/valuation";
 import {
   comparisonFrameLabel,
   classifyCapitalProfile,
@@ -26,15 +17,12 @@ import {
 import {
   average,
   clamp,
-  formatMultiple,
   formatPercentDecimal,
-  formatRatio,
   round1,
   weightedAverage,
 } from "@/lib/analysis/rating/math";
 import {
   blendAbsoluteAndPeer,
-  growthAwareValuationScore,
   percentileRank,
   peerValues,
   quartileNote,
@@ -48,43 +36,10 @@ import type {
   PeerMetricRow,
   PillarScore,
 } from "@/lib/analysis/rating/types";
-
-/** Wider leverage bands for REITs / utilities. */
-const REIT_DE_BANDS: Band[] = [
-  { max: 80, score: 90 },
-  { max: 150, score: 78 },
-  { max: 250, score: 62 },
-  { max: 400, score: 45 },
-  { max: 600, score: 28 },
-  { max: Number.POSITIVE_INFINITY, score: 12 },
-];
-
-/** Softer D/E bands for brokerage / capital markets (not primary risk). */
-const BROKER_DE_BANDS: Band[] = [
-  { max: 100, score: 80 },
-  { max: 200, score: 70 },
-  { max: 350, score: 58 },
-  { max: 500, score: 45 },
-  { max: Number.POSITIVE_INFINITY, score: 35 },
-];
-
-const NET_DEBT_EBITDA_BANDS: Band[] = [
-  { max: 0, score: 95 },
-  { max: 1, score: 85 },
-  { max: 2, score: 70 },
-  { max: 3.5, score: 50 },
-  { max: 5, score: 30 },
-  { max: Number.POSITIVE_INFINITY, score: 12 },
-];
-
-const CASH_TO_DEBT_BANDS: Band[] = [
-  { max: 0.25, score: 15 },
-  { max: 0.5, score: 35 },
-  { max: 0.8, score: 55 },
-  { max: 1.0, score: 70 },
-  { max: 1.5, score: 85 },
-  { max: Number.POSITIVE_INFINITY, score: 95 },
-];
+import {
+  formatSubstitutionNotes,
+  resolveFundamentalInputs,
+} from "@/lib/analysis/rating/resolve-inputs";
 
 function metric(
   id: string,
@@ -110,10 +65,13 @@ function pillarFromWeighted(
   label: string,
   parts: Array<{ metric: MetricScore; weight: number }>,
 ): PillarScore {
-  const metrics = parts.map((p) => p.metric);
   const scored = parts
     .filter((p) => p.metric.score != null)
     .map((p) => ({ weight: p.weight, value: p.metric.score! }));
+  // Only surface metrics with a real value (or a scored context row)
+  const metrics = parts
+    .map((p) => p.metric)
+    .filter((m) => m.value != null || (m.score != null && !m.skipped));
   return {
     id,
     label,
@@ -134,7 +92,7 @@ function emptyFundamental(
   return {
     available: false,
     score: null,
-    version: "v1.1",
+    version: "v1.2",
     pillars: [],
     outlook: {
       company: "Neutral",
@@ -154,6 +112,14 @@ function emptyFundamental(
       industryKey: null,
       sector: null,
       sectorKey: null,
+      growthProfile: "cyclical_mixed",
+      growthProfileLabel: "Cyclical / mixed",
+      criticalFlags: [],
+      reinvestmentSoftWeighting: false,
+      fundamentalPeriod: null,
+      periodSelectionReason: null,
+      ttmSource: null,
+      constructedTtmFields: [],
     },
     peerContext: peerContext ?? {
       basis: "none",
@@ -185,7 +151,7 @@ function peerAwareScore(
   }
   const pct = percentileRank(value, peers, higherIsBetter);
   const note =
-    peers.length >= 5 ? quartileNote(pct, peerLabel) : null;
+    peers.length >= 3 ? quartileNote(pct, peerLabel) : null;
   return {
     score: blendAbsoluteAndPeer(absolute, pct, peerWeight),
     note,
@@ -313,18 +279,22 @@ function industryOutlookFromPeers(
 }
 
 export function computeFundamentalScore(
-  inputs: FundamentalInputs | null,
+  rawInputs: FundamentalInputs | null,
   options?: {
     applicable?: boolean;
     peers?: PeerMetricRow[];
     peerContext?: FundamentalPeerContext;
   },
 ): FundamentalResult {
-  if (options?.applicable === false || !inputs) {
+  if (options?.applicable === false || !rawInputs) {
     return emptyFundamental([
       "Fundamental scoring is not applicable for this asset type.",
     ]);
   }
+
+  const resolved = resolveFundamentalInputs(rawInputs);
+  const inputs = resolved.inputs;
+  const substitutionNotes = formatSubstitutionNotes(resolved);
 
   const peers = options?.peers ?? [];
   const peerContext = options?.peerContext ?? {
@@ -341,7 +311,7 @@ export function computeFundamentalScore(
       ? "peers"
       : peerContext.industry ?? peerContext.label;
   const usePeers =
-    peerContext.basis !== "none" && peers.length >= 5;
+    peerContext.basis !== "none" && peers.length >= 3;
 
   const model = classifyCapitalProfile({
     industryKey: inputs.industryKey,
@@ -352,673 +322,280 @@ export function computeFundamentalScore(
     freeCashflow: inputs.freeCashflow,
     revenueGrowth: inputs.revenueGrowth,
   });
+  const policy = resolveBusinessProfilePolicy(inputs);
   const frameLabel = comparisonFrameLabel({
     industry: inputs.industry,
     sector: inputs.sector,
     capitalProfile: model,
     peerBasis: peerContext.basis,
   });
-  /** Heavier peer blend for industry-framed names (TSLA vs autos, etc.). */
-  const strengthPeerWeight = model === "industry_peer" ? 0.45 : 0.3;
+  const strength = computeFinancialStrengthV12({
+    fundamentals: inputs,
+    capitalProfile: model,
+    peers,
+    peerContext,
+    policy,
+  });
 
-  const fcfQuality =
-    inputs.freeCashflow != null &&
-    inputs.operatingCashflow != null &&
-    inputs.operatingCashflow !== 0
-      ? inputs.freeCashflow / inputs.operatingCashflow
-      : inputs.freeCashflow != null && inputs.freeCashflow > 0
-        ? 0.8
-        : inputs.freeCashflow != null && inputs.freeCashflow <= 0
-          ? -0.1
-          : null;
+  const profitability = computeProfitabilityV12({
+    fundamentals: inputs,
+    capitalProfile: model,
+    peers,
+    peerContext,
+    policy,
+  });
 
-  const netDebtEbitda =
-    inputs.totalDebt != null &&
-    inputs.totalCash != null &&
-    inputs.ebitda != null &&
-    inputs.ebitda !== 0
-      ? (inputs.totalDebt - inputs.totalCash) / inputs.ebitda
-      : null;
+  // —— Growth (coverage-safe blend: current + true 3Y revenue CAGR; no forwards) ——
+  const growthSoft =
+    policy.reinvestmentSoftWeighting && !policy.hasCriticalFlags;
+  const growthFragile =
+    policy.hasCriticalFlags || policy.profile === "low_quality_fragile";
 
-  const cashToDebt =
-    inputs.totalCash != null &&
-    inputs.totalDebt != null &&
-    inputs.totalDebt > 0
-      ? inputs.totalCash / inputs.totalDebt
-      : inputs.totalCash != null &&
-          inputs.totalCash > 0 &&
-          (inputs.totalDebt == null || inputs.totalDebt <= 0)
-        ? 2
-        : null;
+  /** Gate absurd YoY rates (e.g. tiny-base EPS explosions) from current sleeve. */
+  const isUsableGrowthRate = (g: number | null | undefined): g is number =>
+    g != null && Number.isFinite(g) && Math.abs(g) <= 2.5;
 
-  // —— Financial Strength (model-aware weights) ——
-  const deBands =
-    model === "reit_utilities"
-      ? REIT_DE_BANDS
-      : model === "brokerage_capital_markets"
-        ? BROKER_DE_BANDS
-        : DEBT_TO_EQUITY_BANDS;
+  const scoreGrowthRate = (g: number | null): number | null =>
+    g != null ? scoreAscending(g, GROWTH_BANDS) : null;
 
-  const deAbs =
-    inputs.debtToEquity != null
-      ? scoreDescending(inputs.debtToEquity, deBands)
-      : null;
-
-  const strengthParts: Array<{ metric: MetricScore; weight: number }> = [];
-
-  if (model === "brokerage_capital_markets") {
-    strengthParts.push(
-      {
-        weight: 0.15,
-        metric: metric(
-          "debt_to_equity",
-          "Debt / Equity (de-emphasized)",
-          inputs.debtToEquity,
-          inputs.debtToEquity != null
-            ? `${formatRatio(inputs.debtToEquity, 1)}%`
-            : null,
-          deAbs,
-          "Brokerage/capital-markets model — D/E is not primary risk",
-        ),
-      },
-      {
-        weight: 0.3,
-        metric: metric(
-          "cash_to_debt",
-          "Cash / Debt",
-          cashToDebt,
-          formatRatio(cashToDebt),
-          cashToDebt != null
-            ? scoreAscending(cashToDebt, CASH_TO_DEBT_BANDS)
-            : null,
-        ),
-      },
-      {
-        weight: 0.25,
-        metric: metric(
-          "current_ratio",
-          "Current ratio",
-          inputs.currentRatio,
-          formatRatio(inputs.currentRatio),
-          inputs.currentRatio != null
-            ? scoreAscending(inputs.currentRatio, CURRENT_RATIO_BANDS)
-            : null,
-        ),
-      },
-      {
-        weight: 0.3,
-        metric: metric(
-          "fcf_quality",
-          "FCF quality",
-          fcfQuality,
-          formatRatio(fcfQuality),
-          fcfQuality != null
-            ? scoreAscending(fcfQuality, FCF_QUALITY_BANDS)
-            : null,
-        ),
-      },
-    );
-  } else if (model === "bank_insurance") {
-    strengthParts.push(
-      {
-        weight: 0.35,
-        metric: metric(
-          "roa_capital",
-          "ROA (capital proxy)",
-          inputs.returnOnAssets,
-          formatPercentDecimal(inputs.returnOnAssets),
-          inputs.returnOnAssets != null
-            ? scoreAscending(inputs.returnOnAssets, ROIC_BANDS)
-            : null,
-          "Bank/insurance — ROA used as capital-efficiency proxy; regulatory capital N/A",
-        ),
-      },
-      {
-        weight: 0.3,
-        metric: metric(
-          "roe_stability",
-          "ROE",
-          inputs.returnOnEquity,
-          formatPercentDecimal(inputs.returnOnEquity),
-          inputs.returnOnEquity != null
-            ? scoreAscending(inputs.returnOnEquity, ROE_BANDS)
-            : null,
-        ),
-      },
-      {
-        weight: 0.2,
-        metric: metric(
-          "cash_to_debt",
-          "Cash / Debt",
-          cashToDebt,
-          formatRatio(cashToDebt),
-          cashToDebt != null
-            ? scoreAscending(cashToDebt, CASH_TO_DEBT_BANDS)
-            : null,
-        ),
-      },
-      {
-        weight: 0.15,
-        metric: metric(
-          "fcf_quality",
-          "FCF / cash quality",
-          fcfQuality,
-          formatRatio(fcfQuality),
-          fcfQuality != null
-            ? scoreAscending(fcfQuality, FCF_QUALITY_BANDS)
-            : null,
-        ),
-      },
-    );
-  } else if (model === "early_growth") {
-    strengthParts.push(
-      {
-        weight: 0.35,
-        metric: metric(
-          "cash_to_debt",
-          "Cash / Debt (runway)",
-          cashToDebt,
-          formatRatio(cashToDebt),
-          cashToDebt != null
-            ? scoreAscending(cashToDebt, CASH_TO_DEBT_BANDS)
-            : null,
-          "Early-growth — liquidity over earnings",
-        ),
-      },
-      {
-        weight: 0.25,
-        metric: metric(
-          "current_ratio",
-          "Current ratio",
-          inputs.currentRatio,
-          formatRatio(inputs.currentRatio),
-          inputs.currentRatio != null
-            ? scoreAscending(inputs.currentRatio, CURRENT_RATIO_BANDS)
-            : null,
-        ),
-      },
-      {
-        weight: 0.2,
-        metric: metric(
-          "quick_ratio",
-          "Quick ratio",
-          inputs.quickRatio,
-          formatRatio(inputs.quickRatio),
-          inputs.quickRatio != null
-            ? scoreAscending(inputs.quickRatio, QUICK_RATIO_BANDS)
-            : null,
-        ),
-      },
-      {
-        weight: 0.2,
-        metric: metric(
-          "fcf_burn",
-          "FCF quality / burn",
-          fcfQuality,
-          formatRatio(fcfQuality),
-          fcfQuality != null
-            ? scoreAscending(Math.max(fcfQuality, -0.5), FCF_QUALITY_BANDS)
-            : null,
-          "Negative FCF not fatal when liquidity is strong",
-        ),
-      },
-    );
-  } else {
-    // industry_peer (default) + reit_utilities: score vs own industry/sector peers
-    const deRel = usePeers
-      ? peerAwareScore(
-          deAbs,
-          inputs.debtToEquity,
-          peerValues(peers, "debtToEquity"),
-          false,
-          peerLabel,
-          strengthPeerWeight,
-        )
-      : {
-          score: deAbs,
-          note:
-            model === "reit_utilities"
-              ? "Higher structural leverage allowed for REIT/utilities"
-              : peerContext.basis === "none"
-                ? "No industry peers — absolute D/E bands only"
-                : null,
-        };
-    const crAbs =
-      inputs.currentRatio != null
-        ? scoreAscending(inputs.currentRatio, CURRENT_RATIO_BANDS)
-        : null;
-    const crRel = usePeers
-      ? peerAwareScore(
-          crAbs,
-          inputs.currentRatio,
-          peerValues(peers, "currentRatio"),
-          true,
-          peerLabel,
-          strengthPeerWeight,
-        )
-      : { score: crAbs, note: null };
-    const fcfAbs =
-      fcfQuality != null
-        ? scoreAscending(fcfQuality, FCF_QUALITY_BANDS)
-        : null;
-    const ndAbs =
-      netDebtEbitda != null
-        ? scoreDescending(netDebtEbitda, NET_DEBT_EBITDA_BANDS)
-        : null;
-
-    strengthParts.push(
-      {
-        weight: model === "reit_utilities" ? 0.2 : 0.25,
-        metric: metric(
-          "debt_to_equity",
-          model === "reit_utilities"
-            ? "Debt / Equity (infra bands)"
-            : "Debt / Equity",
-          inputs.debtToEquity,
-          inputs.debtToEquity != null
-            ? `${formatRatio(inputs.debtToEquity, 1)}%`
-            : null,
-          deRel.score,
-          deRel.note ??
-            (model === "reit_utilities"
-              ? "Higher structural leverage allowed for REIT/utilities"
-              : usePeers
-                ? `Scored vs ${peerLabel}`
-                : null),
-        ),
-      },
-      {
-        weight: 0.25,
-        metric: metric(
-          "net_debt_ebitda",
-          "Net Debt / EBITDA",
-          netDebtEbitda,
-          formatRatio(netDebtEbitda),
-          ndAbs,
-          usePeers ? `Industry frame: ${peerLabel}` : null,
-        ),
-      },
-      {
-        weight: 0.25,
-        metric: metric(
-          "current_ratio",
-          "Current ratio",
-          inputs.currentRatio,
-          formatRatio(inputs.currentRatio),
-          crRel.score,
-          crRel.note,
-        ),
-      },
-      {
-        weight: model === "reit_utilities" ? 0.3 : 0.25,
-        metric: metric(
-          "fcf_quality",
-          "FCF quality",
-          fcfQuality,
-          formatRatio(fcfQuality),
-          fcfAbs,
-          usePeers ? `Industry frame: ${peerLabel}` : null,
-        ),
-      },
-    );
-  }
-
-  const strength = pillarFromWeighted(
-    "financial_strength",
-    "Financial Strength",
-    strengthParts,
-  );
-
-  // —— Profitability (peer-aware margins + honest ROIC/ROE/ROA) ——
-  const gmAbs =
-    inputs.grossMargins != null
-      ? scoreAscending(inputs.grossMargins, GROSS_MARGIN_BANDS)
-      : null;
-  const omAbs =
-    inputs.operatingMargins != null
-      ? scoreAscending(inputs.operatingMargins, OPERATING_MARGIN_BANDS)
-      : null;
-  const pmAbs =
-    inputs.profitMargins != null
-      ? scoreAscending(inputs.profitMargins, PROFIT_MARGIN_BANDS)
-      : null;
-
-  const gm = usePeers
-    ? peerAwareScore(
-        gmAbs,
-        inputs.grossMargins,
-        peerValues(peers, "grossMargins"),
-        true,
-        peerLabel,
-      )
-    : { score: gmAbs, note: null };
-  const om = usePeers
-    ? peerAwareScore(
-        omAbs,
-        inputs.operatingMargins,
-        peerValues(peers, "operatingMargins"),
-        true,
-        peerLabel,
-      )
-    : { score: omAbs, note: null };
-  const pm = usePeers
-    ? peerAwareScore(
-        pmAbs,
-        inputs.profitMargins,
-        peerValues(peers, "profitMargins"),
-        true,
-        peerLabel,
-      )
-    : { score: pmAbs, note: null };
-
-  const hasRoic = inputs.returnOnInvestedCapital != null;
-  const roicAbs = hasRoic
-    ? scoreAscending(inputs.returnOnInvestedCapital!, ROIC_BANDS)
+  const revCurrent = isUsableGrowthRate(inputs.revenueGrowth)
+    ? inputs.revenueGrowth
     : null;
-  const roeAbs =
-    inputs.returnOnEquity != null
-      ? scoreAscending(inputs.returnOnEquity, ROE_BANDS)
+  const opCurrent = isUsableGrowthRate(inputs.operatingIncomeGrowth)
+    ? inputs.operatingIncomeGrowth
+    : null;
+  const epsCurrent = isUsableGrowthRate(inputs.earningsGrowth)
+    ? inputs.earningsGrowth
+    : null;
+  const fcfCurrent =
+    inputs.fcfGrowth != null && Number.isFinite(inputs.fcfGrowth)
+      ? inputs.fcfGrowth
       : null;
-  const roaAbs =
-    inputs.returnOnAssets != null
-      ? scoreAscending(inputs.returnOnAssets, ROIC_BANDS)
-      : null;
 
-  const returnsBlend =
-    !hasRoic && roeAbs != null && roaAbs != null
-      ? round1(clamp(0.6 * roeAbs + 0.4 * roaAbs))
-      : !hasRoic && roeAbs != null
-        ? roeAbs
-        : !hasRoic && roaAbs != null
-          ? roaAbs
-          : null;
-
-  const profitability = pillarFromWeighted("profitability", "Profitability", [
-    {
-      weight: 0.2,
-      metric: metric(
-        "gross_margin",
-        "Gross margin",
-        inputs.grossMargins,
-        formatPercentDecimal(inputs.grossMargins),
-        gm.score,
-        gm.note,
-      ),
-    },
-    {
-      weight: 0.25,
-      metric: metric(
-        "operating_margin",
-        "Operating margin",
-        inputs.operatingMargins,
-        formatPercentDecimal(inputs.operatingMargins),
-        om.score,
-        om.note,
-      ),
-    },
-    {
-      weight: 0.2,
-      metric: metric(
-        "profit_margin",
-        "Net margin",
-        inputs.profitMargins,
-        formatPercentDecimal(inputs.profitMargins),
-        pm.score,
-        pm.note,
-      ),
-    },
-    ...(hasRoic
-      ? [
-          {
-            weight: 0.35,
-            metric: metric(
-              "roic",
-              "ROIC",
-              inputs.returnOnInvestedCapital,
-              formatPercentDecimal(inputs.returnOnInvestedCapital),
-              roicAbs,
-              "Computed ROIC (NOPAT / invested capital)",
-            ),
-          },
-        ]
-      : [
-          {
-            weight: 0.2,
-            metric: metric(
-              "roe",
-              "ROE",
-              inputs.returnOnEquity,
-              formatPercentDecimal(inputs.returnOnEquity),
-              roeAbs,
-              usePeers
-                ? peerAwareScore(
-                    roeAbs,
-                    inputs.returnOnEquity,
-                    peerValues(peers, "returnOnEquity"),
-                    true,
-                    peerLabel,
-                  ).note
-                : "ROIC unavailable — ROE shown separately",
-            ),
-          },
-          {
-            weight: 0.15,
-            metric: metric(
-              "roa",
-              "ROA",
-              inputs.returnOnAssets,
-              formatPercentDecimal(inputs.returnOnAssets),
-              roaAbs,
-              "ROIC unavailable — ROA shown separately (not labeled as ROIC)",
-            ),
-          },
-          {
-            weight: 0.0,
-            metric: metric(
-              "returns_blend",
-              "ROE+ROA blend (no ROIC)",
-              returnsBlend,
-              returnsBlend != null ? String(Math.round(returnsBlend)) : null,
-              returnsBlend,
-              "Used only when ROIC cannot be computed",
-            ),
-          },
-        ]),
-  ]);
-
-  // Fix profitability weights when no ROIC: include blend properly
-  let profitabilityFixed = profitability;
-  if (!hasRoic) {
-    profitabilityFixed = pillarFromWeighted("profitability", "Profitability", [
-      {
-        weight: 0.2,
-        metric: profitability.metrics.find((m) => m.id === "gross_margin")!,
-      },
-      {
-        weight: 0.25,
-        metric: profitability.metrics.find((m) => m.id === "operating_margin")!,
-      },
-      {
-        weight: 0.2,
-        metric: profitability.metrics.find((m) => m.id === "profit_margin")!,
-      },
-      {
-        weight: 0.2,
-        metric: profitability.metrics.find((m) => m.id === "roe")!,
-      },
-      {
-        weight: 0.15,
-        metric: profitability.metrics.find((m) => m.id === "roa")!,
-      },
-    ]);
+  // Current sleeve — prefer revenue + operating income; EPS if not extreme; FCF soft-weighted
+  const revAbs = scoreGrowthRate(revCurrent);
+  const revRel = usePeers
+    ? peerAwareScore(
+        revAbs,
+        revCurrent,
+        peerValues(peers, "revenueGrowth"),
+        true,
+        peerLabel,
+        0.3,
+      )
+    : { score: revAbs, note: null as string | null };
+  let revScore = revRel.score;
+  if (
+    growthSoft &&
+    revScore != null &&
+    revCurrent != null &&
+    revCurrent >= 0.2
+  ) {
+    revScore = round1(Math.min(100, revScore + 4));
   }
 
-  // —— Growth ——
-  const growth = pillarFromWeighted("growth", "Growth", [
-    {
-      weight: 0.4,
-      metric: (() => {
-        const abs =
-          inputs.revenueGrowth != null
-            ? scoreAscending(inputs.revenueGrowth, GROWTH_BANDS)
-            : null;
-        const rel = usePeers
-          ? peerAwareScore(
-              abs,
-              inputs.revenueGrowth,
-              peerValues(peers, "revenueGrowth"),
-              true,
-              peerLabel,
-              0.3,
-            )
-          : { score: abs, note: null };
-        return metric(
-          "revenue_growth",
-          "Revenue growth",
-          inputs.revenueGrowth,
-          formatPercentDecimal(inputs.revenueGrowth),
-          rel.score,
-          rel.note,
-        );
-      })(),
-    },
-    {
-      weight: 0.4,
-      metric: (() => {
-        const abs =
-          inputs.earningsGrowth != null
-            ? scoreAscending(inputs.earningsGrowth, GROWTH_BANDS)
-            : null;
-        const rel = usePeers
-          ? peerAwareScore(
-              abs,
-              inputs.earningsGrowth,
-              peerValues(peers, "earningsGrowth"),
-              true,
-              peerLabel,
-              0.3,
-            )
-          : { score: abs, note: null };
-        return metric(
-          "eps_growth",
-          "EPS growth",
-          inputs.earningsGrowth,
-          formatPercentDecimal(inputs.earningsGrowth),
-          rel.score,
-          rel.note,
-        );
-      })(),
-    },
-    {
-      weight: 0.2,
-      metric: metric(
-        "fcf_growth",
-        "FCF growth",
-        inputs.fcfGrowth,
-        formatPercentDecimal(inputs.fcfGrowth),
-        inputs.fcfGrowth != null
-          ? scoreAscending(inputs.fcfGrowth, GROWTH_BANDS)
-          : null,
-      ),
-    },
-  ]);
+  const opScore = scoreGrowthRate(opCurrent);
+  const epsAbs = scoreGrowthRate(epsCurrent);
+  const epsRel = usePeers
+    ? peerAwareScore(
+        epsAbs,
+        epsCurrent,
+        peerValues(peers, "earningsGrowth"),
+        true,
+        peerLabel,
+        0.3,
+      )
+    : { score: epsAbs, note: null as string | null };
+  const epsExtreme =
+    inputs.earningsGrowth != null &&
+    Number.isFinite(inputs.earningsGrowth) &&
+    !isUsableGrowthRate(inputs.earningsGrowth);
 
-  // —— Valuation (growth-aware + peer) ——
-  const pe =
-    inputs.trailingPE != null && inputs.trailingPE > 0
-      ? inputs.trailingPE
-      : inputs.forwardPE != null && inputs.forwardPE > 0
-        ? inputs.forwardPE
-        : null;
-  const growthForVal =
-    inputs.earningsGrowth ??
-    inputs.revenueGrowth ??
-    inputs.earningsEstimateGrowth;
-  const pegRatio = inputs.pegRatio;
-
-  function valued(
-    id: string,
-    label: string,
-    value: number | null,
-    absBands: Band[],
-    peerKey: keyof PeerMetricRow,
-  ): MetricScore {
-    if (value == null || value <= 0) {
-      return metric(id, label, value, null, null);
+  let fcfScore: number | null = null;
+  let fcfNote: string | null = null;
+  if (fcfCurrent != null) {
+    const raw = scoreAscending(fcfCurrent, GROWTH_BANDS);
+    if (raw != null) {
+      if (growthFragile) {
+        fcfScore = raw;
+      } else if (growthSoft) {
+        const coreStrong =
+          (revCurrent != null && revCurrent >= 0.1) ||
+          (epsCurrent != null && epsCurrent >= 0.1) ||
+          (opCurrent != null && opCurrent >= 0.1);
+        if (coreStrong && raw < 55) {
+          fcfScore = round1(raw * 0.25 + 58 * 0.75);
+        } else {
+          fcfScore = raw;
+        }
+        if (fcfCurrent < 0.05) {
+          fcfNote =
+            "FCF growth soft-weighted — reinvestment cycle; revenue/operating dominate Growth";
+        }
+      } else {
+        fcfScore = raw;
+      }
     }
-    const abs = scoreDescending(value, absBands);
-    const pegAbs =
-      pegRatio != null && pegRatio > 0
-        ? scoreDescending(pegRatio, PEG_BANDS)
-        : null;
-    let score = growthAwareValuationScore(abs, growthForVal, pegAbs);
-    let note: string | null = null;
-    if (usePeers) {
-      const pct = percentileRank(
-        value,
-        peerValues(peers, peerKey),
-        false,
-      );
-      note = quartileNote(pct, peerLabel);
-      score = blendAbsoluteAndPeer(score, pct, 0.3);
-    }
-    if (growthForVal != null && growthForVal >= 0.15 && abs < 45) {
-      note = [note, "Growth softens expensive multiple"].filter(Boolean).join(" · ");
-    }
-    if (growthForVal != null && growthForVal < 0 && abs > 65) {
-      note = [note, "Cheap multiple with weak growth"].filter(Boolean).join(" · ");
-    }
-    return metric(id, label, value, formatMultiple(value), score, note);
   }
 
-  const valuation = pillarFromWeighted("valuation", "Valuation", [
-    { weight: 0.25, metric: valued("pe", "P/E", pe, PE_BANDS, "trailingPE") },
-    {
-      weight: 0.25,
-      metric: valued(
-        "ev_ebitda",
-        "EV/EBITDA",
-        inputs.enterpriseToEbitda,
-        EV_EBITDA_BANDS,
-        "enterpriseToEbitda",
-      ),
-    },
-    {
-      weight: 0.2,
-      metric: valued(
-        "p_fcf",
-        "P/FCF",
-        inputs.priceToFcf,
-        P_FCF_BANDS,
-        "priceToFcf",
-      ),
-    },
-    {
-      weight: 0.15,
-      metric: valued(
-        "p_s",
-        "P/S",
-        inputs.priceToSales,
-        P_S_BANDS,
-        "priceToSales",
-      ),
-    },
-    {
-      weight: 0.15,
-      metric: metric(
-        "peg",
-        "PEG",
-        inputs.pegRatio,
-        formatRatio(inputs.pegRatio),
-        inputs.pegRatio != null && inputs.pegRatio > 0
-          ? scoreDescending(inputs.pegRatio, PEG_BANDS)
-          : null,
-        "Growth-adjusted valuation",
-      ),
-    },
-  ]);
+  const currentParts: Array<{ weight: number; value: number }> = [];
+  if (revScore != null) currentParts.push({ weight: 0.4, value: revScore });
+  if (opScore != null) currentParts.push({ weight: 0.3, value: opScore });
+  if (epsRel.score != null && !epsExtreme) {
+    currentParts.push({ weight: 0.2, value: epsRel.score });
+  }
+  if (fcfScore != null) {
+    currentParts.push({
+      weight: growthSoft ? 0.05 : growthFragile ? 0.25 : 0.1,
+      value: fcfScore,
+    });
+  }
+  const currentSleeveScore =
+    currentParts.length > 0 ? weightedAverage(currentParts) : null;
 
-  const pillars = [strength, profitabilityFixed, growth, valuation];
+  // 3Y sleeve — only true geometric CAGRs (revenue required to activate blend)
+  const revCagr3y = isUsableGrowthRate(inputs.revenueGrowth3y)
+    ? inputs.revenueGrowth3y
+    : null;
+  const epsCagr3y = isUsableGrowthRate(inputs.earningsGrowth3y)
+    ? inputs.earningsGrowth3y
+    : null;
+  const opCagr3y = isUsableGrowthRate(inputs.operatingGrowth3y)
+    ? inputs.operatingGrowth3y
+    : null;
+  const rev3yScore = scoreGrowthRate(revCagr3y);
+  const eps3yScore = scoreGrowthRate(epsCagr3y);
+  const op3yScore = scoreGrowthRate(opCagr3y);
+
+  const historyParts: Array<{ weight: number; value: number }> = [];
+  if (rev3yScore != null) historyParts.push({ weight: 0.7, value: rev3yScore });
+  if (eps3yScore != null) historyParts.push({ weight: 0.15, value: eps3yScore });
+  if (op3yScore != null) historyParts.push({ weight: 0.15, value: op3yScore });
+  const historySleeveScore =
+    rev3yScore != null && historyParts.length > 0
+      ? weightedAverage(historyParts)
+      : null;
+
+  const useHistoryBlend = historySleeveScore != null;
+  const growthBlendScore =
+    currentSleeveScore == null
+      ? historySleeveScore
+      : useHistoryBlend
+        ? round1(currentSleeveScore * 0.75 + historySleeveScore * 0.25)
+        : round1(currentSleeveScore);
+
+  const blendNote = useHistoryBlend
+    ? "Blend 75% current period / 25% true 3Y revenue CAGR (no forward estimates)"
+    : "Growth based mainly on current period — limited multi-year history";
+
+  const growthMetrics: MetricScore[] = [
+    metric(
+      "revenue_growth",
+      "Revenue growth",
+      inputs.revenueGrowth,
+      formatPercentDecimal(inputs.revenueGrowth),
+      revScore,
+      revRel.note ??
+        (growthSoft ? "Primary growth opportunity signal" : null),
+    ),
+    metric(
+      "operating_income_growth",
+      "Operating income growth",
+      inputs.operatingIncomeGrowth,
+      formatPercentDecimal(inputs.operatingIncomeGrowth),
+      opScore,
+      opScore != null ? "Preferred with revenue in current growth sleeve" : null,
+    ),
+    metric(
+      "eps_growth",
+      "EPS growth",
+      inputs.earningsGrowth,
+      formatPercentDecimal(inputs.earningsGrowth),
+      epsExtreme ? null : epsRel.score,
+      epsExtreme
+        ? "Excluded from scoring — extreme outlier rate"
+        : epsRel.note,
+    ),
+    metric(
+      "fcf_growth",
+      "FCF growth",
+      inputs.fcfGrowth,
+      formatPercentDecimal(inputs.fcfGrowth),
+      fcfScore,
+      fcfNote,
+    ),
+    metric(
+      "revenue_growth_3y",
+      "Revenue CAGR (3Y)",
+      inputs.revenueGrowth3y,
+      formatPercentDecimal(inputs.revenueGrowth3y),
+      rev3yScore,
+      inputs.revenueGrowth3y != null && rev3yScore == null
+        ? "3Y revenue CAGR excluded — extreme outlier rate"
+        : rev3yScore != null
+          ? "True geometric CAGR (≥4 annual points, positive ends)"
+          : "3Y revenue CAGR unavailable — short history or non-positive ends",
+    ),
+    metric(
+      "eps_growth_3y",
+      "EPS CAGR (3Y)",
+      inputs.earningsGrowth3y,
+      formatPercentDecimal(inputs.earningsGrowth3y),
+      eps3yScore,
+      eps3yScore != null
+        ? "Optional 3Y sleeve input — true CAGR only"
+        : null,
+    ),
+    metric(
+      "operating_growth_3y",
+      "Operating income CAGR (3Y)",
+      inputs.operatingGrowth3y,
+      formatPercentDecimal(inputs.operatingGrowth3y),
+      op3yScore,
+      op3yScore != null
+        ? "Optional 3Y sleeve input — true CAGR only"
+        : null,
+    ),
+    metric(
+      "growth_blend",
+      "Growth blend",
+      growthBlendScore,
+      growthBlendScore != null ? `${Math.round(growthBlendScore)}` : null,
+      growthBlendScore,
+      blendNote,
+    ),
+  ].filter((m) => m.value != null || (m.score != null && !m.skipped));
+
+  const growth: PillarScore = {
+    id: "growth",
+    label: "Growth",
+    score:
+      growthBlendScore != null
+        ? round1(clamp(growthBlendScore))
+        : null,
+    metrics: growthMetrics,
+    metricsUsed: growthMetrics.filter((m) => m.score != null).length,
+    metricsAvailable: growthMetrics.length,
+  };
+
+  const valuation = computeValuationV12({
+    fundamentals: inputs,
+    capitalProfile: model,
+    peers,
+    peerContext,
+    financialStrengthScore: strength.score,
+    profitabilityScore: profitability.score,
+    policy,
+  });
+
+  const pillars = [strength, profitability, growth, valuation];
+  const pillarWeightMap = fundamentalPillarWeights(policy);
+  const weightedParts = pillars
+    .filter((p) => p.score != null)
+    .map((p) => ({
+      weight: pillarWeightMap[p.id],
+      value: p.score!,
+    }));
   const pillarScores = pillars
     .map((p) => p.score)
     .filter((s): s is number => s != null);
@@ -1046,7 +623,7 @@ export function computeFundamentalScore(
     .filter((m) => m.skipped)
     .map((m) => m.label);
 
-  const notes: string[] = [];
+  const notes: string[] = [...substitutionNotes];
   if (pillarScores.length === 0) {
     notes.push("Insufficient fundamental metrics to compute a score.");
   }
@@ -1076,6 +653,137 @@ export function computeFundamentalScore(
       "Bank/insurance overlay — regulatory capital unavailable; using ROA/ROE proxies.",
     );
   }
+  if (inputs.dataSource === "yahoo") {
+    notes.push(
+      "Fundamentals loaded via Yahoo fallback — v1.2 history fields may be sparse.",
+    );
+  }
+  if (inputs.dataSource === "fmp") {
+    notes.push("Fundamentals sourced from Financial Modeling Prep warehouse package.");
+  }
+  const period =
+    inputs.fundamentalPeriod ?? inputs.statementPeriod ?? null;
+  if (inputs.periodSourceNote) {
+    notes.push(inputs.periodSourceNote);
+  } else if (period === "ttm") {
+    notes.push(
+      "Fundamental Period: TTM — all pillars score on the same TTM snapshot.",
+    );
+  } else if (period === "annual") {
+    notes.push(
+      "Fundamental Period: Annual — all pillars score on the same annual snapshot.",
+    );
+  } else if (period === "quarter") {
+    notes.push(
+      "Fundamental Period: Quarter (last resort) — all pillars score on the same quarter snapshot.",
+    );
+  }
+  if (inputs.periodSelectionReason && !inputs.periodSourceNote) {
+    notes.push(inputs.periodSelectionReason);
+  }
+  if (inputs.periodCompleteness != null) {
+    notes.push(
+      `Selected-period core completeness: ${(inputs.periodCompleteness * 100).toFixed(0)}%.`,
+    );
+  }
+  for (const tn of inputs.periodTrendNotes ?? []) {
+    notes.push(tn);
+  }
+  if (
+    inputs.ttmSource === "constructed" ||
+    inputs.ttmSource === "hybrid"
+  ) {
+    const fields = inputs.constructedTtmFields ?? [];
+    notes.push(
+      fields.length
+        ? `TTM source: ${inputs.ttmSource} — key constructed fields: ${fields.slice(0, 14).join(", ")}${fields.length > 14 ? "…" : ""}.`
+        : `TTM source: ${inputs.ttmSource}.`,
+    );
+  } else if (inputs.fundamentalPeriod === "ttm" && inputs.ttmSource === "native") {
+    notes.push("TTM source: native statement TTM endpoints.");
+  }
+  if (inputs.growthSourceNote) {
+    notes.push(inputs.growthSourceNote);
+  }
+  if (inputs.cashFlowNote) {
+    notes.push(inputs.cashFlowNote);
+  }
+  for (const n of inputs.statementQualityNotes ?? []) {
+    notes.push(n);
+  }
+  if (inputs.statementMarginsDegraded) {
+    notes.push(
+      "Statement margin confidence reduced — inconsistent or incomplete same-period fields.",
+    );
+  }
+  if (
+    inputs.revenueGrowth == null &&
+    inputs.earningsGrowth == null &&
+    inputs.operatingIncomeGrowth == null
+  ) {
+    notes.push(
+      "Trailing growth unavailable; forward estimates are not used (coverage-safe).",
+    );
+  } else if (inputs.revenueGrowth3y == null) {
+    notes.push(
+      "True 3Y revenue CAGR unavailable — Growth weighted to current period only.",
+    );
+  }
+  if (
+    strength.metrics.some(
+      (m) =>
+        m.id === "beneish" &&
+        (m.note ?? "").toLowerCase().includes("manipulation risk"),
+    )
+  ) {
+    notes.push(
+      "Beneish M-Score flags elevated manipulation risk — confidence reduced.",
+    );
+  }
+  if (
+    strength.metricsUsed < 6 &&
+    strength.metricsAvailable > 0
+  ) {
+    notes.push(
+      "Financial Strength coverage is thin — several solvency metrics unavailable.",
+    );
+  }
+  if (
+    profitability.metricsUsed < 5 &&
+    profitability.metricsAvailable > 0
+  ) {
+    notes.push(
+      "Profitability coverage is thin — cash margins or ROIC history incomplete.",
+    );
+  }
+  if (
+    profitability.metrics.some((m) =>
+      (m.note ?? "").toLowerCase().includes("capped — strong accrual") ||
+      (m.note ?? "").toLowerCase().includes("distorted accrual") ||
+      (m.note ?? "").toLowerCase().includes("cash losses dominate"),
+    )
+  ) {
+    notes.push(
+      "Profitability capped: accrual margins unreliable vs cash reality.",
+    );
+  }
+  if (
+    valuation.metricsUsed < 4 &&
+    valuation.metricsAvailable > 0
+  ) {
+    notes.push(
+      "Valuation coverage is thin — several price multiples unavailable.",
+    );
+  }
+  if (
+    valuation.metrics.some((m) =>
+      (m.note ?? "").toLowerCase().includes("quality does not support"),
+    )
+  ) {
+    notes.push(
+      "Valuation cheapness limited by soft Financial Strength / Profitability.",
+    );
+  }
   if (model === "industry_peer") {
     notes.push(
       peerContext.basis === "none"
@@ -1084,16 +792,57 @@ export function computeFundamentalScore(
     );
   }
 
+  notes.unshift(
+    `Business profile: ${policy.profileLabel}`,
+  );
+  if (policy.reinvestmentSoftWeighting) {
+    notes.splice(
+      1,
+      0,
+      "Reinvestment soft-weighting applied — FCF/cash penalties tempered while solvency stays solid.",
+    );
+  }
+  if (policy.hasCriticalFlags) {
+    notes.splice(
+      1,
+      0,
+      `Critical red flags (strict scoring): ${policy.criticalFlagLabels.join("; ")}.`,
+    );
+  }
+  for (const reason of policy.reasons) {
+    if (!notes.includes(reason)) notes.push(reason);
+  }
+
+  // Growth with collapsing quality should not look excellent overall
+  let qualityHaircut = 0;
+  if (
+    policy.hasCriticalFlags &&
+    growth.score != null &&
+    growth.score >= 70 &&
+    strength.score != null &&
+    strength.score < 40
+  ) {
+    qualityHaircut = 8;
+    notes.push(
+      "Growth haircut — strong growth cannot rescue fragile balance sheet.",
+    );
+  }
+
   const outlookReason = `Outlook ${company.level} / Industry ${industry.level} (${adjustment >= 0 ? "+" : ""}${adjustment}) — company ${company.reason}; industry ${industry.reason}`;
 
-  const base = average(pillarScores);
+  const base =
+    weightedParts.length > 0
+      ? weightedAverage(weightedParts)
+      : average(pillarScores);
   const score =
-    base == null ? null : round1(clamp(base + adjustment, 0, 100));
+    base == null
+      ? null
+      : round1(clamp(base + adjustment - qualityHaircut, 0, 100));
 
   return {
     available: score != null,
     score,
-    version: "v1.1",
+    version: "v1.2",
     pillars,
     outlook: {
       company: company.level,
@@ -1108,6 +857,15 @@ export function computeFundamentalScore(
       industryKey: inputs.industryKey,
       sector: inputs.sector,
       sectorKey: inputs.sectorKey,
+      growthProfile: policy.profile,
+      growthProfileLabel: policy.profileLabel,
+      criticalFlags: policy.criticalFlagLabels,
+      reinvestmentSoftWeighting: policy.reinvestmentSoftWeighting,
+      fundamentalPeriod:
+        inputs.fundamentalPeriod ?? inputs.statementPeriod ?? null,
+      periodSelectionReason: inputs.periodSelectionReason ?? null,
+      ttmSource: inputs.ttmSource ?? null,
+      constructedTtmFields: inputs.constructedTtmFields ?? [],
     },
     peerContext,
     metricsUsed,

@@ -218,7 +218,7 @@ export const INDUSTRY_PEER_SEEDS: Record<string, string[]> = {
     "SRE",
     "XEL",
   ],
-  "utilities-renewable": ["NEE", "AES", "BEP", "CWEN", "RUN", "ENPH"],
+  "utilities-renewable": ["NEE", "AES", "BEP", "CWEN", "RUN", "ENPH", "FLNC"],
   "utilities-diversified": ["SRE", "PEG", "ED", "EIX", "WEC"],
 };
 
@@ -399,5 +399,8 @@ export const INDUSTRY_GROUP_ALIASES: Record<string, string[]> = {
   ],
 };
 
-export const MIN_PEER_COUNT = 5;
-export const MAX_PEERS_FETCH = 14;
+export const MIN_PEER_COUNT = 3;
+/** Cap peer fan-out hard — each peer is 1 ratios-ttm call. */
+export const MAX_PEERS_FETCH = 5;
+/** Accept a thinner set from the first seed tier before cascading. */
+export const ACCEPT_PEER_COUNT = 3;

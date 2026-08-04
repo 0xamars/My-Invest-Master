@@ -24,8 +24,8 @@ function tickLines(label: string): string[] {
   switch (label) {
     case "Financial Strength":
       return ["Financial", "Strength"];
-    case "Fib / Structure":
-      return ["Fib /", "Structure"];
+    case "Price structure":
+      return ["Price", "structure"];
     case "Momentum Condition":
       return ["Momentum", "Condition"];
     default:
