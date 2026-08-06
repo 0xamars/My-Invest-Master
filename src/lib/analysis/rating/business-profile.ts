@@ -70,7 +70,11 @@ export function detectCriticalRedFlags(
   const flags: CriticalRedFlag[] = [];
   const intermediary = isFinancialIntermediary(f);
 
-  if (f.altmanZScore != null && f.altmanZScore < 1.81) {
+  if (
+    !intermediary &&
+    f.altmanZScore != null &&
+    f.altmanZScore < 1.81
+  ) {
     flags.push("altman_distress");
   }
 

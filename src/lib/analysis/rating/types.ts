@@ -36,7 +36,8 @@ export type CapitalProfile =
   | "brokerage_capital_markets"
   | "bank_insurance"
   | "reit_utilities"
-  | "early_growth";
+  | "early_growth"
+  | "treasury_holding";
 
 /** @deprecated Alias of CapitalProfile */
 export type BusinessModel = CapitalProfile;
@@ -143,7 +144,32 @@ export type FibZoneResult = {
   price: number | null;
   zone: FibZoneId | null;
   zoneLabel: string | null;
+  /**
+   * Score used in Technical aggregate.
+   * Relative-heavy hybrid when history allows; else absolute zone score.
+   */
   score: number | null;
+  /** Absolute ATH→$0 zone score (label/color story). */
+  absoluteScore: number | null;
+  /** Stock-relative drawdown depth vs own daily history. */
+  relative: RelativeDepthResult;
+};
+
+/** Relative drawdown depth vs this ticker’s own past (not vs peers). */
+export type RelativeDepthId = "deep" | "deeper" | "typical" | "shallow";
+
+export type RelativeDepthResult = {
+  available: boolean;
+  /** Current drawdown from running peak (0–1). */
+  drawdown: number | null;
+  /** Fraction of historical daily drawdowns ≤ current (0–1). Internal. */
+  percentile: number | null;
+  status: RelativeDepthId | null;
+  statusLabel: string | null;
+  score: number | null;
+  barsUsed: number;
+  /** Running peak used for current drawdown (within the 5Y window). */
+  peak: number | null;
 };
 
 export type TimeframeConfluence = {
@@ -327,6 +353,10 @@ export type FundamentalInputs = {
   cashToDebt: number | null;
   cashToShortTermDebt: number | null;
   fcfToDebt: number | null;
+  /** OCF / total debt when debt > 0. */
+  ocfToDebt: number | null;
+  /** Total debt / revenue — leverage when EBITDA is weak or negative. */
+  debtToRevenue: number | null;
   /** 0–100 stability proxy from multi-year FCF */
   fcfStability: number | null;
   altmanZScore: number | null;
@@ -368,6 +398,10 @@ export type FundamentalInputs = {
   evToSales: number | null;
   priceToOcf: number | null;
   evToEbit: number | null;
+  /** FCF / market cap when FCF > 0 and market cap > 0. */
+  fcfYield: number | null;
+  /** Earnings yield (1/PE or EPS/price) when positive earnings. */
+  earningsYield: number | null;
   /** Median trailing P/E over ~5y when available (for vs-own-history) */
   trailingPeMedian5y: number | null;
   /** Reinvestment proxies for Growth Optionality */

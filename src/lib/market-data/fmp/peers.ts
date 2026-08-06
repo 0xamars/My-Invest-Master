@@ -101,8 +101,12 @@ async function fetchPeerRow(
       revenueGrowth: null,
       earningsGrowth: null,
       trailingPE: pickNum(
+        r.priceToEarningsDilutedRatioTTM,
+        r.priceToEarningsRatioTTM,
         r.peRatioTTM,
         r.priceEarningsRatioTTM,
+        r.priceToEarningsDilutedRatio,
+        r.priceToEarningsRatio,
         r.peRatio,
         r.priceEarningsRatio,
       ),
@@ -111,13 +115,23 @@ async function fetchPeerRow(
         r.enterpriseValueMultiple,
         r.evToEBITDATTM,
         r.evToEBITDA,
+        r.enterpriseValueOverEBITDATTM,
       ),
       priceToSales: pickNum(r.priceToSalesRatioTTM, r.priceToSalesRatio),
       priceToFcf: pickNum(
         r.priceToFreeCashFlowsRatioTTM,
+        r.priceToFreeCashFlowRatioTTM,
         r.priceToFreeCashFlowsRatio,
+        r.priceToFreeCashFlowRatio,
       ),
-      pegRatio: pickNum(r.pegRatioTTM, r.pegRatio),
+      pegRatio: pickNum(
+        r.pegRatioTTM,
+        r.priceToEarningsGrowthRatioTTM,
+        r.priceToEarningsDilutedGrowthRatioTTM,
+        r.forwardPriceToEarningsGrowthRatioTTM,
+        r.pegRatio,
+        r.priceToEarningsGrowthRatio,
+      ),
     };
   } catch {
     return null;

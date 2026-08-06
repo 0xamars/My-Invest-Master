@@ -16,6 +16,10 @@ import {
   TECH_HEAT_SCORES,
 } from "@/lib/analysis/rating/tech-palette";
 import {
+  blendZoneScore,
+  computeRelativeDepth,
+} from "@/lib/analysis/rating/relative-drawdown";
+import {
   clamp,
   macdHistogram,
   round1,
@@ -55,13 +59,16 @@ function resolveFibZone(fibPosition: number): FibZoneId {
 }
 
 /**
- * fibPosition = (ATH - currentPrice) / ATH
- * Level 0 = ATH, level 1 = $0; rises as price falls from ATH.
+ * Absolute labels from package ATH; scoring prefers stock-relative drawdown
+ * from the last ~5 years of daily closes when ≥252 bars are available (hybrid 80/20).
  */
 export function computeFibZone(
   price: number | null,
   ath: number | null,
+  dailyBars?: OhlcBar[] | null,
 ): FibZoneResult {
+  const relative = computeRelativeDepth(dailyBars);
+
   if (
     price == null ||
     ath == null ||
@@ -76,7 +83,9 @@ export function computeFibZone(
       price,
       zone: null,
       zoneLabel: null,
-      score: null,
+      score: blendZoneScore(null, relative),
+      absoluteScore: null,
+      relative,
     };
   }
 
@@ -86,13 +95,17 @@ export function computeFibZone(
   // Round before zone mapping so displayed fib and badge stay consistent.
   const level = round1(fibPosition * 1000) / 1000;
   const zone = resolveFibZone(level);
+  const absoluteScore = FIB_ZONE_SCORES[zone];
+
   return {
     level,
     ath,
     price,
     zone,
     zoneLabel: FIB_ZONE_LABELS[zone],
-    score: FIB_ZONE_SCORES[zone],
+    absoluteScore,
+    score: blendZoneScore(absoluteScore, relative),
+    relative,
   };
 }
 
@@ -278,7 +291,7 @@ export function computeTechnicalScore(input: {
     );
   }
 
-  const fib = computeFibZone(input.price, input.ath);
+  const fib = computeFibZone(input.price, input.ath, input.dailyBars);
   if (fib.score == null) {
     notes.push("Price zone unavailable — missing price or ATH.");
   } else if (
@@ -287,6 +300,15 @@ export function computeTechnicalScore(input: {
     fib.price > fib.ath
   ) {
     notes.push("Price at/above package ATH — price zone pinned at ATH.");
+  }
+  if (fib.relative.available) {
+    notes.push(
+      "Price zone score uses stock-relative drawdown depth (last ~5 years of own history) with a light absolute blend.",
+    );
+  } else if (fib.absoluteScore != null) {
+    notes.push(
+      "Price zone score uses absolute ATH depth only — need ≥252 daily bars in the last ~5 years for relative depth.",
+    );
   }
 
   // MEDIUM TERM — 1D
@@ -339,7 +361,7 @@ export function computeTechnicalScore(input: {
     );
   }
 
-  // Weights: zone 0.34 · NEAR 0.22 · MEDIUM 0.22 · LONG 0.22 — renormalize if any missing
+  // Weights: zone 0.40 · NEAR 0.20 · MEDIUM 0.30 · LONG 0.10 — renormalize if any missing
   const parts: Array<{ weight: number; value: number }> = [];
   if (fib.score != null) {
     parts.push({ weight: TECH_FIB_WEIGHT, value: fib.score });

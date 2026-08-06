@@ -1,3 +1,4 @@
+import { detectDigitalAssetTreasury } from "@/lib/analysis/rating/digital-asset-treasury";
 import type { PeerBasis } from "@/lib/analysis/rating/types";
 
 /**
@@ -10,7 +11,8 @@ export type CapitalProfile =
   | "brokerage_capital_markets"
   | "bank_insurance"
   | "reit_utilities"
-  | "early_growth";
+  | "early_growth"
+  | "treasury_holding";
 
 /** @deprecated Use CapitalProfile — kept as alias for existing imports. */
 export type BusinessModel = CapitalProfile;
@@ -158,14 +160,37 @@ export function classifyCapitalProfile(input: {
   industryKey: string | null;
   sectorKey: string | null;
   industry: string | null;
+  sector?: string | null;
+  name?: string | null;
+  description?: string | null;
   profitMargins: number | null;
   operatingMargins: number | null;
   freeCashflow: number | null;
+  operatingCashflow?: number | null;
+  totalRevenue?: number | null;
+  ebitda?: number | null;
   revenueGrowth: number | null;
 }): CapitalProfile {
   const key = (input.industryKey ?? "").toLowerCase();
   const industry = (input.industry ?? "").toLowerCase();
   const sector = (input.sectorKey ?? "").toLowerCase();
+
+  // Digital-asset / bitcoin treasury before industry overlays (FMP often tags these as Software).
+  const treasury = detectDigitalAssetTreasury({
+    name: input.name,
+    description: input.description,
+    industry: input.industry,
+    industryKey: input.industryKey,
+    sector: input.sector,
+    sectorKey: input.sectorKey,
+    freeCashflow: input.freeCashflow,
+    operatingCashflow: input.operatingCashflow,
+    totalRevenue: input.totalRevenue,
+    ebitda: input.ebitda,
+  });
+  if (treasury.isTreasury) {
+    return "treasury_holding";
+  }
 
   if (
     BROKERAGE_KEYS.has(key) ||
@@ -227,6 +252,8 @@ function capitalProfileOverlay(profile: CapitalProfile): string | null {
       return "REIT / utilities leverage bands";
     case "early_growth":
       return "early-growth liquidity emphasis";
+    case "treasury_holding":
+      return "digital-asset treasury (not operating software peers)";
     default:
       return null;
   }

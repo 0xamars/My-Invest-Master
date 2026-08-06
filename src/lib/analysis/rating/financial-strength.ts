@@ -1,6 +1,8 @@
 import {
   CURRENT_RATIO_BANDS,
+  DEBT_TO_ASSETS_BANDS,
   DEBT_TO_EQUITY_BANDS,
+  DEBT_TO_REVENUE_BANDS,
   FCF_QUALITY_BANDS,
   QUICK_RATIO_BANDS,
   scoreAscending,
@@ -239,10 +241,18 @@ export function computeFinancialStrengthV12(input: {
         ? BROKER_DE_BANDS
         : DEBT_TO_EQUITY_BANDS;
 
-  const leverageMetric = f.netDebtToEbitda ?? f.debtToEbitda;
+  const leverageMetric =
+    f.ebitda != null && f.ebitda > 0
+      ? (f.netDebtToEbitda ?? f.debtToEbitda)
+      : null;
   const netDebtAbs =
     leverageMetric != null
       ? scoreDescending(leverageMetric, NET_DEBT_EBITDA_BANDS)
+      : null;
+
+  const debtRevenueAbs =
+    f.debtToRevenue != null
+      ? scoreDescending(f.debtToRevenue, DEBT_TO_REVENUE_BANDS)
       : null;
 
   const deAbs =
@@ -333,6 +343,13 @@ export function computeFinancialStrengthV12(input: {
         "Leverage is less important for this business type",
       ),
       metric(
+        "debt_to_revenue",
+        "Debt / Revenue",
+        f.debtToRevenue,
+        formatRatio(f.debtToRevenue),
+        debtRevenueAbs,
+      ),
+      metric(
         "net_debt_ebitda",
         "Net Debt / EBITDA",
         leverageMetric,
@@ -358,6 +375,13 @@ export function computeFinancialStrengthV12(input: {
         "Earnings leverage soft-weighted for growth businesses",
       ),
       metric(
+        "debt_to_revenue",
+        "Debt / Revenue",
+        f.debtToRevenue,
+        formatRatio(f.debtToRevenue),
+        debtRevenueAbs,
+      ),
+      metric(
         "debt_to_equity",
         "Debt / Equity",
         f.debtToEquity,
@@ -373,6 +397,72 @@ export function computeFinancialStrengthV12(input: {
         equityAssetsAbs,
       ),
     );
+  } else if (model === "treasury_holding") {
+    const debtToAssets =
+      f.totalDebt != null &&
+      f.totalAssets != null &&
+      f.totalAssets > 0
+        ? f.totalDebt / f.totalAssets
+        : null;
+    const debtAssetsAbs =
+      debtToAssets != null
+        ? scoreDescending(debtToAssets, DEBT_TO_ASSETS_BANDS)
+        : null;
+    // Debt/Revenue vs tiny operating sales is misleading for treasury vehicles.
+    const debtRevenueSoft =
+      debtRevenueAbs != null
+        ? round1(debtRevenueAbs * 0.25 + 50 * 0.75)
+        : null;
+    leverageMetrics.push(
+      metric(
+        "debt_to_assets",
+        "Debt / Assets",
+        debtToAssets,
+        formatPercentDecimal(debtToAssets),
+        debtAssetsAbs,
+        "Preferred leverage proxy for digital-asset treasury",
+      ),
+      metric(
+        "equity_to_assets",
+        "Equity / Assets",
+        f.equityToAssets,
+        formatPercentDecimal(f.equityToAssets),
+        equityAssetsAbs,
+      ),
+      metric(
+        "debt_to_revenue",
+        "Debt / Revenue",
+        f.debtToRevenue,
+        formatRatio(f.debtToRevenue),
+        debtRevenueSoft,
+        "Soft-weighted — debt funds treasury assets, not operating sales",
+      ),
+      metric(
+        "net_debt_ebitda",
+        "Net Debt / EBITDA",
+        leverageMetric,
+        formatRatio(leverageMetric),
+        netDebtAbs,
+        f.ebitda != null && f.ebitda <= 0
+          ? "Unscored — EBITDA ≤ 0"
+          : null,
+      ),
+      metric(
+        "debt_to_equity",
+        "Debt / Equity",
+        f.debtToEquity,
+        f.debtToEquity != null ? `${formatRatio(f.debtToEquity, 1)}%` : null,
+        deAbs != null ? round1(deAbs * 0.5 + 50 * 0.5) : null,
+        "Soft-weighted — book equity distorted by treasury marks",
+      ),
+      metric(
+        "interest_coverage",
+        "Interest Coverage",
+        f.interestCoverage,
+        formatRatio(f.interestCoverage, 1),
+        interestAbs,
+      ),
+    );
   } else {
     leverageMetrics.push(
       metric(
@@ -381,6 +471,19 @@ export function computeFinancialStrengthV12(input: {
         leverageMetric,
         formatRatio(leverageMetric),
         netDebtAbs,
+        f.ebitda != null && f.ebitda <= 0
+          ? "Unscored — EBITDA ≤ 0"
+          : null,
+      ),
+      metric(
+        "debt_to_revenue",
+        "Debt / Revenue",
+        f.debtToRevenue,
+        formatRatio(f.debtToRevenue),
+        debtRevenueAbs,
+        debtRevenueAbs != null
+          ? "Leverage vs sales — useful when EBITDA is weak"
+          : null,
       ),
       metric(
         "debt_to_equity",
@@ -615,6 +718,16 @@ export function computeFinancialStrengthV12(input: {
           : null,
     ),
     metric(
+      "ocf_to_debt",
+      "OCF / Debt",
+      f.ocfToDebt ?? null,
+      formatRatio(f.ocfToDebt ?? null),
+      cashReliable && f.ocfToDebt != null
+        ? scoreAscending(f.ocfToDebt, FCF_TO_DEBT_BANDS)
+        : null,
+      !cashReliable ? f.cashFlowNote : "Cash from operations vs debt",
+    ),
+    metric(
       "fcf_quality",
       "FCF Conversion",
       fcfQuality,
@@ -625,9 +738,18 @@ export function computeFinancialStrengthV12(input: {
   ];
   const cashGen = cashReliable ? componentScore(cashMetrics) : null;
 
-  // Distress / Altman 15%
+  // Distress / Altman 15% — soft-skip for banks/insurers (Z poorly calibrated)
   let altmanMetric: MetricScore;
-  if (f.altmanZScore != null) {
+  if (model === "bank_insurance") {
+    altmanMetric = metric(
+      "altman_z",
+      "Altman Z",
+      f.altmanZScore,
+      f.altmanZScore != null ? formatRatio(f.altmanZScore, 2) : null,
+      null,
+      "Altman Z less applicable for banks/insurers — not scored",
+    );
+  } else if (f.altmanZScore != null) {
     const band = altmanBand(f.altmanZScore);
     altmanMetric = metric(
       "altman_z",

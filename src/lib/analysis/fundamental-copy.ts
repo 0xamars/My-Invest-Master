@@ -7,6 +7,7 @@ import type {
 /** Preferred headline metrics for Financial Strength collapsed view. */
 const FS_HEADLINE_IDS = [
   "net_debt_ebitda",
+  "debt_to_revenue",
   "interest_coverage",
   "altman_z",
   "cash_to_debt",
@@ -29,11 +30,13 @@ const PROFIT_HEADLINE_IDS = [
 /** Preferred headline metrics for Valuation collapsed view. */
 const VALUATION_HEADLINE_IDS = [
   "p_fcf",
+  "fcf_yield",
   "pe_ttm",
   "ev_ebitda",
   "pe_forward",
   "ev_fcf",
   "p_ocf",
+  "earnings_yield",
   "p_s",
   "ev_sales",
   "peg",
@@ -326,6 +329,11 @@ export function pillarTakeaway(
           ? "Liquidity looks adequate for a growth business"
           : "Liquidity looks tight for a growth business";
       }
+      if (model === "treasury_holding") {
+        return score >= 55
+          ? "Treasury/BTC balance-sheet risk dominates — not comparable to operating software"
+          : "Treasury leverage and mark risk elevated — not an operating software balance sheet";
+      }
       if (altmanNote.includes("safe")) {
         return hasPeers
           ? `Strong solvency versus ${industry} peers`
@@ -365,6 +373,13 @@ export function pillarTakeaway(
         (omVal != null && omVal < -0.2) ||
         (nmVal != null && nmVal < -0.2) ||
         (fcfVal != null && fcfVal < -0.2);
+
+      if (model === "treasury_holding") {
+        if (accrualUnprofitable || severeLoss) {
+          return "Treasury marks dominate reported profitability — not comparable to operating software";
+        }
+        return "Digital-asset treasury economics — FCF margins and ROIC are not software-comparable";
+      }
 
       // Honesty first: never say "Profitable" when operating/net/FCF margins are negative
       if (accrualUnprofitable) {
@@ -539,6 +554,10 @@ export function pillarTakeaway(
       const cheapCash = pFcf?.score != null && pFcf.score >= 70;
       const soft = fundamental.classification.reinvestmentSoftWeighting;
 
+      if (model === "treasury_holding") {
+        return "Valuation not comparable to operating software — treasury/BTC risk dominates";
+      }
+
       if (
         ctxNote.includes("quality does not support") ||
         ctxNote.includes("value trap")
@@ -628,6 +647,9 @@ export function shortOutlookLine(fundamental: FundamentalResult): string {
 }
 
 export function peerBasisShort(fundamental: FundamentalResult): string {
+  if (fundamental.classification.businessModel === "treasury_holding") {
+    return "Digital-asset treasury · peers disabled";
+  }
   const { basis, peerCount, industry } = fundamental.peerContext;
   const name = industry ?? fundamental.classification.industry ?? "Peers";
   switch (basis) {

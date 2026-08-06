@@ -928,6 +928,8 @@ export function buildFundamentalInputsFromPackage(input: {
     industry: string | null;
     industryKey: string | null;
   };
+  /** Latest quote price — used to compute PE when provider multiples are missing. */
+  price?: number | null;
   ratiosTtm: Row | null;
   ratiosAnnual?: Row[];
   keyMetricsTtm: Row | null;
@@ -1122,7 +1124,13 @@ export function buildFundamentalInputsFromPackage(input: {
   );
 
   const debtToEquity =
-    pickPeriod(ratios, period, "debtEquityRatio", "debtToEquity") ??
+    pickPeriod(
+      ratios,
+      period,
+      "debtEquityRatio",
+      "debtToEquityRatio",
+      "debtToEquity",
+    ) ??
     (totalDebt != null && totalEquity != null && totalEquity !== 0
       ? (totalDebt / totalEquity) * 100
       : null);
@@ -1138,24 +1146,48 @@ export function buildFundamentalInputsFromPackage(input: {
     currentLiabilities !== 0
       ? currentAssets / currentLiabilities
       : null);
-  const quickRatio = pickPeriod(ratios, period, "quickRatio");
+  const quickRatio = pickPeriod(
+    ratios,
+    period,
+    "quickRatio",
+    "acidTestRatio",
+  );
   const interestExpense = pick(inc0, "interestExpense");
-  const interestCoverage =
-    pickPeriod(ratios, period, "interestCoverage") ??
-    (ebit != null && interestExpense != null && interestExpense !== 0
-      ? Math.abs(ebit / interestExpense)
+  // Signed coverage — never abs() a negative ratio (loss-making EBIT must stay weak).
+  // FMP often returns 0 for N/A when interest is negligible — treat 0 as missing, not distress.
+  let interestCoverage =
+    pickPeriod(
+      ratios,
+      period,
+      "interestCoverageRatio",
+      "interestCoverage",
+    ) ??
+    (ebit != null &&
+    interestExpense != null &&
+    Math.abs(interestExpense) > 1e-6
+      ? ebit / interestExpense
       : null);
+  if (interestCoverage === 0) interestCoverage = null;
 
-  const netDebtToEbitda =
-    pickPeriod(metrics, period, "netDebtToEBITDA") ??
-    (totalDebt != null && totalCash != null && ebitda != null && ebitda !== 0
-      ? (totalDebt - totalCash) / ebitda
-      : null);
-  const debtToEbitda =
-    pickPeriod(metrics, period, "debtToEbitda") ??
-    (totalDebt != null && ebitda != null && ebitda !== 0
-      ? totalDebt / ebitda
-      : null);
+  // Leverage vs EBITDA is undefined when EBITDA ≤ 0 — do not invent / score.
+  const ebitdaPositive = ebitda != null && ebitda > 0;
+  let netDebtToEbitda = ebitdaPositive
+    ? pickPeriod(
+        metrics,
+        period,
+        "netDebtToEBITDA",
+        "netDebtToEbitda",
+      ) ??
+      pickPeriod(ratios, period, "netDebtToEBITDA", "netDebtToEbitda") ??
+      (totalDebt != null && totalCash != null
+        ? (totalDebt - totalCash) / ebitda!
+        : null)
+    : null;
+  let debtToEbitda = ebitdaPositive
+    ? pickPeriod(metrics, period, "debtToEbitda", "debtToEBITDA") ??
+      pickPeriod(ratios, period, "debtToEbitda", "debtToEBITDA") ??
+      (totalDebt != null ? totalDebt / ebitda! : null)
+    : null;
 
   const equityToAssets =
     totalEquity != null && totalAssets != null && totalAssets !== 0
@@ -1174,6 +1206,18 @@ export function buildFundamentalInputsFromPackage(input: {
   const fcfToDebt =
     freeCashflow != null && totalDebt != null && totalDebt > 0
       ? freeCashflow / totalDebt
+      : null;
+  const ocfToDebt =
+    operatingCashflow != null && totalDebt != null && totalDebt > 0
+      ? operatingCashflow / totalDebt
+      : null;
+  const revenueForDebt =
+    pick(inc0, "revenue") ?? totalRevenue;
+  const debtToRevenue =
+    totalDebt != null &&
+    revenueForDebt != null &&
+    revenueForDebt > 0
+      ? totalDebt / revenueForDebt
       : null;
 
   const qualityNotes: string[] = [];
@@ -1211,13 +1255,25 @@ export function buildFundamentalInputsFromPackage(input: {
   let operatingMargins = resolveMargin({
     label: "Operating margin",
     statement: statementMargin(inc0, "operating"),
-    packageRatio: pickPeriod(ratios, period, "operatingProfitMargin"),
+    packageRatio: pickPeriod(
+      ratios,
+      period,
+      "operatingProfitMargin",
+      "ebitMargin",
+      "operatingMargin",
+    ),
     notes: qualityNotes,
   });
   let profitMargins = resolveMargin({
     label: "Net margin",
     statement: statementMargin(inc0, "net"),
-    packageRatio: pickPeriod(ratios, period, "netProfitMargin"),
+    packageRatio: pickPeriod(
+      ratios,
+      period,
+      "netProfitMargin",
+      "continuousOperationsProfitMargin",
+      "netMargin",
+    ),
     notes: qualityNotes,
   });
 
@@ -1259,7 +1315,12 @@ export function buildFundamentalInputsFromPackage(input: {
   let ebitdaMargin = resolveMargin({
     label: "EBITDA margin",
     statement: ebitdaMarginStmt,
-    packageRatio: pickPeriod(ratios, period, "ebitdaMargin"),
+    packageRatio: pickPeriod(
+      ratios,
+      period,
+      "ebitdaMargin",
+      "ebitdaToRevenue",
+    ),
     notes: qualityNotes,
   });
   const fcfMarginStmt =
@@ -1424,46 +1485,102 @@ export function buildFundamentalInputsFromPackage(input: {
     incomeRows.map((inc) => statementMargin(inc, "net")),
   );
 
-  const trailingPE = pickPeriod(ratios, period, "peRatio", "priceEarningsRatio");
-  const forwardPE = pickPeriod(metrics, period, "forwardPERatio");
+  // PE / PEG resolved after EPS + estimates (aliases + price/EPS compute).
   const enterpriseValue =
     pickPeriod(metrics, period, "enterpriseValue") ??
     pick(first(input.enterpriseValues ?? []), "enterpriseValue") ??
     (marketCap != null
       ? marketCap + (totalDebt ?? 0) - (totalCash ?? 0)
       : null);
-  const enterpriseToEbitda =
-    pickPeriod(metrics, period, "enterpriseValueOverEBITDA", "evToEBITDA") ??
+  let enterpriseToEbitda =
+    pickPeriod(
+      metrics,
+      period,
+      "enterpriseValueOverEBITDA",
+      "evToEBITDA",
+    ) ??
+    pickPeriod(
+      ratios,
+      period,
+      "enterpriseValueMultiple",
+      "evToEBITDA",
+      "enterpriseValueOverEBITDA",
+    ) ??
     (enterpriseValue != null && ebitda != null && ebitda > 0
       ? enterpriseValue / ebitda
       : null);
-  const priceToSales = pickPeriod(ratios, period, "priceToSalesRatio");
-  const priceToFcf =
-    pickPeriod(ratios, period, "priceToFreeCashFlowsRatio") ??
+  if (enterpriseToEbitda != null && (enterpriseToEbitda <= 0 || !ebitdaPositive)) {
+    enterpriseToEbitda = null;
+  }
+  const priceToSales = pickPeriod(
+    ratios,
+    period,
+    "priceToSalesRatio",
+    "priceToSales",
+  );
+  let priceToFcf =
+    pickPeriod(
+      ratios,
+      period,
+      "priceToFreeCashFlowsRatio",
+      "priceToFreeCashFlowRatio",
+    ) ??
     (marketCap != null && freeCashflow != null && freeCashflow > 0
       ? marketCap / freeCashflow
       : null);
-  const pegRatio =
-    pickPeriod(ratios, period, "pegRatio") ??
-    pickPeriod(metrics, period, "pegRatio");
-  const evToFcf =
-    pickPeriod(metrics, period, "evToFreeCashFlow", "evToFCF") ??
+  if (priceToFcf != null && (priceToFcf <= 0 || freeCashflow == null || freeCashflow <= 0)) {
+    priceToFcf = null;
+  }
+  let evToFcf =
+    pickPeriod(
+      metrics,
+      period,
+      "evToFreeCashFlow",
+      "evToFCF",
+      "enterpriseValueToFreeCashFlow",
+    ) ??
     (enterpriseValue != null && freeCashflow != null && freeCashflow > 0
       ? enterpriseValue / freeCashflow
       : null);
+  if (evToFcf != null && (evToFcf <= 0 || freeCashflow == null || freeCashflow <= 0)) {
+    evToFcf = null;
+  }
   const revenueForEv = pick(inc0, "revenue") ?? totalRevenue;
   const evToSales =
-    pickPeriod(metrics, period, "evToSales", "enterpriseValueOverRevenue") ??
+    pickPeriod(
+      metrics,
+      period,
+      "evToSales",
+      "enterpriseValueOverRevenue",
+      "enterpriseValueToSales",
+    ) ??
     (enterpriseValue != null && revenueForEv != null && revenueForEv > 0
       ? enterpriseValue / revenueForEv
       : null);
-  const priceToOcf =
-    pickPeriod(ratios, period, "priceToOperatingCashFlowsRatio") ??
+  let priceToOcf =
+    pickPeriod(
+      ratios,
+      period,
+      "priceToOperatingCashFlowRatio",
+      "priceToOperatingCashFlowsRatio",
+    ) ??
     (marketCap != null && operatingCashflow != null && operatingCashflow > 0
       ? marketCap / operatingCashflow
       : null);
+  if (
+    priceToOcf != null &&
+    (priceToOcf <= 0 || operatingCashflow == null || operatingCashflow <= 0)
+  ) {
+    priceToOcf = null;
+  }
   const evToEbit =
-    pickPeriod(metrics, period, "evToEBIT", "enterpriseValueOverEBIT") ??
+    pickPeriod(
+      metrics,
+      period,
+      "evToEBIT",
+      "enterpriseValueOverEBIT",
+      "enterpriseValueToEBIT",
+    ) ??
     (enterpriseValue != null && ebit != null && ebit > 0
       ? enterpriseValue / ebit
       : null);
@@ -1577,6 +1694,143 @@ export function buildFundamentalInputsFromPackage(input: {
     estRevenueAvg != null && rev0 != null && rev0 !== 0
       ? (estRevenueAvg - rev0) / Math.abs(rev0)
       : null;
+  const forwardEps = pick(
+    est0,
+    "epsAvg",
+    "estimatedEpsAvg",
+    "estimatedEps",
+    "eps",
+  );
+  const earningsEstimateGrowth =
+    forwardEps != null && eps0 != null && eps0 !== 0
+      ? (forwardEps - eps0) / Math.abs(eps0)
+      : null;
+
+  /**
+   * Trailing / forward P/E + PEG.
+   * FMP ratios often use priceToEarnings* keys (not peRatio). Prefer provider
+   * multiples; else compute from price / positive EPS. Never invent PE when EPS ≤ 0.
+   */
+  const quotePrice =
+    input.price != null && Number.isFinite(input.price) && input.price > 0
+      ? input.price
+      : null;
+  const trailingEps =
+    (eps0 != null && Number.isFinite(eps0) ? eps0 : null) ??
+    pickPeriod(ratios, period, "netIncomePerShare") ??
+    pickPeriod(metrics, period, "netIncomePerShare");
+
+  let trailingPE =
+    pickPeriod(
+      ratios,
+      period,
+      "priceToEarningsDilutedRatio",
+      "priceToEarningsRatio",
+      "peRatio",
+      "priceEarningsRatio",
+    ) ??
+    pickPeriod(
+      metrics,
+      period,
+      "peRatio",
+      "priceToEarningsRatio",
+      "priceEarningsRatio",
+    );
+  if (
+    (trailingPE == null || trailingPE <= 0) &&
+    quotePrice != null &&
+    trailingEps != null &&
+    trailingEps > 0
+  ) {
+    trailingPE = quotePrice / trailingEps;
+  }
+  if (trailingPE != null && trailingPE <= 0) trailingPE = null;
+
+  let forwardPE =
+    pickPeriod(
+      metrics,
+      period,
+      "forwardPERatio",
+      "forwardPriceToEarningsRatio",
+      "peForward",
+    ) ??
+    pickPeriod(
+      ratios,
+      period,
+      "forwardPERatio",
+      "forwardPriceToEarningsRatio",
+    );
+  if (
+    (forwardPE == null || forwardPE <= 0) &&
+    quotePrice != null &&
+    forwardEps != null &&
+    forwardEps > 0
+  ) {
+    forwardPE = quotePrice / forwardEps;
+  }
+  if (forwardPE != null && forwardPE <= 0) forwardPE = null;
+
+  let pegRatio =
+    pickPeriod(
+      ratios,
+      period,
+      "pegRatio",
+      "priceToEarningsGrowthRatio",
+      "priceToEarningsDilutedGrowthRatio",
+      "forwardPriceToEarningsGrowthRatio",
+    ) ??
+    pickPeriod(
+      metrics,
+      period,
+      "pegRatio",
+      "priceToEarningsGrowthRatio",
+      "forwardPriceToEarningsGrowthRatio",
+    );
+  // Compute PEG when provider missing: valid PE + meaningful positive growth.
+  // Prefer forward PE; else trailing PE. Never invent from PEG-named fields as PE.
+  const peForPeg =
+    forwardPE != null && forwardPE > 0
+      ? forwardPE
+      : trailingPE != null && trailingPE > 0
+        ? trailingPE
+        : null;
+  const pegGrowth =
+    earningsEstimateGrowth != null && earningsEstimateGrowth > 0.01
+      ? earningsEstimateGrowth
+      : earningsGrowth != null && earningsGrowth > 0.01
+        ? earningsGrowth
+        : null;
+  if (
+    (pegRatio == null || pegRatio <= 0) &&
+    peForPeg != null &&
+    pegGrowth != null
+  ) {
+    pegRatio = peForPeg / (pegGrowth * 100);
+  }
+  if (pegRatio != null && pegRatio <= 0) pegRatio = null;
+  // PEG without a valid PE is not meaningful for scoring (provider noise on loss-makers).
+  const hasValidPe =
+    (trailingPE != null && trailingPE > 0) ||
+    (forwardPE != null && forwardPE > 0);
+  if (!hasValidPe) pegRatio = null;
+
+  const fcfYield =
+    freeCashflow != null &&
+    freeCashflow > 0 &&
+    marketCap != null &&
+    marketCap > 0
+      ? freeCashflow / marketCap
+      : null;
+  const earningsYield =
+    trailingPE != null && trailingPE > 0
+      ? 1 / trailingPE
+      : trailingEps != null &&
+          trailingEps > 0 &&
+          quotePrice != null
+        ? trailingEps / quotePrice
+        : pickPeriod(metrics, period, "earningsYield");
+  const earningsYieldClean =
+    earningsYield != null && earningsYield > 0 ? earningsYield : null;
 
   const bookValue = pickPeriod(metrics, period, "bookValuePerShare");
   const sharesOutstanding =
@@ -1640,7 +1894,7 @@ export function buildFundamentalInputsFromPackage(input: {
     earningsGrowth3y,
     operatingGrowth3y,
     revenueEstimateGrowth,
-    earningsEstimateGrowth: null,
+    earningsEstimateGrowth,
     trailingPE,
     forwardPE,
     enterpriseToEbitda,
@@ -1661,6 +1915,8 @@ export function buildFundamentalInputsFromPackage(input: {
     cashToDebt,
     cashToShortTermDebt,
     fcfToDebt,
+    ocfToDebt,
+    debtToRevenue,
     fcfStability,
     altmanZScore: altmanZ,
     piotroskiScore,
@@ -1686,6 +1942,8 @@ export function buildFundamentalInputsFromPackage(input: {
     evToSales,
     priceToOcf,
     evToEbit,
+    fcfYield,
+    earningsYield: earningsYieldClean,
     trailingPeMedian5y: null,
     capitalExpenditure,
     researchAndDevelopment,

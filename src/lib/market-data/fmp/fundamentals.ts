@@ -317,7 +317,12 @@ export async function fetchFmpFundamentals(
   );
 
   const debtToEquity =
-    pick(ratios, "debtEquityRatioTTM", "debtToEquityTTM") ??
+    pick(
+      ratios,
+      "debtEquityRatioTTM",
+      "debtToEquityRatioTTM",
+      "debtToEquityTTM",
+    ) ??
     (totalDebt != null && totalEquity != null && totalEquity !== 0
       ? (totalDebt / totalEquity) * 100
       : null);
@@ -335,28 +340,31 @@ export async function fetchFmpFundamentals(
     currentLiabilities !== 0
       ? currentAssets / currentLiabilities
       : null);
-  const quickRatio = pick(ratios, "quickRatioTTM");
+  const quickRatio = pick(ratios, "quickRatioTTM", "acidTestRatioTTM");
 
   const interestExpense = pick(inc0, "interestExpense");
-  const interestCoverage =
-    pick(ratios, "interestCoverageTTM") ??
-    (ebit != null && interestExpense != null && interestExpense !== 0
-      ? Math.abs(ebit / interestExpense)
+  let interestCoverage =
+    pick(ratios, "interestCoverageRatioTTM", "interestCoverageTTM") ??
+    (ebit != null &&
+    interestExpense != null &&
+    Math.abs(interestExpense) > 1e-6
+      ? ebit / interestExpense
       : null);
+  if (interestCoverage === 0) interestCoverage = null;
 
-  const netDebtToEbitda =
-    pick(metrics, "netDebtToEBITDATTM") ??
-    (totalDebt != null &&
-    totalCash != null &&
-    ebitda != null &&
-    ebitda !== 0
-      ? (totalDebt - totalCash) / ebitda
-      : null);
-  const debtToEbitda =
-    pick(metrics, "debtToEbitdaTTM") ??
-    (totalDebt != null && ebitda != null && ebitda !== 0
-      ? totalDebt / ebitda
-      : null);
+  const ebitdaPositive = ebitda != null && ebitda > 0;
+  const netDebtToEbitda = ebitdaPositive
+    ? pick(metrics, "netDebtToEBITDATTM", "netDebtToEbitdaTTM") ??
+      pick(ratios, "netDebtToEBITDATTM", "netDebtToEbitdaTTM") ??
+      (totalDebt != null && totalCash != null
+        ? (totalDebt - totalCash) / ebitda!
+        : null)
+    : null;
+  const debtToEbitda = ebitdaPositive
+    ? pick(metrics, "debtToEbitdaTTM", "debtToEBITDATTM") ??
+      pick(ratios, "debtToEbitdaTTM", "debtToEBITDATTM") ??
+      (totalDebt != null ? totalDebt / ebitda! : null)
+    : null;
 
   const equityToAssets =
     totalEquity != null && totalAssets != null && totalAssets !== 0
@@ -378,6 +386,14 @@ export async function fetchFmpFundamentals(
   const fcfToDebt =
     freeCashflow != null && totalDebt != null && totalDebt > 0
       ? freeCashflow / totalDebt
+      : null;
+  const ocfToDebt =
+    operatingCashflow != null && totalDebt != null && totalDebt > 0
+      ? operatingCashflow / totalDebt
+      : null;
+  const debtToRevenue =
+    totalDebt != null && totalRevenue != null && totalRevenue > 0
+      ? totalDebt / totalRevenue
       : null;
 
   const returnOnInvestedCapital =
@@ -436,34 +452,82 @@ export async function fetchFmpFundamentals(
     incomeRows.map((inc) => statementMargin(inc, "net")),
   );
 
-  const trailingPE = pick(ratios, "peRatioTTM", "priceEarningsRatioTTM");
-  const forwardPE = pick(metrics, "forwardPERatioTTM");
+  let trailingPE =
+    pick(
+      ratios,
+      "priceToEarningsDilutedRatioTTM",
+      "priceToEarningsRatioTTM",
+      "peRatioTTM",
+      "priceEarningsRatioTTM",
+    ) ??
+    pick(
+      metrics,
+      "peRatioTTM",
+      "priceToEarningsRatioTTM",
+      "priceEarningsRatioTTM",
+    );
+  let forwardPE = pick(
+    metrics,
+    "forwardPERatioTTM",
+    "forwardPriceToEarningsRatioTTM",
+    "forwardPERatio",
+  );
   const enterpriseValue =
     pick(metrics, "enterpriseValueTTM", "enterpriseValue") ??
     (marketCap != null
       ? marketCap + (totalDebt ?? 0) - (totalCash ?? 0)
       : null);
-  const enterpriseToEbitda =
+  let enterpriseToEbitda =
     pick(
       metrics,
       "enterpriseValueOverEBITDATTM",
       "evToEBITDATTM",
     ) ??
+    pick(ratios, "enterpriseValueMultipleTTM", "evToEBITDATTM") ??
     (enterpriseValue != null && ebitda != null && ebitda > 0
       ? enterpriseValue / ebitda
       : null);
-  const priceToSales = pick(ratios, "priceToSalesRatioTTM");
-  const priceToFcf =
-    pick(ratios, "priceToFreeCashFlowsRatioTTM") ??
+  if (enterpriseToEbitda != null && (enterpriseToEbitda <= 0 || !ebitdaPositive)) {
+    enterpriseToEbitda = null;
+  }
+  const priceToSales = pick(
+    ratios,
+    "priceToSalesRatioTTM",
+    "priceToSalesTTM",
+  );
+  let priceToFcf =
+    pick(
+      ratios,
+      "priceToFreeCashFlowsRatioTTM",
+      "priceToFreeCashFlowRatioTTM",
+    ) ??
     (marketCap != null && freeCashflow != null && freeCashflow > 0
       ? marketCap / freeCashflow
       : null);
-  const pegRatio = pick(ratios, "pegRatioTTM") ?? pick(metrics, "pegRatioTTM");
-  const evToFcf =
+  if (priceToFcf != null && (priceToFcf <= 0 || freeCashflow == null || freeCashflow <= 0)) {
+    priceToFcf = null;
+  }
+  let pegRatio =
+    pick(
+      ratios,
+      "pegRatioTTM",
+      "priceToEarningsGrowthRatioTTM",
+      "priceToEarningsDilutedGrowthRatioTTM",
+      "forwardPriceToEarningsGrowthRatioTTM",
+    ) ??
+    pick(
+      metrics,
+      "pegRatioTTM",
+      "priceToEarningsGrowthRatioTTM",
+    );
+  let evToFcf =
     pick(metrics, "evToFreeCashFlowTTM", "evToFCFTTM") ??
     (enterpriseValue != null && freeCashflow != null && freeCashflow > 0
       ? enterpriseValue / freeCashflow
       : null);
+  if (evToFcf != null && (evToFcf <= 0 || freeCashflow == null || freeCashflow <= 0)) {
+    evToFcf = null;
+  }
   const revenueForEv =
     pick(inc0, "revenue") ?? totalRevenue;
   const evToSales =
@@ -473,15 +537,30 @@ export async function fetchFmpFundamentals(
     revenueForEv > 0
       ? enterpriseValue / revenueForEv
       : null);
-  const priceToOcf =
-    pick(ratios, "priceToOperatingCashFlowsRatioTTM") ??
+  let priceToOcf =
+    pick(
+      ratios,
+      "priceToOperatingCashFlowRatioTTM",
+      "priceToOperatingCashFlowsRatioTTM",
+    ) ??
     (marketCap != null &&
     operatingCashflow != null &&
     operatingCashflow > 0
       ? marketCap / operatingCashflow
       : null);
+  if (
+    priceToOcf != null &&
+    (priceToOcf <= 0 || operatingCashflow == null || operatingCashflow <= 0)
+  ) {
+    priceToOcf = null;
+  }
   const evToEbit =
-    pick(metrics, "evToEBITTTM", "enterpriseValueOverEBITTTM") ??
+    pick(
+      metrics,
+      "evToEBITTTM",
+      "enterpriseValueOverEBITTTM",
+      "enterpriseValueToEBITTTM",
+    ) ??
     (enterpriseValue != null && ebit != null && ebit > 0
       ? enterpriseValue / ebit
       : null);
@@ -511,7 +590,83 @@ export async function fetchFmpFundamentals(
   pick(est0, "revenueAvg") != null
     ? (pick(est0, "revenueAvg")! - rev0) / Math.abs(rev0)
     : null;
-  const earningsEstimateGrowth = null; // keep null unless clear EPS estimate growth field
+  const forwardEps = pick(
+    est0,
+    "epsAvg",
+    "estimatedEpsAvg",
+    "estimatedEps",
+    "eps",
+  );
+  const earningsEstimateGrowth =
+    forwardEps != null && eps0 != null && eps0 !== 0
+      ? (forwardEps - eps0) / Math.abs(eps0)
+      : null;
+
+  const quotePrice =
+    profile.price != null && Number.isFinite(profile.price) && profile.price > 0
+      ? profile.price
+      : null;
+  const trailingEps =
+    (eps0 != null && Number.isFinite(eps0) ? eps0 : null) ??
+    pick(ratios, "netIncomePerShareTTM", "netIncomePerShare");
+  if (
+    (trailingPE == null || trailingPE <= 0) &&
+    quotePrice != null &&
+    trailingEps != null &&
+    trailingEps > 0
+  ) {
+    trailingPE = quotePrice / trailingEps;
+  }
+  if (trailingPE != null && trailingPE <= 0) trailingPE = null;
+
+  if (
+    (forwardPE == null || forwardPE <= 0) &&
+    quotePrice != null &&
+    forwardEps != null &&
+    forwardEps > 0
+  ) {
+    forwardPE = quotePrice / forwardEps;
+  }
+  if (forwardPE != null && forwardPE <= 0) forwardPE = null;
+
+  const pegGrowth =
+    earningsEstimateGrowth != null && earningsEstimateGrowth > 0.01
+      ? earningsEstimateGrowth
+      : earningsGrowth != null && earningsGrowth > 0.01
+        ? earningsGrowth
+        : null;
+  const peForPeg =
+    forwardPE != null && forwardPE > 0
+      ? forwardPE
+      : trailingPE != null && trailingPE > 0
+        ? trailingPE
+        : null;
+  if (
+    (pegRatio == null || pegRatio <= 0) &&
+    peForPeg != null &&
+    pegGrowth != null
+  ) {
+    pegRatio = peForPeg / (pegGrowth * 100);
+  }
+  if (pegRatio != null && pegRatio <= 0) pegRatio = null;
+  const hasValidPe =
+    (trailingPE != null && trailingPE > 0) ||
+    (forwardPE != null && forwardPE > 0);
+  if (!hasValidPe) pegRatio = null;
+
+  const fcfYield =
+    freeCashflow != null &&
+    freeCashflow > 0 &&
+    marketCap != null &&
+    marketCap > 0
+      ? freeCashflow / marketCap
+      : null;
+  const earningsYieldRaw =
+    trailingPE != null && trailingPE > 0
+      ? 1 / trailingPE
+      : pick(metrics, "earningsYieldTTM", "earningsYield");
+  const earningsYield =
+    earningsYieldRaw != null && earningsYieldRaw > 0 ? earningsYieldRaw : null;
 
   const bookValue = pick(metrics, "bookValuePerShareTTM");
   // Prefer income-statement diluted shares; key-metrics numberOfShares is often unreliable.
@@ -584,6 +739,8 @@ export async function fetchFmpFundamentals(
     cashToDebt,
     cashToShortTermDebt,
     fcfToDebt,
+    ocfToDebt,
+    debtToRevenue,
     fcfStability,
     altmanZScore: altmanZ,
     piotroskiScore,
@@ -597,6 +754,8 @@ export async function fetchFmpFundamentals(
     ocfMargin,
     cashFlowReliable: true,
     cashFlowNote: null,
+    statementMarginsDegraded: null,
+    statementQualityNotes: [],
     returnOnInvestedCapital3y,
     operatingMarginTrend,
     grossMarginTrend,
@@ -607,6 +766,8 @@ export async function fetchFmpFundamentals(
     evToSales,
     priceToOcf,
     evToEbit,
+    fcfYield,
+    earningsYield,
     trailingPeMedian5y,
     capitalExpenditure,
     researchAndDevelopment,

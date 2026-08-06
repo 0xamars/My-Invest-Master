@@ -323,7 +323,8 @@ export function computeProfitabilityV12(input: {
     sector: f.sector,
   });
   /** Margins/OCF-led scoring for capital-heavy or reinvesting growth (no red flags). */
-  const returnsTempered = (capitalIntensive || soft) && !strict;
+  const returnsTempered =
+    (capitalIntensive || soft || model === "treasury_holding") && !strict;
   const cashReliable = f.cashFlowReliable !== false;
   const distortedAccruals = hasDistortedAccrualMargins(f);
   const accrualUnprofitable =
@@ -576,9 +577,12 @@ export function computeProfitabilityV12(input: {
     const softened = round1(score * 0.4 + 50 * 0.6);
     return {
       score: softened,
-      note: capitalIntensive
-        ? `${label} tempered — capital-intensive industry; margins/OCF take priority`
-        : `${label} tempered — reinvestment profile; margins/OCF take priority`,
+      note:
+        model === "treasury_holding"
+          ? `${label} tempered — digital-asset treasury; ROIC/book not comparable to operating software`
+          : capitalIntensive
+            ? `${label} tempered — capital-intensive industry; margins/OCF take priority`
+            : `${label} tempered — reinvestment profile; margins/OCF take priority`,
     };
   };
 

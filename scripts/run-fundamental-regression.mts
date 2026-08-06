@@ -61,6 +61,20 @@ for (const entry of FUNDAMENTAL_REGRESSION_UNIVERSE) {
       peers: pkg.peers ?? [],
       peerContext: pkg.peerContext,
       price: pkg.quote?.price ?? null,
+      vehicleProfile: pkg.profile
+        ? {
+            name: pkg.profile.name,
+            industry: pkg.profile.industry,
+            industryKey: pkg.profile.industryKey,
+            sector: pkg.profile.sector,
+            sectorKey: pkg.profile.sectorKey,
+            description: pkg.profile.description,
+            exchange: pkg.profile.exchange,
+            isEtf: pkg.profile.isEtf,
+            isFund: pkg.profile.isFund,
+            raw: pkg.profile.raw,
+          }
+        : null,
     });
     captures.push(capture);
   } catch (err) {

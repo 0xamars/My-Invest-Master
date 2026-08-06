@@ -3,11 +3,14 @@ import {
   EV_EBITDA_BANDS,
   EV_FCF_BANDS,
   EV_SALES_BANDS,
+  EARNINGS_YIELD_BANDS,
+  FCF_YIELD_BANDS,
   PEG_BANDS,
   PE_BANDS,
   P_FCF_BANDS,
   P_OCF_BANDS,
   P_S_BANDS,
+  scoreAscending,
   scoreDescending,
   type Band,
 } from "@/lib/analysis/rating/bands";
@@ -250,8 +253,36 @@ export function computeValuationV12(input: {
     peerLabel,
     usePeers: false,
   });
+  const fcfYieldMetric =
+    f.fcfYield != null && f.fcfYield > 0
+      ? metric(
+          "fcf_yield",
+          "FCF yield",
+          f.fcfYield,
+          formatRatio(f.fcfYield),
+          scoreAscending(f.fcfYield, FCF_YIELD_BANDS),
+          "Free cash flow / market cap",
+        )
+      : metric("fcf_yield", "FCF yield", f.fcfYield ?? null, null, null);
+  const earningsYieldMetric =
+    f.earningsYield != null && f.earningsYield > 0
+      ? metric(
+          "earnings_yield",
+          "Earnings yield",
+          f.earningsYield,
+          formatRatio(f.earningsYield),
+          scoreAscending(f.earningsYield, EARNINGS_YIELD_BANDS),
+          "1 / trailing P/E",
+        )
+      : metric(
+          "earnings_yield",
+          "Earnings yield",
+          f.earningsYield ?? null,
+          null,
+          null,
+        );
   if (!cashReliable) {
-    for (const m of [pFcf, evFcf, pOcf]) {
+    for (const m of [pFcf, evFcf, pOcf, fcfYieldMetric]) {
       m.score = null;
       m.skipped = true;
       m.note =
@@ -259,20 +290,26 @@ export function computeValuationV12(input: {
         "Cash multiples skipped — OCF/FCF less reliable for this business type";
     }
   }
-  const cashMetrics = [pFcf, evFcf, pOcf];
+  const cashMetrics = [pFcf, evFcf, pOcf, fcfYieldMetric, earningsYieldMetric];
   const cashScore = cashReliable
     ? weightedFromMetrics([
-        { metric: pFcf, weight: 0.45 },
-        { metric: evFcf, weight: 0.35 },
-        { metric: pOcf, weight: 0.2 },
+        { metric: pFcf, weight: 0.4 },
+        { metric: evFcf, weight: 0.3 },
+        { metric: pOcf, weight: 0.15 },
+        { metric: fcfYieldMetric, weight: 0.15 },
       ])
-    : null;
+    : weightedFromMetrics([{ metric: earningsYieldMetric, weight: 1 }]);
 
   // —— 3) Enterprise / sales 20% ——
   const evEbitda = scoreMultiple({
     id: "ev_ebitda",
     label: "EV/EBITDA",
-    value: f.enterpriseToEbitda,
+    value:
+      f.enterpriseToEbitda != null &&
+      f.enterpriseToEbitda > 0 &&
+      (f.ebitda == null || f.ebitda > 0)
+        ? f.enterpriseToEbitda
+        : null,
     bands: EV_EBITDA_BANDS,
     peers: peerValues(peers, "enterpriseToEbitda"),
     peerWeight: leverageDispersion ? Math.min(peerWeight + 0.05, 0.5) : peerWeight,

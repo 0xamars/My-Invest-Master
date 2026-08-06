@@ -40,6 +40,23 @@ const NAME_VEHICLE_RE =
 const DESCRIPTION_VEHICLE_RE =
   /\b(exchange[\s-]?traded\s+fund|this\s+etf|etf\s+seeks|fund\s+seeks\s+to\s+track|tracks\s+the\s+performance|unit\s+investment\s+trust)\b/i;
 
+/** Equity REITs are operating companies — FMP often sets isFund=true incorrectly. */
+function looksLikeOperatingReit(parts: {
+  name: string | null;
+  industry: string | null;
+  sector: string | null;
+}): boolean {
+  const blob = [parts.name, parts.industry, parts.sector]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (!blob) return false;
+  if (/\b(etf|etn|etp|mutual\s+fund|closed[\s-]?end\s+fund)\b/.test(blob)) {
+    return false;
+  }
+  return /\breit\b|real\s*estate/.test(blob);
+}
+
 function asBool(v: unknown): boolean | null {
   if (typeof v === "boolean") return v;
   if (typeof v === "string") {
@@ -146,13 +163,18 @@ export function detectNonOperatingVehicle(
     };
   }
   if (isFund === true) {
-    return {
-      isNonOperating: true,
-      kind: "fund",
-      label: "fund",
-      reason: "Profile flag isFund=true",
-      meta,
-    };
+    // FMP marks many equity REITs as isFund — those are operating landlords, not fund vehicles.
+    if (looksLikeOperatingReit({ name, industry, sector })) {
+      // Fall through to operating-company path.
+    } else {
+      return {
+        isNonOperating: true,
+        kind: "fund",
+        label: "fund",
+        reason: "Profile flag isFund=true",
+        meta,
+      };
+    }
   }
 
   if (industry && INDUSTRY_VEHICLE_RE.test(industry)) {

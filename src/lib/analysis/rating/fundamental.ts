@@ -15,6 +15,10 @@ import {
   classifyCapitalProfile,
 } from "@/lib/analysis/rating/industry-model";
 import {
+  detectDigitalAssetTreasury,
+  TREASURY_CASH_FLOW_NOTE,
+} from "@/lib/analysis/rating/digital-asset-treasury";
+import {
   detectNonOperatingVehicle,
   nonOperatingVehicleFundamentalsMessage,
   type VehicleProfileInput,
@@ -330,19 +334,74 @@ export function computeFundamentalScore(
   }
 
   const resolved = resolveFundamentalInputs(rawInputs);
-  const inputs = resolved.inputs;
   const substitutionNotes = formatSubstitutionNotes(resolved);
 
-  const peers = options?.peers ?? [];
-  const peerContext = options?.peerContext ?? {
+  const peersIn = options?.peers ?? [];
+  const peerContextIn = options?.peerContext ?? {
     basis: "none" as const,
     label: "No peer set (absolute thresholds)",
     peerCount: 0,
-    industryKey: inputs.industryKey,
-    industry: inputs.industry,
-    sectorKey: inputs.sectorKey,
-    sector: inputs.sector,
+    industryKey: resolved.inputs.industryKey,
+    industry: resolved.inputs.industry,
+    sectorKey: resolved.inputs.sectorKey,
+    sector: resolved.inputs.sector,
   };
+
+  const model = classifyCapitalProfile({
+    industryKey: resolved.inputs.industryKey,
+    sectorKey: resolved.inputs.sectorKey,
+    industry: resolved.inputs.industry,
+    sector: resolved.inputs.sector,
+    name: options?.vehicleProfile?.name ?? null,
+    description: options?.vehicleProfile?.description ?? null,
+    profitMargins: resolved.inputs.profitMargins,
+    operatingMargins: resolved.inputs.operatingMargins,
+    freeCashflow: resolved.inputs.freeCashflow,
+    operatingCashflow: resolved.inputs.operatingCashflow,
+    totalRevenue: resolved.inputs.totalRevenue,
+    ebitda: resolved.inputs.ebitda,
+    revenueGrowth: resolved.inputs.revenueGrowth,
+  });
+
+  const treasuryDetection =
+    model === "treasury_holding"
+      ? detectDigitalAssetTreasury({
+          name: options?.vehicleProfile?.name ?? null,
+          description: options?.vehicleProfile?.description ?? null,
+          industry: resolved.inputs.industry,
+          industryKey: resolved.inputs.industryKey,
+          sector: resolved.inputs.sector,
+          sectorKey: resolved.inputs.sectorKey,
+          freeCashflow: resolved.inputs.freeCashflow,
+          operatingCashflow: resolved.inputs.operatingCashflow,
+          totalRevenue: resolved.inputs.totalRevenue,
+          ebitda: resolved.inputs.ebitda,
+        })
+      : null;
+
+  // Digital-asset treasury: do not blend Software-Application (or other opco) peers.
+  const peers =
+    model === "treasury_holding" ? [] : peersIn;
+  const peerContext =
+    model === "treasury_holding"
+      ? {
+          ...peerContextIn,
+          basis: "none" as const,
+          peerCount: 0,
+          label:
+            "Digital-asset treasury — peer blend disabled (not comparable to operating software peers)",
+        }
+      : peerContextIn;
+
+  const inputs: FundamentalInputs =
+    model === "treasury_holding"
+      ? {
+          ...resolved.inputs,
+          cashFlowReliable: false,
+          cashFlowNote: TREASURY_CASH_FLOW_NOTE,
+        }
+      : resolved.inputs;
+
   const peerLabel =
     peerContext.basis === "none"
       ? "peers"
@@ -350,15 +409,6 @@ export function computeFundamentalScore(
   const usePeers =
     peerContext.basis !== "none" && peers.length >= 3;
 
-  const model = classifyCapitalProfile({
-    industryKey: inputs.industryKey,
-    sectorKey: inputs.sectorKey,
-    industry: inputs.industry,
-    profitMargins: inputs.profitMargins,
-    operatingMargins: inputs.operatingMargins,
-    freeCashflow: inputs.freeCashflow,
-    revenueGrowth: inputs.revenueGrowth,
-  });
   const policy = resolveBusinessProfilePolicy(inputs);
   const frameLabel = comparisonFrameLabel({
     industry: inputs.industry,
@@ -669,9 +719,15 @@ export function computeFundamentalScore(
       "Peer comparison fell back to broad sector — confidence reduced.",
     );
   } else if (peerContext.basis === "none") {
-    notes.push(
-      "No peer set available — absolute thresholds only; confidence reduced.",
-    );
+    if (model === "treasury_holding") {
+      notes.push(
+        "Digital-asset treasury path — Software/operating peer blend disabled; absolute thresholds only.",
+      );
+    } else {
+      notes.push(
+        "No peer set available — absolute thresholds only; confidence reduced.",
+      );
+    }
   } else if (peerContext.basis === "industry") {
     notes.push(
       "Peer set uses industry group (sub-industry sample too thin).",
@@ -689,6 +745,14 @@ export function computeFundamentalScore(
     notes.push(
       "Bank/insurance overlay — regulatory capital unavailable; using ROA/ROE proxies.",
     );
+  }
+  if (model === "treasury_holding") {
+    notes.push(
+      "Digital-asset / bitcoin treasury path — corporate F/V scores are not comparable to operating software companies; treasury/BTC risk dominates.",
+    );
+    for (const reason of treasuryDetection?.reasons ?? []) {
+      if (!notes.includes(reason)) notes.push(reason);
+    }
   }
   if (inputs.dataSource === "yahoo") {
     notes.push(

@@ -293,7 +293,13 @@ export function resolveFundamentalInputs(
         "P/FCF",
         "none",
       );
-    } else if (inputs.priceToOcf != null) {
+    } else if (
+      inputs.freeCashflow != null &&
+      inputs.freeCashflow <= 0
+    ) {
+      // Known non-positive FCF — never invent a cheap P/FCF from OCF.
+      pushMissing(missing, "P/FCF (FCF ≤ 0)");
+    } else if (inputs.priceToOcf != null && inputs.priceToOcf > 0) {
       sub(
         "priceToFcf",
         inputs.priceToOcf * 1.15,

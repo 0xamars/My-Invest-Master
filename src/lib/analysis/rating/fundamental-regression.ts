@@ -195,6 +195,18 @@ export function captureFromRating(input: {
   peers: PeerMetricRow[];
   peerContext: FundamentalPeerContext;
   price: number | null;
+  vehicleProfile?: {
+    name?: string | null;
+    industry?: string | null;
+    industryKey?: string | null;
+    sector?: string | null;
+    sectorKey?: string | null;
+    description?: string | null;
+    exchange?: string | null;
+    isEtf?: boolean | null;
+    isFund?: boolean | null;
+    raw?: Record<string, unknown> | null;
+  } | null;
 }): TickerCapture {
   const { symbol, bucket, fundamentals: f } = input;
   const rating: InvestSalsaRating = buildInvestSalsaRating({
@@ -206,6 +218,8 @@ export function captureFromRating(input: {
     peerContext: input.peerContext,
     dailyBars: [],
     hourlyBars: [],
+    vehicleProfile: input.vehicleProfile,
+    symbol,
   });
 
   const fund = rating.fundamental;

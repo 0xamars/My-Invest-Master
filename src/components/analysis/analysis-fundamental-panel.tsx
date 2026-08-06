@@ -21,6 +21,7 @@ import type {
   FundamentalResult,
   PillarScore,
 } from "@/lib/analysis/rating/types";
+import { formatScore10 } from "@/lib/analysis/rating/score-display";
 import { scoreHeatTextClass, scoreTextStyle } from "@/lib/analysis/rating/tech-palette";
 import { ScoreBar } from "@/components/analysis/score-bar";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,7 @@ function MetricScoreValue({
           className={cn("ml-2", scoreHeatTextClass(score))}
           style={scoreTextStyle(score)}
         >
-          {Math.round(score)}
+          {formatScore10(score)}
         </span>
       ) : null}
     </span>
@@ -78,7 +79,7 @@ function PillarCard({
           )}
           style={scoreTextStyle(score)}
         >
-          {score != null ? Math.round(score) : "—"}
+          {formatScore10(score)}
         </p>
       </div>
 

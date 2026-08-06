@@ -258,7 +258,7 @@ async function fetchYahooFundamentalsFallback(
         totalDebt != null &&
         totalCash != null &&
         ebitda != null &&
-        ebitda !== 0
+        ebitda > 0
           ? (totalDebt - totalCash) / ebitda
           : null,
       debtToEbitda: null,
@@ -270,6 +270,18 @@ async function fetchYahooFundamentalsFallback(
       fcfToDebt:
         freeCashflow != null && totalDebt != null && totalDebt > 0
           ? freeCashflow / totalDebt
+          : null,
+      ocfToDebt:
+        num(fd.operatingCashflow) != null &&
+        totalDebt != null &&
+        totalDebt > 0
+          ? num(fd.operatingCashflow)! / totalDebt
+          : null,
+      debtToRevenue:
+        totalDebt != null &&
+        num(fd.totalRevenue) != null &&
+        num(fd.totalRevenue)! > 0
+          ? totalDebt / num(fd.totalRevenue)!
           : null,
       fcfStability: null,
       altmanZScore: null,
@@ -328,6 +340,17 @@ async function fetchYahooFundamentalsFallback(
           ? marketCap / num(fd.operatingCashflow)!
           : null,
       evToEbit: null,
+      fcfYield:
+        freeCashflow != null &&
+        freeCashflow > 0 &&
+        marketCap != null &&
+        marketCap > 0
+          ? freeCashflow / marketCap
+          : null,
+      earningsYield:
+        num(sd.trailingPE) != null && num(sd.trailingPE)! > 0
+          ? 1 / num(sd.trailingPE)!
+          : null,
       trailingPeMedian5y: null,
       capitalExpenditure: null,
       researchAndDevelopment: null,

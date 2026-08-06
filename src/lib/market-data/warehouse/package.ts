@@ -307,8 +307,10 @@ function peerRowFromRatios(
 ): PeerMetricRow {
   let debtToEquity =
     num(r.debtEquityRatioTTM) ??
+    num(r.debtToEquityRatioTTM) ??
     num(r.debtToEquityTTM) ??
     num(r.debtEquityRatio) ??
+    num(r.debtToEquityRatio) ??
     num(r.debtToEquity);
   if (debtToEquity != null && Math.abs(debtToEquity) < 5) {
     debtToEquity *= 100;
@@ -320,8 +322,13 @@ function peerRowFromRatios(
     debtToEquity,
     currentRatio: num(r.currentRatioTTM) ?? num(r.currentRatio),
     operatingMargins:
-      num(r.operatingProfitMarginTTM) ?? num(r.operatingProfitMargin),
-    profitMargins: num(r.netProfitMarginTTM) ?? num(r.netProfitMargin),
+      num(r.operatingProfitMarginTTM) ??
+      num(r.ebitMarginTTM) ??
+      num(r.operatingProfitMargin),
+    profitMargins:
+      num(r.netProfitMarginTTM) ??
+      num(r.continuousOperationsProfitMarginTTM) ??
+      num(r.netProfitMargin),
     grossMargins: num(r.grossProfitMarginTTM) ?? num(r.grossProfitMargin),
     returnOnEquity: num(r.returnOnEquityTTM) ?? num(r.returnOnEquity),
     returnOnAssets: num(r.returnOnAssetsTTM) ?? num(r.returnOnAssets),
@@ -329,23 +336,39 @@ function peerRowFromRatios(
       num(r.returnOnCapitalEmployedTTM) ??
       num(r.returnOnCapitalEmployed) ??
       num(r.roicTTM) ??
-      num(r.roic),
+      num(r.roic) ??
+      num(r.returnOnInvestedCapitalTTM) ??
+      num(r.returnOnInvestedCapital),
     revenueGrowth: null,
     earningsGrowth: null,
     trailingPE:
+      num(r.priceToEarningsDilutedRatioTTM) ??
+      num(r.priceToEarningsRatioTTM) ??
       num(r.peRatioTTM) ??
       num(r.priceEarningsRatioTTM) ??
+      num(r.priceToEarningsDilutedRatio) ??
+      num(r.priceToEarningsRatio) ??
       num(r.peRatio) ??
       num(r.priceEarningsRatio),
     enterpriseToEbitda:
       num(r.enterpriseValueMultipleTTM) ??
       num(r.enterpriseValueMultiple) ??
       num(r.evToEBITDATTM) ??
-      num(r.evToEBITDA),
+      num(r.evToEBITDA) ??
+      num(r.enterpriseValueOverEBITDATTM),
     priceToSales: num(r.priceToSalesRatioTTM) ?? num(r.priceToSalesRatio),
     priceToFcf:
-      num(r.priceToFreeCashFlowsRatioTTM) ?? num(r.priceToFreeCashFlowsRatio),
-    pegRatio: num(r.pegRatioTTM) ?? num(r.pegRatio),
+      num(r.priceToFreeCashFlowsRatioTTM) ??
+      num(r.priceToFreeCashFlowRatioTTM) ??
+      num(r.priceToFreeCashFlowsRatio) ??
+      num(r.priceToFreeCashFlowRatio),
+    pegRatio:
+      num(r.pegRatioTTM) ??
+      num(r.priceToEarningsGrowthRatioTTM) ??
+      num(r.priceToEarningsDilutedGrowthRatioTTM) ??
+      num(r.forwardPriceToEarningsGrowthRatioTTM) ??
+      num(r.pegRatio) ??
+      num(r.priceToEarningsGrowthRatio),
   };
 }
 
@@ -1090,6 +1113,7 @@ async function buildAnalysisPackage(
             industry: profile.industry,
             industryKey: profile.industryKey,
           },
+          price: quoteLoad.value?.price ?? null,
           ratiosTtm: ratiosTtmLoad.value,
           ratiosAnnual: ratiosAnnualLoad.value,
           keyMetricsTtm: kmTtm.value,

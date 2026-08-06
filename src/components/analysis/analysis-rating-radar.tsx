@@ -3,6 +3,7 @@
 import {
   PolarAngleAxis,
   PolarGrid,
+  PolarRadiusAxis,
   Radar,
   RadarChart,
 } from "recharts";
@@ -10,6 +11,7 @@ import {
   ChartContainer,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { scoreToTen } from "@/lib/analysis/rating/score-display";
 import type { RadarAxis } from "@/lib/analysis/rating/types";
 
 const chartConfig = {
@@ -83,7 +85,8 @@ function RadarAxisTick(props: {
 export function AnalysisRatingRadar({ axes }: { axes: RadarAxis[] }) {
   const data = axes.map((axis) => ({
     axis: axis.label,
-    score: axis.value ?? 0,
+    // Display scale 0–10; missing axes sit at 0 so the polygon stays defined.
+    score: scoreToTen(axis.value) ?? 0,
     hasData: axis.value != null,
   }));
 
@@ -115,6 +118,7 @@ export function AnalysisRatingRadar({ axes }: { axes: RadarAxis[] }) {
           tick={<RadarAxisTick />}
           tickLine={false}
         />
+        <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
         <Radar
           dataKey="score"
           stroke="var(--brand-green)"

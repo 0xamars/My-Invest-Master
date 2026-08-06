@@ -237,6 +237,46 @@ export const PEG_BANDS: Band[] = [
   { max: Number.POSITIVE_INFINITY, score: 15 },
 ];
 
+/** Total debt / revenue — lower is better (critical when EBITDA ≤ 0). */
+export const DEBT_TO_REVENUE_BANDS: Band[] = [
+  { max: 0.25, score: 95 },
+  { max: 0.5, score: 80 },
+  { max: 1.0, score: 60 },
+  { max: 1.5, score: 40 },
+  { max: 2.5, score: 22 },
+  { max: Number.POSITIVE_INFINITY, score: 10 },
+];
+
+/** Total debt / total assets — preferred leverage proxy for treasury holdings. */
+export const DEBT_TO_ASSETS_BANDS: Band[] = [
+  { max: 0.15, score: 95 },
+  { max: 0.25, score: 80 },
+  { max: 0.4, score: 60 },
+  { max: 0.55, score: 40 },
+  { max: 0.7, score: 22 },
+  { max: Number.POSITIVE_INFINITY, score: 10 },
+];
+
+/** FCF yield (FCF / market cap) — higher is better; only score when FCF > 0. */
+export const FCF_YIELD_BANDS: Band[] = [
+  { max: 0.01, score: 15 },
+  { max: 0.02, score: 30 },
+  { max: 0.04, score: 50 },
+  { max: 0.06, score: 70 },
+  { max: 0.08, score: 85 },
+  { max: Number.POSITIVE_INFINITY, score: 95 },
+];
+
+/** Earnings yield (EPS/price or 1/PE) — higher is better. */
+export const EARNINGS_YIELD_BANDS: Band[] = [
+  { max: 0.02, score: 15 },
+  { max: 0.03, score: 30 },
+  { max: 0.05, score: 50 },
+  { max: 0.07, score: 70 },
+  { max: 0.1, score: 85 },
+  { max: Number.POSITIVE_INFINITY, score: 95 },
+];
+
 export const FIB_ZONE_SCORES = {
   dark_green: 90,
   green: 80,
@@ -274,10 +314,10 @@ export const OUTLOOK_POINTS = {
 export const FUNDAMENTAL_WEIGHT = 0.6;
 export const TECHNICAL_WEIGHT = 0.4;
 
-export const TECH_FIB_WEIGHT = 0.34;
-export const TECH_4H_WEIGHT = 0.22;
-export const TECH_1D_WEIGHT = 0.22;
-export const TECH_1W_WEIGHT = 0.22;
+export const TECH_FIB_WEIGHT = 0.4;
+export const TECH_4H_WEIGHT = 0.2;
+export const TECH_1D_WEIGHT = 0.3;
+export const TECH_1W_WEIGHT = 0.1;
 
 export const MACD_FAST = 8;
 export const MACD_SLOW = 21;
