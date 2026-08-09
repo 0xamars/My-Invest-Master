@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,6 +20,7 @@ import {
 import { AnalysisFundamentalPanel } from "@/components/analysis/analysis-fundamental-panel";
 import { AnalysisRatingRadar } from "@/components/analysis/analysis-rating-radar";
 import { ScoreBar } from "@/components/analysis/score-bar";
+import { useAnalysisNarrative } from "@/hooks/use-analysis-narrative";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
 import { formatScore10 } from "@/lib/analysis/rating/score-display";
 import {
@@ -116,11 +120,25 @@ function SectionHint({ text }: { text: string }) {
   );
 }
 
+function NarrativeSkeleton() {
+  return (
+    <div className="space-y-2">
+      <div className="h-3 animate-pulse rounded bg-muted/70" />
+      <div className="h-3 w-4/5 animate-pulse rounded bg-muted/70" />
+      <div className="h-3 w-2/3 animate-pulse rounded bg-muted/70" />
+    </div>
+  );
+}
+
 export function AnalysisRatingSection({
   rating,
+  symbol,
+  name,
   isLoading,
 }: {
   rating: InvestSalsaRating | null;
+  symbol?: string;
+  name?: string | null;
   isLoading?: boolean;
 }) {
   if (isLoading && !rating) {
@@ -144,6 +162,12 @@ export function AnalysisRatingSection({
   }
 
   const { fundamental, technical } = rating;
+  const { bundle: narrative, loading: narrativeLoading } = useAnalysisNarrative({
+    symbol,
+    name,
+    rating,
+  });
+  const [techDetailsOpen, setTechDetailsOpen] = useState(false);
   const zoneHint = priceZoneLocationHint(technical.fib.zone);
   const relative = technical.fib.relative;
   const relativeHint = relativeDepthHint(relative.status);
@@ -155,42 +179,26 @@ export function AnalysisRatingSection({
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <Card className="surface-card overflow-visible border-primary/25 shadow-none">
-          <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-base">InvestSalsa Rating</CardTitle>
-                <CardDescription>
-                  {fundamental.nonOperatingVehicle
-                    ? `Rules-based v1.2 · Fundamentals N/A (${fundamental.nonOperatingVehicle.label}) · Technical from price · 0–10 scale`
-                    : rating.weights.fundamental === 0
-                      ? "Rules-based v1.2 · Technical only for this asset · 0–10 scale"
-                      : "Rules-based v1.2 · 60% Fundamental · 40% Technical · 0–10 scale"}
-                  {rating.weights.fundamental === 0 &&
-                  !fundamental.nonOperatingVehicle
-                    ? " (technical-only for this asset)"
-                    : rating.fundamental.peerContext.basis !== "none" &&
-                        !fundamental.nonOperatingVehicle
-                      ? ` · peers: ${rating.fundamental.peerContext.basis.replace("_", " ")}`
-                      : !fundamental.nonOperatingVehicle &&
-                          rating.weights.fundamental > 0
-                        ? " · absolute fundamentals"
-                        : ""}
-                </CardDescription>
+        <div className="grid gap-4 xl:grid-cols-3">
+          <Card className="surface-card overflow-visible border-primary/25 shadow-none">
+            <CardHeader className="pb-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base">Overview</CardTitle>
+                  <CardDescription>Scores on a 0–10 scale</CardDescription>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="border-border/70 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"
+                >
+                  Confidence {rating.confidence}
+                </Badge>
               </div>
-              <Badge
-                variant="outline"
-                className="border-border/70 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"
-              >
-                Confidence {rating.confidence}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-6 overflow-visible lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-            <div className="flex flex-col items-center justify-center gap-3 text-center">
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center gap-3 text-center">
               <div
                 className={cn(
-                  "flex size-36 flex-col items-center justify-center rounded-full border-2 border-primary/35 bg-primary/5",
+                  "flex size-32 flex-col items-center justify-center rounded-full border-2 border-primary/35 bg-primary/5",
                   scoreHeatTextClass(rating.score),
                 )}
                 style={scoreTextStyle(rating.score)}
@@ -202,7 +210,7 @@ export function AnalysisRatingSection({
                   {rating.label ?? "N/A"}
                 </span>
               </div>
-              <div className="grid w-full max-w-sm grid-cols-2 gap-2 text-sm">
+              <div className="grid w-full grid-cols-2 gap-2 text-sm">
                 <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
                     Fundamental
@@ -240,26 +248,130 @@ export function AnalysisRatingSection({
                   </p>
                 </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="min-w-0 overflow-visible">
+          <Card className="surface-card overflow-visible shadow-none">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Score mix</CardTitle>
+              <CardDescription>
+                Financial Strength · Profitability · Growth · Valuation · Price
+                Action
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="min-w-0 overflow-visible">
               <AnalysisRatingRadar axes={rating.radar} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <AnalysisFundamentalPanel fundamental={fundamental} />
+            </CardContent>
+          </Card>
 
           <Card className="surface-card shadow-none">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Technical detail</CardTitle>
-              <CardDescription>
-                Price location now — pulled back vs extended (not a trade
-                order). Structure + mean extension (NEAR · MEDIUM · LONG TERM)
-              </CardDescription>
+              <CardTitle className="text-base">Forecast</CardTitle>
+              <CardDescription>Street consensus</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Street forecast coming soon
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-4">
+            <Card className="surface-card shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">InvestSalsa Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {narrativeLoading && !narrative?.summary ? (
+                  <NarrativeSkeleton />
+                ) : (
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {narrative?.summary ||
+                      "Summary unavailable. Scores above are unchanged."}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="surface-card shadow-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Future Outlook</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {narrativeLoading && !narrative?.futureOutlook ? (
+                  <NarrativeSkeleton />
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Opportunities
+                      </p>
+                      {narrative?.futureOutlook.opportunities.length ? (
+                        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-relaxed text-muted-foreground">
+                          {narrative.futureOutlook.opportunities.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-1.5 text-sm text-muted-foreground">
+                          No grounded opportunities listed.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Risks
+                      </p>
+                      {narrative?.futureOutlook.risks.length ? (
+                        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-relaxed text-muted-foreground">
+                          {narrative.futureOutlook.risks.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-1.5 text-sm text-muted-foreground">
+                          No grounded risks listed.
+                        </p>
+                      )}
+                    </div>
+                    {narrative &&
+                    (narrative.futureOutlook.opportunities.length > 0 ||
+                      narrative.futureOutlook.risks.length > 0) ? (
+                      <p className="text-[11px] leading-snug text-muted-foreground/80">
+                        Forward-looking context — not part of the InvestSalsa
+                        score.
+                      </p>
+                    ) : null}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+          <AnalysisFundamentalPanel
+            fundamental={fundamental}
+            narrative={narrative}
+            narrativeLoading={narrativeLoading}
+          />
+
+          <Card className="surface-card shadow-none">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Technical Assessment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {narrativeLoading && !narrative?.technicalOverview ? (
+                <NarrativeSkeleton />
+              ) : narrative?.technicalOverview ? (
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {narrative.technicalOverview}
+                </p>
+              ) : (
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Overview unavailable. Technical scores below are unchanged.
+                </p>
+              )}
               <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -319,6 +431,11 @@ export function AnalysisRatingSection({
                   )}
                 </div>
 
+                {narrative?.technical.priceZone ? (
+                  <p className="mt-2 text-xs leading-snug text-muted-foreground">
+                    {narrative.technical.priceZone}
+                  </p>
+                ) : null}
                 <ScoreBar score={technical.fib.score} className="mt-2" />
               </div>
 
@@ -326,7 +443,27 @@ export function AnalysisRatingSection({
                 <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
                   Price mean extension
                 </p>
-                <div className="divide-y divide-border/50">
+                {narrative?.technical.meanExtension ? (
+                  <p className="mb-2 text-xs leading-snug text-muted-foreground">
+                    {narrative.technical.meanExtension}
+                  </p>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setTechDetailsOpen((v) => !v)}
+                >
+                  {techDetailsOpen ? (
+                    <ChevronDown className="size-3.5" />
+                  ) : (
+                    <ChevronRight className="size-3.5" />
+                  )}
+                  {techDetailsOpen ? "Hide details" : "Show details"}
+                </Button>
+                {techDetailsOpen ? (
+                <div className="mt-2 divide-y divide-border/50 border-t border-border/50 pt-2">
                   {(
                     [
                       { key: "h4" as const },
@@ -385,9 +522,11 @@ export function AnalysisRatingSection({
                     );
                   })}
                 </div>
+                ) : null}
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
     </TooltipProvider>

@@ -12,6 +12,7 @@ import {
   PieChart,
   RefreshCw,
 } from "lucide-react";
+import { AnalysisCompanyBlurb } from "@/components/analysis/analysis-company-blurb";
 import { AnalysisPriceChart } from "@/components/analysis/analysis-price-chart";
 import { AnalysisRatingSection } from "@/components/analysis/analysis-rating-section";
 import { AnalysisTickerSearch } from "@/components/analysis/analysis-ticker-search";
@@ -29,12 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -360,167 +355,159 @@ export function AnalysisTickerContent({
   }
 
   const changeLabel = type === "crypto" ? "24h change" : "Day change";
+  const classification = rating?.fundamental.classification;
 
   return (
     <div className="flex flex-1 flex-col gap-8">
-      <div className="page-header !items-start">
-        <div className="min-w-0 flex-1 space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="-ml-2 w-fit gap-1.5 text-muted-foreground"
-              render={<Link href="/analysis" />}
-            >
-              <ArrowLeft className="size-4" />
-              All analysis
-            </Button>
-            <AnalysisTickerSearch
-              defaultType={type}
-              currentSymbol={quote.symbol}
-              currentType={type}
-              className="sm:max-w-sm sm:flex-1"
-            />
-          </div>
-
-          <div className="flex w-full items-start gap-4">
-            <AssetLogo
-              symbol={quote.symbol}
-              name={quote.name}
-              type={quote.type}
-              logoUrl={quote.logoUrl}
-              priceId={quote.priceId}
-              size="md"
-            />
-            <div className="min-w-0 shrink-0 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="page-title">{quote.symbol}</h1>
-                <Badge
-                  variant="outline"
-                  className="border-border/70 bg-muted/30 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"
-                >
-                  {quote.type}
-                </Badge>
-              </div>
-              <p className="page-description">{quote.name}</p>
-              <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
-                <p className="text-2xl font-semibold tabular-nums tracking-tight">
-                  {quote.price != null
-                    ? formatPrice(quote.price, quote.type, currency, rates)
-                    : "—"}
-                </p>
-                {quote.change != null && quote.changePercent != null && (
-                  <p
-                    className={cn(
-                      "pb-0.5 text-sm font-medium tabular-nums",
-                      profitLossClass(quote.changePercent),
-                    )}
-                  >
-                    {quote.change >= 0 ? "+" : ""}
-                    {formatDisplayMoney(quote.change, currency, rates)} ·{" "}
-                    {formatPercent(quote.changePercent)}
-                    <span className="ml-1 text-muted-foreground">
-                      {changeLabel}
-                    </span>
-                  </p>
-                )}
-              </div>
-            </div>
-            {quote.description?.trim() ? (
-              <TooltipProvider delay={200}>
-                <Tooltip>
-                  <TooltipTrigger
-                    type="button"
-                    className="ml-1 hidden min-w-0 flex-1 cursor-default border-0 bg-transparent p-0 text-left outline-none md:block"
-                  >
-                    <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                      {quote.description.trim()}
-                    </p>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="bottom"
-                    align="start"
-                    className="max-w-md text-xs leading-relaxed"
-                  >
-                    {quote.description.trim()}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : null}
-          </div>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2 w-fit gap-1.5 text-muted-foreground"
+            render={<Link href="/analysis" />}
+          >
+            <ArrowLeft className="size-4" />
+            All analysis
+          </Button>
+          <AnalysisTickerSearch
+            defaultType={type}
+            currentSymbol={quote.symbol}
+            currentType={type}
+            className="sm:max-w-sm sm:flex-1"
+          />
         </div>
 
-        <div className="flex flex-col items-stretch gap-2 sm:items-end">
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <Button
-              variant="outline"
-              size="icon"
-              className="size-10 rounded-xl"
-              onClick={() => void load(range, { force: true })}
-              disabled={isLoading}
-              title="Refresh analysis"
-            >
-              <RefreshCw
-                className={cn("size-4", isLoading && "animate-spin")}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <AssetLogo
+                symbol={quote.symbol}
+                name={quote.name}
+                type={quote.type}
+                logoUrl={quote.logoUrl}
+                priceId={quote.priceId}
+                size="md"
               />
-            </Button>
-            {lists.length > 1 && (
-              <Select
-                value={watchlistId || undefined}
-                onValueChange={(value) => {
-                  if (value) {
-                    setWatchlistId(value);
-                    setWatchlistMessage(null);
-                    setWatchlistAdded(false);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Watchlist" />
-                </SelectTrigger>
-                <SelectContent>
-                  {lists.map((list) => (
-                    <SelectItem key={list.id} value={list.id}>
-                      {list.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleAddToWatchlist}
-            >
-              {watchlistAdded || alreadyOnWatchlist ? (
-                <Check className="size-4 text-primary" />
-              ) : (
-                <Eye className="size-4" />
+              <div className="min-w-0 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="page-title">{quote.symbol}</h1>
+                  <Badge
+                    variant="outline"
+                    className="border-border/70 bg-muted/30 px-2 py-0.5 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"
+                  >
+                    {quote.type}
+                  </Badge>
+                </div>
+                <p className="text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  {quote.name}
+                </p>
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <p className="text-2xl font-semibold tabular-nums tracking-tight">
+                    {quote.price != null
+                      ? formatPrice(quote.price, quote.type, currency, rates)
+                      : "—"}
+                  </p>
+                  {quote.change != null && quote.changePercent != null && (
+                    <p
+                      className={cn(
+                        "text-sm font-medium tabular-nums",
+                        profitLossClass(quote.changePercent),
+                      )}
+                    >
+                      {quote.change >= 0 ? "+" : ""}
+                      {formatDisplayMoney(quote.change, currency, rates)} ·{" "}
+                      {formatPercent(quote.changePercent)}
+                      <span className="ml-1 text-muted-foreground">
+                        {changeLabel}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-stretch gap-2 sm:items-start">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-10 rounded-xl"
+                  onClick={() => void load(range, { force: true })}
+                  disabled={isLoading}
+                  title="Refresh analysis"
+                >
+                  <RefreshCw
+                    className={cn("size-4", isLoading && "animate-spin")}
+                  />
+                </Button>
+                {lists.length > 1 && (
+                  <Select
+                    value={watchlistId || undefined}
+                    onValueChange={(value) => {
+                      if (value) {
+                        setWatchlistId(value);
+                        setWatchlistMessage(null);
+                        setWatchlistAdded(false);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Watchlist" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lists.map((list) => (
+                        <SelectItem key={list.id} value={list.id}>
+                          {list.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleAddToWatchlist}
+                >
+                  {watchlistAdded || alreadyOnWatchlist ? (
+                    <Check className="size-4 text-primary" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                  {alreadyOnWatchlist || watchlistAdded
+                    ? "On watchlist"
+                    : "Add to Watchlist"}
+                </Button>
+                <Button
+                  className="gap-2"
+                  render={<Link href={portfolioHref} />}
+                >
+                  <PieChart className="size-4" />
+                  Add in Portfolio
+                </Button>
+              </div>
+              {watchlistMessage && (
+                <p
+                  className={cn(
+                    "text-xs",
+                    watchlistAdded || alreadyOnWatchlist
+                      ? "text-primary"
+                      : "text-amber-700 dark:text-amber-400",
+                  )}
+                >
+                  {watchlistMessage}
+                </p>
               )}
-              {alreadyOnWatchlist || watchlistAdded
-                ? "On watchlist"
-                : "Add to Watchlist"}
-            </Button>
-            <Button
-              className="gap-2"
-              render={<Link href={portfolioHref} />}
-            >
-              <PieChart className="size-4" />
-              Add in Portfolio
-            </Button>
+            </div>
           </div>
-          {watchlistMessage && (
-            <p
-              className={cn(
-                "text-xs sm:text-right",
-                watchlistAdded || alreadyOnWatchlist
-                  ? "text-primary"
-                  : "text-amber-700 dark:text-amber-400",
-              )}
-            >
-              {watchlistMessage}
-            </p>
-          )}
+
+          <AnalysisCompanyBlurb
+            symbol={quote.symbol}
+            name={quote.name}
+            sector={classification?.sector ?? null}
+            industry={classification?.industry ?? null}
+            description={quote.description ?? null}
+          />
         </div>
       </div>
 
@@ -532,7 +519,12 @@ export function AnalysisTickerContent({
         </div>
       )}
 
-      <AnalysisRatingSection rating={rating} isLoading={isLoading} />
+      <AnalysisRatingSection
+        rating={rating}
+        symbol={upper}
+        name={quote.name}
+        isLoading={isLoading}
+      />
 
       <AnalyticsChartCard
         title="Price chart"

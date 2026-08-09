@@ -1,6 +1,7 @@
 import type { WatchlistAssetType } from "@/types/watchlist";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
 import type { AnalysisChartPoint } from "@/lib/analysis/history";
+import type { EstimateOutlook } from "@/lib/analysis/street-outlook";
 
 export type AnalysisAssetType = WatchlistAssetType;
 
@@ -37,6 +38,8 @@ export type AnalysisQuote = {
 export type AnalysisRatingPayload = {
   quote: AnalysisQuote;
   rating: InvestSalsaRating;
+  /** Consensus estimates — display only; omit on older/crypto responses. */
+  estimateOutlook?: EstimateOutlook | null;
   chart: {
     range: AnalysisChartRange;
     points: AnalysisChartPoint[];

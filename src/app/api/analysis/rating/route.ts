@@ -15,6 +15,7 @@ import {
   runWithFmpCallScope,
   type FmpCallStats,
 } from "@/lib/market-data/fmp/client";
+import { EMPTY_ESTIMATE_OUTLOOK } from "@/lib/analysis/street-outlook";
 import {
   getAnalysisPackage,
   packageNetworkSummary,
@@ -162,6 +163,7 @@ export async function GET(request: Request) {
           return {
             quote,
             rating,
+            estimateOutlook: pkg.estimateOutlook ?? EMPTY_ESTIMATE_OUTLOOK,
             chart: {
               range,
               points: chartPointsFromBars(chartBars, range),
@@ -219,6 +221,7 @@ export async function GET(request: Request) {
         return {
           quote,
           rating,
+          estimateOutlook: EMPTY_ESTIMATE_OUTLOOK,
           chart: {
             range,
             points: chartPointsFromBars(chartBars, range),

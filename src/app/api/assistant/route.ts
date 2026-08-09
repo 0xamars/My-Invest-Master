@@ -1,3 +1,5 @@
+import { complete, isAiConfigured, logAiFallback } from "@/lib/ai";
+import { AiNotConfiguredError, AiRequestError } from "@/lib/ai/types";
 import { requireAssistantAuth } from "@/lib/assistant/auth";
 import {
   AiProviderError,
@@ -76,6 +78,51 @@ export async function POST(request: Request) {
     return Response.json({ error: "Request payload is too large." }, { status: 413 });
   }
 
+  const systemPrompt = buildAssistantSystemPrompt(context);
+
+  if (isAiConfigured()) {
+    try {
+      const result = await complete({
+        feature: "chat.assistant",
+        system: systemPrompt,
+        messages,
+      });
+      return Response.json({
+        reply: result.text,
+        configured: true,
+        provider: result.provider,
+        model: result.model,
+        pageId: context.page.id,
+        dataScopes: context.dataScopes,
+        disclaimer: ASSISTANT_DISCLAIMER,
+      });
+    } catch (error) {
+      if (error instanceof AiNotConfiguredError) {
+        logAiFallback("chat.assistant", "no_key");
+        return Response.json({
+          reply: buildAssistantFallbackReply(context, {
+            id: "openrouter",
+            displayName: "OpenRouter",
+            apiKeyEnvVar: "OPENROUTER_API_KEY",
+          }),
+          configured: false,
+          provider: "openrouter",
+          pageId: context.page.id,
+          disclaimer: ASSISTANT_DISCLAIMER,
+        });
+      }
+      console.error("Assistant OpenRouter error:", error);
+      const message =
+        error instanceof AiRequestError
+          ? error.message
+          : "Could not reach the AI service. Check your network or API configuration.";
+      return Response.json(
+        { error: message, provider: "openrouter" },
+        { status: 502 },
+      );
+    }
+  }
+
   let provider;
   try {
     provider = getActiveAiProvider();
@@ -92,10 +139,15 @@ export async function POST(request: Request) {
   }
 
   if (!provider.isConfigured()) {
+    logAiFallback("chat.assistant", "no_key");
     return Response.json({
-      reply: buildAssistantFallbackReply(context, provider),
+      reply: buildAssistantFallbackReply(context, {
+        id: "openrouter",
+        displayName: "OpenRouter",
+        apiKeyEnvVar: "OPENROUTER_API_KEY",
+      }),
       configured: false,
-      provider: provider.id,
+      provider: "openrouter",
       pageId: context.page.id,
       disclaimer: ASSISTANT_DISCLAIMER,
     });
@@ -103,7 +155,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await provider.chat({
-      systemPrompt: buildAssistantSystemPrompt(context),
+      systemPrompt,
       messages,
       temperature: 0.35,
     });

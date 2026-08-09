@@ -1,4 +1,3 @@
-import type { AiProvider } from "@/lib/assistant/providers";
 import type { AssistantUserContext } from "@/lib/assistant/types";
 
 export const ASSISTANT_DISCLAIMER =
@@ -54,7 +53,7 @@ export function buildAssistantSystemPrompt(context: AssistantUserContext): strin
 
 export function buildAssistantFallbackReply(
   context: AssistantUserContext,
-  provider: Pick<AiProvider, "displayName" | "apiKeyEnvVar" | "id">,
+  provider: { displayName: string; apiKeyEnvVar: string; id: string },
 ): string {
   return [
     `You're on **${context.page.title}**.`,
@@ -62,8 +61,8 @@ export function buildAssistantFallbackReply(
     "",
     "I can help with product how-tos and questions about your data once AI is configured.",
     "",
-    `AI is not configured yet for **${provider.displayName}** (\`AI_PROVIDER=${provider.id}\`).`,
-    `Add \`${provider.apiKeyEnvVar}\` to your environment to enable replies.`,
+    "AI not configured.",
+    `Add \`${provider.apiKeyEnvVar}\` to enable **${provider.displayName}** replies.`,
     "",
     ASSISTANT_DISCLAIMER,
   ].join("\n");

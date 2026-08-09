@@ -174,18 +174,6 @@ export function combineInvestSalsaRating(
   const pillar = (id: string) =>
     fundamental.pillars.find((p) => p.id === id)?.score ?? null;
 
-  const momentumParts = [
-    technical.h4.score,
-    technical.daily.score,
-    technical.weekly.score,
-  ].filter((s): s is number => s != null);
-  const momentum =
-    momentumParts.length > 0
-      ? round1(
-          momentumParts.reduce((a, b) => a + b, 0) / momentumParts.length,
-        )
-      : null;
-
   return {
     score,
     label: score != null ? ratingLabel(score) : null,
@@ -207,14 +195,9 @@ export function combineInvestSalsaRating(
       { key: "growth", label: "Growth", value: pillar("growth") },
       { key: "valuation", label: "Valuation", value: pillar("valuation") },
       {
-        key: "fib",
-        label: "Price structure",
-        value: technical.fib.score,
-      },
-      {
-        key: "momentum",
-        label: "Momentum Condition",
-        value: momentum,
+        key: "price_action",
+        label: "Price Action",
+        value: technical.score,
       },
     ],
     notes,

@@ -5,6 +5,7 @@ import type {
   OhlcBar,
   PeerMetricRow,
 } from "@/lib/analysis/rating/types";
+import type { EstimateOutlook } from "@/lib/market-data/warehouse/estimate-outlook";
 import type { WarehouseDataset } from "@/lib/market-data/warehouse/ttl";
 
 export type JsonRow = Record<string, unknown>;
@@ -61,6 +62,8 @@ export type AnalysisPackage = {
   ownerEarnings: JsonRow[];
   growth: JsonRow[];
   estimates: JsonRow[];
+  /** FY1/FQ1 + forward P/E helpers — not wired into rating scores this pass. */
+  estimateOutlook: EstimateOutlook;
   dcf: JsonRow | null;
   peers: PeerMetricRow[];
   peerContext: FundamentalPeerContext;

@@ -29,7 +29,7 @@ import {
   fmpFetchDailyHistory,
   fmpFetchDcf,
   fmpFetchEnterpriseValues,
-  fmpFetchEstimates,
+  fmpFetchEstimatesBundle,
   fmpFetchFinancialScores,
   fmpFetchGrowth,
   fmpFetchHourlyHistory,
@@ -48,6 +48,7 @@ import {
 import * as store from "@/lib/market-data/warehouse/store";
 import {
   DATASET_TTL_MS,
+  ESTIMATES_EMPTY_TOKEN,
   ageMs,
   emptyRetryTtl,
   isFresh,
@@ -55,6 +56,7 @@ import {
   newestTimestamp,
   type WarehouseDataset,
 } from "@/lib/market-data/warehouse/ttl";
+import { buildEstimateOutlook } from "@/lib/market-data/warehouse/estimate-outlook";
 import type {
   AnalysisPackage,
   JsonRow,
@@ -116,6 +118,11 @@ async function loadOrRefresh<T>(input: {
   write: (value: T) => Promise<void>;
   /** Optional: persist empty FMP result so freshness has a row timestamp. */
   writeEmpty?: () => Promise<void>;
+  /**
+   * When set, only this exact refresh error_message counts as confirmed-empty.
+   * Stale `fmp_empty` markers from a prior ingest bug are ignored.
+   */
+  emptyErrorToken?: string;
 }): Promise<LoadResult<T>> {
   const ttl = DATASET_TTL_MS[input.dataset];
   const emptyTtl = emptyRetryTtl(input.dataset);
@@ -125,10 +132,11 @@ async function loadOrRefresh<T>(input: {
     refresh?.last_success_at,
     refresh?.last_attempt_at,
   );
-  const emptyConfirmed =
-    refresh?.status === "empty" ||
-    refresh?.error_message === "fmp_empty" ||
-    refresh?.error_message?.startsWith("fmp_empty") === true;
+  const emptyConfirmed = input.emptyErrorToken
+    ? refresh?.error_message === input.emptyErrorToken
+    : refresh?.status === "empty" ||
+      refresh?.error_message === "fmp_empty" ||
+      refresh?.error_message?.startsWith("fmp_empty") === true;
 
   const rowAge = ageMs(cached.updatedAt);
   const checkAge = ageMs(checkedAt);
@@ -213,7 +221,7 @@ async function loadOrRefresh<T>(input: {
         symbol: input.symbol,
         dataset: input.dataset,
         status: "empty",
-        errorMessage: "fmp_empty",
+        errorMessage: input.emptyErrorToken ?? "fmp_empty",
         success: true,
       });
       if (input.writeEmpty) {
@@ -989,13 +997,14 @@ async function buildAnalysisPackage(
       };
     },
     isEmpty: (v) => v.length === 0,
-    fetchFmp: () => fmpFetchEstimates(symbol),
+    fetchFmp: () => fmpFetchEstimatesBundle(symbol),
     write: async (rows) => {
       await store.writeMetrics({ symbol, dataset: "estimates", data: rows });
     },
     writeEmpty: async () => {
       await store.writeEmptyMarker({ symbol, dataset: "estimates" });
     },
+    emptyErrorToken: ESTIMATES_EMPTY_TOKEN,
   });
   status.push({
     dataset: "estimates",
@@ -1128,7 +1137,8 @@ async function buildAnalysisPackage(
           cashflowQuarter: statements.cashflow.quarter,
           cashflowAnnual: statements.cashflow.annual,
           scores: scoresLoad.value,
-          estimates: estimatesLoad.value,
+          // Estimates ingested on pkg.estimates / estimateOutlook; scoring unused this pass.
+          estimates: [],
           enterpriseValues: evLoad.value,
           growth: growthLoad.value,
           ownerEarnings: ownerLoad.value,
@@ -1139,6 +1149,18 @@ async function buildAnalysisPackage(
     ? resolveFundamentalInputs(fundamentalsRaw)
     : null;
   const fundamentals = resolved?.inputs ?? null;
+
+  const inc0 =
+    statements.income.ttm[0] ??
+    statements.income.annual[0] ??
+    statements.income.quarter[0] ??
+    null;
+  const estimateOutlook = buildEstimateOutlook(estimatesLoad.value, {
+    price: quoteLoad.value?.price ?? null,
+    trailingRevenue:
+      num(inc0?.revenue) ?? fundamentals?.totalRevenue ?? null,
+    trailingEps: num(inc0?.epsdiluted) ?? num(inc0?.eps),
+  });
 
   let ath = 0;
   for (const bar of dailyLoad.value) {
@@ -1209,6 +1231,7 @@ async function buildAnalysisPackage(
     ownerEarnings: ownerLoad.value,
     growth: growthLoad.value,
     estimates: estimatesLoad.value,
+    estimateOutlook,
     dcf: dcfLoad.value,
     peers: peersLoad.value.peers,
     peerContext: peersLoad.value.context,

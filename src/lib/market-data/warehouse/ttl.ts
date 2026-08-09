@@ -68,6 +68,12 @@ export const EMPTY_RETRY_TTL_MS: Partial<Record<WarehouseDataset, number>> = {
   growth: 12 * 60 * 60_000,
 };
 
+/**
+ * Bump when estimates ingest query shape changes so stale `fmp_empty`
+ * markers (e.g. no-period 400s) are ignored and FMP is refetched.
+ */
+export const ESTIMATES_EMPTY_TOKEN = "fmp_empty:analyst_estimates_period_v1";
+
 /** How long past TTL we still serve stale data when FMP fails. */
 export const STALE_GRACE_MS = 7 * 24 * 60 * 60_000;
 

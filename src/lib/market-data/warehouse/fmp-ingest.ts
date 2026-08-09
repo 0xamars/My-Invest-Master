@@ -122,8 +122,50 @@ export async function fmpFetchGrowth(symbol: string) {
   return { incomeGrowth, financialGrowth };
 }
 
-export async function fmpFetchEstimates(symbol: string) {
-  return safeRows("/analyst-estimates", { symbol, limit: 8 }, 3600);
+export type EstimatesPeriod = "annual" | "quarter";
+
+async function fetchAnalystEstimatesPeriod(
+  symbol: string,
+  period: EstimatesPeriod,
+  limit: number,
+): Promise<JsonRow[]> {
+  const data = await fmpFetch<JsonRow[] | JsonRow>({
+    path: "/analyst-estimates",
+    query: { symbol, period, limit },
+    revalidate: 3600,
+  });
+  const rows = Array.isArray(data)
+    ? data.filter((r) => r && typeof r === "object")
+    : data && typeof data === "object"
+      ? [data as JsonRow]
+      : [];
+  return rows.map((r) => ({ ...r, __period: period }));
+}
+
+/** FMP `/analyst-estimates` requires `period=annual|quarter`. */
+export async function fmpFetchEstimates(
+  symbol: string,
+  period: EstimatesPeriod,
+  limit = period === "annual" ? 10 : 8,
+): Promise<JsonRow[]> {
+  return fetchAnalystEstimatesPeriod(symbol, period, limit);
+}
+
+/** Annual primary + optional quarter. Throws only if both periods fail. */
+export async function fmpFetchEstimatesBundle(symbol: string): Promise<JsonRow[]> {
+  const settled = await Promise.allSettled([
+    fmpFetchEstimates(symbol, "annual", 10),
+    fmpFetchEstimates(symbol, "quarter", 8),
+  ]);
+  const annual = settled[0].status === "fulfilled" ? settled[0].value : [];
+  const quarter = settled[1].status === "fulfilled" ? settled[1].value : [];
+  if (
+    settled[0].status === "rejected" &&
+    settled[1].status === "rejected"
+  ) {
+    throw settled[0].reason;
+  }
+  return [...annual, ...quarter];
 }
 
 export async function fmpFetchDcf(symbol: string) {

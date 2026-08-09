@@ -13,10 +13,10 @@ import {
   formatDataAsOf,
   peerBasisShort,
   pillarTakeaway,
-  shortOutlookLine,
   simplifyNote,
   topMetrics,
 } from "@/lib/analysis/fundamental-copy";
+import type { AnalysisNarrativeBundle } from "@/lib/analysis/narrative/types";
 import type {
   FundamentalResult,
   PillarScore,
@@ -48,20 +48,45 @@ function MetricScoreValue({
   );
 }
 
+function pillarAiLine(
+  pillar: PillarScore,
+  narrative: AnalysisNarrativeBundle | null | undefined,
+): string | null {
+  if (!narrative) return null;
+  switch (pillar.id) {
+    case "financial_strength":
+      return narrative.pillars.financialStrength || null;
+    case "profitability":
+      return narrative.pillars.profitability || null;
+    case "growth":
+      return narrative.pillars.growth || null;
+    case "valuation":
+      return narrative.pillars.valuation || null;
+    default:
+      return null;
+  }
+}
+
 function PillarCard({
   pillar,
   fundamental,
+  narrative,
+  narrativeLoading,
 }: {
   pillar: PillarScore;
   fundamental: FundamentalResult;
+  narrative?: AnalysisNarrativeBundle | null;
+  narrativeLoading?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const visible = topMetrics(pillar, 3);
   const rest = pillar.metrics.filter(
     (m) => !m.skipped && !visible.some((v) => v.id === m.id),
   );
-  const takeaway = pillarTakeaway(pillar, fundamental);
+  const aiLine = pillarAiLine(pillar, narrative);
+  const takeaway = aiLine ?? pillarTakeaway(pillar, fundamental);
   const score = pillar.score;
+  const hasDetails = rest.length > 0 || visible.length > 0;
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/40 px-4 py-3.5">
@@ -69,7 +94,7 @@ function PillarCard({
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-medium text-foreground">{pillar.label}</p>
           <p className="text-sm leading-snug text-muted-foreground">
-            {takeaway}
+            {narrativeLoading && !aiLine ? "…" : takeaway}
           </p>
         </div>
         <p
@@ -85,21 +110,7 @@ function PillarCard({
 
       <ScoreBar score={score} className="mt-3" />
 
-      {visible.length > 0 && (
-        <div className="mt-3 space-y-2">
-          {visible.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-center justify-between gap-3 text-xs"
-            >
-              <span className="text-muted-foreground">{m.label}</span>
-              <MetricScoreValue display={m.display} score={m.score} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {(rest.length > 0 || visible.some((m) => m.note)) && (
+      {hasDetails && (
         <div className="mt-2">
           <Button
             type="button"
@@ -144,17 +155,19 @@ function PillarCard({
 
 export function AnalysisFundamentalPanel({
   fundamental,
+  narrative,
+  narrativeLoading,
 }: {
   fundamental: FundamentalResult;
+  narrative?: AnalysisNarrativeBundle | null;
+  narrativeLoading?: boolean;
 }) {
-  const [showMethod, setShowMethod] = useState(false);
-
   if (!fundamental.available) {
     const vehicle = fundamental.nonOperatingVehicle;
     return (
       <Card className="surface-card shadow-none">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Fundamental detail</CardTitle>
+          <CardTitle className="text-base">Fundamental Assessment</CardTitle>
           {vehicle ? (
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               Fund / ETF vehicle — company fundamentals do not apply
@@ -162,6 +175,13 @@ export function AnalysisFundamentalPanel({
           ) : null}
         </CardHeader>
         <CardContent className="space-y-3">
+          {narrativeLoading ? (
+            <p className="text-sm text-muted-foreground">Loading overview…</p>
+          ) : narrative?.fundamentalOverview ? (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {narrative.fundamentalOverview}
+            </p>
+          ) : null}
           <p className="text-sm leading-relaxed text-muted-foreground">
             {vehicle
               ? vehicle.message
@@ -206,15 +226,19 @@ export function AnalysisFundamentalPanel({
     <Card className="surface-card shadow-none">
       <CardHeader className="space-y-3 pb-2">
         <div>
-          <CardTitle className="text-base">Fundamental detail</CardTitle>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Company quality for buy / hold / avoid — ownership-friendly vs
-            deteriorating risk
-          </p>
+          <CardTitle className="text-base">Fundamental Assessment</CardTitle>
         </div>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {shortOutlookLine(fundamental)}
-        </p>
+        {narrativeLoading && !narrative?.fundamentalOverview ? (
+          <div className="space-y-2">
+            <div className="h-3 animate-pulse rounded bg-muted/70" />
+            <div className="h-3 w-5/6 animate-pulse rounded bg-muted/70" />
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {narrative?.fundamentalOverview ||
+              "Overview unavailable. Pillar scores below are unchanged."}
+          </p>
+        )}
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>
             <span className="text-muted-foreground/80">Period </span>
@@ -261,108 +285,10 @@ export function AnalysisFundamentalPanel({
             key={pillar.id}
             pillar={pillar}
             fundamental={fundamental}
+            narrative={narrative}
+            narrativeLoading={narrativeLoading}
           />
         ))}
-
-        <div className="pt-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-1.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => setShowMethod((v) => !v)}
-          >
-            {showMethod ? (
-              <ChevronDown className="size-3.5" />
-            ) : (
-              <ChevronRight className="size-3.5" />
-            )}
-            Methodology / details
-          </Button>
-
-          {showMethod && (
-            <div className="mt-2 space-y-2 rounded-xl border border-border/50 bg-muted/10 px-3 py-3 text-xs text-muted-foreground">
-              <p>
-                <span className="text-foreground/80">Fundamental Period: </span>
-                {fundamental.classification.fundamentalPeriod
-                  ? fundamental.classification.fundamentalPeriod.toUpperCase()
-                  : "—"}
-                {fundamental.classification.periodSelectionReason
-                  ? ` — ${fundamental.classification.periodSelectionReason}`
-                  : " — all pillars score on this same period"}
-              </p>
-              {fundamental.classification.ttmSource && (
-                <p>
-                  <span className="text-foreground/80">TTM source: </span>
-                  {fundamental.classification.ttmSource}
-                  {fundamental.classification.constructedTtmFields.length > 0
-                    ? ` · constructed ${fundamental.classification.constructedTtmFields.length} fields from quarters`
-                    : ""}
-                </p>
-              )}
-              {fundamental.classification.constructedTtmFields.length > 0 && (
-                <p>
-                  <span className="text-foreground/80">
-                    Constructed TTM fields:{" "}
-                  </span>
-                  {fundamental.classification.constructedTtmFields
-                    .slice(0, 16)
-                    .join(", ")}
-                  {fundamental.classification.constructedTtmFields.length > 16
-                    ? "…"
-                    : ""}
-                </p>
-              )}
-              <p>
-                <span className="text-foreground/80">Business profile: </span>
-                {fundamental.classification.growthProfileLabel}
-                {fundamental.classification.reinvestmentSoftWeighting
-                  ? " · reinvestment soft-weighting on"
-                  : ""}
-              </p>
-              {fundamental.classification.criticalFlags.length > 0 && (
-                <p>
-                  <span className="text-foreground/80">Critical flags: </span>
-                  {fundamental.classification.criticalFlags.join("; ")}
-                </p>
-              )}
-              <p>
-                <span className="text-foreground/80">Assessment frame: </span>
-                {fundamental.classification.businessModelLabel}
-              </p>
-              <p>
-                <span className="text-foreground/80">Peer set: </span>
-                {fundamental.peerContext.label}
-              </p>
-              {fundamental.outlook.reason && (
-                <p>
-                  <span className="text-foreground/80">Outlook detail: </span>
-                  {fundamental.outlook.reason}
-                </p>
-              )}
-              {fundamental.missingMetrics.length > 0 && (
-                <p>
-                  <span className="text-foreground/80">
-                    Missing metrics ({fundamental.missingMetrics.length}):{" "}
-                  </span>
-                  {fundamental.missingMetrics.join(", ")}
-                </p>
-              )}
-              <p>
-                <span className="text-foreground/80">Fundamental model: </span>
-                v{fundamental.version} (same-period · growth-aware · FS ·
-                Profitability · Growth · Valuation)
-              </p>
-              {fundamental.notes.length > 0 && (
-                <ul className="list-inside list-disc space-y-1">
-                  {fundamental.notes.map((note) => (
-                    <li key={note}>{note}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
