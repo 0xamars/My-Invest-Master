@@ -8,11 +8,16 @@ import {
   PROFIT_MARGIN_BANDS,
   ROE_BANDS,
   ROIC_BANDS,
+  SBC_TO_REVENUE_BANDS,
+  SBC_TO_REVENUE_SOFTWARE_BANDS,
   scoreAscending,
+  scoreDescending,
 } from "@/lib/analysis/rating/bands";
 import type { CapitalProfile } from "@/lib/analysis/rating/industry-model";
 import {
   isCapitalIntensiveIndustry,
+  isFinancialCapitalOverlay,
+  isHighEquityCompIndustry,
 } from "@/lib/analysis/rating/industry-model";
 import type { BusinessProfilePolicy } from "@/lib/analysis/rating/business-profile";
 import {
@@ -304,7 +309,8 @@ function qualityModifierScore(
 /**
  * Profitability v1.2 — operating + cash profitability engine.
  * Weights: core margins 40%, cash profitability 25%, returns on capital 25%,
- * quality/trend modifiers 10%.
+ * quality/trend modifiers 10%, SBC burden 5% when available (omit/renormalize if missing).
+ * SBC never dominates — soft quality sleeve only.
  */
 export function computeProfitabilityV12(input: {
   fundamentals: FundamentalInputs;
@@ -661,7 +667,7 @@ export function computeProfitabilityV12(input: {
   );
 
   const returnsMetrics: MetricScore[] = [];
-  if (model === "bank_insurance") {
+  if (isFinancialCapitalOverlay(model)) {
     if (f.returnOnEquity != null && roePeer.score != null) {
       returnsMetrics.push(
         metric(
@@ -752,7 +758,7 @@ export function computeProfitabilityV12(input: {
   }
 
   const returnsParts: Array<{ weight: number; value: number }> = [];
-  if (model === "bank_insurance") {
+  if (isFinancialCapitalOverlay(model)) {
     const roeM = returnsMetrics.find((m) => m.id === "roe");
     const roaM = returnsMetrics.find((m) => m.id === "roa");
     const roicM = returnsMetrics.find((m) => m.id === "roic");
@@ -818,10 +824,10 @@ export function computeProfitabilityV12(input: {
   if (capitalReturns != null) {
     parts.push({
       weight: !cashReliable
-        ? model === "bank_insurance"
+        ? isFinancialCapitalOverlay(model)
           ? 0.4
           : 0.35
-        : model === "bank_insurance"
+        : isFinancialCapitalOverlay(model)
           ? 0.35
           : returnsTempered
             ? 0.12
@@ -836,6 +842,35 @@ export function computeProfitabilityV12(input: {
       weight: returnsTempered ? 0.08 : soft ? 0.2 : 0.1,
       value: quality.score,
     });
+  }
+
+  // —— 5) SBC burden (soft, 5%) — missing SBC omitted so weights renormalize ——
+  const highEquityComp = isHighEquityCompIndustry({
+    industryKey: f.industryKey,
+    sectorKey: f.sectorKey,
+    industry: f.industry,
+    sector: f.sector,
+  });
+  const sbcRev = f.sbcToRevenue;
+  let sbcScore: number | null = null;
+  let sbcNote: string | null = null;
+  if (sbcRev != null && Number.isFinite(sbcRev) && sbcRev >= 0) {
+    const abs = scoreDescending(
+      sbcRev,
+      highEquityComp ? SBC_TO_REVENUE_SOFTWARE_BANDS : SBC_TO_REVENUE_BANDS,
+    );
+    const peerSbc = peerValues(peers, "sbcToRevenue");
+    if (peerSbc.length >= 5) {
+      const pct = percentileRank(sbcRev, peerSbc, false);
+      sbcScore = blendAbsoluteAndPeer(abs, pct, 0.25);
+      sbcNote = quartileNote(pct, `${peerLabel} SBC/sales`);
+    } else {
+      sbcScore = abs;
+      sbcNote = highEquityComp
+        ? "Share-based pay vs sales — wider software/high-equity-comp band"
+        : "Share-based pay vs sales";
+    }
+    parts.push({ weight: 0.05, value: sbcScore });
   }
 
   let score =
@@ -921,10 +956,43 @@ export function computeProfitabilityV12(input: {
     quality.notes.push("Gross margin alone cannot produce an elite score");
   }
 
+  const sbcMetrics: MetricScore[] = [];
+  if (sbcRev != null && sbcScore != null) {
+    sbcMetrics.push(
+      metric(
+        "sbc_to_revenue",
+        "SBC / revenue",
+        sbcRev,
+        formatPercentDecimal(sbcRev),
+        sbcScore,
+        sbcNote,
+      ),
+    );
+  }
+  const sbcOi = f.sbcToOperatingIncome;
+  if (
+    sbcOi != null &&
+    Number.isFinite(sbcOi) &&
+    sbcOi >= 0 &&
+    sbcOi < 5
+  ) {
+    sbcMetrics.push(
+      metric(
+        "sbc_to_operating_income",
+        "SBC / operating income",
+        sbcOi,
+        formatPercentDecimal(sbcOi),
+        null,
+        "Display only — not scored",
+      ),
+    );
+  }
+
   const allMetrics = [
     ...marginMetrics,
     ...cashMetrics,
     ...returnsMetrics,
+    ...sbcMetrics,
     ...quality.metrics,
   ].filter((m) => m.value != null || (m.score != null && !m.skipped));
 

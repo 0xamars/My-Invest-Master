@@ -22,6 +22,8 @@ import { AnalysisRatingRadar } from "@/components/analysis/analysis-rating-radar
 import { ScoreBar } from "@/components/analysis/score-bar";
 import { useAnalysisNarrative } from "@/hooks/use-analysis-narrative";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
+import { isFilingContextBullet } from "@/lib/analysis/narrative/parse";
+import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 import { formatScore10 } from "@/lib/analysis/rating/score-display";
 import {
   formatDrawdownPct,
@@ -134,11 +136,15 @@ export function AnalysisRatingSection({
   rating,
   symbol,
   name,
+  description,
+  recentEvents,
   isLoading,
 }: {
   rating: InvestSalsaRating | null;
   symbol?: string;
   name?: string | null;
+  description?: string | null;
+  recentEvents?: AnalysisRecentEvent[];
   isLoading?: boolean;
 }) {
   if (isLoading && !rating) {
@@ -165,8 +171,16 @@ export function AnalysisRatingSection({
   const { bundle: narrative, loading: narrativeLoading } = useAnalysisNarrative({
     symbol,
     name,
+    description,
     rating,
+    recentEvents,
   });
+  const summaryBullets = narrative?.summaryBullets?.length
+    ? narrative.summaryBullets
+    : narrative?.summary
+      ? [narrative.summary]
+      : [];
+  const showFilingFooter = summaryBullets.some((b) => isFilingContextBullet(b));
   const [techDetailsOpen, setTechDetailsOpen] = useState(false);
   const zoneHint = priceZoneLocationHint(technical.fib.zone);
   const relative = technical.fib.relative;
@@ -283,15 +297,25 @@ export function AnalysisRatingSection({
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">InvestSalsa Summary</CardTitle>
               </CardHeader>
-              <CardContent>
-                {narrativeLoading && !narrative?.summary ? (
+              <CardContent className="space-y-3">
+                {narrativeLoading && summaryBullets.length === 0 ? (
                   <NarrativeSkeleton />
+                ) : summaryBullets.length ? (
+                  <ul className="list-disc space-y-1 pl-4 text-sm leading-relaxed text-muted-foreground">
+                    {summaryBullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
                 ) : (
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    {narrative?.summary ||
-                      "Summary unavailable. Scores above are unchanged."}
+                    Summary unavailable. Scores above are unchanged.
                   </p>
                 )}
+                {showFilingFooter ? (
+                  <p className="text-[11px] leading-snug text-muted-foreground/80">
+                    Filing context — not part of the InvestSalsa score.
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
             <Card className="surface-card shadow-none">

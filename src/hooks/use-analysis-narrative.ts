@@ -7,11 +7,14 @@ import type {
   NarrativeResponse,
 } from "@/lib/analysis/narrative/types";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
+import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 
 export function useAnalysisNarrative(input: {
   symbol: string | undefined;
   name?: string | null;
+  description?: string | null;
   rating: InvestSalsaRating | null;
+  recentEvents?: AnalysisRecentEvent[];
 }): {
   bundle: AnalysisNarrativeBundle | null;
   loading: boolean;
@@ -26,6 +29,8 @@ export function useAnalysisNarrative(input: {
   const symbol = input.symbol?.toUpperCase();
   const rating = input.rating;
   const name = input.name ?? null;
+  const description = input.description ?? null;
+  const recentEvents = input.recentEvents ?? [];
   const fingerprint = rating
     ? [
         symbol,
@@ -34,6 +39,8 @@ export function useAnalysisNarrative(input: {
         rating.technical.score,
         rating.technical.fib.zoneLabel,
         rating.fundamental.classification.fundamentalPeriod,
+        (description ?? "").slice(0, 80),
+        recentEvents.map((e) => `${e.type}:${e.date ?? ""}`).join(","),
       ].join("|")
     : "";
 
@@ -47,7 +54,13 @@ export function useAnalysisNarrative(input: {
 
     let cancelled = false;
     setLoading(true);
-    const context = buildNarrativeContext({ symbol, name, rating });
+    const context = buildNarrativeContext({
+      symbol,
+      name,
+      description,
+      rating,
+      recentEvents,
+    });
 
     void (async () => {
       try {
@@ -74,7 +87,7 @@ export function useAnalysisNarrative(input: {
     return () => {
       cancelled = true;
     };
-  }, [symbol, name, fingerprint, rating]);
+  }, [symbol, name, description, fingerprint, rating, recentEvents]);
 
   return { bundle, loading, source };
 }

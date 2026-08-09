@@ -314,10 +314,10 @@ export function pillarTakeaway(
           ? "Liquidity and cash look acceptable for a capital-markets business"
           : "Balance sheet needs watching for this business type";
       }
-      if (model === "bank_insurance") {
+      if (model === "bank_insurance" || model === "insurance_life") {
         return score >= 65
-          ? "Capital efficiency looks reasonable for a bank/insurer"
-          : "Capital efficiency looks soft for a bank/insurer";
+          ? "Capital looks reasonable for this type of financial"
+          : "Capital looks soft for this type of financial";
       }
       if (model === "reit_utilities") {
         return score >= 65

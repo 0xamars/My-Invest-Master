@@ -678,6 +678,33 @@ export async function fetchFmpFundamentals(
       "weightedAverageShsOut",
     ) ?? pick(metrics, "numberOfShares");
 
+  const stockBasedCompensation = pick(
+    cf0,
+    "stockBasedCompensation",
+    "stockBasedCompensationExpense",
+    "shareBasedCompensation",
+    "shareBasedCompensationExpense",
+    "stockCompensation",
+  ) ?? pick(
+    inc0,
+    "stockBasedCompensation",
+    "stockBasedCompensationExpense",
+    "shareBasedCompensation",
+    "shareBasedCompensationExpense",
+    "stockCompensation",
+  );
+  const sbcToRevenue =
+    stockBasedCompensation != null &&
+    (rev0 ?? totalRevenue) != null &&
+    (rev0 ?? totalRevenue)! > 0
+      ? stockBasedCompensation / (rev0 ?? totalRevenue)!
+      : null;
+  const oiForSbc = pick(inc0, "operatingIncome", "ebit");
+  const sbcToOperatingIncome =
+    stockBasedCompensation != null && oiForSbc != null && oiForSbc > 0
+      ? stockBasedCompensation / oiForSbc
+      : null;
+
   const capitalExpenditure = pick(cf0, "capitalExpenditure");
   const researchAndDevelopment = pick(
     inc0,
@@ -774,5 +801,8 @@ export async function fetchFmpFundamentals(
     grossProfit,
     grossProfitPrior,
     dataSource: "fmp",
+    stockBasedCompensation,
+    sbcToRevenue,
+    sbcToOperatingIncome,
   };
 }

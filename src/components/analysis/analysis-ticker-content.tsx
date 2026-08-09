@@ -36,6 +36,7 @@ import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { buildAnalysisQuoteStats } from "@/lib/analysis/format-stats";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
+import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 import type { AnalysisChartPoint } from "@/lib/analysis/history";
 import {
   ANALYSIS_CHART_RANGES,
@@ -151,6 +152,7 @@ export function AnalysisTickerContent({
 
   const [quote, setQuote] = useState<AnalysisQuote | null>(null);
   const [rating, setRating] = useState<InvestSalsaRating | null>(null);
+  const [recentEvents, setRecentEvents] = useState<AnalysisRecentEvent[]>([]);
   const [chartPoints, setChartPoints] = useState<AnalysisChartPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(false);
@@ -190,6 +192,7 @@ export function AnalysisTickerContent({
           }
           setQuote(payload.quote);
           setRating(payload.rating);
+          setRecentEvents(payload.recentEvents ?? []);
           setChartPoints(payload.chart.points);
           hasLoadedRef.current = true;
           if (payload.quote.error && payload.quote.price == null) {
@@ -200,6 +203,7 @@ export function AnalysisTickerContent({
         if (!soft) {
           setQuote(null);
           setRating(null);
+          setRecentEvents([]);
           setChartPoints([]);
           setError("Unable to load analysis data for this ticker.");
         }
@@ -523,6 +527,8 @@ export function AnalysisTickerContent({
         rating={rating}
         symbol={upper}
         name={quote.name}
+        description={quote.description ?? null}
+        recentEvents={recentEvents}
         isLoading={isLoading}
       />
 

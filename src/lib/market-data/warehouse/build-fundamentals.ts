@@ -10,6 +10,10 @@
  * single Fundamental Period. Other periods are trend/warning notes only.
  */
 import type { FundamentalInputs } from "@/lib/analysis/rating/types";
+import {
+  isFinancialIntermediaryIndustry,
+  isPaymentOrCreditRailIndustry,
+} from "@/lib/analysis/rating/industry-model";
 import { computeAltmanZ } from "@/lib/market-data/fmp/fundamentals";
 import { num } from "@/lib/market-data/fmp/client";
 import type { JsonRow } from "@/lib/market-data/warehouse/types";
@@ -74,6 +78,10 @@ const FLOW_CASHFLOW_KEYS = [
   "freeCashFlow",
   "capitalExpenditure",
   "depreciationAndAmortization",
+  "stockBasedCompensation",
+  "stockBasedCompensationExpense",
+  "shareBasedCompensation",
+  "shareBasedCompensationExpense",
 ] as const;
 
 /** Balance-sheet levels taken from the latest quarter only. */
@@ -319,28 +327,13 @@ function isCashFlowDistortedIndustry(input: {
   sectorKey: string | null;
   industry: string | null;
 }): boolean {
-  const key = (input.industryKey ?? "").toLowerCase();
-  const sector = (input.sectorKey ?? "").toLowerCase();
-  const industry = (input.industry ?? "").toLowerCase();
-  if (
-    key === "capital-markets" ||
-    key === "asset-management" ||
-    key.startsWith("banks") ||
-    key.startsWith("insurance") ||
-    key === "credit-services" ||
-    key === "mortgage-finance"
-  ) {
-    return true;
-  }
-  if (sector === "financial-services") return true;
-  return (
-    industry.includes("broker") ||
-    industry.includes("capital market") ||
-    industry.includes("bank") ||
-    industry.includes("insurance") ||
-    industry.includes("asset management") ||
-    industry.includes("credit services")
-  );
+  const ref = {
+    industryKey: input.industryKey,
+    sectorKey: input.sectorKey,
+    industry: input.industry,
+  };
+  if (isPaymentOrCreditRailIndustry(ref)) return false;
+  return isFinancialIntermediaryIndustry(ref);
 }
 
 /**
@@ -1841,6 +1834,36 @@ export function buildFundamentalInputsFromPackage(input: {
       "weightedAverageShsOut",
     ) ?? pickPeriod(metrics, period, "numberOfShares");
 
+  const stockBasedCompensation = pick(
+    cf0,
+    "stockBasedCompensation",
+    "stockBasedCompensationExpense",
+    "shareBasedCompensation",
+    "shareBasedCompensationExpense",
+    "stockCompensation",
+  ) ?? pick(
+    inc0,
+    "stockBasedCompensation",
+    "stockBasedCompensationExpense",
+    "shareBasedCompensation",
+    "shareBasedCompensationExpense",
+    "stockCompensation",
+  );
+  const revenueForSbc = pick(inc0, "revenue") ?? totalRevenue;
+  const sbcToRevenue =
+    stockBasedCompensation != null &&
+    revenueForSbc != null &&
+    revenueForSbc > 0
+      ? stockBasedCompensation / revenueForSbc
+      : null;
+  const oiForSbc = pick(inc0, "operatingIncome", "ebit");
+  const sbcToOperatingIncome =
+    stockBasedCompensation != null &&
+    oiForSbc != null &&
+    oiForSbc > 0
+      ? stockBasedCompensation / oiForSbc
+      : null;
+
   const capitalExpenditure = pick(cf0, "capitalExpenditure");
   const researchAndDevelopment = pick(
     inc0,
@@ -1958,6 +1981,9 @@ export function buildFundamentalInputsFromPackage(input: {
     periodCompleteness: selection.completeness[period],
     ttmSource: selection.ttmSource,
     constructedTtmFields: selection.constructedFields,
+    stockBasedCompensation,
+    sbcToRevenue,
+    sbcToOperatingIncome,
     growthSourceNote,
   };
 }

@@ -24,7 +24,8 @@ export type WarehouseDataset =
   | "peers"
   | "dcf"
   | "price_daily"
-  | "price_hourly";
+  | "price_hourly"
+  | "investor_events";
 
 /** TTL in milliseconds for non-empty cached rows. */
 export const DATASET_TTL_MS: Record<WarehouseDataset, number> = {
@@ -52,6 +53,7 @@ export const DATASET_TTL_MS: Record<WarehouseDataset, number> = {
   dcf: 24 * 60 * 60_000,
   price_daily: 60 * 60_000,
   price_hourly: 45 * 60_000,
+  investor_events: 12 * 60 * 60_000,
 };
 
 /**
@@ -66,6 +68,7 @@ export const EMPTY_RETRY_TTL_MS: Partial<Record<WarehouseDataset, number>> = {
   owner_earnings: 24 * 60 * 60_000,
   dcf: 12 * 60 * 60_000,
   growth: 12 * 60 * 60_000,
+  investor_events: 24 * 60 * 60_000,
 };
 
 /**

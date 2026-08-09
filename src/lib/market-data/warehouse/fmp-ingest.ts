@@ -208,6 +208,27 @@ export async function fmpFetchStockPeers(symbol: string): Promise<string[]> {
   }
 }
 
+export async function fmpFetchInsiderTrading(
+  symbol: string,
+  limit = 100,
+): Promise<JsonRow[]> {
+  return safeRows(
+    "/insider-trading/search",
+    { symbol, page: 0, limit },
+    3600,
+  );
+}
+
+export async function fmpFetchMergersAcquisitions(
+  name: string,
+): Promise<JsonRow[]> {
+  return safeRows(
+    "/mergers-acquisitions-search",
+    { name },
+    3600,
+  );
+}
+
 export async function fmpFetchDailyHistory(symbol: string) {
   return fetchFmpDailyBars(symbol);
 }

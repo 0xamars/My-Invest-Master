@@ -6,6 +6,7 @@ import type {
   PeerMetricRow,
 } from "@/lib/analysis/rating/types";
 import type { EstimateOutlook } from "@/lib/market-data/warehouse/estimate-outlook";
+import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 import type { WarehouseDataset } from "@/lib/market-data/warehouse/ttl";
 
 export type JsonRow = Record<string, unknown>;
@@ -72,5 +73,7 @@ export type AnalysisPackage = {
   ath: number | null;
   /** Derived inputs for FS / Profitability / Valuation / Fair Value. */
   fundamentals: FundamentalInputs | null;
+  /** Structured FMP insider / M&A context — empty when unavailable. */
+  recentEvents: AnalysisRecentEvent[];
   datasetStatus: PackageDatasetStatus[];
 };

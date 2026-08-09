@@ -1,3 +1,5 @@
+import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
+
 export type NarrativePillarBlurbs = {
   financialStrength: string;
   profitability: string;
@@ -22,6 +24,8 @@ export type AnalysisNarrativeBundle = {
   technical: NarrativeTechnicalBlurbs;
   futureOutlook: NarrativeFutureOutlook;
   summary: string;
+  /** 4–6 retail bullets; UI prefers this over the joined summary paragraph. */
+  summaryBullets: string[];
 };
 
 export type NarrativeMetricSnap = {
@@ -34,7 +38,11 @@ export type NarrativeContext = {
   name: string | null;
   sector: string | null;
   industry: string | null;
+  /** Short public profile excerpt for business-line / region grounding. */
+  description: string | null;
   path: string | null;
+  /** Capital overlay id (e.g. insurance_life) — copy hint only, not a score. */
+  capitalOverlay: string | null;
   vehicle: string | null;
   period: string | null;
   confidence: string | null;
@@ -71,6 +79,13 @@ export type NarrativeContext = {
     longLabel: string | null;
   };
   notes: string[];
+  recentEvents: AnalysisRecentEvent[];
+  /** high / normal / low when SBC/revenue is in the package; else omit. */
+  sbcBurden: "low" | "normal" | "high" | null;
+  /** current = no usable forward PE/estimates — do not imply forecast precision. */
+  valuationLanguage: {
+    basis: "current" | "includes_forward";
+  };
 };
 
 export type NarrativeResponse = {

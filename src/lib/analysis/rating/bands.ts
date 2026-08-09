@@ -112,6 +112,27 @@ export const FCF_MARGIN_BANDS: Band[] = [
   { max: Number.POSITIVE_INFINITY, score: 95 },
 ];
 
+/**
+ * SBC / revenue — lower is better (scoreDescending).
+ * Soft quality sleeve only; missing SBC is omitted (renormalize).
+ */
+export const SBC_TO_REVENUE_BANDS: Band[] = [
+  { max: 0.02, score: 82 },
+  { max: 0.05, score: 68 },
+  { max: 0.08, score: 52 },
+  { max: 0.15, score: 36 },
+  { max: Number.POSITIVE_INFINITY, score: 22 },
+];
+
+/** Wider neutral band — software / high-equity-comp; only extreme SBC/revenue cuts. */
+export const SBC_TO_REVENUE_SOFTWARE_BANDS: Band[] = [
+  { max: 0.04, score: 80 },
+  { max: 0.1, score: 70 },
+  { max: 0.18, score: 55 },
+  { max: 0.25, score: 38 },
+  { max: Number.POSITIVE_INFINITY, score: 22 },
+];
+
 /** Operating-cash-flow / revenue (decimal). */
 export const OCF_MARGIN_BANDS: Band[] = [
   { max: 0, score: 5 },

@@ -10,6 +10,7 @@ export type CapitalProfile =
   | "industry_peer"
   | "brokerage_capital_markets"
   | "bank_insurance"
+  | "insurance_life"
   | "reit_utilities"
   | "early_growth"
   | "treasury_holding";
@@ -17,25 +18,148 @@ export type CapitalProfile =
 /** @deprecated Use CapitalProfile — kept as alias for existing imports. */
 export type BusinessModel = CapitalProfile;
 
-const BROKERAGE_KEYS = new Set([
-  "capital-markets",
-  "financial-data-stock-exchanges",
-  "asset-management",
-  "shell-companies",
-]);
+export type IndustryRef = {
+  industryKey?: string | null;
+  industry?: string | null;
+  sectorKey?: string | null;
+  sector?: string | null;
+};
 
-const BANK_INSURANCE_KEYS = new Set([
-  "banks-diversified",
-  "banks-regional",
-  "banks-foreign",
-  "mortgage-finance",
-  "insurance-diversified",
-  "insurance-life",
-  "insurance-property-casualty",
-  "insurance-reinsurance",
-  "insurance-specialty",
-  "credit-services",
-]);
+function norm(input: IndustryRef): { key: string; industry: string; sector: string } {
+  return {
+    key: (input.industryKey ?? "").toLowerCase().trim(),
+    industry: (input.industry ?? "").toLowerCase().trim(),
+    sector: (input.sectorKey ?? input.sector ?? "").toLowerCase().trim(),
+  };
+}
+
+/** Payment networks / merchant acquirers / credit-card rails — operating companies, not deposit banks. */
+export function isPaymentOrCreditRailIndustry(input: IndustryRef): boolean {
+  const { key, industry } = norm(input);
+  if (
+    key.includes("payment") ||
+    key === "credit-services" ||
+    key === "financial-credit-services" ||
+    key.includes("merchant-acquir")
+  ) {
+    return !industry.includes("bank") && !key.startsWith("banks");
+  }
+  if (industry.includes("bank") || industry.includes("thrift")) return false;
+  return (
+    industry.includes("payment processor") ||
+    industry.includes("payment processing") ||
+    industry.includes("payment network") ||
+    industry.includes("merchant acquir") ||
+    industry.includes("credit services") ||
+    (industry.includes("credit card") && industry.includes("payment"))
+  );
+}
+
+export function isInsuranceIndustry(input: IndustryRef): boolean {
+  const { key, industry } = norm(input);
+  if (
+    key === "insurance-brokers" ||
+    key.includes("insurance-broker") ||
+    (industry.includes("broker") && industry.includes("insurance"))
+  ) {
+    return false;
+  }
+  if (
+    key.startsWith("insurance") ||
+    key.includes("reinsurance") ||
+    key.includes("life-insurance") ||
+    key.includes("life-assurance")
+  ) {
+    return true;
+  }
+  return (
+    industry.includes("insurance") ||
+    industry.includes("reinsurance") ||
+    industry.includes("life assurance") ||
+    industry.includes("property & casualty") ||
+    industry.includes("property and casualty") ||
+    /\bp\s*&\s*c\b/.test(industry) ||
+    industry.includes("multi-line insurance") ||
+    industry.includes("multiline insurance")
+  );
+}
+
+export function isBankIndustry(input: IndustryRef): boolean {
+  const { key, industry, sector } = norm(input);
+  if (isInsuranceIndustry(input) || isPaymentOrCreditRailIndustry(input)) {
+    return false;
+  }
+  if (industry.includes("reit") || key.startsWith("reit")) return false;
+  if (key.startsWith("banks") || key.includes("thrift")) return true;
+  if (
+    key === "mortgage-finance" ||
+    key === "thrifts-and-mortgage-finance" ||
+    key === "savings-institutions"
+  ) {
+    return true;
+  }
+  if (/investment\s*-?\s*bank/.test(industry) || key.includes("investment-banking")) {
+    return false;
+  }
+  if (
+    /\bbanks?\b/.test(industry) ||
+    industry.includes("thrift") ||
+    industry.includes("savings & loan") ||
+    industry.includes("savings and loan") ||
+    industry.includes("money center")
+  ) {
+    return true;
+  }
+  if (industry.includes("consumer finance") || industry.includes("credit card")) {
+    return !industry.includes("payment");
+  }
+  return (
+    (sector === "financial-services" || sector === "financial") &&
+    industry.includes("mortgage") &&
+    !industry.includes("reit")
+  );
+}
+
+/** Brokers, exchanges, asset managers, financial conglomerates — not payment rails or deposit banks. */
+export function isBrokerageOrAssetManagerIndustry(input: IndustryRef): boolean {
+  const { key, industry } = norm(input);
+  if (isInsuranceIndustry(input) || isBankIndustry(input)) return false;
+  if (isPaymentOrCreditRailIndustry(input)) return false;
+  if (
+    key === "capital-markets" ||
+    key === "financial-capital-markets" ||
+    key === "financial-data-stock-exchanges" ||
+    key === "financial-data-and-stock-exchanges" ||
+    key === "asset-management" ||
+    key === "asset-management-cryptocurrency" ||
+    key === "shell-companies" ||
+    key === "financial-conglomerates" ||
+    key === "investment-brokerage" ||
+    key.includes("capital-market") ||
+    key.includes("asset-management") ||
+    key.includes("stock-exchange") ||
+    key.includes("financial-conglomerat") ||
+    key.includes("investment-broker") ||
+    key.includes("wealth-management")
+  ) {
+    return true;
+  }
+  if (
+    industry.includes("capital market") ||
+    industry.includes("asset management") ||
+    industry.includes("stock exchange") ||
+    industry.includes("financial data") ||
+    industry.includes("financial conglomerat") ||
+    industry.includes("investment broker") ||
+    industry.includes("wealth management") ||
+    industry.includes("investment banking") ||
+    industry.includes("investment - banking") ||
+    industry.includes("securities")
+  ) {
+    return true;
+  }
+  return industry.includes("broker");
+}
 
 const REIT_UTILITIES_KEYS = new Set([
   "reit-specialty",
@@ -53,9 +177,74 @@ const REIT_UTILITIES_KEYS = new Set([
   "utilities-diversified",
   "utilities-renewable",
   "utilities-independent-power-producers",
+  "regulated-electric",
+  "regulated-gas",
+  "regulated-water",
+  "independent-power-producers",
 ]);
 
-/** Industry keys that typically run with high invested capital. */
+export function isReitOrUtilityIndustry(input: IndustryRef): boolean {
+  const { key, industry, sector } = norm(input);
+  if (REIT_UTILITIES_KEYS.has(key)) return true;
+  if (key.startsWith("reit") || key.startsWith("utilities")) return true;
+  if (
+    key.includes("regulated-electric") ||
+    key.includes("regulated-gas") ||
+    key.includes("regulated-water") ||
+    key.includes("independent-power")
+  ) {
+    return true;
+  }
+  if (
+    industry.includes("reit") ||
+    industry.includes("utility") ||
+    industry.includes("utilities") ||
+    industry.includes("regulated electric") ||
+    industry.includes("regulated gas") ||
+    industry.includes("regulated water") ||
+    industry.includes("independent power") ||
+    industry.includes("independent power producer")
+  ) {
+    return true;
+  }
+  return sector === "utilities";
+}
+
+/** Banks, insurers, brokers, and asset managers — not payment networks. */
+export function isFinancialIntermediaryIndustry(input: IndustryRef): boolean {
+  return (
+    isBankIndustry(input) ||
+    isInsuranceIndustry(input) ||
+    isBrokerageOrAssetManagerIndustry(input)
+  );
+}
+
+export function isFinancialCapitalOverlay(
+  profile: CapitalProfile,
+): boolean {
+  return profile === "bank_insurance" || profile === "insurance_life";
+}
+
+export function fsPolicyNote(profile: CapitalProfile): string {
+  switch (profile) {
+    case "insurance_life":
+      return "Unscore CR/QR/cash-ST + Altman; insurer E/A bands; fragile only on true capital damage";
+    case "bank_insurance":
+      return "Unscore CR/QR/cash-ST + Altman; bank E/A bands; soft D/E";
+    case "brokerage_capital_markets":
+      return "Unscore CR/QR when 0/missing + Altman; soft D/E; bank-like E/A bands";
+    case "reit_utilities":
+      return "Unscore Altman; no industrial fragile CR/E/A; CR may still score";
+    case "treasury_holding":
+      return "Not software-elite FCF; peer blend off";
+    case "early_growth":
+      return "Liquidity emphasis; earnings/quality rules (not industry-only)";
+    default:
+      return "Full industrial FS metric set vs industry peers";
+  }
+}
+
+/** Industry keys that typically require heavy invested capital. */
 const CAPITAL_INTENSIVE_KEYS = new Set([
   "auto-manufacturers",
   "auto-parts",
@@ -106,10 +295,6 @@ const CAPITAL_INTENSIVE_SECTORS = new Set([
   "communication-services",
 ]);
 
-/**
- * True when the industry/sector typically requires heavy invested capital.
- * Used to temper absolute ROIC/ROE hurdles in Profitability.
- */
 export function isCapitalIntensiveIndustry(input: {
   industryKey: string | null;
   sectorKey: string | null;
@@ -123,7 +308,6 @@ export function isCapitalIntensiveIndustry(input: {
 
   if (CAPITAL_INTENSIVE_KEYS.has(key)) return true;
   if (CAPITAL_INTENSIVE_SECTORS.has(sectorKey)) {
-    // Communication services is mixed — only telecom/infrastructure-like
     if (sectorKey === "communication-services") {
       return (
         industry.includes("telecom") ||
@@ -156,6 +340,22 @@ export function isCapitalIntensiveIndustry(input: {
   );
 }
 
+/** Software / internet names where equity comp is structurally higher. */
+export function isHighEquityCompIndustry(input: IndustryRef): boolean {
+  const { key, industry, sector } = norm(input);
+  const blob = `${key} ${industry} ${sector}`;
+  return (
+    blob.includes("software") ||
+    blob.includes("internet") ||
+    blob.includes("interactive media") ||
+    blob.includes("information technology") ||
+    blob.includes("it services") ||
+    blob.includes("semiconductor") ||
+    blob.includes("application software") ||
+    blob.includes("system software")
+  );
+}
+
 export function classifyCapitalProfile(input: {
   industryKey: string | null;
   sectorKey: string | null;
@@ -171,11 +371,13 @@ export function classifyCapitalProfile(input: {
   ebitda?: number | null;
   revenueGrowth: number | null;
 }): CapitalProfile {
-  const key = (input.industryKey ?? "").toLowerCase();
-  const industry = (input.industry ?? "").toLowerCase();
-  const sector = (input.sectorKey ?? "").toLowerCase();
+  const ref: IndustryRef = {
+    industryKey: input.industryKey,
+    industry: input.industry,
+    sectorKey: input.sectorKey,
+    sector: input.sector,
+  };
 
-  // Digital-asset / bitcoin treasury before industry overlays (FMP often tags these as Software).
   const treasury = detectDigitalAssetTreasury({
     name: input.name,
     description: input.description,
@@ -192,33 +394,11 @@ export function classifyCapitalProfile(input: {
     return "treasury_holding";
   }
 
-  if (
-    BROKERAGE_KEYS.has(key) ||
-    industry.includes("capital market") ||
-    industry.includes("broker") ||
-    industry.includes("exchange")
-  ) {
+  if (isInsuranceIndustry(ref)) return "insurance_life";
+  if (isReitOrUtilityIndustry(ref)) return "reit_utilities";
+  if (isBankIndustry(ref)) return "bank_insurance";
+  if (isBrokerageOrAssetManagerIndustry(ref)) {
     return "brokerage_capital_markets";
-  }
-
-  if (
-    BANK_INSURANCE_KEYS.has(key) ||
-    industry.includes("bank") ||
-    industry.includes("insurance") ||
-    (sector === "financial-services" &&
-      (industry.includes("credit") || industry.includes("mortgage")))
-  ) {
-    return "bank_insurance";
-  }
-
-  if (
-    REIT_UTILITIES_KEYS.has(key) ||
-    industry.includes("reit") ||
-    industry.startsWith("utilities") ||
-    sector === "utilities" ||
-    sector === "real-estate"
-  ) {
-    return "reit_utilities";
   }
 
   const unprofitable =
@@ -231,7 +411,6 @@ export function classifyCapitalProfile(input: {
     return "early_growth";
   }
 
-  // Default: industry/sector peer frame — never a generic "standard" bucket.
   return "industry_peer";
 }
 
@@ -247,7 +426,9 @@ function capitalProfileOverlay(profile: CapitalProfile): string | null {
     case "brokerage_capital_markets":
       return "brokerage / capital-markets leverage rules";
     case "bank_insurance":
-      return "bank / insurance capital proxies";
+      return "bank capital proxies";
+    case "insurance_life":
+      return "insurance capital proxies";
     case "reit_utilities":
       return "REIT / utilities leverage bands";
     case "early_growth":
@@ -259,10 +440,6 @@ function capitalProfileOverlay(profile: CapitalProfile): string | null {
   }
 }
 
-/**
- * Human label for how this ticker is assessed — always anchored to industry/sector.
- * Example: "Auto Manufacturers (peer-relative)" rather than "Standard operating".
- */
 export function comparisonFrameLabel(input: {
   industry: string | null;
   sector: string | null;

@@ -27,6 +27,7 @@ export function narrativeCacheKey(ctx: NarrativeContext): string {
     day,
     model,
     prompt: NARRATIVE_PROMPT_VERSION,
+    d: (ctx.description ?? "").slice(0, 64),
     o: ctx.scores.overall,
     f: ctx.scores.fundamental,
     t: ctx.scores.technical,
@@ -36,6 +37,9 @@ export function narrativeCacheKey(ctx: NarrativeContext): string {
     v: ctx.scores.valuation,
     zone: ctx.technical.zoneLabel,
     period: ctx.period,
+    ev: (ctx.recentEvents ?? []).map((e) => `${e.type}:${e.date ?? ""}`).join("|"),
+    sbc: ctx.sbcBurden,
+    vl: ctx.valuationLanguage?.basis ?? "current",
   };
   const hash = createHash("sha256")
     .update(JSON.stringify(payload))

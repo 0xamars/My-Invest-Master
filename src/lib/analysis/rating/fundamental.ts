@@ -743,7 +743,12 @@ export function computeFundamentalScore(
   }
   if (model === "bank_insurance") {
     notes.push(
-      "Bank/insurance overlay — regulatory capital unavailable; using ROA/ROE proxies.",
+      "Bank overlay — industrial liquidity (current/quick) not scored; using equity/assets and ROA proxies.",
+    );
+  }
+  if (model === "insurance_life") {
+    notes.push(
+      "Insurance overlay — industrial liquidity (current/quick) not scored; equity/assets uses insurer capital bands.",
     );
   }
   if (model === "treasury_holding") {

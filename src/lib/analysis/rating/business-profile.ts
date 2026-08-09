@@ -3,6 +3,12 @@
  * Separate from industry capital-structure overlays (banks, REITs, etc.).
  * No ticker hardcoding — package fundamentals only.
  */
+import {
+  isBrokerageOrAssetManagerIndustry,
+  isFinancialIntermediaryIndustry,
+  isInsuranceIndustry,
+  isReitOrUtilityIndustry,
+} from "@/lib/analysis/rating/industry-model";
 import type { FundamentalInputs } from "@/lib/analysis/rating/types";
 
 export type GrowthBusinessProfile =
@@ -47,20 +53,35 @@ const FLAG_LABELS: Record<CriticalRedFlag, string> = {
 };
 
 function isFinancialIntermediary(f: FundamentalInputs): boolean {
-  const key = (f.industryKey ?? "").toLowerCase();
-  const industry = (f.industry ?? "").toLowerCase();
-  const sector = (f.sectorKey ?? "").toLowerCase();
-  return (
-    industry.includes("bank") ||
-    industry.includes("insurance") ||
-    industry.includes("capital market") ||
-    industry.includes("broker") ||
-    key.startsWith("banks") ||
-    key.startsWith("insurance") ||
-    key === "capital-markets" ||
-    (sector === "financial-services" &&
-      (industry.includes("credit") || industry.includes("mortgage")))
-  );
+  return isFinancialIntermediaryIndustry({
+    industryKey: f.industryKey,
+    industry: f.industry,
+    sectorKey: f.sectorKey,
+  });
+}
+
+function industryRef(f: FundamentalInputs) {
+  return {
+    industryKey: f.industryKey,
+    industry: f.industry,
+    sectorKey: f.sectorKey,
+  };
+}
+
+/** High-return asset-light names (payments, buyback compounders) — thin book equity is not distress. */
+function assetLightHealthy(f: FundamentalInputs): boolean {
+  if (f.returnOnAssets != null && f.returnOnAssets >= 0.08) return true;
+  const cashRatio = f.cashToShortTermDebt ?? f.cashToDebt;
+  if (cashRatio != null && cashRatio >= 1) return true;
+  if (
+    f.operatingMargins != null &&
+    f.operatingMargins >= 0.2 &&
+    f.freeCashflow != null &&
+    f.freeCashflow > 0
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Detect critical red flags that force strict scoring across pillars. */
@@ -68,10 +89,14 @@ export function detectCriticalRedFlags(
   f: FundamentalInputs,
 ): CriticalRedFlag[] {
   const flags: CriticalRedFlag[] = [];
+  const ref = industryRef(f);
   const intermediary = isFinancialIntermediary(f);
+  const reitUtil = isReitOrUtilityIndustry(ref);
+  const brokerAm = isBrokerageOrAssetManagerIndustry(ref);
 
   if (
     !intermediary &&
+    !reitUtil &&
     f.altmanZScore != null &&
     f.altmanZScore < 1.81
   ) {
@@ -79,23 +104,46 @@ export function detectCriticalRedFlags(
   }
 
   const leverage = f.netDebtToEbitda ?? f.debtToEbitda;
-  if (!intermediary) {
-    if (
-      (leverage != null && leverage > 5) ||
-      (f.debtToEquity != null && f.debtToEquity > 300)
-    ) {
+  const cashRatio = f.cashToShortTermDebt ?? f.cashToDebt;
+  if (!intermediary && !reitUtil) {
+    const earningsLev = leverage != null && leverage > 5;
+    const deExtreme = f.debtToEquity != null && f.debtToEquity > 300;
+    const deWithRealLeverage =
+      deExtreme &&
+      (leverage == null || leverage > 3.5) &&
+      (cashRatio == null || cashRatio < 0.5);
+    if (earningsLev || deWithRealLeverage) {
       flags.push("dangerous_leverage");
     }
   }
 
-  if (
-    (f.equityToAssets != null && f.equityToAssets < 0.12) ||
-    (f.equityToAssets != null && f.equityToAssets < 0)
+  if (intermediary) {
+    const eaFloor = isInsuranceIndustry(f)
+      ? 0.02
+      : brokerAm
+        ? 0.03
+        : 0.035;
+    if (f.equityToAssets != null && f.equityToAssets < eaFloor) {
+      flags.push("impaired_equity");
+    }
+  } else if (reitUtil) {
+    if (f.equityToAssets != null && f.equityToAssets < 0.03) {
+      flags.push("impaired_equity");
+    }
+  } else if (f.equityToAssets != null && f.equityToAssets < 0) {
+    flags.push("impaired_equity");
+  } else if (
+    f.equityToAssets != null &&
+    f.equityToAssets < 0.12 &&
+    !assetLightHealthy(f)
   ) {
     flags.push("impaired_equity");
   }
   // Negative book equity proxy: D/E extreme with tiny equity/assets
   if (
+    !intermediary &&
+    !reitUtil &&
+    !assetLightHealthy(f) &&
     f.debtToEquity != null &&
     f.debtToEquity > 500 &&
     f.equityToAssets != null &&
@@ -104,15 +152,16 @@ export function detectCriticalRedFlags(
     if (!flags.includes("impaired_equity")) flags.push("impaired_equity");
   }
 
-  const cashRatio = f.cashToShortTermDebt ?? f.cashToDebt;
-  if (
-    (f.currentRatio != null && f.currentRatio < 0.8) &&
-    (cashRatio == null || cashRatio < 0.35)
-  ) {
-    flags.push("severe_liquidity");
-  }
-  if (f.currentRatio != null && f.currentRatio < 0.6) {
-    if (!flags.includes("severe_liquidity")) flags.push("severe_liquidity");
+  if (!intermediary && !reitUtil) {
+    if (
+      (f.currentRatio != null && f.currentRatio < 0.8) &&
+      (cashRatio == null || cashRatio < 0.35)
+    ) {
+      flags.push("severe_liquidity");
+    }
+    if (f.currentRatio != null && f.currentRatio < 0.6) {
+      if (!flags.includes("severe_liquidity")) flags.push("severe_liquidity");
+    }
   }
 
   if (f.beneishMScore != null && f.beneishMScore > -1.78) {
@@ -155,6 +204,7 @@ function strongGrowthTrajectory(f: FundamentalInputs): boolean {
 }
 
 function healthyFcf(f: FundamentalInputs): boolean {
+  if (f.cashFlowReliable === false) return false;
   if (f.freeCashflow != null && f.freeCashflow > 0) {
     if (f.fcfMargin == null || f.fcfMargin >= 0.03) return true;
     if (f.ocfMargin != null && f.ocfMargin >= 0.08) return true;
@@ -171,6 +221,7 @@ function healthyFcf(f: FundamentalInputs): boolean {
 }
 
 function reinvestmentDepressedFcf(f: FundamentalInputs): boolean {
+  if (f.cashFlowReliable === false) return false;
   if (f.freeCashflow != null && f.freeCashflow <= 0) return true;
   if (
     f.freeCashflow != null &&
@@ -189,6 +240,15 @@ function solidSolvencyProxy(
   flags: CriticalRedFlag[],
 ): boolean {
   if (flags.length > 0) return false;
+  if (isFinancialIntermediary(f) || isReitOrUtilityIndustry(industryRef(f))) {
+    if (f.equityToAssets != null && f.equityToAssets < 0) return false;
+    if (f.returnOnAssets != null && f.returnOnAssets < -0.02) return false;
+    return true;
+  }
+  if (assetLightHealthy(f)) {
+    if (f.equityToAssets != null && f.equityToAssets < 0) return false;
+    return true;
+  }
   if (f.altmanZScore != null && f.altmanZScore < 1.81) return false;
   if (f.currentRatio != null && f.currentRatio < 1.0) return false;
   if (f.equityToAssets != null && f.equityToAssets < 0.2) return false;
@@ -249,13 +309,30 @@ export function resolveBusinessProfilePolicy(
     reasons.push("Healthy cash economics with moderate/stable growth");
   } else if (
     !solid ||
-    (f.altmanZScore != null && f.altmanZScore < 2.0 && !growth)
+    (!isFinancialIntermediary(f) &&
+      !isReitOrUtilityIndustry(industryRef(f)) &&
+      f.altmanZScore != null &&
+      f.altmanZScore < 2.0 &&
+      !growth)
   ) {
     profile = "low_quality_fragile";
     reasons.push("Weak solvency or fragile cash/equity profile");
   } else {
     profile = "cyclical_mixed";
     reasons.push("Mixed earnings/cash profile without a clear compounder pattern");
+  }
+
+  // Float/OCF is not operating FCF — don't stamp compounder labels on banks/insurers.
+  if (
+    isFinancialIntermediary(f) &&
+    f.cashFlowReliable === false &&
+    !hasCriticalFlags &&
+    (profile === "reinvesting_growth_compounder" || profile === "cash_compounder")
+  ) {
+    profile = "cyclical_mixed";
+    reasons.push(
+      "Financial intermediary — OCF/FCF unreliable, so compounder cash labels are not applied",
+    );
   }
 
   // Soft-weighting only for true reinvesting growth without critical flags

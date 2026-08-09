@@ -164,6 +164,7 @@ export async function GET(request: Request) {
             quote,
             rating,
             estimateOutlook: pkg.estimateOutlook ?? EMPTY_ESTIMATE_OUTLOOK,
+            recentEvents: pkg.recentEvents ?? [],
             chart: {
               range,
               points: chartPointsFromBars(chartBars, range),

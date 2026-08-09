@@ -10,6 +10,7 @@ import {
   type Band,
 } from "@/lib/analysis/rating/bands";
 import type { CapitalProfile } from "@/lib/analysis/rating/industry-model";
+import { isFinancialCapitalOverlay } from "@/lib/analysis/rating/industry-model";
 import type { BusinessProfilePolicy } from "@/lib/analysis/rating/business-profile";
 import { estimateCashRunwayYears } from "@/lib/analysis/rating/business-profile";
 import {
@@ -77,6 +78,26 @@ const EQUITY_ASSETS_BANDS: Band[] = [
   { max: 0.5, score: 75 },
   { max: 0.65, score: 88 },
   { max: Number.POSITIVE_INFINITY, score: 95 },
+];
+
+/** Banks typically run ~8–12% equity / assets. */
+const BANK_EQUITY_ASSETS_BANDS: Band[] = [
+  { max: 0.04, score: 18 },
+  { max: 0.055, score: 38 },
+  { max: 0.075, score: 55 },
+  { max: 0.1, score: 72 },
+  { max: 0.13, score: 86 },
+  { max: Number.POSITIVE_INFINITY, score: 94 },
+];
+
+/** Life / multi-line insurers often run ~3–8% equity / assets (policyholder liabilities). */
+const INSURANCE_EQUITY_ASSETS_BANDS: Band[] = [
+  { max: 0.02, score: 18 },
+  { max: 0.035, score: 38 },
+  { max: 0.05, score: 55 },
+  { max: 0.07, score: 70 },
+  { max: 0.1, score: 84 },
+  { max: Number.POSITIVE_INFINITY, score: 94 },
 ];
 
 const CASH_TO_DEBT_BANDS: Band[] = [
@@ -228,6 +249,8 @@ export function computeFinancialStrengthV12(input: {
   const policy = input.policy;
   const soft = policy?.reinvestmentSoftWeighting === true;
   const strict = policy?.hasCriticalFlags === true;
+  const financialOverlay = isFinancialCapitalOverlay(model);
+  const insurancePath = model === "insurance_life";
   const usePeers =
     input.peerContext.basis !== "none" && input.peers.length >= 3;
   const peerLabel =
@@ -285,18 +308,34 @@ export function computeFinancialStrengthV12(input: {
                 : null,
         };
 
+  const eaBands = insurancePath
+    ? INSURANCE_EQUITY_ASSETS_BANDS
+    : model === "bank_insurance" || model === "brokerage_capital_markets"
+      ? BANK_EQUITY_ASSETS_BANDS
+      : EQUITY_ASSETS_BANDS;
   const equityAssetsAbs =
     f.equityToAssets != null
-      ? scoreAscending(f.equityToAssets, EQUITY_ASSETS_BANDS)
+      ? scoreAscending(f.equityToAssets, eaBands)
       : null;
   const interestAbs =
     f.interestCoverage != null
       ? scoreAscending(f.interestCoverage, INTEREST_COVERAGE_BANDS)
       : null;
 
-  // Banks: de-emphasize corporate D/E; use equity/assets + coverage proxies
+  // Banks / insurers: de-emphasize corporate D/E; use equity/assets + ROA proxies
   const leverageMetrics: MetricScore[] = [];
-  if (model === "bank_insurance") {
+  if (financialOverlay) {
+    const roa = f.returnOnAssets;
+    const roaScore =
+      roa == null
+        ? null
+        : insurancePath
+          ? clamp(
+              roa >= 0.01 ? 85 : roa >= 0.005 ? 70 : roa >= 0.002 ? 55 : roa >= 0 ? 42 : 20,
+            )
+          : clamp(
+              roa >= 0.015 ? 85 : roa >= 0.008 ? 65 : roa >= 0 ? 45 : 20,
+            );
     leverageMetrics.push(
       metric(
         "equity_to_assets",
@@ -304,32 +343,24 @@ export function computeFinancialStrengthV12(input: {
         f.equityToAssets,
         formatPercentDecimal(f.equityToAssets),
         equityAssetsAbs,
-        "Capital proxy for banks/insurers",
+        insurancePath
+          ? "Capital proxy for insurers — industrial equity floors do not apply"
+          : "Capital proxy for banks",
       ),
       metric(
         "roa_capital",
         "ROA (capital proxy)",
         f.returnOnAssets,
         formatPercentDecimal(f.returnOnAssets),
-        f.returnOnAssets != null
-          ? clamp(
-              f.returnOnAssets >= 0.015
-                ? 85
-                : f.returnOnAssets >= 0.008
-                  ? 65
-                  : f.returnOnAssets >= 0
-                    ? 45
-                    : 20,
-            )
-          : null,
+        roaScore,
       ),
       metric(
         "debt_to_equity",
         "Debt / Equity (soft)",
         f.debtToEquity,
         f.debtToEquity != null ? `${formatRatio(f.debtToEquity, 1)}%` : null,
-        deRel.score != null ? round1(deRel.score * 0.7 + 40 * 0.3) : null,
-        "De-emphasized for financial intermediaries",
+        deRel.score != null ? round1(deRel.score * 0.35 + 58 * 0.65) : null,
+        "Soft-weighted — not an industrial leverage screen",
       ),
     );
   } else if (model === "brokerage_capital_markets") {
@@ -490,8 +521,15 @@ export function computeFinancialStrengthV12(input: {
         "Debt / Equity",
         f.debtToEquity,
         f.debtToEquity != null ? `${formatRatio(f.debtToEquity, 1)}%` : null,
-        deRel.score,
-        deRel.note,
+        deRel.score != null &&
+          (f.cashToShortTermDebt ?? f.cashToDebt) != null &&
+          (f.cashToShortTermDebt ?? f.cashToDebt)! >= 1
+          ? round1(deRel.score * 0.35 + 70 * 0.65)
+          : deRel.score,
+        (f.cashToShortTermDebt ?? f.cashToDebt) != null &&
+          (f.cashToShortTermDebt ?? f.cashToDebt)! >= 1
+          ? "Soft-weighted — cash covers debt (buybacks / asset-light, not distress leverage)"
+          : deRel.note,
       ),
       metric(
         "equity_to_assets",
@@ -510,7 +548,7 @@ export function computeFinancialStrengthV12(input: {
     );
   }
 
-  if (model !== "bank_insurance" && interestAbs != null) {
+  if (!financialOverlay && interestAbs != null) {
     // ensure interest coverage present for standard/reit if not already
     if (!leverageMetrics.some((m) => m.id === "interest_coverage")) {
       leverageMetrics.push(
@@ -527,16 +565,24 @@ export function computeFinancialStrengthV12(input: {
 
   const leverage = componentScore(leverageMetrics);
 
-  // Liquidity 20%
+  // Liquidity 20% — industrial working-capital ratios are not meaningful for banks/insurers
   const cashRatio = f.cashToShortTermDebt ?? f.cashToDebt;
+  const brokerZeroLiq =
+    model === "brokerage_capital_markets" &&
+    (f.currentRatio == null || f.currentRatio <= 0.05);
+  const brokerZeroQuick =
+    model === "brokerage_capital_markets" &&
+    (f.quickRatio == null || f.quickRatio <= 0.05);
+  const skipCr = financialOverlay || brokerZeroLiq;
+  const skipQr = financialOverlay || brokerZeroQuick;
   const crAbs =
-    f.currentRatio != null
+    !skipCr && f.currentRatio != null
       ? scoreAscending(f.currentRatio, CURRENT_RATIO_BANDS)
       : null;
   const crRel =
-    usePeers && f.currentRatio != null
+    !skipCr && usePeers && f.currentRatio != null && crAbs != null
       ? blendAbsoluteAndPeer(
-          crAbs!,
+          crAbs,
           percentileRank(
             f.currentRatio,
             peerValues(input.peers, "currentRatio"),
@@ -546,45 +592,65 @@ export function computeFinancialStrengthV12(input: {
         )
       : crAbs;
 
+  const industrialLiqNote = financialOverlay
+    ? insurancePath
+      ? "Not meaningful for insurers — industrial working-capital liquidity skipped"
+      : "Not meaningful for banks — industrial working-capital liquidity skipped"
+    : brokerZeroLiq || brokerZeroQuick
+      ? "Zero/missing working-capital ratio — not scored for brokers/asset managers"
+      : null;
+
+  const cashToDebtScore = financialOverlay
+    ? null
+    : cashRatio != null
+      ? scoreAscending(cashRatio, CASH_TO_DEBT_BANDS)
+      : null;
+
   const liquidityMetrics: MetricScore[] = [
     metric(
       "current_ratio",
       "Current Ratio",
       f.currentRatio,
       formatRatio(f.currentRatio),
-      crRel,
-      usePeers ? quartileNote(
-        percentileRank(
-          f.currentRatio ?? 0,
-          peerValues(input.peers, "currentRatio"),
-          true,
-        ),
-        peerLabel,
-      ) : null,
+      skipCr ? null : crRel,
+      industrialLiqNote ??
+        (usePeers
+          ? quartileNote(
+              percentileRank(
+                f.currentRatio ?? 0,
+                peerValues(input.peers, "currentRatio"),
+                true,
+              ),
+              peerLabel,
+            )
+          : null),
     ),
     metric(
       "quick_ratio",
       "Quick Ratio",
       f.quickRatio,
       formatRatio(f.quickRatio),
-      f.quickRatio != null
-        ? scoreAscending(f.quickRatio, QUICK_RATIO_BANDS)
-        : null,
+      skipQr
+        ? null
+        : f.quickRatio != null
+          ? scoreAscending(f.quickRatio, QUICK_RATIO_BANDS)
+          : null,
+      industrialLiqNote,
     ),
     metric(
       "cash_to_debt",
       f.cashToShortTermDebt != null ? "Cash / ST Debt" : "Cash / Debt",
       cashRatio,
       formatRatio(cashRatio),
-      cashRatio != null
-        ? scoreAscending(cashRatio, CASH_TO_DEBT_BANDS)
-        : null,
-      model === "early_growth" || model === "brokerage_capital_markets"
-        ? "Liquidity emphasized for this business type"
-        : null,
+      cashToDebtScore,
+      financialOverlay
+        ? "Cash / debt is not a primary FS driver for financial intermediaries"
+        : model === "early_growth" || model === "brokerage_capital_markets"
+          ? "Liquidity emphasized for this business type"
+          : null,
     ),
   ];
-  const liquidity = componentScore(liquidityMetrics);
+  const liquidity = financialOverlay ? null : componentScore(liquidityMetrics);
 
   // Cash generation 15% (down-weighted for reinvesting growth without red flags)
   // Financial intermediaries: standard OCF/FCF often reflects float — skip/down-weight
@@ -738,16 +804,32 @@ export function computeFinancialStrengthV12(input: {
   ];
   const cashGen = cashReliable ? componentScore(cashMetrics) : null;
 
-  // Distress / Altman 15% — soft-skip for banks/insurers (Z poorly calibrated)
+  // Distress / Altman 15% — skip where Z is poorly calibrated
   let altmanMetric: MetricScore;
-  if (model === "bank_insurance") {
+  if (financialOverlay) {
     altmanMetric = metric(
       "altman_z",
       "Altman Z",
       f.altmanZScore,
       f.altmanZScore != null ? formatRatio(f.altmanZScore, 2) : null,
       null,
-      "Altman Z less applicable for banks/insurers — not scored",
+      insurancePath
+        ? "Altman Z less applicable for insurers — not scored"
+        : "Altman Z less applicable for banks — not scored",
+    );
+  } else if (
+    model === "brokerage_capital_markets" ||
+    model === "reit_utilities"
+  ) {
+    altmanMetric = metric(
+      "altman_z",
+      "Altman Z",
+      f.altmanZScore,
+      f.altmanZScore != null ? formatRatio(f.altmanZScore, 2) : null,
+      null,
+      model === "reit_utilities"
+        ? "Altman Z less applicable for REITs/utilities — not scored"
+        : "Altman Z less applicable for brokers/asset managers — not scored",
     );
   } else if (f.altmanZScore != null) {
     const band = altmanBand(f.altmanZScore);
@@ -820,7 +902,7 @@ export function computeFinancialStrengthV12(input: {
       value: leverage,
     });
   }
-  if (liquidity != null) {
+  if (liquidity != null && !financialOverlay) {
     parts.push({
       weight: !cashReliable
         ? 0.35

@@ -33,6 +33,8 @@ import {
   fmpFetchFinancialScores,
   fmpFetchGrowth,
   fmpFetchHourlyHistory,
+  fmpFetchInsiderTrading,
+  fmpFetchMergersAcquisitions,
   fmpFetchIncome,
   fmpFetchIncomeTtm,
   fmpFetchKeyMetricsAnnual,
@@ -57,6 +59,12 @@ import {
   type WarehouseDataset,
 } from "@/lib/market-data/warehouse/ttl";
 import { buildEstimateOutlook } from "@/lib/market-data/warehouse/estimate-outlook";
+import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
+import {
+  mergerSearchName,
+  summarizeInsiderTrading,
+  summarizeMergers,
+} from "@/lib/market-data/warehouse/investor-events";
 import type {
   AnalysisPackage,
   JsonRow,
@@ -377,7 +385,73 @@ function peerRowFromRatios(
       num(r.forwardPriceToEarningsGrowthRatioTTM) ??
       num(r.pegRatio) ??
       num(r.priceToEarningsGrowthRatio),
+    sbcToRevenue:
+      num(r.stockBasedCompensationToRevenueTTM) ??
+      num(r.stockCompensationToRevenueTTM) ??
+      num(r.stockBasedCompensationToRevenue) ??
+      null,
   };
+}
+
+async function loadInvestorEvents(
+  symbol: string,
+  companyName: string | null,
+): Promise<LoadResult<{ events: AnalysisRecentEvent[] }>> {
+  return loadOrRefresh({
+    symbol,
+    dataset: "investor_events",
+    read: async () => {
+      const { data, updatedAt } = await store.readMetrics(
+        symbol,
+        "investor_events",
+      );
+      if (!data || typeof data !== "object") {
+        return { value: { events: [] as AnalysisRecentEvent[] }, updatedAt };
+      }
+      const payload = data as { events?: AnalysisRecentEvent[] };
+      const events = Array.isArray(payload.events)
+        ? payload.events.filter(
+            (e) =>
+              e &&
+              (e.type === "insider" || e.type === "ma") &&
+              typeof e.summary === "string" &&
+              e.summary.trim(),
+          )
+        : [];
+      return { value: { events }, updatedAt };
+    },
+    isEmpty: (v) => v.events.length === 0,
+    fetchFmp: async () => {
+      const events: AnalysisRecentEvent[] = [];
+      try {
+        const insiderRows = await fmpFetchInsiderTrading(symbol);
+        const insider = summarizeInsiderTrading(insiderRows);
+        if (insider) events.push(insider);
+      } catch {
+        /* skip — optional context */
+      }
+      try {
+        const q = mergerSearchName(companyName);
+        if (q) {
+          const maRows = await fmpFetchMergersAcquisitions(q);
+          events.push(...summarizeMergers(maRows, symbol));
+        }
+      } catch {
+        /* skip — optional context */
+      }
+      return { events };
+    },
+    write: async (value) => {
+      await store.writeMetrics({
+        symbol,
+        dataset: "investor_events",
+        data: value as unknown as JsonRow,
+      });
+    },
+    writeEmpty: async () => {
+      await store.writeEmptyMarker({ symbol, dataset: "investor_events" });
+    },
+  });
 }
 
 async function loadPeers(
@@ -1109,6 +1183,25 @@ async function buildAnalysisPackage(
     error: peersLoad.error,
   });
 
+  let recentEvents: AnalysisRecentEvent[] = [];
+  try {
+    const eventsLoad = await loadInvestorEvents(symbol, profile?.name ?? null);
+    recentEvents = eventsLoad.value.events;
+    status.push({
+      dataset: "investor_events",
+      source: eventsLoad.source,
+      updatedAt: eventsLoad.updatedAt,
+      error: eventsLoad.error,
+    });
+  } catch {
+    status.push({
+      dataset: "investor_events",
+      source: "missing",
+      updatedAt: null,
+      error: "investor_events skipped",
+    });
+  }
+
   const marketCap =
     quoteLoad.value?.marketCap ?? profile?.marketCap ?? null;
 
@@ -1239,6 +1332,7 @@ async function buildAnalysisPackage(
     hourlyBars,
     ath: ath > 0 ? ath : null,
     fundamentals,
+    recentEvents,
     datasetStatus: status,
   };
 }

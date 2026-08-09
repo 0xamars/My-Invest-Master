@@ -18,9 +18,14 @@ import {
 import {
   fallbackNarrativeBundle,
   hasTradeAdvice,
+  hasInaccurateValuationLanguage,
+  inventsUnlistedEvents,
+  isGenericTemplate,
   isJargonHeavy,
+  isOutlookShallow,
   isRecitationHeavy,
   isSummaryShallow,
+  isWikiOverview,
   parseNarrativeBundle,
 } from "@/lib/analysis/narrative/parse";
 import type {
@@ -38,11 +43,34 @@ function logCacheHit(model: string): void {
   });
 }
 
-function needsRewrite(bundle: AnalysisNarrativeBundle): boolean {
+function needsRewrite(
+  bundle: AnalysisNarrativeBundle,
+  ctx: NarrativeContext,
+): boolean {
   if (isRecitationHeavy(bundle)) return true;
   if (isJargonHeavy(bundle)) return true;
   if (hasTradeAdvice(bundle)) return true;
   if (isSummaryShallow(bundle)) return true;
+  if (
+    isGenericTemplate(bundle, {
+      name: ctx.name,
+      industry: ctx.industry,
+      symbol: ctx.symbol,
+    })
+  ) {
+    return true;
+  }
+  if (inventsUnlistedEvents(bundle, ctx.recentEvents ?? [])) return true;
+  if (isWikiOverview(bundle.fundamentalOverview)) return true;
+  if (
+    hasInaccurateValuationLanguage(
+      bundle,
+      ctx.valuationLanguage?.basis ?? "current",
+    )
+  ) {
+    return true;
+  }
+  if (isOutlookShallow(bundle, ctx)) return true;
   if (bundle.futureOutlook.opportunities.length === 0) return true;
   return false;
 }
@@ -68,11 +96,26 @@ async function generateFresh(
   ctx: NarrativeContext,
 ): Promise<{ bundle: AnalysisNarrativeBundle; ok: boolean }> {
   let parsed = await callBundle(ctx, NARRATIVE_BUNDLE_SYSTEM);
-  if (parsed && needsRewrite(parsed)) {
+  if (parsed && needsRewrite(parsed, ctx)) {
     const retry = await callBundle(ctx, NARRATIVE_BUNDLE_RETRY_SYSTEM);
-    if (retry && !needsRewrite(retry)) parsed = retry;
-    else if (retry && retry.futureOutlook.opportunities.length >
-      (parsed.futureOutlook.opportunities.length)) {
+    const ident = {
+      name: ctx.name,
+      industry: ctx.industry,
+      symbol: ctx.symbol,
+    };
+    if (retry && !needsRewrite(retry, ctx)) parsed = retry;
+    else if (
+      retry &&
+      isGenericTemplate(parsed, ident) &&
+      !isGenericTemplate(retry, ident) &&
+      !hasTradeAdvice(retry)
+    ) {
+      parsed = retry;
+    } else if (
+      retry &&
+      retry.futureOutlook.opportunities.length >
+        parsed.futureOutlook.opportunities.length
+    ) {
       parsed = retry;
     }
   }
@@ -89,8 +132,18 @@ async function generateFresh(
 }
 
 export async function getNarrativeBundle(
-  ctx: NarrativeContext,
+  raw: NarrativeContext,
 ): Promise<NarrativeResponse> {
+  const ctx: NarrativeContext = {
+    ...raw,
+    recentEvents: Array.isArray(raw.recentEvents) ? raw.recentEvents : [],
+    sbcBurden: raw.sbcBurden ?? null,
+    valuationLanguage: {
+      basis: raw.valuationLanguage?.basis === "includes_forward"
+        ? "includes_forward"
+        : "current",
+    },
+  };
   const model = getAiFeatureConfig("analysis.narrative_bundle").model;
   const key = narrativeCacheKey(ctx);
 

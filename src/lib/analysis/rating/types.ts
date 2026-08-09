@@ -35,6 +35,7 @@ export type CapitalProfile =
   | "industry_peer"
   | "brokerage_capital_markets"
   | "bank_insurance"
+  | "insurance_life"
   | "reit_utilities"
   | "early_growth"
   | "treasury_holding";
@@ -432,6 +433,12 @@ export type FundamentalInputs = {
   constructedTtmFields?: string[];
   /** Explainability note for how growth rates were sourced. */
   growthSourceNote?: string | null;
+  /** Stock-based compensation dollars for the shared fundamental period. */
+  stockBasedCompensation?: number | null;
+  /** SBC / revenue when revenue > 0. */
+  sbcToRevenue?: number | null;
+  /** SBC / operating income when operating income > 0 and ratio is meaningful. */
+  sbcToOperatingIncome?: number | null;
 };
 
 /** Compact peer row used for relative scoring. */
@@ -454,4 +461,6 @@ export type PeerMetricRow = {
   priceToSales: number | null;
   priceToFcf: number | null;
   pegRatio: number | null;
+  /** Peer SBC / revenue when ratios expose it; usually unavailable. */
+  sbcToRevenue?: number | null;
 };

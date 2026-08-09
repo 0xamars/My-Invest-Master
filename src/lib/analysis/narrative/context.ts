@@ -1,5 +1,7 @@
 import type { InvestSalsaRating, PillarScore } from "@/lib/analysis/rating/types";
 import { formatScore10 } from "@/lib/analysis/rating/score-display";
+import { isHighEquityCompIndustry } from "@/lib/analysis/rating/industry-model";
+import { sbcBurdenLabel } from "@/lib/analysis/rating/sbc";
 import type {
   NarrativeContext,
   NarrativeMetricSnap,
@@ -20,10 +22,31 @@ function metricsOf(pillar: PillarScore | undefined, limit = 2): NarrativeMetricS
     .map((m) => ({ label: m.label, display: m.display }));
 }
 
+function inferValuationBasis(
+  va: PillarScore | undefined,
+): "current" | "includes_forward" {
+  const m = va?.metrics.find((x) => x.id === "pe_forward");
+  if (!m || m.skipped || m.score == null) return "current";
+  const blob = `${m.label ?? ""} ${m.note ?? ""}`;
+  if (/unavailable|using TTM/i.test(blob)) return "current";
+  return "includes_forward";
+}
+
+function clipProfileThemes(raw: string | null | undefined, max = 480): string | null {
+  if (!raw?.trim()) return null;
+  const t = raw.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const slice = t.slice(0, max);
+  const cut = slice.lastIndexOf(". ");
+  return (cut >= 120 ? slice.slice(0, cut + 1) : slice).trim();
+}
+
 export function buildNarrativeContext(input: {
   symbol: string;
   name?: string | null;
+  description?: string | null;
   rating: InvestSalsaRating;
+  recentEvents?: NarrativeContext["recentEvents"];
 }): NarrativeContext {
   const { rating } = input;
   const f = rating.fundamental;
@@ -47,7 +70,9 @@ export function buildNarrativeContext(input: {
     name: input.name ?? null,
     sector: f.classification.sector,
     industry: f.classification.industry,
+    description: clipProfileThemes(input.description),
     path: path || null,
+    capitalOverlay: f.classification.businessModel || null,
     vehicle,
     period: f.classification.fundamentalPeriod,
     confidence: rating.confidence,
@@ -84,6 +109,20 @@ export function buildNarrativeContext(input: {
       longLabel: t.weekly.available ? t.weekly.heatLabel : null,
     },
     notes: [...f.notes, ...t.notes].filter(Boolean).slice(0, 8),
+    recentEvents: (input.recentEvents ?? []).slice(0, 4),
+    valuationLanguage: {
+      basis: inferValuationBasis(va),
+    },
+    sbcBurden: sbcBurdenLabel(
+      pillarOf(rating, "profitability")?.metrics.find((m) => m.id === "sbc_to_revenue")
+        ?.value ?? null,
+      isHighEquityCompIndustry({
+        industry: f.classification.industry,
+        industryKey: f.classification.industryKey,
+        sector: f.classification.sector,
+        sectorKey: f.classification.sectorKey,
+      }),
+    ),
   };
 }
 
@@ -94,7 +133,9 @@ export function toNarrativePromptSnapshot(ctx: NarrativeContext) {
     name: ctx.name,
     sector: ctx.sector,
     industry: ctx.industry,
+    profileThemes: ctx.description,
     path: ctx.path,
+    capitalOverlay: ctx.capitalOverlay,
     vehicle: ctx.vehicle,
     period: ctx.period,
     confidence: ctx.confidence,
@@ -116,6 +157,9 @@ export function toNarrativePromptSnapshot(ctx: NarrativeContext) {
     technical: ctx.technical,
     marketLocation: describeMarketLocation(ctx.technical),
     notes: ctx.notes,
+    recentEvents: ctx.recentEvents,
+    sbcBurden: ctx.sbcBurden,
+    valuationLanguage: ctx.valuationLanguage,
   };
 }
 

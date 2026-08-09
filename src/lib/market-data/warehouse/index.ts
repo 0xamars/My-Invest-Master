@@ -1,4 +1,8 @@
 export type {
+  AnalysisRecentEvent,
+  AnalysisRecentEventType,
+} from "@/lib/analysis/recent-events";
+export type {
   AnalysisPackage,
   PackageDatasetStatus,
 } from "@/lib/market-data/warehouse/types";
