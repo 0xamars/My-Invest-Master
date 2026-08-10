@@ -328,7 +328,7 @@ export function captureFromRating(input: {
         .includes("extreme outlier"),
       forwardEstimateUsed:
         (f.revenueEstimateGrowth != null || f.earningsEstimateGrowth != null) &&
-        (blendMetric?.note ?? "").toLowerCase().includes("forward") &&
+        /(forward|fy1 consensus)/i.test(blendMetric?.note ?? "") &&
         !(blendMetric?.note ?? "").toLowerCase().includes("no forward"),
     },
     componentScores,
@@ -585,18 +585,30 @@ export function evaluateSanity(
     });
   }
 
-  // 4) Growth coverage-safe
+  // 4) Growth coverage-safe — forward sleeve only when valid FY1 rows exist
   const blendNote = (c.growthAudit.blendNote ?? "").toLowerCase();
+  const validRevEst =
+    m.revEstGrowth != null &&
+    Number.isFinite(m.revEstGrowth) &&
+    Math.abs(m.revEstGrowth) <= 2.5;
+  const validEpsEst =
+    m.epsEstGrowth != null &&
+    Number.isFinite(m.epsEstGrowth) &&
+    Math.abs(m.epsEstGrowth) <= 2.5 &&
+    f.forwardPE != null &&
+    f.forwardPE > 0;
+  const hasValidForwardRow = validRevEst || validEpsEst;
   if (
-    c.growthAudit.forwardEstimateUsed ||
-    (blendNote.includes("forward") &&
-      !blendNote.includes("no forward") &&
-      (m.revEstGrowth != null || m.epsEstGrowth != null))
+    (c.growthAudit.forwardEstimateUsed ||
+      (blendNote.includes("forward") &&
+        !blendNote.includes("no forward") &&
+        (m.revEstGrowth != null || m.epsEstGrowth != null))) &&
+    !hasValidForwardRow
   ) {
     findings.push({
       rule: "growth_forward_used",
       severity: "fail",
-      message: `Forward estimates appear to influence Growth blend: "${c.growthAudit.blendNote}"`,
+      message: `Forward estimates influence Growth without valid FY1 rows: "${c.growthAudit.blendNote}"`,
     });
   }
   // Fake 3Y: scored 3Y while note admits filler / unavailable, or value present without geometric note
@@ -962,7 +974,7 @@ export function formatSuiteReport(report: SuiteReport): string {
     "  - Reinvestment soft-weighting is intentional vs pure FCF-first screens",
   );
   lines.push(
-    "  - Forward estimates unused until warehouse `/analyst-estimates` populates",
+    "  - Forward estimates enter Growth/Valuation only when FY1 EPS>0 / PE>0 rows exist",
   );
   return lines.join("\n");
 }

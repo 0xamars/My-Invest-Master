@@ -30,6 +30,7 @@ import {
   fmpFetchDcf,
   fmpFetchEnterpriseValues,
   fmpFetchEstimatesBundle,
+  fmpFetchStreetConsensusBundle,
   fmpFetchFinancialScores,
   fmpFetchGrowth,
   fmpFetchHourlyHistory,
@@ -51,6 +52,7 @@ import * as store from "@/lib/market-data/warehouse/store";
 import {
   DATASET_TTL_MS,
   ESTIMATES_EMPTY_TOKEN,
+  STREET_CONSENSUS_EMPTY_TOKEN,
   ageMs,
   emptyRetryTtl,
   isFresh,
@@ -59,6 +61,7 @@ import {
   type WarehouseDataset,
 } from "@/lib/market-data/warehouse/ttl";
 import { buildEstimateOutlook } from "@/lib/market-data/warehouse/estimate-outlook";
+import { buildAnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 import {
   mergerSearchName,
@@ -1087,6 +1090,56 @@ async function buildAnalysisPackage(
     error: estimatesLoad.error,
   });
 
+  const streetLoad = await loadOrRefresh({
+    symbol,
+    dataset: "street_consensus",
+    read: async () => {
+      // Stored under estimates / street_consensus period so older
+      // company_metrics dataset checks still accept the row.
+      const { data, updatedAt, asOf } = await store.readMetrics(
+        symbol,
+        "estimates",
+        "street_consensus",
+      );
+      if (store.isEmptyMarker(data)) {
+        return {
+          value: null as JsonRow | null,
+          updatedAt: newestTimestamp(updatedAt, asOf),
+        };
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      return {
+        value: (row as JsonRow) ?? null,
+        updatedAt: newestTimestamp(updatedAt, asOf),
+      };
+    },
+    isEmpty: (v) => v == null,
+    fetchFmp: () => fmpFetchStreetConsensusBundle(symbol),
+    write: async (row) => {
+      if (!row) return;
+      await store.writeMetrics({
+        symbol,
+        dataset: "estimates",
+        periodType: "street_consensus",
+        data: row,
+      });
+    },
+    writeEmpty: async () => {
+      await store.writeEmptyMarker({
+        symbol,
+        dataset: "estimates",
+        periodType: "street_consensus",
+      });
+    },
+    emptyErrorToken: STREET_CONSENSUS_EMPTY_TOKEN,
+  });
+  status.push({
+    dataset: "street_consensus",
+    source: streetLoad.source,
+    updatedAt: streetLoad.updatedAt,
+    error: streetLoad.error,
+  });
+
   const dcfLoad = await loadOrRefresh({
     symbol,
     dataset: "dcf",
@@ -1230,8 +1283,7 @@ async function buildAnalysisPackage(
           cashflowQuarter: statements.cashflow.quarter,
           cashflowAnnual: statements.cashflow.annual,
           scores: scoresLoad.value,
-          // Estimates ingested on pkg.estimates / estimateOutlook; scoring unused this pass.
-          estimates: [],
+          estimates: estimatesLoad.value,
           enterpriseValues: evLoad.value,
           growth: growthLoad.value,
           ownerEarnings: ownerLoad.value,
@@ -1253,6 +1305,10 @@ async function buildAnalysisPackage(
     trailingRevenue:
       num(inc0?.revenue) ?? fundamentals?.totalRevenue ?? null,
     trailingEps: num(inc0?.epsdiluted) ?? num(inc0?.eps),
+  });
+  const forecast = buildAnalysisForecast({
+    street: streetLoad.value,
+    estimateOutlook,
   });
 
   let ath = 0;
@@ -1325,6 +1381,7 @@ async function buildAnalysisPackage(
     growth: growthLoad.value,
     estimates: estimatesLoad.value,
     estimateOutlook,
+    forecast,
     dcf: dcfLoad.value,
     peers: peersLoad.value.peers,
     peerContext: peersLoad.value.context,

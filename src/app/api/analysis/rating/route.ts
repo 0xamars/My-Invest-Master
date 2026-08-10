@@ -16,6 +16,7 @@ import {
   type FmpCallStats,
 } from "@/lib/market-data/fmp/client";
 import { EMPTY_ESTIMATE_OUTLOOK } from "@/lib/analysis/street-outlook";
+import { EMPTY_FORECAST } from "@/lib/analysis/forecast";
 import {
   getAnalysisPackage,
   packageNetworkSummary,
@@ -164,6 +165,7 @@ export async function GET(request: Request) {
             quote,
             rating,
             estimateOutlook: pkg.estimateOutlook ?? EMPTY_ESTIMATE_OUTLOOK,
+            forecast: pkg.forecast ?? EMPTY_FORECAST,
             recentEvents: pkg.recentEvents ?? [],
             chart: {
               range,
@@ -223,6 +225,7 @@ export async function GET(request: Request) {
           quote,
           rating,
           estimateOutlook: EMPTY_ESTIMATE_OUTLOOK,
+          forecast: EMPTY_FORECAST,
           chart: {
             range,
             points: chartPointsFromBars(chartBars, range),

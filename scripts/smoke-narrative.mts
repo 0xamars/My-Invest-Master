@@ -64,6 +64,8 @@ for (const symbol of symbols) {
     description: pkg.profile?.description ?? null,
     rating,
     recentEvents: pkg.recentEvents ?? [],
+    forecast: pkg.forecast,
+    price: pkg.quote?.price ?? null,
   });
 
   console.log(`\n======== ${symbol} first ========`);

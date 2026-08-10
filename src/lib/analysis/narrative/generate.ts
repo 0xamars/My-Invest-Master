@@ -143,6 +143,20 @@ export async function getNarrativeBundle(
         ? "includes_forward"
         : "current",
     },
+    streetTarget:
+      raw.streetTarget &&
+      typeof raw.streetTarget.average === "number" &&
+      Number.isFinite(raw.streetTarget.average) &&
+      raw.streetTarget.average > 0
+        ? {
+            average: raw.streetTarget.average,
+            vsPricePct:
+              typeof raw.streetTarget.vsPricePct === "number" &&
+              Number.isFinite(raw.streetTarget.vsPricePct)
+                ? raw.streetTarget.vsPricePct
+                : null,
+          }
+        : null,
   };
   const model = getAiFeatureConfig("analysis.narrative_bundle").model;
   const key = narrativeCacheKey(ctx);

@@ -1,5 +1,5 @@
 /** Bump when copy rules change so cached recitation blobs are skipped. */
-export const NARRATIVE_PROMPT_VERSION = "v11-fund-header";
+export const NARRATIVE_PROMPT_VERSION = "v12-street-forecast";
 
 export const NARRATIVE_BUNDLE_SYSTEM = [
   "You write InvestSalsa Analysis copy for regular investors (teens to 30s welcome), not sell-side jargon.",
@@ -49,6 +49,7 @@ export const NARRATIVE_BUNDLE_SYSTEM = [
   "5) Watch next — concrete for this business (GPU/architecture ramps, cloud/AI spend, deliveries, energy scale, premium growth).",
   "6) Optional LAST bullet only: at most ONE recentEvents paraphrase if recentEvents is non-empty. If empty/missing, omit. Never invent M&A or insider activity. Do not mention the same filing anywhere else.",
   "Share-based pay: mention high / normal / low ONLY when sbcBurden is provided.",
+  "Street target: if streetTarget is present, you MAY add at most ONE short clause in Summary OR Outlook that the street average target is above/below the current price. Not InvestSalsa fair value. Never invent a target. If streetTarget is missing, omit entirely.",
   "No pillar-score tour. At most one number, preferably none. Also set summary to the bullets joined with spaces.",
   "",
   "FUNDAMENTAL / TECHNICAL PILLAR ONE-LINERS (main cards):",
@@ -90,6 +91,7 @@ export function buildNarrativeUserMessage(snapshot: unknown): string {
     "profileThemes: business lines for Summary/Outlook only — not the Fundamental header.",
     "marketLocation.summaryHint is the technical line to paraphrase — do not invent a different signal.",
     "recentEvents: at most ONE Summary bullet if non-empty; never invent; never repeat in Outlook. sbcBurden: high/normal/low or omit.",
+    "streetTarget: optional one clause max if present — not fair value. Omit if missing.",
     JSON.stringify(snapshot),
   ].join("\n");
 }

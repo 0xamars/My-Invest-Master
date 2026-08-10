@@ -17,6 +17,7 @@ import {
 import { computeAltmanZ } from "@/lib/market-data/fmp/fundamentals";
 import { num } from "@/lib/market-data/fmp/client";
 import type { JsonRow } from "@/lib/market-data/warehouse/types";
+import { nearestFutureEstimate } from "@/lib/market-data/warehouse/estimate-outlook";
 
 type Row = JsonRow;
 
@@ -1679,23 +1680,20 @@ export function buildFundamentalInputsFromPackage(input: {
         ? "Growth rates unavailable — package growth and statement YoY both empty."
         : null;
 
-  const est0 = first(
-    (input.estimates ?? []).filter((r) => r && r.__empty !== true),
-  );
-  const estRevenueAvg = pick(est0, "revenueAvg", "estimatedRevenueAvg");
+  const fy1 =
+    nearestFutureEstimate(input.estimates ?? [], "annual") ??
+    nearestFutureEstimate(input.estimates ?? [], "quarter");
+  const estRevenueAvg = fy1?.revenueAvg ?? null;
   const revenueEstimateGrowth =
     estRevenueAvg != null && rev0 != null && rev0 !== 0
       ? (estRevenueAvg - rev0) / Math.abs(rev0)
       : null;
-  const forwardEps = pick(
-    est0,
-    "epsAvg",
-    "estimatedEpsAvg",
-    "estimatedEps",
-    "eps",
-  );
+  const forwardEps = fy1?.epsAvg ?? null;
   const earningsEstimateGrowth =
-    forwardEps != null && eps0 != null && eps0 !== 0
+    forwardEps != null &&
+    forwardEps > 0 &&
+    eps0 != null &&
+    eps0 !== 0
       ? (forwardEps - eps0) / Math.abs(eps0)
       : null;
 
@@ -1779,27 +1777,7 @@ export function buildFundamentalInputsFromPackage(input: {
       "priceToEarningsGrowthRatio",
       "forwardPriceToEarningsGrowthRatio",
     );
-  // Compute PEG when provider missing: valid PE + meaningful positive growth.
-  // Prefer forward PE; else trailing PE. Never invent from PEG-named fields as PE.
-  const peForPeg =
-    forwardPE != null && forwardPE > 0
-      ? forwardPE
-      : trailingPE != null && trailingPE > 0
-        ? trailingPE
-        : null;
-  const pegGrowth =
-    earningsEstimateGrowth != null && earningsEstimateGrowth > 0.01
-      ? earningsEstimateGrowth
-      : earningsGrowth != null && earningsGrowth > 0.01
-        ? earningsGrowth
-        : null;
-  if (
-    (pegRatio == null || pegRatio <= 0) &&
-    peForPeg != null &&
-    pegGrowth != null
-  ) {
-    pegRatio = peForPeg / (pegGrowth * 100);
-  }
+  // Provider PEG only — never invent PE÷growth when the package field is missing.
   if (pegRatio != null && pegRatio <= 0) pegRatio = null;
   // PEG without a valid PE is not meaningful for scoring (provider noise on loss-makers).
   const hasValidPe =

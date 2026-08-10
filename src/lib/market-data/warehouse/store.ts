@@ -338,7 +338,7 @@ export async function writeMetrics(input: {
   const sb = adminOrNull();
   if (!sb) return;
   const now = new Date().toISOString();
-  await sb.from("company_metrics").upsert(
+  const { error } = await sb.from("company_metrics").upsert(
     {
       symbol: input.symbol.toUpperCase(),
       dataset: input.dataset,
@@ -350,6 +350,7 @@ export async function writeMetrics(input: {
     },
     { onConflict: "symbol,dataset,period_type" },
   );
+  logStoreError(`writeMetrics ${input.dataset}`, error);
 }
 
 export async function readPriceHistory(

@@ -2,6 +2,7 @@ import type { WatchlistAssetType } from "@/types/watchlist";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
 import type { AnalysisChartPoint } from "@/lib/analysis/history";
 import type { EstimateOutlook } from "@/lib/analysis/street-outlook";
+import type { AnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 
 export type AnalysisAssetType = WatchlistAssetType;
@@ -41,6 +42,8 @@ export type AnalysisRatingPayload = {
   rating: InvestSalsaRating;
   /** Consensus estimates — display only; omit on older/crypto responses. */
   estimateOutlook?: EstimateOutlook | null;
+  /** Street ratings + price targets + estimate summary — Forecast panel. */
+  forecast?: AnalysisForecast | null;
   /** Structured insider / M&A context — omit when empty. */
   recentEvents?: AnalysisRecentEvent[];
   chart: {

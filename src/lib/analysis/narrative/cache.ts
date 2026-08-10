@@ -40,6 +40,10 @@ export function narrativeCacheKey(ctx: NarrativeContext): string {
     ev: (ctx.recentEvents ?? []).map((e) => `${e.type}:${e.date ?? ""}`).join("|"),
     sbc: ctx.sbcBurden,
     vl: ctx.valuationLanguage?.basis ?? "current",
+    st:
+      ctx.streetTarget?.average != null
+        ? Math.round(ctx.streetTarget.average)
+        : null,
   };
   const hash = createHash("sha256")
     .update(JSON.stringify(payload))

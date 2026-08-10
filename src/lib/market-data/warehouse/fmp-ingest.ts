@@ -151,6 +151,66 @@ export async function fmpFetchEstimates(
   return fetchAnalystEstimatesPeriod(symbol, period, limit);
 }
 
+async function safeFirst(
+  path: string,
+  query: Record<string, string | number | undefined | null>,
+  revalidate = 3600,
+): Promise<JsonRow | null> {
+  const rows = await safeRows(path, query, revalidate);
+  const row = rows[0];
+  if (!row || row.__empty === true) return null;
+  return row;
+}
+
+export async function fmpFetchPriceTargetConsensus(symbol: string) {
+  return safeFirst("/price-target-consensus", { symbol });
+}
+
+export async function fmpFetchPriceTargetSummary(symbol: string) {
+  return safeFirst("/price-target-summary", { symbol });
+}
+
+export async function fmpFetchGradesConsensus(symbol: string) {
+  return safeFirst("/grades-consensus", { symbol });
+}
+
+/**
+ * Street consensus blob for Forecast: price-target consensus + summary + grades.
+ * Empty / 404 endpoints become null fields; all-null → null (empty-cache).
+ */
+export async function fmpFetchStreetConsensusBundle(
+  symbol: string,
+): Promise<JsonRow | null> {
+  const [consensus, summary, grades] = await Promise.all([
+    fmpFetchPriceTargetConsensus(symbol),
+    fmpFetchPriceTargetSummary(symbol),
+    fmpFetchGradesConsensus(symbol),
+  ]);
+  const hasTarget =
+    consensus != null &&
+    (consensus.targetHigh != null ||
+      consensus.targetLow != null ||
+      consensus.targetConsensus != null);
+  const hasGrades =
+    grades != null &&
+    (grades.strongBuy != null ||
+      grades.buy != null ||
+      grades.hold != null ||
+      grades.sell != null ||
+      grades.strongSell != null);
+  const hasSummary =
+    summary != null &&
+    (summary.lastYearCount != null ||
+      summary.lastQuarterCount != null ||
+      summary.lastMonthCount != null);
+  if (!hasTarget && !hasGrades && !hasSummary) return null;
+  return {
+    consensus: hasTarget ? consensus : null,
+    summary: hasSummary || hasTarget ? summary : null,
+    grades: hasGrades ? grades : null,
+  };
+}
+
 /** Annual primary + optional quarter. Throws only if both periods fail. */
 export async function fmpFetchEstimatesBundle(symbol: string): Promise<JsonRow[]> {
   const settled = await Promise.allSettled([

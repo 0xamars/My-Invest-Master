@@ -6,6 +6,7 @@ import type {
   PeerMetricRow,
 } from "@/lib/analysis/rating/types";
 import type { EstimateOutlook } from "@/lib/market-data/warehouse/estimate-outlook";
+import type { AnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 import type { WarehouseDataset } from "@/lib/market-data/warehouse/ttl";
 
@@ -63,8 +64,10 @@ export type AnalysisPackage = {
   ownerEarnings: JsonRow[];
   growth: JsonRow[];
   estimates: JsonRow[];
-  /** FY1/FQ1 + forward P/E helpers — not wired into rating scores this pass. */
+  /** FY1/FQ1 + forward P/E helpers. */
   estimateOutlook: EstimateOutlook;
+  /** Street ratings + price targets + estimate summary for Forecast UI. */
+  forecast: AnalysisForecast;
   dcf: JsonRow | null;
   peers: PeerMetricRow[];
   peerContext: FundamentalPeerContext;

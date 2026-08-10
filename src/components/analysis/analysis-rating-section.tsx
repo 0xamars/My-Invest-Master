@@ -17,12 +17,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AnalysisForecastPanel } from "@/components/analysis/analysis-forecast-panel";
 import { AnalysisFundamentalPanel } from "@/components/analysis/analysis-fundamental-panel";
 import { AnalysisRatingRadar } from "@/components/analysis/analysis-rating-radar";
 import { ScoreBar } from "@/components/analysis/score-bar";
 import { useAnalysisNarrative } from "@/hooks/use-analysis-narrative";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
 import { isFilingContextBullet } from "@/lib/analysis/narrative/parse";
+import type { AnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 import { formatScore10 } from "@/lib/analysis/rating/score-display";
 import {
@@ -138,6 +140,8 @@ export function AnalysisRatingSection({
   name,
   description,
   recentEvents,
+  forecast,
+  price,
   isLoading,
 }: {
   rating: InvestSalsaRating | null;
@@ -145,6 +149,8 @@ export function AnalysisRatingSection({
   name?: string | null;
   description?: string | null;
   recentEvents?: AnalysisRecentEvent[];
+  forecast?: AnalysisForecast | null;
+  price?: number | null;
   isLoading?: boolean;
 }) {
   if (isLoading && !rating) {
@@ -174,6 +180,8 @@ export function AnalysisRatingSection({
     description,
     rating,
     recentEvents,
+    forecast,
+    price,
   });
   const summaryBullets = narrative?.summaryBullets?.length
     ? narrative.summaryBullets
@@ -284,9 +292,7 @@ export function AnalysisRatingSection({
               <CardDescription>Street consensus</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Street forecast coming soon
-              </p>
+              <AnalysisForecastPanel forecast={forecast} price={price} />
             </CardContent>
           </Card>
         </div>

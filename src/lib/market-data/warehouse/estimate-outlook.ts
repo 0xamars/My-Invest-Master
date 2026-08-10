@@ -1,6 +1,6 @@
 /**
  * Analyst-estimate helpers for the Analysis package.
- * Scoring (Growth blend / Valuation) does not consume these this pass.
+ * Scoring may use FY1 EPS/revenue only when rows are valid (EPS>0, PE>0).
  */
 import type { JsonRow } from "@/lib/market-data/warehouse/types";
 

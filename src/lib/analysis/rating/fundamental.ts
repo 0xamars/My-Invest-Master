@@ -432,7 +432,8 @@ export function computeFundamentalScore(
     policy,
   });
 
-  // —— Growth (coverage-safe blend: current + true 3Y revenue CAGR; no forwards) ——
+  // —— Growth (coverage-safe blend: current + true 3Y revenue CAGR;
+  //     optional FY1 consensus sleeve only when valid estimate rows exist) ——
   const growthSoft =
     policy.reinvestmentSoftWeighting && !policy.hasCriticalFlags;
   const growthFragile =
@@ -564,16 +565,52 @@ export function computeFundamentalScore(
       : null;
 
   const useHistoryBlend = historySleeveScore != null;
-  const growthBlendScore =
+  let growthBlendScore =
     currentSleeveScore == null
       ? historySleeveScore
       : useHistoryBlend
         ? round1(currentSleeveScore * 0.75 + historySleeveScore * 0.25)
         : round1(currentSleeveScore);
 
-  const blendNote = useHistoryBlend
+  const revEst = isUsableGrowthRate(inputs.revenueEstimateGrowth)
+    ? inputs.revenueEstimateGrowth
+    : null;
+  const epsEst =
+    inputs.forwardPE != null &&
+    inputs.forwardPE > 0 &&
+    isUsableGrowthRate(inputs.earningsEstimateGrowth)
+      ? inputs.earningsEstimateGrowth
+      : null;
+  const revEstScore = scoreGrowthRate(revEst);
+  const epsEstScore = scoreGrowthRate(epsEst);
+  const forwardParts: Array<{ weight: number; value: number }> = [];
+  if (revEstScore != null) {
+    forwardParts.push({ weight: 0.6, value: revEstScore });
+  }
+  if (epsEstScore != null) {
+    forwardParts.push({ weight: 0.4, value: epsEstScore });
+  }
+  const forwardSleeveScore =
+    forwardParts.length > 0 ? weightedAverage(forwardParts) : null;
+
+  let blendNote = useHistoryBlend
     ? "Blend 75% current period / 25% true 3Y revenue CAGR (no forward estimates)"
     : "Growth based mainly on current period — limited multi-year history";
+
+  if (forwardSleeveScore != null) {
+    if (growthBlendScore != null) {
+      growthBlendScore = round1(
+        growthBlendScore * 0.85 + forwardSleeveScore * 0.15,
+      );
+      blendNote = useHistoryBlend
+        ? "Blend 75% current / 25% 3Y CAGR, plus 15% valid FY1 consensus growth"
+        : "Growth based mainly on current period, plus 15% valid FY1 consensus growth";
+    } else {
+      growthBlendScore = round1(forwardSleeveScore);
+      blendNote =
+        "Growth from valid FY1 consensus estimates — trailing growth unavailable";
+    }
+  }
 
   const growthMetrics: MetricScore[] = [
     metric(
@@ -642,6 +679,29 @@ export function computeFundamentalScore(
       op3yScore != null
         ? "Optional 3Y sleeve input — true CAGR only"
         : null,
+    ),
+    metric(
+      "revenue_estimate_growth",
+      "Revenue growth (FY1 consensus)",
+      revEst,
+      formatPercentDecimal(revEst),
+      revEstScore,
+      revEstScore != null
+        ? "Optional forward sleeve — FY1 revenue consensus vs trailing"
+        : null,
+    ),
+    metric(
+      "eps_estimate_growth",
+      "EPS growth (FY1 consensus)",
+      epsEst,
+      formatPercentDecimal(epsEst),
+      epsEstScore,
+      epsEstScore != null
+        ? "Optional forward sleeve — FY1 EPS > 0 and forward P/E > 0"
+        : inputs.earningsEstimateGrowth != null &&
+            (inputs.forwardPE == null || inputs.forwardPE <= 0)
+          ? "FY1 EPS growth omitted — forward P/E not valid"
+          : null,
     ),
     metric(
       "growth_blend",
@@ -828,7 +888,9 @@ export function computeFundamentalScore(
     inputs.operatingIncomeGrowth == null
   ) {
     notes.push(
-      "Trailing growth unavailable; forward estimates are not used (coverage-safe).",
+      forwardSleeveScore != null
+        ? "Trailing growth unavailable — using valid FY1 consensus estimates only."
+        : "Trailing growth unavailable; forward estimates are not used (coverage-safe).",
     );
   } else if (inputs.revenueGrowth3y == null) {
     notes.push(

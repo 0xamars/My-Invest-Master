@@ -21,6 +21,7 @@ export type WarehouseDataset =
   | "owner_earnings"
   | "growth"
   | "estimates"
+  | "street_consensus"
   | "peers"
   | "dcf"
   | "price_daily"
@@ -50,6 +51,7 @@ export const DATASET_TTL_MS: Record<WarehouseDataset, number> = {
   owner_earnings: 24 * 60 * 60_000,
   growth: 24 * 60 * 60_000,
   estimates: 12 * 60 * 60_000,
+  street_consensus: 12 * 60 * 60_000,
   dcf: 24 * 60 * 60_000,
   price_daily: 60 * 60_000,
   price_hourly: 45 * 60_000,
@@ -65,6 +67,7 @@ export const EMPTY_RETRY_TTL_MS: Partial<Record<WarehouseDataset, number>> = {
   balance_ttm: 24 * 60 * 60_000,
   cashflow_ttm: 24 * 60 * 60_000,
   estimates: 24 * 60 * 60_000,
+  street_consensus: 24 * 60 * 60_000,
   owner_earnings: 24 * 60 * 60_000,
   dcf: 12 * 60 * 60_000,
   growth: 12 * 60 * 60_000,
@@ -76,6 +79,8 @@ export const EMPTY_RETRY_TTL_MS: Partial<Record<WarehouseDataset, number>> = {
  * markers (e.g. no-period 400s) are ignored and FMP is refetched.
  */
 export const ESTIMATES_EMPTY_TOKEN = "fmp_empty:analyst_estimates_period_v1";
+
+export const STREET_CONSENSUS_EMPTY_TOKEN = "fmp_empty:street_consensus_v1";
 
 /** How long past TTL we still serve stale data when FMP fails. */
 export const STALE_GRACE_MS = 7 * 24 * 60 * 60_000;

@@ -6,6 +6,10 @@ import type {
   NarrativeContext,
   NarrativeMetricSnap,
 } from "@/lib/analysis/narrative/types";
+import {
+  streetTargetHint,
+  type AnalysisForecast,
+} from "@/lib/analysis/forecast";
 
 function pillarOf(
   rating: InvestSalsaRating,
@@ -47,6 +51,8 @@ export function buildNarrativeContext(input: {
   description?: string | null;
   rating: InvestSalsaRating;
   recentEvents?: NarrativeContext["recentEvents"];
+  forecast?: AnalysisForecast | null;
+  price?: number | null;
 }): NarrativeContext {
   const { rating } = input;
   const f = rating.fundamental;
@@ -113,6 +119,7 @@ export function buildNarrativeContext(input: {
     valuationLanguage: {
       basis: inferValuationBasis(va),
     },
+    streetTarget: streetTargetHint(input.forecast, input.price),
     sbcBurden: sbcBurdenLabel(
       pillarOf(rating, "profitability")?.metrics.find((m) => m.id === "sbc_to_revenue")
         ?.value ?? null,
@@ -160,6 +167,7 @@ export function toNarrativePromptSnapshot(ctx: NarrativeContext) {
     recentEvents: ctx.recentEvents,
     sbcBurden: ctx.sbcBurden,
     valuationLanguage: ctx.valuationLanguage,
+    streetTarget: ctx.streetTarget,
   };
 }
 

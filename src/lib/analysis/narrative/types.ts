@@ -86,6 +86,11 @@ export type NarrativeContext = {
   valuationLanguage: {
     basis: "current" | "includes_forward";
   };
+  /** Street average target vs price — omit when Forecast has no target. */
+  streetTarget: {
+    average: number;
+    vsPricePct: number | null;
+  } | null;
 };
 
 export type NarrativeResponse = {

@@ -7,6 +7,7 @@ import type {
   NarrativeResponse,
 } from "@/lib/analysis/narrative/types";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
+import type { AnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 
 export function useAnalysisNarrative(input: {
@@ -15,6 +16,8 @@ export function useAnalysisNarrative(input: {
   description?: string | null;
   rating: InvestSalsaRating | null;
   recentEvents?: AnalysisRecentEvent[];
+  forecast?: AnalysisForecast | null;
+  price?: number | null;
 }): {
   bundle: AnalysisNarrativeBundle | null;
   loading: boolean;
@@ -31,6 +34,8 @@ export function useAnalysisNarrative(input: {
   const name = input.name ?? null;
   const description = input.description ?? null;
   const recentEvents = input.recentEvents ?? [];
+  const forecast = input.forecast ?? null;
+  const price = input.price ?? null;
   const fingerprint = rating
     ? [
         symbol,
@@ -41,6 +46,8 @@ export function useAnalysisNarrative(input: {
         rating.fundamental.classification.fundamentalPeriod,
         (description ?? "").slice(0, 80),
         recentEvents.map((e) => `${e.type}:${e.date ?? ""}`).join(","),
+        forecast?.priceTarget?.average ?? "",
+        price ?? "",
       ].join("|")
     : "";
 
@@ -60,6 +67,8 @@ export function useAnalysisNarrative(input: {
       description,
       rating,
       recentEvents,
+      forecast,
+      price,
     });
 
     void (async () => {
