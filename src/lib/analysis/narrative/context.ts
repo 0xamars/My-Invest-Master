@@ -4,8 +4,11 @@ import { isHighEquityCompIndustry } from "@/lib/analysis/rating/industry-model";
 import { sbcBurdenLabel } from "@/lib/analysis/rating/sbc";
 import type {
   NarrativeContext,
+  NarrativeCopyLanguage,
   NarrativeMetricSnap,
 } from "@/lib/analysis/narrative/types";
+import { extractPackageFacts } from "@/lib/analysis/narrative/outlook-facts";
+import { issuerLockSnapshot } from "@/lib/analysis/narrative/outlook-lock";
 import {
   streetTargetHint,
   type AnalysisForecast,
@@ -36,13 +39,108 @@ function inferValuationBasis(
   return "includes_forward";
 }
 
-function clipProfileThemes(raw: string | null | undefined, max = 480): string | null {
+function clipProfileThemes(raw: string | null | undefined, max = 720): string | null {
   if (!raw?.trim()) return null;
   const t = raw.replace(/\s+/g, " ").trim();
   if (t.length <= max) return t;
   const slice = t.slice(0, max);
   const cut = slice.lastIndexOf(". ");
   return (cut >= 120 ? slice.slice(0, cut + 1) : slice).trim();
+}
+
+function metricOf(
+  pillar: PillarScore | undefined,
+  id: string,
+): { value: number | null; score: number | null } | null {
+  const m = pillar?.metrics.find((x) => x.id === id && !x.skipped);
+  if (!m) return null;
+  return {
+    value: typeof m.value === "number" && Number.isFinite(m.value) ? m.value : null,
+    score: m.score,
+  };
+}
+
+/** Copy-only tone from existing pillar metrics/scores. Not a new rating. */
+export function inferCopyLanguage(input: {
+  capitalOverlay?: string | null;
+  financialStrength?: PillarScore;
+  profitability?: PillarScore;
+  growth?: PillarScore;
+  valuation?: PillarScore;
+}): NarrativeCopyLanguage {
+  const overlay = input.capitalOverlay ?? "";
+  const om = metricOf(input.profitability, "operating_margin");
+  const nm = metricOf(input.profitability, "net_margin");
+  const fcf = metricOf(input.profitability, "fcf_margin")
+    ?? metricOf(input.financialStrength, "fcf_level");
+  const pScore = input.profitability?.score ?? null;
+  const gScore = input.growth?.score ?? null;
+  const fsScore = input.financialStrength?.score ?? null;
+  const vScore = input.valuation?.score ?? null;
+
+  let earnings: NarrativeCopyLanguage["earnings"] = "unknown";
+  if (overlay === "treasury_holding") {
+    earnings = "treasury_marks";
+  } else if (
+    (om?.value != null && om.value < 0) ||
+    (nm?.value != null && nm.value < 0)
+  ) {
+    earnings = "unprofitable";
+  } else if (
+    (om?.value != null && om.value > 0) ||
+    (nm?.value != null && nm.value > 0)
+  ) {
+    earnings = "profitable";
+  }
+
+  let cash: NarrativeCopyLanguage["cash"] = "unknown";
+  if (fcf?.value != null) {
+    cash = fcf.value < 0 ? "burning" : "converting";
+  }
+
+  let margins: NarrativeCopyLanguage["margins"] = "unknown";
+  if (earnings === "unprofitable") {
+    margins = "compressed";
+  } else if (om?.value != null && om.value >= 0.2) {
+    margins = "strong";
+  } else if (om?.score != null && om.score >= 75) {
+    margins = "strong";
+  } else if (om?.value != null && om.value >= 0 && om.value < 0.08) {
+    margins = "compressed";
+  } else if (pScore != null && pScore >= 75 && earnings === "profitable") {
+    margins = "strong";
+  }
+
+  let growth: NarrativeCopyLanguage["growth"] = "unknown";
+  if (gScore != null) {
+    if (gScore >= 80) growth = "elite";
+    else if (gScore >= 60) growth = "solid";
+    else if (gScore < 40) growth = "slow";
+  }
+
+  let balanceSheet: NarrativeCopyLanguage["balanceSheet"] = "unknown";
+  if (fsScore != null) {
+    if (fsScore >= 80) balanceSheet = "fortress";
+    else if (fsScore < 40) balanceSheet = "weak";
+    else balanceSheet = "adequate";
+  }
+
+  let valuationConstraint: NarrativeCopyLanguage["valuationConstraint"] =
+    "unknown";
+  if (vScore != null) {
+    if (vScore < 40) valuationConstraint = "expensive";
+    else if (vScore < 55) valuationConstraint = "full";
+    else if (vScore >= 70) valuationConstraint = "not_the_story";
+  }
+
+  return {
+    earnings,
+    cash,
+    margins,
+    growth,
+    balanceSheet,
+    valuationConstraint,
+  };
 }
 
 export function buildNarrativeContext(input: {
@@ -106,6 +204,7 @@ export function buildNarrativeContext(input: {
       growth: metricsOf(gr),
       valuation: metricsOf(va),
     },
+    packageFacts: extractPackageFacts(rating),
     technical: {
       zone: t.fib.zone,
       zoneLabel: t.fib.zoneLabel,
@@ -130,6 +229,13 @@ export function buildNarrativeContext(input: {
         sectorKey: f.classification.sectorKey,
       }),
     ),
+    copyLanguage: inferCopyLanguage({
+      capitalOverlay: f.classification.businessModel,
+      financialStrength: fs,
+      profitability: pr,
+      growth: gr,
+      valuation: va,
+    }),
   };
 }
 
@@ -161,6 +267,14 @@ export function toNarrativePromptSnapshot(ctx: NarrativeContext) {
       growth: ctx.pillarMetrics.growth.slice(0, 1),
       valuation: ctx.pillarMetrics.valuation.slice(0, 1),
     },
+    fundamentalSnapshot: {
+      note: "Optional supporting color for Outlook only. Do not recap these ratios in every bullet.",
+      growth: ctx.pillarMetrics.growth[0] ?? null,
+      profits: ctx.pillarMetrics.profitability[0] ?? null,
+      cash: ctx.pillarMetrics.financialStrength[0] ?? null,
+      valuation: ctx.pillarMetrics.valuation[0] ?? null,
+    },
+    issuerLock: issuerLockSnapshot(ctx),
     technical: ctx.technical,
     marketLocation: describeMarketLocation(ctx.technical),
     notes: ctx.notes,
@@ -168,6 +282,7 @@ export function toNarrativePromptSnapshot(ctx: NarrativeContext) {
     sbcBurden: ctx.sbcBurden,
     valuationLanguage: ctx.valuationLanguage,
     streetTarget: ctx.streetTarget,
+    copyLanguage: ctx.copyLanguage,
   };
 }
 

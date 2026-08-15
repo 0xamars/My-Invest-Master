@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
-import { getAiFeatureConfig } from "@/lib/ai/config";
+import { resolveAiFeature } from "@/lib/ai/config";
 import { NARRATIVE_PROMPT_VERSION } from "@/lib/ai/prompts/narrative-bundle";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   AnalysisNarrativeBundle,
   NarrativeContext,
+  NarrativeResponse,
 } from "@/lib/analysis/narrative/types";
 
 const MEMORY_TTL_MS = 18 * 60 * 60_000;
@@ -17,15 +18,16 @@ type MemEntry = {
 };
 
 const memory = new Map<string, MemEntry>();
-const inflight = new Map<string, Promise<AnalysisNarrativeBundle>>();
+const inflight = new Map<string, Promise<NarrativeResponse>>();
 
 export function narrativeCacheKey(ctx: NarrativeContext): string {
   const day = new Date().toISOString().slice(0, 10);
-  const model = getAiFeatureConfig("analysis.narrative_bundle").model;
+  const resolved = resolveAiFeature("analysis.narrative_bundle");
   const payload = {
+    feature: "analysis.narrative_bundle" as const,
     s: ctx.symbol,
     day,
-    model,
+    model: resolved.config.model,
     prompt: NARRATIVE_PROMPT_VERSION,
     d: (ctx.description ?? "").slice(0, 64),
     o: ctx.scores.overall,
@@ -49,18 +51,18 @@ export function narrativeCacheKey(ctx: NarrativeContext): string {
     .update(JSON.stringify(payload))
     .digest("hex")
     .slice(0, 16);
-  return `${ctx.symbol}:${day}:${hash}`;
+  return `analysis.narrative_bundle:${resolved.config.model}:${ctx.symbol}:${day}:${hash}`;
 }
 
 export function getNarrativeInflight(
   key: string,
-): Promise<AnalysisNarrativeBundle> | undefined {
+): Promise<NarrativeResponse> | undefined {
   return inflight.get(key);
 }
 
 export function setNarrativeInflight(
   key: string,
-  run: Promise<AnalysisNarrativeBundle>,
+  run: Promise<NarrativeResponse>,
 ): void {
   inflight.set(key, run);
   void run.finally(() => inflight.delete(key));

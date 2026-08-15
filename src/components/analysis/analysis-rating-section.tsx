@@ -26,6 +26,7 @@ import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
 import { isFilingContextBullet } from "@/lib/analysis/narrative/parse";
 import type { AnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
+import type { NarrativeOutlookItem } from "@/lib/analysis/narrative/types";
 import { formatScore10 } from "@/lib/analysis/rating/score-display";
 import {
   formatDrawdownPct,
@@ -124,13 +125,29 @@ function SectionHint({ text }: { text: string }) {
   );
 }
 
-function NarrativeSkeleton() {
+function NarrativeSkeleton({ label }: { label: string }) {
   return (
     <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">{label}</p>
       <div className="h-3 animate-pulse rounded bg-muted/70" />
       <div className="h-3 w-4/5 animate-pulse rounded bg-muted/70" />
       <div className="h-3 w-2/3 animate-pulse rounded bg-muted/70" />
     </div>
+  );
+}
+
+function OutlookNumberedList({ items }: { items: NarrativeOutlookItem[] }) {
+  return (
+    <ol className="mt-1.5 list-decimal space-y-2.5 pl-5 text-sm leading-relaxed text-muted-foreground">
+      {items.map((item, index) => (
+        <li key={`${item.title}-${index}`}>
+          <span className="font-semibold text-foreground">
+            {item.title.replace(/[.]+$/, "")}.
+          </span>{" "}
+          {item.body}
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -153,6 +170,22 @@ export function AnalysisRatingSection({
   price?: number | null;
   isLoading?: boolean;
 }) {
+  const {
+    bundle: narrative,
+    loading: narrativeLoading,
+    error: narrativeError,
+    retry: retryNarrative,
+  } = useAnalysisNarrative({
+    symbol,
+    name,
+    description,
+    rating,
+    recentEvents,
+    forecast,
+    price,
+  });
+  const [techDetailsOpen, setTechDetailsOpen] = useState(false);
+
   if (isLoading && !rating) {
     return (
       <Card className="surface-card border-primary/20 shadow-none">
@@ -174,22 +207,12 @@ export function AnalysisRatingSection({
   }
 
   const { fundamental, technical } = rating;
-  const { bundle: narrative, loading: narrativeLoading } = useAnalysisNarrative({
-    symbol,
-    name,
-    description,
-    rating,
-    recentEvents,
-    forecast,
-    price,
-  });
   const summaryBullets = narrative?.summaryBullets?.length
     ? narrative.summaryBullets
     : narrative?.summary
       ? [narrative.summary]
       : [];
   const showFilingFooter = summaryBullets.some((b) => isFilingContextBullet(b));
-  const [techDetailsOpen, setTechDetailsOpen] = useState(false);
   const zoneHint = priceZoneLocationHint(technical.fib.zone);
   const relative = technical.fib.relative;
   const relativeHint = relativeDepthHint(relative.status);
@@ -305,7 +328,22 @@ export function AnalysisRatingSection({
               </CardHeader>
               <CardContent className="space-y-3">
                 {narrativeLoading && summaryBullets.length === 0 ? (
-                  <NarrativeSkeleton />
+                  <NarrativeSkeleton label="Generating…" />
+                ) : narrativeError ? (
+                  <div className="space-y-2">
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {narrativeError}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={retryNarrative}
+                    >
+                      Retry
+                    </Button>
+                  </div>
                 ) : summaryBullets.length ? (
                   <ul className="list-disc space-y-1 pl-4 text-sm leading-relaxed text-muted-foreground">
                     {summaryBullets.map((item) => (
@@ -326,23 +364,25 @@ export function AnalysisRatingSection({
             </Card>
             <Card className="surface-card shadow-none">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Future Outlook</CardTitle>
+                <CardTitle className="text-base">Future outlook</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {narrativeLoading && !narrative?.futureOutlook ? (
-                  <NarrativeSkeleton />
+                {narrativeLoading && !narrative ? (
+                  <NarrativeSkeleton label="Generating…" />
+                ) : narrativeError ? (
+                  <p className="text-sm text-muted-foreground">
+                    Outlook will appear when summary generates.
+                  </p>
                 ) : (
                   <>
                     <div>
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Opportunities
+                        Future opportunities
                       </p>
                       {narrative?.futureOutlook.opportunities.length ? (
-                        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-relaxed text-muted-foreground">
-                          {narrative.futureOutlook.opportunities.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
+                        <OutlookNumberedList
+                          items={narrative.futureOutlook.opportunities}
+                        />
                       ) : (
                         <p className="mt-1.5 text-sm text-muted-foreground">
                           No grounded opportunities listed.
@@ -351,14 +391,12 @@ export function AnalysisRatingSection({
                     </div>
                     <div>
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Risks
+                        Key risks
                       </p>
                       {narrative?.futureOutlook.risks.length ? (
-                        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-relaxed text-muted-foreground">
-                          {narrative.futureOutlook.risks.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
+                        <OutlookNumberedList
+                          items={narrative.futureOutlook.risks}
+                        />
                       ) : (
                         <p className="mt-1.5 text-sm text-muted-foreground">
                           No grounded risks listed.
@@ -392,7 +430,7 @@ export function AnalysisRatingSection({
             </CardHeader>
             <CardContent className="space-y-4">
               {narrativeLoading && !narrative?.technicalOverview ? (
-                <NarrativeSkeleton />
+                <NarrativeSkeleton label="Generating…" />
               ) : narrative?.technicalOverview ? (
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {narrative.technicalOverview}

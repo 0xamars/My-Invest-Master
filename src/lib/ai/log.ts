@@ -20,6 +20,7 @@ export function logAiEvent(input: {
   status: AiLogStatus;
   provider?: string;
   model?: string;
+  source?: "AI_FEATURES" | "ENV_OVERRIDE";
   ms?: number;
   override?: boolean;
   reason?: string;
@@ -27,6 +28,7 @@ export function logAiEvent(input: {
   const parts = [`[ai] feature=${input.feature}`];
   if (input.provider) parts.push(`provider=${input.provider}`);
   if (input.model) parts.push(`model=${input.model}`);
+  if (input.source) parts.push(`source=${input.source}`);
   parts.push(`status=${input.status}`);
   if (input.ms != null && Number.isFinite(input.ms)) {
     parts.push(`ms=${Math.max(0, Math.round(input.ms))}`);

@@ -21,6 +21,8 @@ export type AiCompleteInput = {
   feature: AiFeatureId;
   messages: AiMessage[];
   system?: string;
+  /** Hard abort for this completion (narrative uses this so the page cannot hang). */
+  timeoutMs?: number;
 };
 
 export type AiCompletion = {

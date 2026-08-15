@@ -74,7 +74,10 @@ for (const symbol of symbols) {
   console.log("industry", ctx.industry, "path", ctx.path);
   console.log("sbcBurden", ctx.sbcBurden, "sbcToRev", pkg.fundamentals?.sbcToRevenue);
   console.log("valBasis", ctx.valuationLanguage.basis, "fwdPE", pkg.fundamentals?.forwardPE);
-  console.log("FUND_HDR:", a.bundle.fundamentalOverview);
+  console.log(
+    "outlookFacts",
+    JSON.stringify(ctx.packageFacts?.slice(0, 8) ?? []),
+  );
   console.log("VAL:", a.bundle.pillars.valuation);
   console.log("events", JSON.stringify(pkg.recentEvents ?? []));
   console.log(
@@ -90,11 +93,15 @@ for (const symbol of symbols) {
   console.log("G:", a.bundle.pillars.growth);
   console.log(
     "OPPS:\n",
-    a.bundle.futureOutlook.opportunities.map((x) => `- ${x}`).join("\n"),
+    a.bundle.futureOutlook.opportunities
+      .map((x) => `- ${x.title}: ${x.body}`)
+      .join("\n"),
   );
   console.log(
     "RISKS:\n",
-    a.bundle.futureOutlook.risks.map((x) => `- ${x}`).join("\n"),
+    a.bundle.futureOutlook.risks
+      .map((x) => `- ${x.title}: ${x.body}`)
+      .join("\n"),
   );
   const sentences = a.bundle.summary
     .split(/(?<=[.!?])\s+/)
@@ -118,9 +125,13 @@ for (const symbol of symbols) {
       a.bundle.summary,
     ),
   );
-  const ident = `${a.bundle.summary} ${a.bundle.futureOutlook.opportunities.join(" ")}`;
-  const opps = a.bundle.futureOutlook.opportunities.join(" ");
-  const risks = a.bundle.futureOutlook.risks.join(" ");
+  const ident = `${a.bundle.summary} ${a.bundle.futureOutlook.opportunities.map((x) => `${x.title} ${x.body}`).join(" ")}`;
+  const opps = a.bundle.futureOutlook.opportunities
+    .map((x) => `${x.title} ${x.body}`)
+    .join(" ");
+  const risks = a.bundle.futureOutlook.risks
+    .map((x) => `${x.title} ${x.body}`)
+    .join(" ");
   const filingInSummary = (
     a.bundle.summaryBullets?.length ? a.bundle.summaryBullets : [a.bundle.summary]
   ).filter((b) =>
@@ -141,18 +152,191 @@ for (const symbol of symbols) {
       `${opps} ${risks}`,
     ),
   );
+  const items = [
+    ...a.bundle.futureOutlook.opportunities,
+    ...a.bundle.futureOutlook.risks,
+  ];
+  const longBodies = items.filter(
+    (x) =>
+      x.body.split(/(?<=[.!?])\s+/).filter((s) => s.replace(/[.!?]/g, "").trim().length > 12)
+        .length >= 3,
+  ).length;
+  console.log("outlookWordy?", longBodies >= 4, "longBodies", longBodies);
+  console.log(
+    "oppCount",
+    a.bundle.futureOutlook.opportunities.length,
+    "riskCount",
+    a.bundle.futureOutlook.risks.length,
+  );
+  console.log(
+    "paddedQuota?",
+    a.bundle.futureOutlook.opportunities.length >= 6 &&
+      a.bundle.futureOutlook.risks.length >= 6,
+  );
+
+  if (symbol === "FLNC") {
+    console.log(
+      "flncTeslaLeak?",
+      /fsd|robotaxi|cybercab|optimus|megapack/i.test(`${opps} ${risks}`),
+    );
+    console.log(
+      "flncCompany?",
+      /software|control|backlog|commission|margin|integrated|working capital|balance sheet|capital/i.test(
+        `${opps} ${risks}`,
+      ),
+    );
+    console.log(
+      "flncGenericStorage?",
+      /\b(storage demand|renewables need|policy delays hurt the industry|energy transition drives)\b/i.test(
+        `${opps} ${risks}`,
+      ) &&
+        !/backlog|commission|software|control|margin|working capital|capital/i.test(
+          `${opps} ${risks}`,
+        ),
+    );
+  }
+  if (symbol === "ONDS") {
+    console.log("ondasTeslaLeak?", /fsd|robotaxi|cybercab|optimus|megapack/i.test(`${opps} ${risks}`));
+    console.log("ondasThemes?", /radio|drone|wireless|order|burn|dilut|spectrum|standard/i.test(`${opps} ${risks}`));
+  }
+  if (symbol === "MFC") {
+    console.log("mfcTeslaLeak?", /fsd|robotaxi|cybercab|optimus/i.test(`${opps} ${risks}`));
+    console.log("mfcInsurer?", /asia|canada|wealth|premium|investment|annuit|fee|spread/i.test(`${opps} ${risks}`));
+    console.log(
+      "mfcNestedRegion?",
+      /hong kong|japan|canada|john hancock|united states|\bu\.s\.\b/i.test(`${opps} ${risks}`),
+    );
+    console.log(
+      "mfcProduct?",
+      /wealth|protection|fee|annuit|workplace|investment book/i.test(`${opps} ${risks}`),
+    );
+    console.log(
+      "mfcAsiaOnly?",
+      /\basia\b/i.test(`${opps} ${risks}`) &&
+        !/hong kong|japan|china|singapore/i.test(`${opps} ${risks}`),
+    );
+  }
+  if (symbol === "MRVL") {
+    console.log("mrvlCudaLeak?", /cuda|geforce|fsd|robotaxi/i.test(`${opps} ${risks}`));
+    console.log("mrvlCustom?", /custom|asic|optics|optical|ethernet|cloud|concentrat/i.test(`${opps} ${risks}`));
+    console.log(
+      "mrvlBuyerSpec?",
+      /amazon|aws|google|microsoft|meta|oracle|handful|majority of custom|few large cloud/i.test(
+        `${opps} ${risks}`,
+      ),
+    );
+    console.log(
+      "mrvlBareHyperscalers?",
+      /\bhyperscalers?\b/i.test(`${opps} ${risks}`) &&
+        !/amazon|aws|google|microsoft|meta|handful|majority of custom|few large cloud/i.test(
+          `${opps} ${risks}`,
+        ),
+    );
+  }
+  if (symbol === "MSTR") {
+    console.log("mstrTeslaLeak?", /fsd|robotaxi|cybercab|optimus/i.test(`${opps} ${risks}`));
+    console.log("mstrTreasury?", /bitcoin|btc|nav|treasury|holdings|dilut|premium/i.test(`${opps} ${risks}`));
+    const scaleN = items.filter((x) => {
+      const t = `${x.title} ${x.body}`.toLowerCase();
+      const holdings =
+        /bitcoin|btc|holdings|treasury/.test(t) &&
+        /largest|size of|stack|billion|million|\d[\d,]*\s*btc/.test(t);
+      const funding = /atm|at-the-market|convertible|dilut/.test(t);
+      const prem = /premium|discount|\bnav\b/.test(t);
+      const debt = /\bdebt\b|leverage/.test(t);
+      return holdings || funding || prem || debt;
+    }).length;
+    console.log("mstrScaleBullets", scaleN);
+    console.log(
+      "mstrHoldingsClass?",
+      /largest|size of|stack|\d[\d,]*\s*btc|billion|million/i.test(`${opps} ${risks}`),
+    );
+    console.log("mstrAtm?", /atm|at-the-market|convertible/i.test(`${opps} ${risks}`));
+    console.log("mstrPremOrDebt?", /premium|discount|\bnav\b|\bdebt\b|leverage/i.test(`${opps} ${risks}`));
+    console.log("mstrHasScale?", /\d|billion|million|btc|holdings/i.test(`${opps} ${risks}`));
+  }
   if (symbol === "TSLA") {
+    console.log(
+      "titled?",
+      a.bundle.futureOutlook.opportunities.every((o) => o.title.length >= 3),
+    );
     console.log("tslaEnergy?", /energy|storage/i.test(opps));
-    console.log("tslaAutonomy?", /autonom|robotaxi|self-driv/i.test(opps));
-    console.log("tslaHumanoid?", /humanoid|optimus|robot/i.test(opps));
+    console.log("tslaFsd?", /fsd|full self[- ]driv|software (annuity|attach)/i.test(opps));
+    console.log("tslaAutonomy?", /autonom|robotaxi|cybercab|self-driv/i.test(opps));
+    console.log("tslaHumanoid?", /humanoid|optimus/i.test(opps));
     console.log(
       "tslaRisk?",
-      /price|rival|compet|china|valuat|autonom|robot|execut/i.test(risks),
+      /capex|cash|valuat|multiple|rival|compet|dilut|share count|autonom/i.test(risks),
+    );
+    console.log(
+      "tslaStreetTargetInOutlook?",
+      /price target|average target|\$\d{2,}/i.test(`${opps} ${risks}`),
+    );
+    console.log(
+      "tslaAdvice?",
+      /\b(buy now|sell now|good time to buy)\b/i.test(`${opps} ${risks}`),
+    );
+    const distinctive =
+      /fsd|full self[- ]driv|robotaxi|cybercab|optimus|energy storage|unsupervised/i.test(
+        opps,
+      );
+    const unknownPkg = (
+      `${opps} ${risks}`.match(/unknown in this package|not in this package/gi) ?? []
+    ).length;
+    const filler =
+      /growth opportunities|competitive pressures|\bexecution risk\b|priced for perfection/i.test(
+        `${opps} ${risks}`,
+      );
+    console.log("tslaDistinctive?", distinctive);
+    console.log("tslaUnknownPackageRefrain?", unknownPkg);
+    const multiFig = [
+      ...a.bundle.futureOutlook.opportunities,
+      ...a.bundle.futureOutlook.risks,
+    ].filter((x) => (x.body.match(/\d/g) ?? []).length >= 2).length;
+    console.log("tslaMultiFigureBullets?", multiFig);
+    console.log("tslaFiller?", filler);
+    console.log(
+      "tslaScale?",
+      /fleet|attach|subscription|fcf|free cash|capex|latest[- ]quarter/i.test(`${opps} ${risks}`),
     );
   }
   if (symbol === "MSFT") {
     console.log("msftCloud?", /cloud|ai|workplace|productivity/i.test(opps));
   }
+  const headerSummary = [
+    a.bundle.fundamentalOverview,
+    a.bundle.summary,
+    ...(a.bundle.summaryBullets ?? []),
+  ].join(" ");
+  console.log("copyLanguage", JSON.stringify(ctx.copyLanguage));
+  console.log("hdr", a.bundle.fundamentalOverview);
+  console.log("thickThinHeader?", /\b(thick|thin)\b/i.test(headerSummary));
+  if (ctx.copyLanguage.earnings === "unprofitable") {
+    console.log(
+      "namesLosses?",
+      /unprofitable|operating losses?|not yet profitable/i.test(headerSummary),
+    );
+    console.log(
+      "softenedLosses?",
+      /margin pressure/i.test(headerSummary) &&
+        !/unprofitable|operating losses?|not yet profitable/i.test(headerSummary),
+    );
+  }
+  if (ctx.copyLanguage.margins === "strong") {
+    console.log(
+      "strongMarginLang?",
+      /strong margins|high margins|cash conversion|fortress|net[- ]cash/i.test(
+        headerSummary,
+      ),
+    );
+  }
+  if (ctx.copyLanguage.growth === "elite") {
+    console.log(
+      "eliteGrowthLang?",
+      /very fast|elite growth|hyper-growth|explosive/i.test(headerSummary),
+    );
+  }
+
   if (symbol === "NVDA") {
     const hdr = a.bundle.fundamentalOverview;
     console.log(

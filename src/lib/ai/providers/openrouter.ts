@@ -21,6 +21,7 @@ export async function openRouterChatComplete(input: {
   config: AiFeatureConfig;
   system?: string;
   messages: AiMessage[];
+  signal?: AbortSignal;
 }): Promise<{ text: string; model: string }> {
   const apiKey = getOpenRouterApiKey();
   if (!apiKey) {
@@ -47,9 +48,9 @@ export async function openRouterChatComplete(input: {
   const referer = refererHeader();
   if (referer) headers["HTTP-Referer"] = referer;
 
-  const response = await fetch(
-    `${getOpenRouterBaseUrl()}/chat/completions`,
-    {
+  let response: Response;
+  try {
+    response = await fetch(`${getOpenRouterBaseUrl()}/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -58,8 +59,14 @@ export async function openRouterChatComplete(input: {
         max_tokens: input.config.maxTokens,
         messages,
       }),
-    },
-  );
+      signal: input.signal,
+    });
+  } catch (error) {
+    if (input.signal?.aborted) {
+      throw new AiRequestError("AI request timed out", 504);
+    }
+    throw error;
+  }
 
   const raw = await response.text();
   let payload: OpenRouterChatResponse | null = null;

@@ -12,10 +12,23 @@ export type NarrativeTechnicalBlurbs = {
   meanExtension: string;
 };
 
-export type NarrativeFutureOutlook = {
-  opportunities: string[];
-  risks: string[];
+export type NarrativeOutlookItem = {
+  title: string;
+  body: string;
 };
+
+export type NarrativeFutureOutlook = {
+  opportunities: NarrativeOutlookItem[];
+  risks: NarrativeOutlookItem[];
+};
+
+export function outlookItemText(item: NarrativeOutlookItem): string {
+  return `${item.title} ${item.body}`.replace(/\s+/g, " ").trim();
+}
+
+export function outlookListText(items: NarrativeOutlookItem[]): string {
+  return items.map(outlookItemText).join(" ");
+}
 
 export type AnalysisNarrativeBundle = {
   fundamentalOverview: string;
@@ -31,6 +44,13 @@ export type AnalysisNarrativeBundle = {
 export type NarrativeMetricSnap = {
   label: string;
   display: string | null;
+};
+
+/** Compact warehouse/pillar fact for Outlook grounding — display only, never invented. */
+export type NarrativePackageFact = {
+  id: string;
+  label: string;
+  display: string;
 };
 
 export type NarrativeContext = {
@@ -70,6 +90,8 @@ export type NarrativeContext = {
     growth: NarrativeMetricSnap[];
     valuation: NarrativeMetricSnap[];
   };
+  /** Selected growth / margin / cash / leverage / valuation displays for Outlook. */
+  packageFacts: NarrativePackageFact[];
   technical: {
     zone: string | null;
     zoneLabel: string | null;
@@ -91,6 +113,17 @@ export type NarrativeContext = {
     average: number;
     vsPricePct: number | null;
   } | null;
+  /** Copy-only hints from existing metrics/scores — not a new score. */
+  copyLanguage: NarrativeCopyLanguage;
+};
+
+export type NarrativeCopyLanguage = {
+  earnings: "unprofitable" | "profitable" | "treasury_marks" | "unknown";
+  cash: "burning" | "converting" | "unknown";
+  margins: "strong" | "compressed" | "unknown";
+  growth: "elite" | "solid" | "slow" | "unknown";
+  balanceSheet: "fortress" | "adequate" | "weak" | "unknown";
+  valuationConstraint: "expensive" | "full" | "not_the_story" | "unknown";
 };
 
 export type NarrativeResponse = {
@@ -98,4 +131,6 @@ export type NarrativeResponse = {
   source: "ai" | "cache" | "fallback";
   configured: boolean;
   model: string | null;
+  /** Present when source is fallback after timeout or a failed generate. */
+  error?: string | null;
 };
