@@ -6,6 +6,11 @@ import {
   type BudgetTransaction,
   type CategoryGoal,
 } from "@/types/budget";
+import {
+  getOutflowActivityForCategory,
+  isExpenseTransaction,
+  isIncomeTransaction,
+} from "@/lib/budget/transactions";
 
 export type CategoryBudgetStatus = "healthy" | "low" | "overspent";
 
@@ -58,9 +63,10 @@ export function getCategoryActivity(
   categoryId: string,
   monthKey: string,
 ): number {
-  return getTransactionsForMonth(transactions, monthKey)
-    .filter((tx) => tx.type === "outflow" && tx.categoryId === categoryId)
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  return getTransactionsForMonth(transactions, monthKey).reduce(
+    (sum, tx) => sum + getOutflowActivityForCategory(tx, categoryId),
+    0,
+  );
 }
 
 export function getCategoryActivityThroughMonth(
@@ -68,9 +74,10 @@ export function getCategoryActivityThroughMonth(
   categoryId: string,
   monthKey: string,
 ): number {
-  return getTransactionsThroughMonth(transactions, monthKey)
-    .filter((tx) => tx.type === "outflow" && tx.categoryId === categoryId)
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  return getTransactionsThroughMonth(transactions, monthKey).reduce(
+    (sum, tx) => sum + getOutflowActivityForCategory(tx, categoryId),
+    0,
+  );
 }
 
 export function getMonthAssignments(
@@ -123,7 +130,7 @@ export function getIncomeThroughMonth(
   monthKey: string,
 ): number {
   return getTransactionsThroughMonth(transactions, monthKey)
-    .filter((tx) => tx.type === "inflow")
+    .filter(isIncomeTransaction)
     .reduce((sum, tx) => sum + tx.amount, 0);
 }
 
@@ -180,10 +187,10 @@ export function computeMonthSummary(
 ): MonthBudgetSummary {
   const monthTransactions = getTransactionsForMonth(budget.transactions, monthKey);
   const totalIncome = monthTransactions
-    .filter((tx) => tx.type === "inflow")
+    .filter(isIncomeTransaction)
     .reduce((sum, tx) => sum + tx.amount, 0);
   const totalSpent = monthTransactions
-    .filter((tx) => tx.type === "outflow")
+    .filter(isExpenseTransaction)
     .reduce((sum, tx) => sum + tx.amount, 0);
   const assignments = getMonthAssignments(budget, monthKey);
   const totalAssigned = Object.values(assignments).reduce(

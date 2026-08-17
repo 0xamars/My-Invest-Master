@@ -27,18 +27,30 @@ export interface BudgetCategory {
   sortOrder: number;
 }
 
-export type BudgetTransactionType = "inflow" | "outflow";
+export type BudgetTransactionType = "inflow" | "outflow" | "transfer";
+
+export interface BudgetTransactionSplit {
+  id: string;
+  categoryId: string | null;
+  amount: number;
+  memo?: string;
+}
 
 export interface BudgetTransaction {
   id: string;
   date: string;
   payee: string;
   accountId: string;
+  /** Null for inflows (Ready to Assign) and transfers. Unused when splits are present. */
   categoryId: string | null;
   amount: number;
   type: BudgetTransactionType;
   cleared: boolean;
   memo?: string;
+  /** Destination account when type is "transfer". */
+  transferAccountId?: string;
+  /** Category lines for split outflows. Activity uses these instead of categoryId. */
+  splits?: BudgetTransactionSplit[];
 }
 
 export interface MonthBudget {

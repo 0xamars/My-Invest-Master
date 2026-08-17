@@ -90,7 +90,7 @@ export function filterTransactions(
     monthKey?: string | "all";
     categoryId?: string | "all";
     accountId?: string | "all";
-    type?: "all" | "inflow" | "outflow";
+    type?: "all" | "inflow" | "outflow" | "transfer";
     search?: string;
   },
 ) {
@@ -101,11 +101,19 @@ export function filterTransactions(
   }
 
   if (options.accountId && options.accountId !== "all") {
-    rows = rows.filter((tx) => tx.accountId === options.accountId);
+    rows = rows.filter(
+      (tx) =>
+        tx.accountId === options.accountId ||
+        (tx.type === "transfer" && tx.transferAccountId === options.accountId),
+    );
   }
 
   if (options.categoryId && options.categoryId !== "all") {
-    rows = rows.filter((tx) => tx.categoryId === options.categoryId);
+    rows = rows.filter(
+      (tx) =>
+        tx.categoryId === options.categoryId ||
+        Boolean(tx.splits?.some((line) => line.categoryId === options.categoryId)),
+    );
   }
 
   if (options.type && options.type !== "all") {

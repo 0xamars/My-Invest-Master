@@ -28,6 +28,7 @@ import {
   getUnclearedTransactions,
 } from "@/lib/budget/accounts";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
+import { getTransactionDisplay } from "@/lib/budget/transactions";
 import type { BudgetAccount, BudgetPlan } from "@/types/budget";
 import { cn } from "@/lib/utils";
 
@@ -211,7 +212,14 @@ export function BudgetReconcileDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {uncleared.map((tx) => (
+                    {uncleared.map((tx) => {
+                      const display = getTransactionDisplay(
+                        tx,
+                        budget.accounts,
+                        budget.categories,
+                        account.id,
+                      );
+                      return (
                       <TableRow key={tx.id}>
                         <TableCell>
                           <Button
@@ -219,7 +227,7 @@ export function BudgetReconcileDialog({
                             variant={tx.cleared ? "secondary" : "outline"}
                             size="icon-sm"
                             onClick={() => onToggleCleared(tx.id, !tx.cleared)}
-                            aria-label={`Mark ${tx.payee} as cleared`}
+                            aria-label={`Mark ${display.payee} as cleared`}
                             aria-pressed={tx.cleared}
                           >
                             <CheckCircle2
@@ -233,20 +241,23 @@ export function BudgetReconcileDialog({
                         <TableCell className="whitespace-nowrap text-muted-foreground">
                           {formatBudgetDate(tx.date)}
                         </TableCell>
-                        <TableCell className="font-medium">{tx.payee}</TableCell>
+                        <TableCell className="font-medium">{display.payee}</TableCell>
                         <TableCell
                           className={cn(
                             "text-right font-semibold tabular-nums",
-                            tx.type === "inflow"
-                              ? "text-[var(--brand-green)]"
-                              : "text-[var(--brand-orange)]",
+                            display.isTransfer
+                              ? "text-foreground"
+                              : display.isInflowLike
+                                ? "text-[var(--brand-green)]"
+                                : "text-[var(--brand-orange)]",
                           )}
                         >
-                          {tx.type === "inflow" ? "+" : "−"}
+                          {display.amountPrefix}
                           {formatBudgetMoney(tx.amount)}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

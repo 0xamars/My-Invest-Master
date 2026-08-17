@@ -9,14 +9,27 @@ export function removeAccountFromBudget(
   let nextTransactions = plan.transactions;
 
   if (strategy.type === "move") {
-    nextTransactions = plan.transactions.map((tx) =>
-      tx.accountId === accountId
-        ? { ...tx, accountId: strategy.targetAccountId }
-        : tx,
-    );
+    nextTransactions = plan.transactions
+      .map((tx) => {
+        const nextAccountId =
+          tx.accountId === accountId ? strategy.targetAccountId : tx.accountId;
+        const nextTransferAccountId =
+          tx.transferAccountId === accountId
+            ? strategy.targetAccountId
+            : tx.transferAccountId;
+        return {
+          ...tx,
+          accountId: nextAccountId,
+          transferAccountId: nextTransferAccountId,
+        };
+      })
+      .filter((tx) => {
+        if (tx.type !== "transfer") return true;
+        return Boolean(tx.transferAccountId) && tx.accountId !== tx.transferAccountId;
+      });
   } else {
     nextTransactions = plan.transactions.filter(
-      (tx) => tx.accountId !== accountId,
+      (tx) => tx.accountId !== accountId && tx.transferAccountId !== accountId,
     );
   }
 

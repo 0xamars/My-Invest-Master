@@ -24,6 +24,7 @@ import {
 import { useBudget } from "@/contexts/budget-context";
 import { getRunningBalances, sortedAccounts } from "@/lib/budget/accounts";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
+import { getTransactionDisplay } from "@/lib/budget/transactions";
 import {
   filterTransactions,
   getBudgetMonthOptions,
@@ -38,9 +39,9 @@ export function BudgetTransactionsContent() {
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "inflow" | "outflow">(
-    "all",
-  );
+  const [typeFilter, setTypeFilter] = useState<
+    "all" | "inflow" | "outflow" | "transfer"
+  >("all");
   const [search, setSearch] = useState("");
 
   const accounts = useMemo(
@@ -79,20 +80,15 @@ export function BudgetTransactionsContent() {
     );
   }, [accountFilter, budget.accounts, budget.transactions]);
 
-  function categoryName(categoryId: string | null): string {
-    if (!categoryId) return "Ready to Assign";
-    return (
-      budget.categories.find((category) => category.id === categoryId)?.name ??
-      "Unknown"
-    );
-  }
-
   function accountName(accountId: string): string {
     return (
       budget.accounts.find((account) => account.id === accountId)?.name ??
       "Unknown"
     );
   }
+
+  const viewingAccountId =
+    accountFilter === "all" ? undefined : accountFilter;
 
   const showRunningBalance = accountFilter !== "all";
 
@@ -101,7 +97,7 @@ export function BudgetTransactionsContent() {
       <CategoryPageHeader
         category="budget"
         title="Transactions"
-        description="Full history of income and spending across your accounts."
+        description="Full history of income, spending, and transfers across your accounts."
         action={
           <Button type="button" onClick={openAddTransaction}>
             <Plus className="size-4" />
@@ -176,7 +172,9 @@ export function BudgetTransactionsContent() {
           <Select
             value={typeFilter}
             onValueChange={(value) =>
-              setTypeFilter((value ?? "all") as "all" | "inflow" | "outflow")
+              setTypeFilter(
+                (value ?? "all") as "all" | "inflow" | "outflow" | "transfer",
+              )
             }
           >
             <SelectTrigger>
@@ -186,6 +184,7 @@ export function BudgetTransactionsContent() {
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="inflow">Inflow</SelectItem>
               <SelectItem value="outflow">Outflow</SelectItem>
+              <SelectItem value="transfer">Transfer</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -212,84 +211,100 @@ export function BudgetTransactionsContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell>
-                    <Button
-                      type="button"
-                      variant={tx.cleared ? "secondary" : "ghost"}
-                      size="icon-sm"
-                      onClick={() => setTransactionCleared(tx.id, !tx.cleared)}
-                      aria-label={
-                        tx.cleared
-                          ? `Mark ${tx.payee} as uncleared`
-                          : `Mark ${tx.payee} as cleared`
-                      }
-                      aria-pressed={tx.cleared}
-                    >
-                      <CheckCircle2
-                        className={cn(
-                          "size-3.5",
-                          tx.cleared && "text-[var(--brand-green)]",
-                        )}
-                      />
-                    </Button>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
-                    {formatBudgetDate(tx.date)}
-                  </TableCell>
-                  <TableCell className="font-medium">{tx.payee}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {accountName(tx.accountId)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {categoryName(tx.categoryId)}
-                  </TableCell>
-                  <TableCell className="max-w-[160px] truncate text-muted-foreground">
-                    {tx.memo ?? "—"}
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      "text-right font-semibold tabular-nums",
-                      tx.type === "inflow"
-                        ? "text-[var(--brand-green)]"
-                        : "text-[var(--brand-orange)]",
-                    )}
-                  >
-                    {tx.type === "inflow" ? "+" : "−"}
-                    {formatBudgetMoney(tx.amount)}
-                  </TableCell>
-                  {showRunningBalance && (
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {formatBudgetMoney(
-                        runningBalanceByTxId.get(tx.id) ?? 0,
-                      )}
+              {filtered.map((tx) => {
+                const display = getTransactionDisplay(
+                  tx,
+                  budget.accounts,
+                  budget.categories,
+                  viewingAccountId,
+                );
+                const accountLabel =
+                  tx.type === "transfer" && tx.transferAccountId
+                    ? `${accountName(tx.accountId)} → ${accountName(tx.transferAccountId)}`
+                    : accountName(tx.accountId);
+
+                return (
+                  <TableRow key={tx.id}>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant={tx.cleared ? "secondary" : "ghost"}
+                        size="icon-sm"
+                        onClick={() => setTransactionCleared(tx.id, !tx.cleared)}
+                        aria-label={
+                          tx.cleared
+                            ? `Mark ${display.payee} as uncleared`
+                            : `Mark ${display.payee} as cleared`
+                        }
+                        aria-pressed={tx.cleared}
+                      >
+                        <CheckCircle2
+                          className={cn(
+                            "size-3.5",
+                            tx.cleared && "text-[var(--brand-green)]",
+                          )}
+                        />
+                      </Button>
                     </TableCell>
-                  )}
-                  <TableCell>
-                    <div className="flex justify-end gap-0.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => openEditTransaction(tx.id)}
-                        aria-label={`Edit ${tx.payee}`}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => deleteTransaction(tx.id)}
-                        aria-label={`Delete ${tx.payee}`}
-                      >
-                        <Trash2 className="size-3.5 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {formatBudgetDate(tx.date)}
+                    </TableCell>
+                    <TableCell className="font-medium">{display.payee}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {accountLabel}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {display.categoryLabel}
+                    </TableCell>
+                    <TableCell className="max-w-[160px] truncate text-muted-foreground">
+                      {tx.memo ?? "—"}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "text-right font-semibold tabular-nums",
+                        display.isTransfer
+                          ? "text-foreground"
+                          : display.isInflowLike
+                            ? "text-[var(--brand-green)]"
+                            : "text-[var(--brand-orange)]",
+                      )}
+                    >
+                      {display.amountPrefix}
+                      {display.amountPrefix ? "" : display.isTransfer ? "↔ " : ""}
+                      {formatBudgetMoney(tx.amount)}
+                    </TableCell>
+                    {showRunningBalance && (
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatBudgetMoney(
+                          runningBalanceByTxId.get(tx.id) ?? 0,
+                        )}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <div className="flex justify-end gap-0.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => openEditTransaction(tx.id)}
+                          aria-label={`Edit ${display.payee}`}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => deleteTransaction(tx.id)}
+                          aria-label={`Delete ${display.payee}`}
+                        >
+                          <Trash2 className="size-3.5 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}

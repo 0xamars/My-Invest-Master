@@ -16,9 +16,13 @@ export function removeCategoryFromBudget(
     ...budget,
     categories: budget.categories.filter((category) => category.id !== categoryId),
     goals: budget.goals.filter((goal) => goal.categoryId !== categoryId),
-    transactions: budget.transactions.map((tx) =>
-      tx.categoryId === categoryId ? { ...tx, categoryId: null } : tx,
-    ),
+    transactions: budget.transactions.map((tx) => ({
+      ...tx,
+      categoryId: tx.categoryId === categoryId ? null : tx.categoryId,
+      splits: tx.splits?.map((line) =>
+        line.categoryId === categoryId ? { ...line, categoryId: null } : line,
+      ),
+    })),
     monthBudgets,
   };
 }

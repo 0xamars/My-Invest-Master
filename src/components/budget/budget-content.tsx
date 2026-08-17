@@ -31,6 +31,7 @@ import {
   getSortedTransactions,
 } from "@/lib/budget/calculations";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
+import { getTransactionDisplay } from "@/lib/budget/transactions";
 import { cn } from "@/lib/utils";
 
 export function BudgetContent() {
@@ -114,14 +115,6 @@ export function BudgetContent() {
   const otherGroupsForDelete = deletingGroup
     ? budget.categoryGroups.filter((group) => group.id !== deletingGroup.id)
     : [];
-
-  function categoryName(categoryId: string | null): string {
-    if (!categoryId) return "Ready to Assign";
-    return (
-      budget.categories.find((category) => category.id === categoryId)?.name ??
-      "Unknown"
-    );
-  }
 
   function accountName(accountId: string): string {
     return (
@@ -217,31 +210,45 @@ export function BudgetContent() {
           </div>
         ) : (
           <div className="divide-y divide-border/30">
-            {recentTransactions.map((tx) => (
+            {recentTransactions.map((tx) => {
+              const display = getTransactionDisplay(
+                tx,
+                budget.accounts,
+                budget.categories,
+              );
+              const accountLabel =
+                tx.type === "transfer" && tx.transferAccountId
+                  ? `${accountName(tx.accountId)} → ${accountName(tx.transferAccountId)}`
+                  : accountName(tx.accountId);
+
+              return (
               <div
                 key={tx.id}
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{tx.payee}</p>
+                  <p className="truncate text-sm font-medium">{display.payee}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatBudgetDate(tx.date)} · {accountName(tx.accountId)} ·{" "}
-                    {categoryName(tx.categoryId)}
+                    {formatBudgetDate(tx.date)} · {accountLabel} ·{" "}
+                    {display.categoryLabel}
                   </p>
                 </div>
                 <span
                   className={cn(
                     "shrink-0 text-sm font-semibold tabular-nums",
-                    tx.type === "inflow"
-                      ? "text-[var(--brand-green)]"
-                      : "text-[var(--brand-orange)]",
+                    display.isTransfer
+                      ? "text-foreground"
+                      : display.isInflowLike
+                        ? "text-[var(--brand-green)]"
+                        : "text-[var(--brand-orange)]",
                   )}
                 >
-                  {tx.type === "inflow" ? "+" : "−"}
+                  {display.amountPrefix || (display.isTransfer ? "↔ " : "")}
                   {formatBudgetMoney(tx.amount)}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
