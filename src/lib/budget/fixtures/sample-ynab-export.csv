@@ -1,0 +1,6 @@
+Account,Date,Payee,Category,Memo,Outflow,Inflow,Cleared
+Chequing,03/01/2026,Acme Payroll,,March pay,0.00,3200.00,Cleared
+Chequing,03/02/2026,Whole Foods,Groceries,Weekly groceries,84.00,0.00,Uncleared
+Chequing,03/03/2026,Transfer : Savings,,,500.00,0.00,Cleared
+Savings,03/03/2026,Transfer : Chequing,,,0.00,500.00,Cleared
+Chequing,03/04/2026,Coffee Shop,Dining Out,,6.00,0.00,C

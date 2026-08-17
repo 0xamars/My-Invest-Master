@@ -301,7 +301,7 @@ export function BudgetTransactionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "sm:max-w-md",
+          "budget-dialog sm:max-w-md",
           (type === "transfer" || splitEnabled) && "sm:max-w-lg",
         )}
       >
@@ -319,18 +319,18 @@ export function BudgetTransactionDialog({
               handleTypeChange(value as BudgetTransactionType)
             }
           >
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="inflow" className="gap-1.5">
+            <TabsList className="grid w-full grid-cols-3 rounded-full p-1">
+              <TabsTrigger value="inflow" className="gap-1.5 rounded-full">
                 <ArrowDownLeft className="size-3.5 text-[var(--brand-green)]" />
                 Inflow
               </TabsTrigger>
-              <TabsTrigger value="outflow" className="gap-1.5">
+              <TabsTrigger value="outflow" className="gap-1.5 rounded-full">
                 <ArrowUpRight className="size-3.5 text-[var(--brand-orange)]" />
                 Outflow
               </TabsTrigger>
               <TabsTrigger
                 value="transfer"
-                className="gap-1.5"
+                className="gap-1.5 rounded-full"
                 disabled={!canTransfer}
               >
                 <ArrowLeftRight className="size-3.5" />

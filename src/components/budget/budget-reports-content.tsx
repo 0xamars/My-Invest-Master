@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   Bar,
   BarChart,
@@ -12,11 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  AnalyticsChartCard,
-  AnalyticsChartEmpty,
-} from "@/components/analytics/analytics-chart-card";
-import { CategoryPageHeader } from "@/components/category/category-page-header";
+import { BudgetPageHeader, BudgetPanel } from "@/components/budget/budget-ui";
 import {
   ChartContainer,
   ChartTooltip,
@@ -76,11 +72,10 @@ export function BudgetReportsContent() {
   } satisfies ChartConfig;
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <CategoryPageHeader
-        category="budget"
+    <div className="flex flex-1 flex-col gap-5">
+      <BudgetPageHeader
         title="Reports"
-        description="Visualize spending patterns, cash flow, and budget health."
+        description="Spending, cash flow, and Ready to Assign over time."
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -94,12 +89,12 @@ export function BudgetReportsContent() {
         />
       </div>
 
-      <AnalyticsChartCard
+      <ChartFrame
         title="Income vs Expenses"
         description="Monthly cash flow over the last 6 months"
       >
         {cashFlowSeries.every((row) => row.income === 0 && row.expenses === 0) ? (
-          <AnalyticsChartEmpty message="Add transactions to see income and expense trends." />
+          <ChartEmpty message="Add transactions to see income and expense trends." />
         ) : (
           <ChartContainer config={cashFlowConfig} className="aspect-[16/7] h-[280px] w-full">
             <BarChart data={cashFlowSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -138,14 +133,14 @@ export function BudgetReportsContent() {
             </BarChart>
           </ChartContainer>
         )}
-      </AnalyticsChartCard>
+      </ChartFrame>
 
-      <AnalyticsChartCard
-        title="Available to Budget"
-        description="Ready-to-assign balance over the last 6 months"
+      <ChartFrame
+        title="Ready to Assign"
+        description="Balance over the last 6 months"
       >
         {availableSeries.every((row) => row.available === 0) ? (
-          <AnalyticsChartEmpty message="Assign income to categories to track available balance." />
+          <ChartEmpty message="Assign income to categories to track Ready to Assign." />
         ) : (
           <ChartContainer config={availableConfig} className="aspect-[16/7] h-[280px] w-full">
             <ComposedChart data={availableSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -189,7 +184,35 @@ export function BudgetReportsContent() {
             </ComposedChart>
           </ChartContainer>
         )}
-      </AnalyticsChartCard>
+      </ChartFrame>
+    </div>
+  );
+}
+
+function ChartFrame({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <BudgetPanel>
+      <div className="px-5 py-4">
+        <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="px-4 pb-5">{children}</div>
+    </BudgetPanel>
+  );
+}
+
+function ChartEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-[200px] items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
+      {message}
     </div>
   );
 }
@@ -218,9 +241,9 @@ function SpendingByCategoryChart({
   }, [chartData]);
 
   return (
-    <AnalyticsChartCard title={title} description="Top categories by spending">
+    <ChartFrame title={title} description="Top categories by spending">
       {chartData.length === 0 ? (
-        <AnalyticsChartEmpty message="No spending recorded for this month." />
+        <ChartEmpty message="No spending recorded for this month." />
       ) : (
         <ChartContainer
           config={chartConfig}
@@ -259,6 +282,6 @@ function SpendingByCategoryChart({
           </BarChart>
         </ChartContainer>
       )}
-    </AnalyticsChartCard>
+    </ChartFrame>
   );
 }

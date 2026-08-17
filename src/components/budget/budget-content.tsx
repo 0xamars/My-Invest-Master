@@ -3,7 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Plus } from "lucide-react";
-import { CategoryPageHeader } from "@/components/category/category-page-header";
+import {
+  BudgetKindBadge,
+  BudgetMoney,
+  BudgetPageHeader,
+  BudgetPanel,
+} from "@/components/budget/budget-ui";
 import {
   AddCategoryDialog,
   AddCategoryGroupDialog,
@@ -32,7 +37,6 @@ import {
 } from "@/lib/budget/calculations";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
-import { cn } from "@/lib/utils";
 
 export function BudgetContent() {
   const {
@@ -124,19 +128,18 @@ export function BudgetContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <CategoryPageHeader
-        category="budget"
-        title="Budget"
-        description="Give every dollar a job — track income, assign spending, and stay in control."
+    <div className="flex flex-1 flex-col gap-5">
+      <BudgetPageHeader
+        title="This month"
+        description="Give every dollar a job. Leftover Ready to Assign and category available carry forward."
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <>
             <BudgetMonthNav monthKey={monthKey} onMonthChange={setMonthKey} />
             <Button type="button" onClick={openAddTransaction}>
               <Plus className="size-4" />
-              Add Transaction
+              Add
             </Button>
-          </div>
+          </>
         }
       />
 
@@ -186,13 +189,11 @@ export function BudgetContent() {
         }}
       />
 
-      <div className="surface-card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+      <BudgetPanel>
+        <div className="flex items-center justify-between px-4 py-3 sm:px-5">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">
-              Recent Transactions
-            </h2>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <h2 className="text-sm font-semibold tracking-tight">Recent</h2>
+            <p className="text-xs text-muted-foreground">This month on the register</p>
           </div>
           <Button
             variant="ghost"
@@ -200,16 +201,16 @@ export function BudgetContent() {
             className="gap-1"
             render={<Link href={`/budget/plans/${planId}/transactions`} />}
           >
-            View all
+            Register
             <ArrowRight className="size-3.5" />
           </Button>
         </div>
         {recentTransactions.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            No transactions this month yet.
+          <div className="px-4 pb-6 text-sm text-muted-foreground sm:px-5">
+            No activity this month yet.
           </div>
         ) : (
-          <div className="divide-y divide-border/30">
+          <div className="divide-y divide-border/40">
             {recentTransactions.map((tx) => {
               const display = getTransactionDisplay(
                 tx,
@@ -222,36 +223,39 @@ export function BudgetContent() {
                   : accountName(tx.accountId);
 
               return (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{display.payee}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatBudgetDate(tx.date)} · {accountLabel} ·{" "}
-                    {display.categoryLabel}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "shrink-0 text-sm font-semibold tabular-nums",
-                    display.isTransfer
-                      ? "text-foreground"
-                      : display.isInflowLike
-                        ? "text-[var(--brand-green)]"
-                        : "text-[var(--brand-orange)]",
-                  )}
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
                 >
-                  {display.amountPrefix || (display.isTransfer ? "↔ " : "")}
-                  {formatBudgetMoney(tx.amount)}
-                </span>
-              </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium">{display.payee}</p>
+                      {display.isTransfer ? <BudgetKindBadge kind="transfer" /> : null}
+                      {display.isSplit ? <BudgetKindBadge kind="split" /> : null}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatBudgetDate(tx.date)} · {accountLabel} ·{" "}
+                      {display.categoryLabel}
+                    </p>
+                  </div>
+                  <BudgetMoney
+                    className="shrink-0 text-sm font-semibold"
+                    value={formatBudgetMoney(tx.amount)}
+                    prefix={display.amountPrefix || (display.isTransfer ? "↔ " : "")}
+                    tone={
+                      display.isTransfer
+                        ? "neutral"
+                        : display.isInflowLike
+                          ? "in"
+                          : "out"
+                    }
+                  />
+                </div>
               );
             })}
           </div>
         )}
-      </div>
+      </BudgetPanel>
 
       <AddCategoryGroupDialog
         open={groupOpen}

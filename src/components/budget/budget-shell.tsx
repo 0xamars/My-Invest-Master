@@ -63,32 +63,30 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
 
   return (
     <>
-      <div className="mb-6 space-y-4">
-        <div className="space-y-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 gap-1.5 text-muted-foreground"
-            render={<Link href="/budget" />}
-          >
-            <ArrowLeft className="size-3.5" />
-            All plans
-          </Button>
-          <Input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onBlur={handleNameBlur}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.currentTarget.blur();
-              }
-            }}
-            aria-label="Budget plan name"
-            className="h-auto max-w-xl border-none bg-transparent px-0 text-2xl font-semibold tracking-tight shadow-none focus-visible:ring-0"
-          />
-        </div>
+      <div className="mb-5 space-y-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2 h-7 gap-1.5 text-muted-foreground"
+          render={<Link href="/budget" />}
+        >
+          <ArrowLeft className="size-3.5" />
+          All plans
+        </Button>
+        <Input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onBlur={handleNameBlur}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.currentTarget.blur();
+            }
+          }}
+          aria-label="Budget plan name"
+          className="h-auto max-w-xl border-none bg-transparent px-0 text-[1.65rem] font-semibold tracking-tight shadow-none focus-visible:ring-0"
+        />
 
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/50 pb-4">
+        <nav className="budget-nav" aria-label="Budget sections">
           {navItems.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
@@ -97,11 +95,12 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
             return (
               <Button
                 key={item.href}
-                variant={isActive ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
                 className={cn(
-                  "gap-1.5",
-                  isActive && "bg-[var(--brand-green)]/12 text-[var(--brand-green)]",
+                  "h-8 rounded-full px-3",
+                  isActive &&
+                    "bg-card text-foreground shadow-sm ring-1 ring-border/70",
                 )}
                 render={<Link href={item.href} />}
               >
@@ -110,7 +109,7 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
               </Button>
             );
           })}
-        </div>
+        </nav>
       </div>
 
       {children}
@@ -118,7 +117,7 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
       <Button
         type="button"
         size="icon-lg"
-        className="fixed bottom-24 right-6 z-40 size-14 rounded-full shadow-xl shadow-black/30"
+        className="fixed right-6 bottom-24 z-40 size-14 rounded-full shadow-xl shadow-[var(--brand-green)]/25"
         onClick={openAddTransaction}
         aria-label="Quick add transaction"
       >

@@ -22,6 +22,7 @@ interface BudgetContextValue {
   syncError: string | null;
   isCloudSynced: boolean;
   addTransaction: (input: AddBudgetTransactionInput) => void;
+  importTransactions: (inputs: AddBudgetTransactionInput[]) => void;
   updateTransaction: (
     transactionId: string,
     input: AddBudgetTransactionInput,

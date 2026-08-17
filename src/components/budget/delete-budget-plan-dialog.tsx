@@ -33,7 +33,7 @@ export function DeleteBudgetPlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete Budget Plan</DialogTitle>
           <DialogDescription>

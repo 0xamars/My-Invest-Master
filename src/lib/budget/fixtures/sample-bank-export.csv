@@ -1,0 +1,7 @@
+Date,Description,Amount,Memo
+2026-03-01,Acme Payroll,3200,March pay
+2026-03-02,"Whole Foods, Inc.",-84,Weekly groceries
+2026-03-03,Transfer to Savings,-500,
+2026-03-04,Coffee Shop,-6
+2026-03-05,Not a date,oops,
+2026-03-06,Zero Dollar,0,

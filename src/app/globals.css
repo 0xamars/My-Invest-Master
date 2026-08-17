@@ -702,6 +702,156 @@
   .assistant-fab:hover .assistant-fab-icon {
     color: color-mix(in oklch, var(--brand-green) 70%, var(--brand-orange));
   }
+
+  /* Budget product chrome — scoped so Invest/Retire stay untouched */
+  .budget-app {
+    letter-spacing: -0.014em;
+  }
+
+  .budget-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.35rem;
+    border: 1px solid color-mix(in oklch, var(--brand-green) 22%, var(--border));
+    background:
+      radial-gradient(ellipse 80% 90% at 0% 0%, oklch(0.67 0.19 152 / 16%), transparent 55%),
+      radial-gradient(ellipse 50% 70% at 100% 100%, oklch(0.72 0.18 55 / 8%), transparent 50%),
+      var(--card);
+    box-shadow:
+      0 1px 0 oklch(1 0 0 / 55%) inset,
+      0 18px 40px -28px oklch(0.52 0.16 152 / 35%);
+  }
+
+  .dark .budget-hero {
+    border-color: color-mix(in oklch, var(--brand-green) 28%, var(--border));
+    background:
+      radial-gradient(ellipse 80% 90% at 0% 0%, oklch(0.67 0.19 152 / 18%), transparent 55%),
+      radial-gradient(ellipse 50% 70% at 100% 100%, oklch(0.72 0.18 55 / 8%), transparent 50%),
+      var(--card);
+    box-shadow:
+      0 1px 0 oklch(1 0 0 / 5%) inset,
+      0 22px 48px -28px oklch(0 0 0 / 55%);
+  }
+
+  .budget-hero-value {
+    font-size: clamp(2.35rem, 5vw, 3.4rem);
+    font-weight: 650;
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .budget-panel {
+    overflow: hidden;
+    border-radius: 1.15rem;
+    border: 1px solid color-mix(in oklch, var(--border) 88%, transparent);
+    background: var(--card);
+  }
+
+  .dark .budget-panel {
+    border-color: oklch(1 0 0 / 7%);
+  }
+
+  .budget-metric {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.15rem 0;
+  }
+
+  .budget-metric-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .budget-metric-value {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .budget-kind {
+    display: inline-flex;
+    height: 1.25rem;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0 0.45rem;
+    font-size: 0.65rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .budget-kind--transfer {
+    background: oklch(0.55 0.04 250 / 12%);
+    color: oklch(0.42 0.08 250);
+  }
+
+  .dark .budget-kind--transfer {
+    background: oklch(0.7 0.08 250 / 16%);
+    color: oklch(0.82 0.08 250);
+  }
+
+  .budget-kind--split {
+    background: oklch(0.72 0.18 55 / 14%);
+    color: oklch(0.5 0.14 55);
+  }
+
+  .dark .budget-kind--split {
+    background: oklch(0.72 0.18 55 / 16%);
+    color: oklch(0.84 0.12 55);
+  }
+
+  .budget-dropzone {
+    display: flex;
+    min-height: 9.5rem;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border-radius: 1rem;
+    border: 1.5px dashed color-mix(in oklch, var(--brand-green) 35%, var(--border));
+    background: color-mix(in oklch, var(--brand-green) 5%, var(--card));
+    padding: 1.25rem;
+    text-align: center;
+    transition:
+      border-color 150ms ease,
+      background-color 150ms ease,
+      transform 150ms ease;
+  }
+
+  .budget-dropzone:hover,
+  .budget-dropzone[data-active="true"] {
+    border-color: color-mix(in oklch, var(--brand-green) 65%, var(--border));
+    background: color-mix(in oklch, var(--brand-green) 10%, var(--card));
+  }
+
+  .budget-nav {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--muted) 80%, transparent);
+    padding: 0.2rem;
+  }
+
+  .budget-row-overspent {
+    background: color-mix(in oklch, var(--brand-red) 7%, transparent);
+  }
+
+  .dark .budget-row-overspent {
+    background: color-mix(in oklch, var(--brand-red) 12%, transparent);
+  }
+}
+
+[data-slot="dialog-content"].budget-dialog {
+  border-radius: 1.15rem;
 }
 
 @keyframes assistant-fab-pulse {
