@@ -2,8 +2,8 @@ import type {
   BudgetAccount,
   BudgetAccountType,
   BudgetTransaction,
-  BudgetTransactionType,
 } from "@/types/budget";
+import { transactionTouchesAccount } from "@/lib/budget/transactions";
 
 export const ACCOUNT_TYPE_LABELS: Record<BudgetAccountType, string> = {
   chequing: "Chequing",
@@ -20,7 +20,7 @@ export function isLiabilityAccount(type: BudgetAccountType): boolean {
 
 export function getTransactionEffect(
   accountType: BudgetAccountType,
-  type: BudgetTransactionType,
+  type: "inflow" | "outflow",
   amount: number,
 ): number {
   if (isLiabilityAccount(accountType)) {
@@ -29,11 +29,29 @@ export function getTransactionEffect(
   return type === "inflow" ? amount : -amount;
 }
 
+/** Balance change of `tx` on `account`, including the far side of a transfer. */
+export function getTransactionBalanceEffect(
+  account: BudgetAccount,
+  tx: BudgetTransaction,
+): number {
+  if (tx.type === "transfer") {
+    const isFrom = tx.accountId === account.id;
+    const isTo = tx.transferAccountId === account.id;
+    if (!isFrom && !isTo) return 0;
+    return getTransactionEffect(
+      account.type,
+      isFrom ? "outflow" : "inflow",
+      tx.amount,
+    );
+  }
+  return getTransactionEffect(account.type, tx.type, tx.amount);
+}
+
 export function getAccountTransactions(
   accountId: string,
   transactions: BudgetTransaction[],
 ): BudgetTransaction[] {
-  return transactions.filter((tx) => tx.accountId === accountId);
+  return transactions.filter((tx) => transactionTouchesAccount(tx, accountId));
 }
 
 export function getAccountBalance(
@@ -47,7 +65,7 @@ export function getAccountBalance(
   }
 
   return rows.reduce(
-    (sum, tx) => sum + getTransactionEffect(account.type, tx.type, tx.amount),
+    (sum, tx) => sum + getTransactionBalanceEffect(account, tx),
     0,
   );
 }
@@ -71,11 +89,7 @@ export function getRunningBalances(
 
   let balance = 0;
   return sorted.map((transaction) => {
-    balance += getTransactionEffect(
-      account.type,
-      transaction.type,
-      transaction.amount,
-    );
+    balance += getTransactionBalanceEffect(account, transaction);
     return { transaction, runningBalance: balance };
   });
 }

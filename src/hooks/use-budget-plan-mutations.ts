@@ -18,6 +18,13 @@ import type {
   CategoryGoal,
 } from "@/types/budget";
 
+export interface AddBudgetTransactionSplitInput {
+  id?: string;
+  categoryId: string | null;
+  amount: number;
+  memo?: string;
+}
+
 export interface AddBudgetTransactionInput {
   date: string;
   payee: string;
@@ -27,6 +34,44 @@ export interface AddBudgetTransactionInput {
   type: BudgetTransactionType;
   memo?: string;
   cleared?: boolean;
+  transferAccountId?: string;
+  splits?: AddBudgetTransactionSplitInput[];
+}
+
+function toStoredTransaction(
+  input: AddBudgetTransactionInput,
+  existing?: BudgetTransaction,
+): BudgetTransaction {
+  const type = input.type;
+  const splits =
+    type === "outflow" && input.splits && input.splits.length > 0
+      ? input.splits.map((line, index) => ({
+          id: line.id ?? existing?.splits?.[index]?.id ?? crypto.randomUUID(),
+          categoryId: line.categoryId,
+          amount: Math.abs(line.amount),
+          memo: line.memo?.trim() || undefined,
+        }))
+      : undefined;
+
+  return {
+    id: existing?.id ?? crypto.randomUUID(),
+    date: input.date,
+    payee: input.payee.trim(),
+    accountId: input.accountId,
+    categoryId:
+      type === "inflow" || type === "transfer" || splits
+        ? null
+        : input.categoryId,
+    amount: Math.abs(input.amount),
+    type,
+    cleared: input.cleared ?? existing?.cleared ?? false,
+    memo: input.memo?.trim() || undefined,
+    transferAccountId:
+      type === "transfer" && input.transferAccountId
+        ? input.transferAccountId
+        : undefined,
+    splits,
+  };
 }
 
 export function useBudgetPlanMutations(planId: string) {
@@ -45,20 +90,7 @@ export function useBudgetPlanMutations(planId: string) {
     (input: AddBudgetTransactionInput) => {
       commitPlan((current) => ({
         ...current,
-        transactions: [
-          ...current.transactions,
-          {
-            id: crypto.randomUUID(),
-            date: input.date,
-            payee: input.payee.trim(),
-            accountId: input.accountId,
-            categoryId: input.categoryId,
-            amount: Math.abs(input.amount),
-            type: input.type,
-            cleared: input.cleared ?? false,
-            memo: input.memo?.trim() || undefined,
-          },
-        ],
+        transactions: [...current.transactions, toStoredTransaction(input)],
       }));
     },
     [commitPlan],
@@ -79,19 +111,7 @@ export function useBudgetPlanMutations(planId: string) {
       commitPlan((current) => ({
         ...current,
         transactions: current.transactions.map((tx) =>
-          tx.id === transactionId
-            ? {
-                ...tx,
-                date: input.date,
-                payee: input.payee.trim(),
-                accountId: input.accountId,
-                categoryId: input.categoryId,
-                amount: Math.abs(input.amount),
-                type: input.type,
-                cleared: input.cleared ?? tx.cleared,
-                memo: input.memo?.trim() || undefined,
-              }
-            : tx,
+          tx.id === transactionId ? toStoredTransaction(input, tx) : tx,
         ),
       }));
     },
