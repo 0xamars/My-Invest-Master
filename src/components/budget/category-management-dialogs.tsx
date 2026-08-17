@@ -48,7 +48,7 @@ export function EditCategoryGroupDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Category Group</DialogTitle>
           <DialogDescription>Rename this category group.</DialogDescription>
@@ -111,7 +111,7 @@ export function DeleteCategoryGroupDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete Category Group</DialogTitle>
           <DialogDescription>
@@ -247,7 +247,7 @@ export function EditCategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Category</DialogTitle>
           <DialogDescription>
@@ -307,7 +307,7 @@ export function DeleteCategoryDialog({
 }: DeleteCategoryDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete Category</DialogTitle>
           <DialogDescription>

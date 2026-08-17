@@ -11,25 +11,24 @@ import {
 } from "lucide-react";
 import { AccountDialog } from "@/components/budget/account-dialog";
 import { BudgetReconcileDialog } from "@/components/budget/budget-reconcile-dialog";
-import { CategoryPageHeader } from "@/components/category/category-page-header";
 import { DeleteAccountDialog } from "@/components/budget/delete-account-dialog";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  BudgetEmptyState,
+  BudgetPageHeader,
+  BudgetPanel,
+} from "@/components/budget/budget-ui";
+import { Button } from "@/components/ui/button";
 import { useBudget } from "@/contexts/budget-context";
 import {
   ACCOUNT_TYPE_LABELS,
   formatAccountBalanceLabel,
   getAccountBalance,
   getAccountTransactions,
+  isLiabilityAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
 import { formatBudgetMoney } from "@/lib/budget/format";
+import { cn } from "@/lib/utils";
 import type { BudgetAccount } from "@/types/budget";
 
 function formatReconciledDate(iso?: string): string | null {
@@ -71,130 +70,131 @@ export function BudgetAccountsContent() {
     : 0;
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <CategoryPageHeader
-        category="budget"
+    <div className="flex flex-1 flex-col gap-5">
+      <BudgetPageHeader
         title="Accounts"
-        description="Track balances manually and reconcile against your bank statements."
+        description="On-budget balances. Reconcile against the statement when you are ready."
         action={
-          <Button type="button" onClick={() => setAddOpen(true)} className="gap-2">
+          <Button type="button" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" />
-            Add Account
+            Add account
           </Button>
         }
       />
 
       {accounts.length === 0 ? (
-        <Card className="surface-card border-dashed shadow-none">
-          <CardHeader className="text-center">
-            <CardTitle>No accounts yet</CardTitle>
-            <CardDescription>
-              Add a chequing, savings, or credit card account to start tracking
-              balances and reconciling.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center pb-8">
-            <Button onClick={() => setAddOpen(true)} className="gap-2">
-              <Plus className="size-4" />
-              Add Account
-            </Button>
-          </CardContent>
-        </Card>
+        <BudgetPanel>
+          <BudgetEmptyState
+            icon={<Landmark className="size-5" />}
+            title="No accounts yet"
+            description="Add chequing, savings, or a card to start tracking balances."
+            actions={
+              <Button onClick={() => setAddOpen(true)}>
+                <Plus className="size-4" />
+                Add account
+              </Button>
+            }
+          />
+        </BudgetPanel>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {accounts.map((account) => {
-            const balance = getAccountBalance(account, budget.transactions);
-            const clearedBalance = getAccountBalance(account, budget.transactions, {
-              clearedOnly: true,
-            });
-            const unclearedCount = getAccountTransactions(
-              account.id,
-              budget.transactions,
-            ).filter((tx) => !tx.cleared).length;
-            const lastReconciled = formatReconciledDate(account.lastReconciledAt);
+        <BudgetPanel>
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_8rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] gap-3 border-b border-border/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5">
+            <span>Account</span>
+            <span>Type</span>
+            <span className="text-right">Balance</span>
+            <span className="text-right">Cleared</span>
+            <span />
+          </div>
+          <div className="divide-y divide-border/40">
+            {accounts.map((account) => {
+              const balance = getAccountBalance(account, budget.transactions);
+              const clearedBalance = getAccountBalance(account, budget.transactions, {
+                clearedOnly: true,
+              });
+              const unclearedCount = getAccountTransactions(
+                account.id,
+                budget.transactions,
+              ).filter((tx) => !tx.cleared).length;
+              const lastReconciled = formatReconciledDate(account.lastReconciledAt);
+              const liability = isLiabilityAccount(account.type);
 
-            return (
-              <Card
-                key={account.id}
-                className="surface-card gap-0 py-0 shadow-none transition-colors hover:border-border"
-              >
-                <CardHeader className="border-b border-border/60 px-5 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <CardTitle className="truncate text-base font-semibold">
-                        {account.name}
-                      </CardTitle>
-                      <CardDescription>
-                        {ACCOUNT_TYPE_LABELS[account.type]}
-                      </CardDescription>
-                    </div>
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Landmark className="size-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 px-5 py-4">
-                  <div>
-                    <p className="stat-label">
-                      {formatAccountBalanceLabel(account.type)}
+              return (
+                <div
+                  key={account.id}
+                  className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_8rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] md:items-center md:gap-3 sm:px-5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{account.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {lastReconciled ? (
+                        <span className="inline-flex items-center gap-1 text-[var(--brand-green)]">
+                          <CheckCircle2 className="size-3" />
+                          Reconciled {lastReconciled}
+                        </span>
+                      ) : (
+                        "Not reconciled yet"
+                      )}
+                      {unclearedCount > 0
+                        ? ` · ${unclearedCount} uncleared`
+                        : ""}
                     </p>
-                    <p className="stat-value text-xl tabular-nums">
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {ACCOUNT_TYPE_LABELS[account.type]}
+                  </p>
+                  <div className="flex items-center justify-between md:block md:text-right">
+                    <span className="text-[11px] text-muted-foreground md:hidden">
+                      {formatAccountBalanceLabel(account.type)}
+                    </span>
+                    <p
+                      className={cn(
+                        "text-sm font-semibold tabular-nums",
+                        liability && balance > 0 && "text-[var(--brand-orange)]",
+                      )}
+                    >
                       {formatBudgetMoney(balance)}
                     </p>
-                    {unclearedCount > 0 && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {unclearedCount} uncleared · Cleared{" "}
-                        {formatBudgetMoney(clearedBalance)}
-                      </p>
-                    )}
                   </div>
-
-                  {lastReconciled ? (
-                    <p className="flex items-center gap-1.5 text-xs text-[var(--brand-green)]">
-                      <CheckCircle2 className="size-3.5" />
-                      Reconciled {lastReconciled}
+                  <div className="flex items-center justify-between md:block md:text-right">
+                    <span className="text-[11px] text-muted-foreground md:hidden">
+                      Cleared
+                    </span>
+                    <p className="text-sm tabular-nums text-muted-foreground">
+                      {formatBudgetMoney(clearedBalance)}
                     </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Not yet reconciled
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap gap-2 pt-1">
+                  </div>
+                  <div className="flex justify-end gap-1">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-1.5"
                       onClick={() => setReconcilingAccount(account)}
                     >
                       <Scale className="size-3.5" />
                       Reconcile
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => setEditingAccount(account)}
                       aria-label={`Edit ${account.name}`}
                     >
                       <Pencil className="size-3.5" />
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-destructive hover:text-destructive"
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => setDeletingAccount(account)}
                       disabled={accounts.length <= 1}
                       aria-label={`Delete ${account.name}`}
                     >
-                      <Trash2 className="size-3.5" />
+                      <Trash2 className="size-3.5 text-muted-foreground" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        </BudgetPanel>
       )}
 
       <AccountDialog

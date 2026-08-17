@@ -38,7 +38,7 @@ export function AddCategoryGroupDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Category Group</DialogTitle>
           <DialogDescription>
@@ -97,7 +97,7 @@ export function AddCategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Category</DialogTitle>
           <DialogDescription>

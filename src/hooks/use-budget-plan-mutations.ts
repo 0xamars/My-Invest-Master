@@ -96,6 +96,20 @@ export function useBudgetPlanMutations(planId: string) {
     [commitPlan],
   );
 
+  const importTransactions = useCallback(
+    (inputs: AddBudgetTransactionInput[]) => {
+      if (inputs.length === 0) return;
+      commitPlan((current) => ({
+        ...current,
+        transactions: [
+          ...current.transactions,
+          ...inputs.map((input) => toStoredTransaction(input)),
+        ],
+      }));
+    },
+    [commitPlan],
+  );
+
   const deleteTransaction = useCallback(
     (transactionId: string) => {
       commitPlan((current) => ({
@@ -501,6 +515,7 @@ export function useBudgetPlanMutations(planId: string) {
       syncError,
       isCloudSynced,
       addTransaction,
+      importTransactions,
       updateTransaction,
       deleteTransaction,
       addCategoryGroup,
@@ -528,6 +543,7 @@ export function useBudgetPlanMutations(planId: string) {
       syncError,
       isCloudSynced,
       addTransaction,
+      importTransactions,
       updateTransaction,
       deleteTransaction,
       addCategoryGroup,

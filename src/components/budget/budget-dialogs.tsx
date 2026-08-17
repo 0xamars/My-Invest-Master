@@ -63,7 +63,7 @@ export function MoveMoneyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Move Money</DialogTitle>
           <DialogDescription>
@@ -163,7 +163,7 @@ export function SetCategoryGoalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Set Category Goal</DialogTitle>
           <DialogDescription>
