@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import type { CategoryBudgetRow } from "@/lib/budget/calculations";
 import { isCreditCardPaymentsGroup } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney, formatBudgetMoneySigned } from "@/lib/budget/format";
+import { GOAL_TYPE_LABELS } from "@/lib/budget/goals";
 import { cn } from "@/lib/utils";
 import type { BudgetCategoryGroup } from "@/types/budget";
 
@@ -219,13 +220,27 @@ export function BudgetCategoryList({
                           Card payment
                         </p>
                       ) : null}
-                      {row.goal && (
-                        <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                      {row.goal && row.goalProgress && (
+                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                           <Target className="size-3 text-[var(--brand-orange)]" />
-                          {formatBudgetMoney(row.goal.targetAmount)}
-                          {row.goal.targetDate
-                            ? ` by ${new Date(`${row.goal.targetDate}T12:00:00`).toLocaleDateString(undefined, { month: "short", year: "numeric" })}`
-                            : ""}
+                          <span>
+                            {GOAL_TYPE_LABELS[row.goal.type] ??
+                              GOAL_TYPE_LABELS["target-balance"]}{" "}
+                            · needed{" "}
+                            {formatBudgetMoney(row.goalProgress.neededThisMonth)}
+                          </span>
+                          <span
+                            className={cn(
+                              "rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                              row.goalProgress.status === "on-track"
+                                ? "bg-[var(--brand-green)]/12 text-[var(--brand-green)]"
+                                : "bg-[var(--brand-orange)]/12 text-[var(--brand-orange)]",
+                            )}
+                          >
+                            {row.goalProgress.status === "on-track"
+                              ? "On track"
+                              : "Underfunded"}
+                          </span>
                         </p>
                       )}
                     </div>

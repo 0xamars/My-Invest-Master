@@ -1,11 +1,15 @@
+import { isBudgetAccountType } from "@/lib/budget/accounts";
 import { ensureCreditCardPaymentCategories } from "@/lib/budget/credit-card-payments";
+import { isCategoryGoalType } from "@/lib/budget/goals";
 import {
   createDefaultAccount,
+  type BudgetAccount,
   type BudgetPlan,
   type BudgetScheduledTransaction,
   type BudgetTransaction,
   type BudgetTransactionSplit,
   type BudgetTransactionType,
+  type CategoryGoal,
   type RecurringFrequency,
 } from "@/types/budget";
 
@@ -28,9 +32,23 @@ type LegacyScheduled = Partial<BudgetScheduledTransaction> & {
   splits?: LegacySplit[];
 };
 
+type LegacyAccount = Partial<BudgetAccount> & {
+  id?: string;
+  name?: string;
+  type?: string;
+  sortOrder?: number;
+  onBudget?: boolean;
+};
+
+type LegacyGoal = Partial<CategoryGoal> & {
+  type?: string;
+  targetAmount?: number;
+};
+
 type LegacyPlan = BudgetPlan & {
   accounts?: BudgetPlan["accounts"];
   scheduledTransactions?: BudgetScheduledTransaction[];
+  goals?: CategoryGoal[];
 };
 
 const FREQUENCIES = new Set<RecurringFrequency>([
@@ -133,13 +151,75 @@ function normalizeScheduledTransactions(
     });
 }
 
+function normalizeAccount(account: LegacyAccount, index: number): BudgetAccount {
+  const rawType = account.type ?? "";
+  const type = isBudgetAccountType(rawType) ? rawType : "other";
+  const onBudget = account.onBudget !== false;
+
+  return {
+    id:
+      typeof account.id === "string" && account.id.length > 0
+        ? account.id
+        : `account-${index}`,
+    name:
+      typeof account.name === "string" && account.name.trim()
+        ? account.name.trim()
+        : "Account",
+    type,
+    onBudget,
+    sortOrder:
+      typeof account.sortOrder === "number" && Number.isFinite(account.sortOrder)
+        ? account.sortOrder
+        : index,
+    lastReconciledAt:
+      typeof account.lastReconciledAt === "string"
+        ? account.lastReconciledAt
+        : undefined,
+  };
+}
+
+function normalizeGoals(goals: LegacyGoal[] | undefined): CategoryGoal[] {
+  if (!Array.isArray(goals) || goals.length === 0) return [];
+
+  return goals
+    .filter(
+      (goal) =>
+        goal &&
+        typeof goal.id === "string" &&
+        goal.id.length > 0 &&
+        typeof goal.categoryId === "string" &&
+        goal.categoryId.length > 0,
+    )
+    .map((goal) => ({
+      id: goal.id!,
+      categoryId: goal.categoryId!,
+      type: isCategoryGoalType(goal.type) ? goal.type : "target-balance",
+      targetAmount: Math.max(
+        0,
+        typeof goal.targetAmount === "number" && Number.isFinite(goal.targetAmount)
+          ? goal.targetAmount
+          : 0,
+      ),
+      targetDate:
+        typeof goal.targetDate === "string" && goal.targetDate.length > 0
+          ? goal.targetDate
+          : undefined,
+      label:
+        typeof goal.label === "string" && goal.label.trim()
+          ? goal.label.trim()
+          : undefined,
+    }));
+}
+
 /** Ensure accounts exist and all transactions are linked with cleared status. */
 export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
   const legacy = plan as LegacyPlan;
   const defaultAccount = createDefaultAccount();
   const accounts =
     legacy.accounts && legacy.accounts.length > 0
-      ? legacy.accounts
+      ? legacy.accounts.map((account, index) =>
+          normalizeAccount(account as LegacyAccount, index),
+        )
       : [defaultAccount];
   const fallbackAccountId = accounts[0]?.id ?? defaultAccount.id;
   const accountIds = new Set(accounts.map((account) => account.id));
@@ -185,6 +265,7 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
     accounts,
     transactions,
     scheduledTransactions,
+    goals: normalizeGoals(legacy.goals),
   });
 }
 

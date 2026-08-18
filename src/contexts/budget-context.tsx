@@ -13,6 +13,7 @@ import type {
   BudgetCategoryGroup,
   BudgetPlan,
   BudgetTransaction,
+  CategoryGoalType,
 } from "@/types/budget";
 
 interface BudgetContextValue {
@@ -59,15 +60,20 @@ interface BudgetContextValue {
   setCategoryGoal: (goal: {
     id?: string;
     categoryId: string;
+    type?: CategoryGoalType;
     targetAmount: number;
     targetDate?: string;
     label?: string;
   }) => void;
   removeCategoryGoal: (categoryId: string) => void;
-  addAccount: (name: string, type: BudgetAccountType) => void;
+  addAccount: (
+    name: string,
+    type: BudgetAccountType,
+    onBudget?: boolean,
+  ) => void;
   updateAccount: (
     accountId: string,
-    updates: { name?: string; type?: BudgetAccountType },
+    updates: { name?: string; type?: BudgetAccountType; onBudget?: boolean },
   ) => void;
   deleteAccount: (
     accountId: string,

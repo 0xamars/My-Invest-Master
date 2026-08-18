@@ -21,7 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ACCOUNT_TYPE_LABELS, sortedAccounts } from "@/lib/budget/accounts";
+import {
+  ACCOUNT_TYPE_LABELS,
+  isOnBudgetAccount,
+  sortedAccounts,
+} from "@/lib/budget/accounts";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import {
@@ -195,6 +199,9 @@ export function BudgetScheduledDialog({
   const destinationAccounts = orderedAccounts.filter(
     (account) => account.id !== accountId,
   );
+  const selectedOnBudget = isOnBudgetAccount(
+    orderedAccounts.find((account) => account.id === accountId),
+  );
 
   function handleTypeChange(nextType: BudgetTransactionType) {
     if (nextType === "transfer" && !canTransfer) return;
@@ -251,7 +258,7 @@ export function BudgetScheduledDialog({
       return;
     }
 
-    if (type === "outflow" && splitEnabled) {
+    if (type === "outflow" && splitEnabled && selectedOnBudget) {
       if (!payee.trim() || !splitsBalanced || !splitLinesValid) return;
       onSave({
         nextDate,
@@ -283,7 +290,11 @@ export function BudgetScheduledDialog({
       amount: parsedAmount,
       type,
       categoryId:
-        type === "inflow" ? null : categoryId === "none" ? null : categoryId,
+        type === "inflow" || !selectedOnBudget
+          ? null
+          : categoryId === "none"
+            ? null
+            : categoryId,
       memo: memo.trim() || undefined,
       ...end,
     });
@@ -298,7 +309,7 @@ export function BudgetScheduledDialog({
       return Boolean(transferAccountId) && transferAccountId !== accountId;
     }
     if (!payee.trim()) return false;
-    if (type === "outflow" && splitEnabled) {
+    if (type === "outflow" && splitEnabled && selectedOnBudget) {
       return splitsBalanced && splitLinesValid;
     }
     return true;
@@ -522,7 +533,7 @@ export function BudgetScheduledDialog({
             </div>
           )}
 
-          {type === "outflow" && !splitEnabled && (
+          {type === "outflow" && selectedOnBudget && !splitEnabled && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <Label>Category</Label>
@@ -561,7 +572,7 @@ export function BudgetScheduledDialog({
             </div>
           )}
 
-          {type === "outflow" && splitEnabled && (
+          {type === "outflow" && selectedOnBudget && splitEnabled && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <Label>Split categories</Label>

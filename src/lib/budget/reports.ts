@@ -1,4 +1,8 @@
-import type { BudgetData } from "@/types/budget";
+import type { BudgetAccount, BudgetData, BudgetTransaction } from "@/types/budget";
+import {
+  getAccountBalanceThroughMonth,
+  isLiabilityAccount,
+} from "@/lib/budget/accounts";
 import {
   computeMonthSummary,
   getCategoryActivity,
@@ -25,6 +29,22 @@ export interface AvailableTrendRow {
   available: number;
 }
 
+export interface NetWorthMonthRow {
+  monthKey: string;
+  label: string;
+  assets: number;
+  liabilities: number;
+  netWorth: number;
+}
+
+export interface NetWorthSnapshot {
+  assets: number;
+  liabilities: number;
+  netWorth: number;
+  assetAccounts: Array<{ account: BudgetAccount; balance: number }>;
+  liabilityAccounts: Array<{ account: BudgetAccount; balance: number }>;
+}
+
 function monthLabel(monthKey: string): string {
   return parseMonthKey(monthKey).toLocaleDateString(undefined, {
     month: "short",
@@ -41,6 +61,56 @@ export function getRecentMonthKeys(count: number, endMonthKey?: string): string[
   return keys;
 }
 
+export function getNetWorthSnapshot(
+  accounts: BudgetAccount[],
+  transactions: BudgetTransaction[],
+  monthKey?: string,
+): NetWorthSnapshot {
+  const assetAccounts: Array<{ account: BudgetAccount; balance: number }> = [];
+  const liabilityAccounts: Array<{ account: BudgetAccount; balance: number }> =
+    [];
+
+  for (const account of accounts) {
+    const balance =
+      monthKey != null
+        ? getAccountBalanceThroughMonth(account, transactions, monthKey)
+        : getAccountBalanceThroughMonth(account, transactions, "9999-12");
+    if (isLiabilityAccount(account.type)) {
+      liabilityAccounts.push({ account, balance });
+    } else {
+      assetAccounts.push({ account, balance });
+    }
+  }
+
+  const assets = assetAccounts.reduce((sum, row) => sum + row.balance, 0);
+  const liabilities = liabilityAccounts.reduce((sum, row) => sum + row.balance, 0);
+
+  return {
+    assets,
+    liabilities,
+    netWorth: assets - liabilities,
+    assetAccounts,
+    liabilityAccounts,
+  };
+}
+
+export function getNetWorthSeries(
+  budget: Pick<BudgetData, "accounts" | "transactions">,
+  monthCount = 6,
+): NetWorthMonthRow[] {
+  const accounts = budget.accounts ?? [];
+  return getRecentMonthKeys(monthCount).map((monthKey) => {
+    const snapshot = getNetWorthSnapshot(accounts, budget.transactions, monthKey);
+    return {
+      monthKey,
+      label: monthLabel(monthKey),
+      assets: snapshot.assets,
+      liabilities: snapshot.liabilities,
+      netWorth: snapshot.netWorth,
+    };
+  });
+}
+
 export function getSpendingByCategory(
   budget: BudgetData,
   monthKey: string,
@@ -50,7 +120,13 @@ export function getSpendingByCategory(
     .map((category) => ({
       categoryId: category.id,
       categoryName: category.name,
-      amount: getCategoryActivity(budget.transactions, category.id, monthKey),
+      amount: getCategoryActivity(
+        budget.transactions,
+        category.id,
+        monthKey,
+        undefined,
+        budget.accounts,
+      ),
     }))
     .filter((row) => row.amount > 0)
     .sort((a, b) => b.amount - a.amount);

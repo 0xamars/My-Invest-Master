@@ -25,11 +25,12 @@ import {
   getAccountBalance,
   getAccountTransactions,
   isLiabilityAccount,
+  isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { cn } from "@/lib/utils";
-import type { BudgetAccount } from "@/types/budget";
+import type { BudgetAccount, BudgetTransaction } from "@/types/budget";
 
 function formatReconciledDate(iso?: string): string | null {
   if (!iso) return null;
@@ -54,6 +55,14 @@ export function BudgetAccountsContent() {
     () => sortedAccounts(budget.accounts),
     [budget.accounts],
   );
+  const onBudgetAccounts = useMemo(
+    () => accounts.filter((account) => isOnBudgetAccount(account)),
+    [accounts],
+  );
+  const trackingAccounts = useMemo(
+    () => accounts.filter((account) => !isOnBudgetAccount(account)),
+    [accounts],
+  );
 
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BudgetAccount | null>(
@@ -73,7 +82,7 @@ export function BudgetAccountsContent() {
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Accounts"
-        description="On-budget balances. Reconcile against the statement when you are ready."
+        description="On-budget and tracking (off-budget) balances. Reconcile against the statement when you are ready."
         action={
           <Button type="button" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" />
@@ -87,7 +96,7 @@ export function BudgetAccountsContent() {
           <BudgetEmptyState
             icon={<Landmark className="size-5" />}
             title="No accounts yet"
-            description="Add chequing, savings, or a card to start tracking balances."
+            description="Add chequing, savings, a card, or a tracking account such as a brokerage or mortgage."
             actions={
               <Button onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" />
@@ -98,118 +107,50 @@ export function BudgetAccountsContent() {
         </BudgetPanel>
       ) : (
         <BudgetPanel>
-          <div className="hidden grid-cols-[minmax(0,1.4fr)_8rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] gap-3 border-b border-border/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5">
+          <div className="hidden grid-cols-[minmax(0,1.4fr)_8rem_7rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] gap-3 border-b border-border/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5">
             <span>Account</span>
             <span>Type</span>
+            <span>Budget</span>
             <span className="text-right">Balance</span>
             <span className="text-right">Cleared</span>
             <span />
           </div>
-          <div className="divide-y divide-border/40">
-            {accounts.map((account) => {
-              const balance = getAccountBalance(account, budget.transactions);
-              const clearedBalance = getAccountBalance(account, budget.transactions, {
-                clearedOnly: true,
-              });
-              const unclearedCount = getAccountTransactions(
-                account.id,
-                budget.transactions,
-              ).filter((tx) => !tx.cleared).length;
-              const lastReconciled = formatReconciledDate(account.lastReconciledAt);
-              const liability = isLiabilityAccount(account.type);
-
-              return (
-                <div
-                  key={account.id}
-                  className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_8rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] md:items-center md:gap-3 sm:px-5"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{account.name}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {lastReconciled ? (
-                        <span className="inline-flex items-center gap-1 text-[var(--brand-green)]">
-                          <CheckCircle2 className="size-3" />
-                          Reconciled {lastReconciled}
-                        </span>
-                      ) : (
-                        "Not reconciled yet"
-                      )}
-                      {unclearedCount > 0
-                        ? ` · ${unclearedCount} uncleared`
-                        : ""}
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {ACCOUNT_TYPE_LABELS[account.type]}
-                  </p>
-                  <div className="flex items-center justify-between md:block md:text-right">
-                    <span className="text-[11px] text-muted-foreground md:hidden">
-                      {formatAccountBalanceLabel(account.type)}
-                    </span>
-                    <p
-                      className={cn(
-                        "text-sm font-semibold tabular-nums",
-                        liability && balance > 0 && "text-[var(--brand-orange)]",
-                      )}
-                    >
-                      {formatBudgetMoney(balance)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between md:block md:text-right">
-                    <span className="text-[11px] text-muted-foreground md:hidden">
-                      Cleared
-                    </span>
-                    <p className="text-sm tabular-nums text-muted-foreground">
-                      {formatBudgetMoney(clearedBalance)}
-                    </p>
-                  </div>
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setReconcilingAccount(account)}
-                    >
-                      <Scale className="size-3.5" />
-                      Reconcile
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setEditingAccount(account)}
-                      aria-label={`Edit ${account.name}`}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setDeletingAccount(account)}
-                      disabled={accounts.length <= 1}
-                      aria-label={`Delete ${account.name}`}
-                    >
-                      <Trash2 className="size-3.5 text-muted-foreground" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <AccountSection
+            title="On-budget"
+            empty="No on-budget accounts."
+            accounts={onBudgetAccounts}
+            allAccounts={accounts}
+            transactions={budget.transactions}
+            onReconcile={setReconcilingAccount}
+            onEdit={setEditingAccount}
+            onDelete={setDeletingAccount}
+          />
+          <AccountSection
+            title="Tracking"
+            empty="No tracking accounts yet. Add a brokerage, mortgage, or convert an account."
+            accounts={trackingAccounts}
+            allAccounts={accounts}
+            transactions={budget.transactions}
+            onReconcile={setReconcilingAccount}
+            onEdit={setEditingAccount}
+            onDelete={setDeletingAccount}
+          />
         </BudgetPanel>
       )}
 
       <AccountDialog
         open={addOpen}
         onOpenChange={setAddOpen}
-        onSave={(name, type) => addAccount(name, type)}
+        onSave={(name, type, onBudget) => addAccount(name, type, onBudget)}
       />
 
       <AccountDialog
         open={Boolean(editingAccount)}
         onOpenChange={(open) => !open && setEditingAccount(null)}
         account={editingAccount}
-        onSave={(name, type) => {
+        onSave={(name, type, onBudget) => {
           if (editingAccount) {
-            updateAccount(editingAccount.id, { name, type });
+            updateAccount(editingAccount.id, { name, type, onBudget });
           }
         }}
       />
@@ -237,6 +178,133 @@ export function BudgetAccountsContent() {
         onToggleCleared={setTransactionCleared}
         onFinish={finishAccountReconciliation}
       />
+    </div>
+  );
+}
+
+function AccountSection({
+  title,
+  empty,
+  accounts,
+  allAccounts,
+  transactions,
+  onReconcile,
+  onEdit,
+  onDelete,
+}: {
+  title: string;
+  empty: string;
+  accounts: BudgetAccount[];
+  allAccounts: BudgetAccount[];
+  transactions: BudgetTransaction[];
+  onReconcile: (account: BudgetAccount) => void;
+  onEdit: (account: BudgetAccount) => void;
+  onDelete: (account: BudgetAccount) => void;
+}) {
+  return (
+    <div>
+      <div className="bg-muted/25 px-4 py-2 sm:px-5">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          {title}
+        </h3>
+      </div>
+      {accounts.length === 0 ? (
+        <p className="px-4 py-3 text-xs text-muted-foreground sm:px-5">{empty}</p>
+      ) : (
+        <div className="divide-y divide-border/40">
+          {accounts.map((account) => {
+            const balance = getAccountBalance(account, transactions);
+            const clearedBalance = getAccountBalance(account, transactions, {
+              clearedOnly: true,
+            });
+            const unclearedCount = getAccountTransactions(
+              account.id,
+              transactions,
+            ).filter((tx) => !tx.cleared).length;
+            const lastReconciled = formatReconciledDate(account.lastReconciledAt);
+            const liability = isLiabilityAccount(account.type);
+            const onBudget = isOnBudgetAccount(account);
+
+            return (
+              <div
+                key={account.id}
+                className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_8rem_7rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] md:items-center md:gap-3 sm:px-5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{account.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {lastReconciled ? (
+                      <span className="inline-flex items-center gap-1 text-[var(--brand-green)]">
+                        <CheckCircle2 className="size-3" />
+                        Reconciled {lastReconciled}
+                      </span>
+                    ) : (
+                      "Not reconciled yet"
+                    )}
+                    {unclearedCount > 0
+                      ? ` · ${unclearedCount} uncleared`
+                      : ""}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {ACCOUNT_TYPE_LABELS[account.type]}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {onBudget ? "On-budget" : "Tracking"}
+                </p>
+                <div className="flex items-center justify-between md:block md:text-right">
+                  <span className="text-[11px] text-muted-foreground md:hidden">
+                    {formatAccountBalanceLabel(account.type)}
+                  </span>
+                  <p
+                    className={cn(
+                      "text-sm font-semibold tabular-nums",
+                      liability && balance > 0 && "text-[var(--brand-orange)]",
+                    )}
+                  >
+                    {formatBudgetMoney(balance)}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between md:block md:text-right">
+                  <span className="text-[11px] text-muted-foreground md:hidden">
+                    Cleared
+                  </span>
+                  <p className="text-sm tabular-nums text-muted-foreground">
+                    {formatBudgetMoney(clearedBalance)}
+                  </p>
+                </div>
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onReconcile(account)}
+                  >
+                    <Scale className="size-3.5" />
+                    Reconcile
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => onEdit(account)}
+                    aria-label={`Edit ${account.name}`}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => onDelete(account)}
+                    disabled={allAccounts.length <= 1}
+                    aria-label={`Delete ${account.name}`}
+                  >
+                    <Trash2 className="size-3.5 text-muted-foreground" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

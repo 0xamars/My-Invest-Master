@@ -87,8 +87,8 @@ export function BudgetContent() {
   );
 
   const ageOfMoney = useMemo(
-    () => computeAgeOfMoney(budget.transactions),
-    [budget.transactions],
+    () => computeAgeOfMoney(budget.transactions, budget.accounts),
+    [budget.transactions, budget.accounts],
   );
 
   const recentTransactions = useMemo(() => {
@@ -296,12 +296,14 @@ export function BudgetContent() {
         open={goalOpen}
         onOpenChange={setGoalOpen}
         categoryName={activeCategory?.name}
+        initialType={activeGoal?.type}
         initialTarget={activeGoal?.targetAmount}
         initialTargetDate={activeGoal?.targetDate}
-        onSave={(targetAmount, targetDate) => {
+        onSave={(type, targetAmount, targetDate) => {
           if (!goalCategoryId) return;
           setCategoryGoal({
             categoryId: goalCategoryId,
+            type,
             targetAmount,
             targetDate,
           });

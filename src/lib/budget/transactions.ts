@@ -1,3 +1,4 @@
+import { accountById, isOnBudgetAccount } from "@/lib/budget/accounts";
 import type {
   BudgetAccount,
   BudgetCategory,
@@ -105,10 +106,15 @@ export function getTransactionDisplay(
     const fromName = accountNameById(accounts, tx.accountId);
     const incoming =
       viewingAccountId != null && viewingAccountId === tx.transferAccountId;
+    const fromOnBudget = isOnBudgetAccount(accountById(accounts, tx.accountId));
+    const toOnBudget = isOnBudgetAccount(
+      accountById(accounts, tx.transferAccountId),
+    );
+    const crossesBudget = fromOnBudget !== toOnBudget;
     return {
       payee: incoming ? `Transfer from ${fromName}` : `Transfer to ${toName}`,
-      categoryLabel: "Transfer",
-      isInflowLike: incoming,
+      categoryLabel: crossesBudget ? "Ready to Assign" : "Transfer",
+      isInflowLike: incoming || (!viewingAccountId && !fromOnBudget && toOnBudget),
       isTransfer: true,
       isSplit: false,
       amountPrefix: incoming ? "+" : viewingAccountId ? "−" : "",

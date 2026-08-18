@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { BudgetCategory } from "@/types/budget";
+import { GOAL_TYPE_LABELS } from "@/lib/budget/goals";
+import type { BudgetCategory, CategoryGoalType } from "@/types/budget";
 
 interface MoveMoneyDialogProps {
   open: boolean;
@@ -125,13 +126,24 @@ export function MoveMoneyDialog({
   );
 }
 
+const GOAL_TYPES: CategoryGoalType[] = [
+  "monthly-funding",
+  "needed-for-spending",
+  "target-balance",
+];
+
 interface SetCategoryGoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   categoryName?: string;
+  initialType?: CategoryGoalType;
   initialTarget?: number;
   initialTargetDate?: string;
-  onSave: (targetAmount: number, targetDate?: string) => void;
+  onSave: (
+    type: CategoryGoalType,
+    targetAmount: number,
+    targetDate?: string,
+  ) => void;
   onRemove?: () => void;
 }
 
@@ -139,62 +151,105 @@ export function SetCategoryGoalDialog({
   open,
   onOpenChange,
   categoryName,
+  initialType,
   initialTarget,
   initialTargetDate,
   onSave,
   onRemove,
 }: SetCategoryGoalDialogProps) {
+  const [type, setType] = useState<CategoryGoalType>("monthly-funding");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
 
   useEffect(() => {
     if (open) {
+      setType(initialType ?? "monthly-funding");
       setTargetAmount(initialTarget ? String(initialTarget) : "");
       setTargetDate(initialTargetDate ?? "");
     }
-  }, [open, initialTarget, initialTargetDate]);
+  }, [open, initialType, initialTarget, initialTargetDate]);
+
+  const needsDate = type === "needed-for-spending";
+  const showsDate = type !== "monthly-funding";
 
   function handleSubmit() {
     const parsed = Number.parseFloat(targetAmount);
     if (Number.isNaN(parsed) || parsed <= 0) return;
-    onSave(parsed, targetDate || undefined);
+    if (needsDate && !targetDate) return;
+    onSave(type, parsed, showsDate ? targetDate || undefined : undefined);
     onOpenChange(false);
   }
+
+  const amountLabel =
+    type === "monthly-funding"
+      ? "Assign this amount every month"
+      : type === "needed-for-spending"
+        ? "Amount needed"
+        : "Target balance";
+
+  const description = categoryName
+    ? `Set a funding goal for ${categoryName}.`
+    : "Choose a goal type. Needed this month drives underfunded vs on-track.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Set Category Goal</DialogTitle>
-          <DialogDescription>
-            {categoryName
-              ? `Set a savings target for ${categoryName}.`
-              : "Define a target amount for this category."}
-          </DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
           <div className="space-y-1.5">
-            <Label htmlFor="goal-amount">Target amount</Label>
+            <Label>Goal type</Label>
+            <Select
+              value={type}
+              onValueChange={(value) => setType(value as CategoryGoalType)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {GOAL_TYPES.map((goalType) => (
+                  <SelectItem key={goalType} value={goalType}>
+                    {GOAL_TYPE_LABELS[goalType]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {type === "monthly-funding"
+                ? "Assign this amount every month."
+                : type === "needed-for-spending"
+                  ? "Remaining amount divided by months left is this month’s needed."
+                  : "Reach this available balance, optionally by a date."}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="goal-amount">{amountLabel}</Label>
             <Input
               id="goal-amount"
               type="number"
               min={0}
-              step="0.01"
-              placeholder="5000"
+              step="1"
+              placeholder="500"
               value={targetAmount}
               onChange={(event) => setTargetAmount(event.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="goal-date">Target date (optional)</Label>
-            <Input
-              id="goal-date"
-              type="date"
-              value={targetDate}
-              onChange={(event) => setTargetDate(event.target.value)}
-            />
-          </div>
+          {showsDate ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="goal-date">
+                {needsDate ? "Needed by" : "Target date (optional)"}
+              </Label>
+              <Input
+                id="goal-date"
+                type="date"
+                value={targetDate}
+                onChange={(event) => setTargetDate(event.target.value)}
+              />
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter className="gap-2 sm:justify-between">
@@ -209,7 +264,11 @@ export function SetCategoryGoalDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={handleSubmit}>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={needsDate && !targetDate}
+            >
               Save Goal
             </Button>
           </div>
