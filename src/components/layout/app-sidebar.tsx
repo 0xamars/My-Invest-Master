@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Eye, Layers, LineChart, Lock, PieChart, Search, Settings, Sparkles, Target } from "lucide-react";
+import { ChevronDown, Eye, Layers, LineChart, Lock, PieChart, Settings, Sparkles, Target } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { BudgetSidebarNav } from "@/components/layout/budget-sidebar-nav";
 import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
-import { APP_HOME_PATH } from "@/lib/routes";
+import { APP_HOME_PATH, LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
@@ -34,12 +34,12 @@ const primaryNavItems = [
   { title: "Budget", href: "/budget", category: "budget" as const },
   { title: "Invest", href: "/invest", category: "invest" as const },
   { title: "Retire", href: "/retire", category: "retire" as const },
+  { title: "Settings", href: "/settings", category: "settings" as const },
 ];
 
 const investSubItems = [
   { title: "Portfolio", href: "/portfolio", icon: PieChart },
   { title: "Watchlist", href: "/watchlist", icon: Eye },
-  { title: "Analysis", href: "/analysis", icon: Search },
   { title: "Options", href: "/options", icon: Layers },
   { title: "Market", href: "/market", icon: LineChart },
 ];
@@ -150,7 +150,7 @@ export function AppSidebar() {
                         <SidebarMenuSub className="nav-invest-submenu mt-1 border-l border-border/60 px-2.5 py-0.5">
                           {investSubItems.map((subItem) => {
                             const isLocked = !isLoading && !canAccessProtected;
-                            const href = isLocked ? "/?signin=1" : subItem.href;
+                            const href = isLocked ? LOGIN_PATH : subItem.href;
 
                             return (
                               <SidebarMenuSubItem key={subItem.href}>
@@ -217,7 +217,7 @@ export function AppSidebar() {
                         <SidebarMenuSub className="nav-invest-submenu mt-1 border-l border-border/60 px-2.5 py-0.5">
                           {retireSubItems.map((subItem) => {
                             const isLocked = !isLoading && !canAccessProtected;
-                            const href = isLocked ? "/?signin=1" : subItem.href;
+                            const href = isLocked ? LOGIN_PATH : subItem.href;
                             const isSubActive =
                               pathname === subItem.href ||
                               pathname.startsWith(`${subItem.href}/`);
@@ -257,7 +257,11 @@ export function AppSidebar() {
                       className={navClass(isActive)}
                       render={<Link href={item.href} />}
                     >
-                      <NavCategoryIcon category={item.category} />
+                      {item.category === "settings" ? (
+                        <Settings className="size-[1.125rem] opacity-80" />
+                      ) : (
+                        <NavCategoryIcon category={item.category} />
+                      )}
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -283,13 +287,22 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              tooltip="Settings"
-              isActive={pathname === "/settings"}
-              className={navClass(pathname === "/settings")}
-              render={<Link href="/settings" />}
+              tooltip="Terms"
+              isActive={pathname === TERMS_PATH}
+              className={navClass(pathname === TERMS_PATH)}
+              render={<Link href={TERMS_PATH} />}
             >
-              <Settings className="size-[1.125rem] opacity-80" />
-              <span>Settings</span>
+              <span>Terms</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Privacy"
+              isActive={pathname === PRIVACY_PATH}
+              className={navClass(pathname === PRIVACY_PATH)}
+              render={<Link href={PRIVACY_PATH} />}
+            >
+              <span>Privacy</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

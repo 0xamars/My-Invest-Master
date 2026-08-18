@@ -57,7 +57,6 @@ export interface CheckupOptionsOverlay {
 export interface CheckupNextAction {
   code:
     | "review-concentration"
-    | "assign-budget"
     | "refresh-retire"
     | "open-portfolio"
     | "create-portfolio";
@@ -182,14 +181,6 @@ function resolveNextAction(input: {
       code: "review-concentration",
       label: `Review ${input.topHolding.label} in Analysis`,
       href: input.topHolding.analysisHref,
-    };
-  }
-
-  if (input.budgetLeftoverHref) {
-    return {
-      code: "assign-budget",
-      label: "Assign leftover in Budget",
-      href: input.budgetLeftoverHref,
     };
   }
 

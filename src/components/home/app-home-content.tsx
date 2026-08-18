@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { HomeDashboard } from "@/components/home/home-dashboard";
+import { LeftoverAction } from "@/components/invest/leftover-action";
 import { MarketNewsSection } from "@/components/home/market-news-section";
 import { RetirePageHeader } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,10 @@ export function AppHomeContent() {
       />
 
       <p className="text-sm text-muted-foreground">
-        Assign leftover → fund Invest → check Retire.
+        Leftover in Budget is one number. Apply it to book cash, then check Retire.
       </p>
+
+      <LeftoverAction />
 
       <HomeDashboard />
 

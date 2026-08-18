@@ -10,19 +10,16 @@ import {
   PREMIUM_PLAN_FEATURES,
   PRICING_PATH,
 } from "@/lib/plans/pricing";
+import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 type MarketingHomePageProps = {
   isSignedIn?: boolean;
-  onSignIn: () => void;
-  onSignUp: () => void;
   dashboardHref?: string;
 };
 
 export function MarketingHomePage({
   isSignedIn = false,
-  onSignIn,
-  onSignUp,
   dashboardHref = "/home",
 }: MarketingHomePageProps) {
   return (
@@ -59,7 +56,7 @@ export function MarketingHomePage({
                   variant="outline"
                   size="sm"
                   className="border-white/15 bg-transparent text-white hover:bg-white/8 hover:text-white"
-                  onClick={onSignIn}
+                  render={<Link href={LOGIN_PATH} />}
                 >
                   <LogIn className="size-3.5" />
                   Sign in
@@ -67,7 +64,7 @@ export function MarketingHomePage({
                 <Button
                   size="sm"
                   className="premium-cta hidden sm:inline-flex"
-                  onClick={onSignUp}
+                  render={<Link href={SIGNUP_PATH} />}
                 >
                   Start Free
                 </Button>
@@ -103,7 +100,10 @@ export function MarketingHomePage({
                   <ArrowRight className="size-4" />
                 </Button>
               ) : (
-                <Button className="premium-cta h-11 px-6" onClick={onSignUp}>
+                <Button
+                  className="premium-cta h-11 px-6"
+                  render={<Link href={SIGNUP_PATH} />}
+                >
                   Start Free
                   <ArrowRight className="size-4" />
                 </Button>
@@ -259,51 +259,6 @@ export function MarketingHomePage({
           </div>
         </section>
 
-        {/* Insight preview */}
-        <section className="border-y border-white/8 bg-white/[0.02] py-16 sm:py-20">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
-            <div className="space-y-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-primary">
-                Insight preview
-              </p>
-              <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                Smarter investing at a glance
-              </h2>
-              <p className="max-w-md text-pretty text-white/60">
-                See risk, valuation, and momentum signals in one score — so you
-                can assess opportunities faster and invest with more confidence.
-              </p>
-              <ul className="space-y-2 pt-2 text-sm text-white/70">
-                {[
-                  "Unified stock insight score",
-                  "Risk and valuation context",
-                  "Built for faster decisions",
-                ].map((line) => (
-                  <li key={line} className="flex items-center gap-2">
-                    <Check className="size-4 shrink-0 text-primary" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="marketing-visual relative mx-auto w-full max-w-md lg:max-w-lg">
-              <div
-                aria-hidden
-                className="absolute -inset-4 rounded-[2rem] bg-[radial-gradient(circle_at_50%_30%,oklch(0.67_0.19_152/25%),oklch(0.72_0.18_55/15%),transparent_70%)] blur-xl"
-              />
-              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_0_40px_-8px_oklch(0.67_0.19_152/45%)]">
-                <Image
-                  src="/marketing/insight-score.png"
-                  alt="Stock Insight Score gauge preview"
-                  width={800}
-                  height={800}
-                  className="h-auto w-full object-contain"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Free vs Premium */}
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
@@ -393,7 +348,7 @@ export function MarketingHomePage({
                     <>
                       <Button
                         className="premium-cta h-11 px-7"
-                        onClick={onSignUp}
+                        render={<Link href={SIGNUP_PATH} />}
                       >
                         Start Free
                         <ArrowRight className="size-4" />
@@ -401,7 +356,7 @@ export function MarketingHomePage({
                       <Button
                         variant="outline"
                         className="h-11 border-white/15 bg-transparent px-6 text-white hover:bg-white/10 hover:text-white"
-                        onClick={onSignIn}
+                        render={<Link href={LOGIN_PATH} />}
                       >
                         Sign in
                       </Button>
@@ -417,22 +372,24 @@ export function MarketingHomePage({
       <footer className="relative z-10 border-t border-white/8 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 text-center text-xs text-white/40 sm:flex-row sm:px-8 sm:text-left">
           <p>© {new Date().getFullYear()} InvestSalsa</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Link href={PRICING_PATH} className="hover:text-white/70">
               Pricing
+            </Link>
+            <Link href={TERMS_PATH} className="hover:text-white/70">
+              Terms
+            </Link>
+            <Link href={PRIVACY_PATH} className="hover:text-white/70">
+              Privacy
             </Link>
             {isSignedIn ? (
               <Link href={dashboardHref} className="hover:text-white/70">
                 Go to Dashboard
               </Link>
             ) : (
-              <button
-                type="button"
-                className="hover:text-white/70"
-                onClick={onSignIn}
-              >
+              <Link href={LOGIN_PATH} className="hover:text-white/70">
                 Sign in
-              </button>
+              </Link>
             )}
           </div>
         </div>

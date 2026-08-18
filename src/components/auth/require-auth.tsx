@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { Lock, LogIn } from "lucide-react";
-import { AuthDialog } from "@/components/auth/auth-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
+import { LOGIN_PATH, SIGNUP_PATH } from "@/lib/routes";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 interface RequireAuthProps {
@@ -24,11 +24,10 @@ interface RequireAuthProps {
 export function RequireAuth({
   children,
   title = "Sign in required",
-  description = "Portfolio and options are available after you sign in. Your data is stored in Supabase and works on any browser or device.",
+  description = "Budget, Invest, and Retire are available after you sign in. Your plans are stored in Supabase.",
 }: RequireAuthProps) {
   const { user, isLoading } = useAuth();
   const goToMarketingHome = useGoToMarketingHome();
-  const [authOpen, setAuthOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -45,7 +44,7 @@ export function RequireAuth({
           <CardTitle>Cloud auth not configured</CardTitle>
           <CardDescription>
             Add Supabase credentials and run the migration to enable sign-in and
-            cross-browser portfolio sync.
+            cross-browser plan sync.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -59,27 +58,24 @@ export function RequireAuth({
 
   if (!user) {
     return (
-      <>
-        <Card className="mx-auto max-w-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="size-5" />
-              {title}
-            </CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button onClick={() => setAuthOpen(true)}>
-              <LogIn className="size-4" />
-              Sign in
-            </Button>
-            <Button variant="outline" type="button" onClick={goToMarketingHome}>
-              Back to Home
-            </Button>
-          </CardContent>
-        </Card>
-        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
-      </>
+      <Card className="mx-auto max-w-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="size-5" />
+            {title}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button render={<Link href={LOGIN_PATH} />}>
+            <LogIn className="size-4" />
+            Sign in
+          </Button>
+          <Button variant="outline" render={<Link href={SIGNUP_PATH} />}>
+            Start Free
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 

@@ -305,7 +305,7 @@ export function AssistantChat() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      render={<Link href="/?signin=1" />}
+                      render={<Link href="/login" />}
                     >
                       Go to Home
                     </Button>

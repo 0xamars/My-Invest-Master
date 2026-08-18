@@ -58,11 +58,11 @@ export function BudgetSidebarNav({
   }, [pathname, hasPlans]);
 
   const budgetActive = isBudgetPath(pathname);
-  const href = !isLoading && !canAccessProtected ? "/?signin=1" : "/budget";
+  const href = !isLoading && !canAccessProtected ? "/login" : "/budget";
 
   function openPlan(planId: string) {
     if (!isLoading && !canAccessProtected) {
-      router.push("/?signin=1");
+      router.push("/login");
       return;
     }
     if (

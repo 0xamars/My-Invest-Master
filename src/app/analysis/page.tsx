@@ -1,10 +1,5 @@
-import { RequireAuth } from "@/components/auth/require-auth";
-import { AnalysisHubContent } from "@/components/analysis/analysis-hub-content";
+import { redirect } from "next/navigation";
 
 export default function AnalysisPage() {
-  return (
-    <RequireAuth>
-      <AnalysisHubContent />
-    </RequireAuth>
-  );
+  redirect("/invest");
 }

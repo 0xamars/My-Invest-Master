@@ -28,6 +28,15 @@ export const EMPTY_LEVERAGE: PortfolioLeverage = {
   broker: null,
 };
 
+/** Labeled input → number. Blank or invalid stays null — no invented balances. */
+export function parseLeverageField(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
 function asOptionalNumber(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     return null;

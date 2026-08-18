@@ -282,14 +282,14 @@ export function usePortfolioPlansStorage() {
     pendingSaveRef.current.set(portfolio.id, portfolio);
   }, []);
 
-  const updateActiveHoldings = useCallback(
-    (updater: (holdings: PortfolioHolding[]) => PortfolioHolding[]) => {
-      const activeId = activePortfolioIdRef.current;
-      if (!activeId) return;
-
+  const updatePortfolioHoldings = useCallback(
+    (
+      portfolioId: string,
+      updater: (holdings: PortfolioHolding[]) => PortfolioHolding[],
+    ) => {
       userMutatedRef.current = true;
       setPortfolios((prev) => {
-        const index = prev.findIndex((portfolio) => portfolio.id === activeId);
+        const index = prev.findIndex((portfolio) => portfolio.id === portfolioId);
         if (index === -1) return prev;
 
         const current = prev[index];
@@ -302,6 +302,15 @@ export function usePortfolioPlansStorage() {
       });
     },
     [queueSave],
+  );
+
+  const updateActiveHoldings = useCallback(
+    (updater: (holdings: PortfolioHolding[]) => PortfolioHolding[]) => {
+      const activeId = activePortfolioIdRef.current;
+      if (!activeId) return;
+      updatePortfolioHoldings(activeId, updater);
+    },
+    [updatePortfolioHoldings],
   );
 
   const addTransaction = useCallback(
@@ -619,6 +628,7 @@ export function usePortfolioPlansStorage() {
     setActivePortfolioId,
     holdings,
     addTransaction,
+    updatePortfolioHoldings,
     updateHolding,
     removeHolding,
     createPortfolio,

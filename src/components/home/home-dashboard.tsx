@@ -29,22 +29,10 @@ import {
   formatPercent,
   profitLossClass,
 } from "@/lib/portfolio/format";
-import { pickFreeAllowedPlanId } from "@/lib/plans/free-access";
+import { pickOpenablePlan } from "@/lib/invest/leftover";
 import { cn } from "@/lib/utils";
 import type { BudgetPlan } from "@/types/budget";
 import type { RetirementPlan } from "@/types/retirement";
-
-function latestPlan<T extends { updatedAt: string }>(plans: T[]): T | null {
-  if (plans.length === 0) return null;
-  return [...plans].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))[0];
-}
-
-function pickOpenablePlan<T extends { id: string; createdAt: string; updatedAt: string }>(
-  plans: T[],
-): T | null {
-  const allowedId = pickFreeAllowedPlanId(plans);
-  return plans.find((plan) => plan.id === allowedId) ?? latestPlan(plans);
-}
 
 function PillarHeader({
   title,
@@ -118,11 +106,9 @@ function BudgetPillar({
   const href = `/budget/plans/${plan.id}`;
   const inboxHref = `${href}/transactions?inbox=unapproved`;
   const next =
-    ready > 0
-      ? { href, label: "Assign leftover" }
-      : inboxCount > 0
-        ? { href: inboxHref, label: "Open register inbox" }
-        : { href, label: "Open this month" };
+    inboxCount > 0
+      ? { href: inboxHref, label: "Open register inbox" }
+      : { href, label: "Open this month" };
 
   return (
     <RetirePanel>

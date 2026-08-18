@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -8,6 +9,14 @@ import { BudgetPlansProvider, useBudgetPlans } from "@/contexts/budget-plans-con
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  AUTH_RESET_PATH,
+  LOGIN_PATH,
+  PRIVACY_PATH,
+  SIGNIN_PATH,
+  SIGNUP_PATH,
+  TERMS_PATH,
+} from "@/lib/routes";
 
 function resolvePageTitle(pathname: string, planName?: string | null): string {
   if (pathname === "/retire/plans") return "Retirement Planning Models";
@@ -51,6 +60,10 @@ function resolvePageTitle(pathname: string, planName?: string | null): string {
     "/market": "Market",
     "/pricing": "Pricing",
     "/settings": "Settings",
+    "/terms": "Terms",
+    "/privacy": "Privacy",
+    "/login": "Sign in",
+    "/signup": "Create account",
   };
 
   return pageTitles[pathname] ?? "Invest Salsa";
@@ -99,10 +112,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isLoading } = useAuth();
 
-  // Full-bleed public marketing homepage (logo always lands here)
-  const isPublicMarketingHome = pathname === "/";
+  const isPublicChrome =
+    pathname === "/" ||
+    pathname === LOGIN_PATH ||
+    pathname === SIGNUP_PATH ||
+    pathname === SIGNIN_PATH ||
+    pathname === AUTH_RESET_PATH ||
+    pathname.startsWith(`${AUTH_RESET_PATH}/`);
 
-  if (isPublicMarketingHome) {
+  if (isPublicChrome) {
     return (
       <div className="min-h-svh w-full bg-[#050505]">
         {isLoading ? (
@@ -124,6 +142,19 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <main className="flex flex-1 flex-col px-6 py-8 lg:px-8 lg:py-10">
           <div className="page-shell">{children}</div>
         </main>
+        <footer className="border-t border-border/60 px-6 py-4 text-xs text-muted-foreground lg:px-8">
+          <div className="page-shell flex flex-wrap items-center justify-between gap-3">
+            <p>Not investment advice.</p>
+            <div className="flex gap-4">
+              <Link href={TERMS_PATH} className="hover:text-foreground">
+                Terms
+              </Link>
+              <Link href={PRIVACY_PATH} className="hover:text-foreground">
+                Privacy
+              </Link>
+            </div>
+          </div>
+        </footer>
         <AssistantChat />
       </SidebarInset>
     </SidebarProvider>

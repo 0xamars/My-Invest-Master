@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   computeLeverageUtilization,
+  parseLeverageField,
   parseStoredLeverage,
   type PortfolioLeverage,
 } from "@/lib/portfolio/leverage";
@@ -15,14 +16,6 @@ import { formatDisplayMoney } from "@/lib/portfolio/format";
 
 function optionalNumberToInput(value: number | null): string {
   return value == null ? "" : String(value);
-}
-
-function parseOptionalNumber(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed) || parsed < 0) return null;
-  return parsed;
 }
 
 export function LeveragePanel({
@@ -48,8 +41,8 @@ export function LeveragePanel({
   const [saved, setSaved] = useState(false);
 
   const preview = computeLeverageUtilization({
-    marginUsed: parseOptionalNumber(draft.marginUsed),
-    equity: parseOptionalNumber(draft.equity),
+    marginUsed: parseLeverageField(draft.marginUsed),
+    equity: parseLeverageField(draft.equity),
     cashValue,
   });
 
@@ -75,9 +68,9 @@ export function LeveragePanel({
               onSave(
                 parseStoredLeverage({
                   broker: draft.broker,
-                  marginUsed: parseOptionalNumber(draft.marginUsed),
-                  equity: parseOptionalNumber(draft.equity),
-                  buyingPower: parseOptionalNumber(draft.buyingPower),
+                  marginUsed: parseLeverageField(draft.marginUsed),
+                  equity: parseLeverageField(draft.equity),
+                  buyingPower: parseLeverageField(draft.buyingPower),
                 }),
               );
               setSaved(true);
@@ -145,7 +138,43 @@ export function LeveragePanel({
           />
         </label>
       </div>
-      <div className="border-t border-border/60 px-5 py-3 text-xs text-muted-foreground">
+      <div className="space-y-2 border-t border-border/60 px-5 py-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full px-2 py-0.5 font-medium ${
+              preview.flag === "high"
+                ? "bg-[var(--brand-red)]/15 text-[var(--brand-red)]"
+                : preview.flag === "caution"
+                  ? "bg-[var(--brand-orange)]/15 text-[var(--brand-orange)]"
+                  : "bg-muted text-muted-foreground"
+            }`}
+          >
+            50% caution
+          </span>
+          <span
+            className={`rounded-full px-2 py-0.5 font-medium ${
+              preview.flag === "high"
+                ? "bg-[var(--brand-red)]/15 text-[var(--brand-red)]"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            70% high
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div
+            className={`h-full ${
+              preview.flag === "high"
+                ? "bg-[var(--brand-red)]"
+                : preview.flag === "caution"
+                  ? "bg-[var(--brand-orange)]"
+                  : "bg-primary"
+            }`}
+            style={{
+              width: `${Math.min(100, preview.utilizationPercent ?? 0)}%`,
+            }}
+          />
+        </div>
         {preview.utilizationPercent == null ? (
           "Add margin used and equity (or hold cash in the book) to see utilization."
         ) : (

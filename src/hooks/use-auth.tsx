@@ -24,6 +24,8 @@ interface AuthContextValue {
     email: string,
     password: string,
   ) => Promise<{ error: string | null }>;
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -85,10 +87,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/home`,
         },
       });
 
+      return { error: error?.message ?? null };
+    },
+    [isConfigured],
+  );
+
+  const requestPasswordReset = useCallback(
+    async (email: string) => {
+      if (!isConfigured) {
+        return { error: "Cloud sync is not configured." };
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
+      });
+
+      return { error: error?.message ?? null };
+    },
+    [isConfigured],
+  );
+
+  const updatePassword = useCallback(
+    async (password: string) => {
+      if (!isConfigured) {
+        return { error: "Cloud sync is not configured." };
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password });
       return { error: error?.message ?? null };
     },
     [isConfigured],
@@ -107,9 +138,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isConfigured,
       signIn,
       signUp,
+      requestPasswordReset,
+      updatePassword,
       signOut,
     }),
-    [user, isLoading, isConfigured, signIn, signUp, signOut],
+    [
+      user,
+      isLoading,
+      isConfigured,
+      signIn,
+      signUp,
+      requestPasswordReset,
+      updatePassword,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

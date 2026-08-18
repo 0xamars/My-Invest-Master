@@ -2,7 +2,19 @@
  * Invest checkup: concentration, risk chip, allocation drift, auth routes.
  *   npx tsx --tsconfig tsconfig.json scripts/test-invest-unit.mts
  */
+import { applyLeftoverToBookCash } from "../src/lib/invest/apply-leftover-to-cash.ts";
+import {
+  leftoverFromBudgetPlan,
+  leftoverFromBudgetPlans,
+  pickOpenablePlan,
+} from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
+import {
+  buildAccountExportPayload,
+  isAccountExportPayload,
+} from "../src/lib/account/export.ts";
+import { createEmptyBudgetPlan } from "../src/types/budget.ts";
+import { safeAuthNextPath } from "../src/lib/routes.ts";
 import { buildAllocationDrift } from "../src/lib/portfolio/allocation-targets.ts";
 import {
   buildInvestmentCheckup,
@@ -19,6 +31,7 @@ import {
   LEVERAGE_HIGH_PCT,
   leverageUtilizationFromPortfolio,
   migrateLeverageFromPlanData,
+  parseLeverageField,
   parseStoredLeverage,
 } from "../src/lib/portfolio/leverage.ts";
 import {
@@ -33,7 +46,9 @@ import {
 } from "../src/lib/security/headers.ts";
 import {
   isProtectedRoute,
+  isPublicRoute,
   PUBLIC_MARKETING_PATHS,
+  PUBLIC_ROUTE_PATHS,
 } from "../src/lib/security/protected-routes.ts";
 import type { PortfolioHoldingWithPrices } from "../src/types/portfolio.ts";
 
@@ -279,6 +294,18 @@ assert(highUtil.utilizationPercent === 70, "70k / 100k = 70%");
 assert(highUtil.flag === "high", "70% is high");
 assert(highUtil.cushionSource === "equity", "does not use cash when equity is set");
 
+assert(parseLeverageField("") === null, "blank leverage input stays null");
+assert(parseLeverageField("  ") === null, "whitespace leverage input stays null");
+assert(parseLeverageField("-1") === null, "negative leverage input stays null");
+assert(parseLeverageField("abc") === null, "junk leverage input stays null");
+const typedUtil = computeLeverageUtilization({
+  marginUsed: parseLeverageField("70000"),
+  equity: parseLeverageField("30000"),
+  cashValue: 0,
+});
+assert(typedUtil.utilizationPercent === 70, "labeled 70k / 30k fields compute 70%");
+assert(typedUtil.flag === "high", "labeled fields still flag high at 70%");
+
 // --- Options risk vs book (no greeks) ---
 assert(netPremiumPercentOfBook(500, 10_000) === 5, "net premium is 5% of book");
 assert(netPremiumPercentOfBook(500, 0) === null, "no book value → no %");
@@ -408,8 +435,18 @@ assert(dietz != null && Number.isFinite(dietz), "multi-date buys yield Modified 
 for (const path of PUBLIC_MARKETING_PATHS) {
   assert(!isProtectedRoute(path), `${path} stays public`);
 }
+for (const path of PUBLIC_ROUTE_PATHS) {
+  assert(isPublicRoute(path), `${path} is on the public-route list`);
+  assert(!isProtectedRoute(path), `${path} is not gated`);
+}
+assert(isPublicRoute("/auth/callback"), "/auth/callback is public");
+assert(isPublicRoute("/auth/reset"), "/auth/reset is public");
 assert(!isProtectedRoute("/auth/callback"), "/auth/callback stays public");
+assert(!isProtectedRoute("/auth/reset"), "/auth/reset stays public");
 assert(!isProtectedRoute("/api/prices"), "/api/prices is not a page gate");
+assert(safeAuthNextPath("https://evil.test") === "/home", "rejects absolute next");
+assert(safeAuthNextPath("//evil.test") === "/home", "rejects protocol-relative next");
+assert(safeAuthNextPath("/invest") === "/invest", "keeps a relative next");
 
 const mustProtect = [
   "/home",
@@ -442,8 +479,100 @@ assert(destinationForLegacyInvestPath("/analytics") === "/invest", "/analytics f
 assert(destinationForLegacyInvestPath("/performance") === "/invest", "/performance folds into checkup");
 assert(destinationForLegacyInvestPath("/holdings") === "/portfolio", "/holdings is leftover of the book");
 assert(destinationForLegacyInvestPath("/markets") === "/market", "/markets leftover goes to Market");
+assert(destinationForLegacyInvestPath("/analysis") === "/invest", "/analysis hub folds into Invest");
+assert(destinationForLegacyInvestPath("/signin") === "/login", "/signin aliases /login");
 assert(destinationForLegacyInvestPath("/invest") === null, "/invest itself is not redirected");
 assert(destinationForLegacyInvestPath("/portfolio") === null, "the book stays");
+assert(destinationForLegacyInvestPath("/analysis/AAPL") === null, "ticker analysis stays");
+
+const leftoverPlan = createEmptyBudgetPlan("Leftover");
+leftoverPlan.id = "budget-1";
+leftoverPlan.createdAt = "2026-01-01T00:00:00.000Z";
+leftoverPlan.updatedAt = "2026-01-02T00:00:00.000Z";
+leftoverPlan.currency = "CAD";
+leftoverPlan.accounts = [
+  {
+    id: "acct-1",
+    name: "Chequing",
+    type: "chequing",
+    sortOrder: 0,
+    onBudget: true,
+  },
+];
+leftoverPlan.transactions = [
+  {
+    id: "in-1",
+    date: "2026-08-01",
+    amount: 250,
+    type: "inflow",
+    payee: "Pay",
+    accountId: "acct-1",
+    categoryId: null,
+    cleared: "cleared",
+    approved: true,
+  },
+];
+const leftoverSnap = leftoverFromBudgetPlan(leftoverPlan, "2026-08");
+assert(leftoverSnap?.amount === 250, "leftover snapshot is RTA 250");
+assert(leftoverSnap?.currency === "CAD", "leftover keeps budget currency");
+assert(
+  leftoverFromBudgetPlans([leftoverPlan], "2026-08")?.amount === 250,
+  "plan-list leftover matches the same snapshot",
+);
+assert(
+  leftoverFromBudgetPlan(leftoverPlan, "2025-01") == null,
+  "no leftover when RTA is not positive",
+);
+assert(pickOpenablePlan([leftoverPlan])?.id === "budget-1", "openable leftover plan is the only plan");
+
+const appliedNew = applyLeftoverToBookCash([], {
+  amount: leftoverSnap!.amount,
+  currency: leftoverSnap!.currency,
+  date: "2026-08-18",
+});
+assert(appliedNew.created === true, "missing cash holding is created");
+assert(appliedNew.applied === 250, "applied leftover amount is 250");
+assert(appliedNew.holdings.length === 1, "one cash holding after apply");
+assert(appliedNew.holdings[0]?.type === "cash", "new holding is cash");
+assert(appliedNew.holdings[0]?.quantity === 250, "cash qty equals leftover");
+assert(appliedNew.holdings[0]?.cashCurrency === "CAD", "cash currency matches leftover");
+assert(leftoverFromBudgetPlan(leftoverPlan, "2026-08")?.amount === 250, "budget leftover is unchanged after apply");
+
+const appliedAgain = applyLeftoverToBookCash(appliedNew.holdings, {
+  amount: 50,
+  currency: "CAD",
+  date: "2026-08-19",
+});
+assert(appliedAgain.created === false, "matching cash is increased, not duplicated");
+assert(appliedAgain.holdings.length === 1, "still one CAD cash holding");
+assert(appliedAgain.holdings[0]?.quantity === 300, "cash increased by 50");
+
+const skipped = applyLeftoverToBookCash(appliedAgain.holdings, {
+  amount: 0,
+  currency: "CAD",
+  date: "2026-08-19",
+});
+assert(skipped.applied === 0, "zero leftover does not invent cash");
+assert(skipped.holdings[0]?.quantity === 300, "zero leftover leaves cash qty alone");
+
+const exportPayload = buildAccountExportPayload({
+  exportedAt: "2026-08-18T00:00:00.000Z",
+  userId: "user-1",
+  user_budget_plans: [{ id: "b1", data: leftoverPlan }],
+  user_retirement_plans: [],
+  user_portfolio_plans: [{ id: "p1", data: { holdings: appliedNew.holdings } }],
+});
+assert(isAccountExportPayload(exportPayload), "export payload has the three blobs");
+assert(
+  Array.isArray(exportPayload.user_budget_plans) &&
+    Array.isArray(exportPayload.user_retirement_plans) &&
+    Array.isArray(exportPayload.user_portfolio_plans),
+  "export shape is the three user_* arrays",
+);
+assert(
+  !("user_watchlist_plans" in exportPayload),
+  "export does not add extra tables",
+);
 
 // --- Cookies ---
 const http = mergeSessionCookieOptions(undefined, false);

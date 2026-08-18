@@ -85,7 +85,7 @@ export function PlanSettingsCard() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               Premium unlocks unlimited portfolios, retirement plans, and budget
-              plans, plus create-from-portfolio and deeper AI and market tools.
+              plans, plus create-from-portfolio.
             </p>
             <ul className="space-y-1.5 text-sm text-muted-foreground">
               {PREMIUM_PLAN_FEATURES.slice(0, 4).map((item) => (
@@ -109,7 +109,7 @@ export function PlanSettingsCard() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               Free includes 1 portfolio, 1 retirement plan, and 1 budget plan.
-              Upgrade to Premium for unlimited plans and Premium-only features.
+              Upgrade to Premium for unlimited plans and retire-from-portfolio.
             </p>
             <ul className="space-y-1.5 text-sm text-muted-foreground">
               {FREE_PLAN_FEATURES.slice(0, 3).map((item) => (
