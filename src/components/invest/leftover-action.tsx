@@ -7,7 +7,7 @@ import { RetirePanel } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
-import { useEnrichedPortfolio } from "@/hooks/use-enriched-portfolio";
+import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { applyLeftoverToBookCash } from "@/lib/invest/apply-leftover-to-cash";
 import {
@@ -22,7 +22,7 @@ export function LeftoverAction() {
   const budget = useBudgetPlans();
   const { primaryPortfolio, updatePortfolioHoldings } = usePortfolioPlans();
   const retirement = useRetirementPlansStorage();
-  const { prices } = useEnrichedPortfolio("primary");
+  const { prices } = usePortfolioPrices(primaryPortfolio?.holdings ?? []);
   const leftover = useMemo(
     () => leftoverFromBudgetPlans(budget.plans),
     [budget.plans],
