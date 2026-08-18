@@ -12,7 +12,7 @@ const securityHeaders = buildSecurityHeaders({
 });
 
 const nextConfig: NextConfig = {
-  headers() {
+  async headers() {
     return [
       {
         source: "/:path*",
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  redirects() {
+  async redirects() {
     return INVEST_LEGACY_REDIRECTS.map((entry) => ({
       source: entry.source,
       destination: entry.destination,
