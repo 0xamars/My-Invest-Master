@@ -7,8 +7,6 @@ import {
 } from "@/lib/portfolio/allocation-targets";
 import { getHoldingChartLabel } from "@/lib/portfolio/allocation-chart";
 import { computeModifiedDietzReturn } from "@/lib/portfolio/modified-dietz";
-import { buildAnalysisHref } from "@/lib/analysis/types";
-import type { AnalysisAssetType } from "@/lib/analysis/types";
 import type { AssetType, PortfolioHoldingWithPrices } from "@/types/portfolio";
 
 /** One name at or above this share is a real concentration flag. */
@@ -31,7 +29,6 @@ export interface CheckupHoldingRef {
   label: string;
   percent: number;
   value: number;
-  analysisHref: string | null;
 }
 
 export interface CheckupConcentration {
@@ -121,17 +118,6 @@ export function resolveRiskChip(input: {
   return "balanced";
 }
 
-function analysisHrefFor(
-  holding: PortfolioHoldingWithPrices,
-): string | null {
-  if (holding.type !== "stock" && holding.type !== "crypto") return null;
-  return buildAnalysisHref(
-    holding.symbol,
-    holding.type as AnalysisAssetType,
-    holding.priceId,
-  );
-}
-
 function toHoldingRef(
   holding: PortfolioHoldingWithPrices,
 ): CheckupHoldingRef {
@@ -143,7 +129,6 @@ function toHoldingRef(
     label: getHoldingChartLabel(holding),
     percent: holding.portfolioPercent ?? 0,
     value: holding.currentValue ?? 0,
-    analysisHref: analysisHrefFor(holding),
   };
 }
 
@@ -174,7 +159,6 @@ function resolveNextAction(input: {
   portfolioHref: string;
   riskChip: CheckupRiskChip;
   topHolding: CheckupHoldingRef | null;
-  budgetLeftoverHref: string | null;
   retireRefreshHref: string | null;
 }): CheckupNextAction {
   if (!input.hasData) {
@@ -185,11 +169,11 @@ function resolveNextAction(input: {
     };
   }
 
-  if (input.riskChip === "concentrated" && input.topHolding?.analysisHref) {
+  if (input.riskChip === "concentrated" && input.topHolding) {
     return {
       code: "review-concentration",
-      label: `Review ${input.topHolding.label} in Analysis`,
-      href: input.topHolding.analysisHref,
+      label: `Review ${input.topHolding.label} in the book`,
+      href: input.portfolioHref,
     };
   }
 
@@ -203,7 +187,7 @@ function resolveNextAction(input: {
 
   return {
     code: "open-portfolio",
-    label: "Open portfolio",
+    label: "Open book",
     href: input.portfolioHref,
   };
 }
@@ -290,7 +274,6 @@ export function buildInvestmentCheckup(
       portfolioHref,
       riskChip,
       topHolding: concentration.topHolding,
-      budgetLeftoverHref: options?.budgetLeftoverHref ?? null,
       retireRefreshHref: options?.retireRefreshHref ?? null,
     }),
   };

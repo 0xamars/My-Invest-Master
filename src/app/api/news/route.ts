@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { fetchMarketNews } from "@/lib/market/fetch-news";
+import {
+  fetchMarketNews,
+  fetchNewsForSymbols,
+} from "@/lib/market/fetch-news";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -7,6 +10,23 @@ export async function GET(request: Request) {
   if (limited) return limited;
 
   try {
+    const { searchParams } = new URL(request.url);
+    const symbols = searchParams
+      .get("symbols")
+      ?.split(",")
+      .map((symbol) => symbol.trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 8);
+
+    if (symbols && symbols.length > 0) {
+      const items = await fetchNewsForSymbols(symbols);
+      return NextResponse.json({
+        stockNews: items,
+        cryptoNews: [],
+        fetchedAt: new Date().toISOString(),
+      });
+    }
+
     const { stockNews, cryptoNews } = await fetchMarketNews();
 
     return NextResponse.json({

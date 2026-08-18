@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   AlertTriangle,
   Check,
@@ -9,9 +8,7 @@ import {
   Info,
   Loader2,
   Pencil,
-  Search,
   ShieldAlert,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
@@ -34,7 +31,6 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
-import { buildAnalysisHref } from "@/lib/analysis/types";
 import {
   buildHoldingInsight,
   concentrationLevelLabel,
@@ -630,55 +626,6 @@ export function HoldingDetailsDialog({
                     )}
                   </div>
 
-                  <div
-                    className="rounded-xl border border-dashed border-primary/30 bg-primary/5 px-4 py-4"
-                    data-extension="investsalsa-rating"
-                  >
-                    <div className="flex gap-3">
-                      <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">
-                          {insight.ratingPlaceholder.title}
-                        </p>
-                        <p className="text-sm leading-relaxed text-muted-foreground">
-                          {insight.ratingPlaceholder.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className="rounded-xl border border-border/70 bg-muted/15 px-4 py-4"
-                    data-extension="ticker-analysis"
-                  >
-                    <p className="text-sm font-medium text-foreground">
-                      Ticker analysis
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Open the dedicated research page for quote context,
-                      placeholders for fundamentals/technicals, and the future
-                      InvestSalsa Rating.
-                    </p>
-                    {(holding.type === "stock" ||
-                      holding.type === "crypto") && (
-                      <Button
-                        className="mt-3 gap-2"
-                        size="sm"
-                        render={
-                          <Link
-                            href={buildAnalysisHref(
-                              holding.symbol,
-                              holding.type,
-                              holding.priceId,
-                            )}
-                          />
-                        }
-                      >
-                        <Search className="size-3.5" />
-                        View analysis
-                      </Button>
-                    )}
-                  </div>
                 </>
               )}
             </TabsContent>

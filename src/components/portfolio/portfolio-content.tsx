@@ -10,7 +10,6 @@ import {
 } from "@/components/portfolio/add-transaction-dialog";
 import { DeleteHoldingDialog } from "@/components/portfolio/delete-holding-dialog";
 import { EditHoldingDialog } from "@/components/portfolio/edit-holding-dialog";
-import { HoldingDetailsDialog } from "@/components/portfolio/holding-details-dialog";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
 import { LeveragePanel } from "@/components/portfolio/leverage-panel";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
@@ -43,7 +42,7 @@ import { canOpenPortfolioOnPlan } from "@/lib/plans/free-access";
 import { isArchivedHolding, isHoldingVisible } from "@/lib/portfolio/transactions";
 import { formatDisplayMoney, formatPercent } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
-import type { PortfolioHolding, PortfolioHoldingWithPrices } from "@/types/portfolio";
+import type { PortfolioHolding } from "@/types/portfolio";
 
 export function PortfolioContent() {
   const params = useParams<{ id: string }>();
@@ -56,8 +55,9 @@ export function PortfolioContent() {
   );
   const [deletingHolding, setDeletingHolding] =
     useState<PortfolioHolding | null>(null);
-  const [viewingHolding, setViewingHolding] =
-    useState<PortfolioHoldingWithPrices | null>(null);
+  const [expandedHoldingId, setExpandedHoldingId] = useState<string | null>(
+    null,
+  );
 
   const {
     portfolios,
@@ -326,8 +326,8 @@ export function PortfolioContent() {
               <div className="border-b border-border/60 px-5 py-4">
                 <h2 className="text-sm font-semibold">Holdings</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Weight is % of this book. 10%+ is a note, 25%+ is a flag. Open
-                  a name for research.
+                  Weight is % of this book. 10%+ is a note, 25%+ is a flag.
+                  Expand a name for facts.
                 </p>
               </div>
               <div className="px-2 pb-2 sm:px-3 sm:pb-3">
@@ -336,7 +336,13 @@ export function PortfolioContent() {
                   isLoading={isLoading}
                   currency={currency}
                   rates={rates}
-                  onRowClick={setViewingHolding}
+                  expandedHoldingId={expandedHoldingId}
+                  dayChanges={changes}
+                  onToggleExpand={(holding) =>
+                    setExpandedHoldingId((current) =>
+                      current === holding.id ? null : holding.id,
+                    )
+                  }
                   onEdit={(holding) => setEditingHolding(holding)}
                   onDelete={(holding) => setDeletingHolding(holding)}
                   onAdd={() => setDialogOpen(true)}
@@ -358,7 +364,13 @@ export function PortfolioContent() {
                   holdings={enrichedArchived}
                   currency={currency}
                   rates={rates}
-                  onRowClick={setViewingHolding}
+                  expandedHoldingId={expandedHoldingId}
+                  dayChanges={changes}
+                  onToggleExpand={(holding) =>
+                    setExpandedHoldingId((current) =>
+                      current === holding.id ? null : holding.id,
+                    )
+                  }
                   onEdit={(holding) => setEditingHolding(holding)}
                   onDelete={(holding) => setDeletingHolding(holding)}
                 />
@@ -382,30 +394,6 @@ export function PortfolioContent() {
             onOpenChange={setDialogOpen}
             onAdd={addTransaction}
             holdings={holdings}
-          />
-
-          <HoldingDetailsDialog
-            holding={viewingHolding}
-            open={viewingHolding !== null}
-            onOpenChange={(open) => {
-              if (!open) setViewingHolding(null);
-            }}
-            currency={currency}
-            rates={rates}
-            portfolioHoldings={enrichedHoldings}
-            dayChange={
-              viewingHolding
-                ? (changes[viewingHolding.symbol] ?? null)
-                : null
-            }
-            onEdit={(holding) => {
-              setViewingHolding(null);
-              setEditingHolding(holding);
-            }}
-            onDelete={(holding) => {
-              setViewingHolding(null);
-              setDeletingHolding(holding);
-            }}
           />
 
           <EditHoldingDialog

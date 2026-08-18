@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { MoreHorizontal, Search, Trash2 } from "lucide-react";
+import { MoreHorizontal, Trash2 } from "lucide-react";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ import {
   formatPrice,
   profitLossClass,
 } from "@/lib/portfolio/format";
-import { buildAnalysisHref } from "@/lib/analysis/types";
 import { cn } from "@/lib/utils";
 import type { WatchlistItemWithPrices } from "@/types/watchlist";
 
@@ -115,12 +113,6 @@ export function WatchlistTable({
                   const inBook = Boolean(
                     heldKeys?.has(watchlistKey(item.symbol, item.type)),
                   );
-                  const analysisHref = buildAnalysisHref(
-                    item.symbol,
-                    item.type,
-                    item.priceId,
-                  );
-
                   return (
                     <TableRow key={item.id} className="group">
                       <TableCell className={cn(CELL, "pl-5")}>
@@ -134,12 +126,9 @@ export function WatchlistTable({
                             size="sm"
                           />
                           <div className="min-w-0">
-                            <Link
-                              href={analysisHref}
-                              className="font-medium tracking-tight hover:text-primary hover:underline"
-                            >
+                            <p className="font-medium tracking-tight">
                               {item.symbol}
-                            </Link>
+                            </p>
                             <p className="truncate text-xs text-muted-foreground">
                               {item.name}
                             </p>
@@ -209,13 +198,6 @@ export function WatchlistTable({
                             }
                           />
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="gap-2"
-                              render={<Link href={analysisHref} />}
-                            >
-                              <Search className="size-4" />
-                              Analysis
-                            </DropdownMenuItem>
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => onRemove(item)}

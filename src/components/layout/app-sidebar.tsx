@@ -3,11 +3,17 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Eye, Layers, LineChart, Lock, PieChart, Settings, Target } from "lucide-react";
+import { ChevronDown, Eye, Layers, Lock, PieChart, Settings, Target } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { BudgetSidebarNav } from "@/components/layout/budget-sidebar-nav";
 import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { NavCategoryIcon } from "@/components/layout/nav-category-icon";
+import {
+  INVEST_CHILD_NAV,
+  SIGNED_IN_PRIMARY_NAV,
+  isInvestPath,
+  isRetirePath,
+} from "@/lib/chrome/nav";
 import {
   Sidebar,
   SidebarContent,
@@ -29,20 +35,11 @@ import { APP_HOME_PATH, LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/route
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
-const primaryNavItems = [
-  { title: "Home", href: APP_HOME_PATH, category: "home" as const },
-  { title: "Budget", href: "/budget", category: "budget" as const },
-  { title: "Invest", href: "/invest", category: "invest" as const },
-  { title: "Retire", href: "/retire", category: "retire" as const },
-  { title: "Settings", href: "/settings", category: "settings" as const },
-];
-
-const investSubItems = [
-  { title: "Portfolio", href: "/portfolio", icon: PieChart },
-  { title: "Watchlist", href: "/watchlist", icon: Eye },
-  { title: "Options", href: "/options", icon: Layers },
-  { title: "Market", href: "/market", icon: LineChart },
-];
+const investChildIcons = {
+  "/portfolio": PieChart,
+  "/watchlist": Eye,
+  "/options": Layers,
+} as const;
 
 const retireSubItems = [
   {
@@ -54,22 +51,6 @@ const retireSubItems = [
 
 function navClass(isActive: boolean) {
   return cn("nav-item", isActive && "nav-item-active");
-}
-
-function isInvestPath(pathname: string) {
-  return (
-    pathname === "/invest" ||
-    pathname.startsWith("/market") ||
-    pathname.startsWith("/watchlist") ||
-    pathname.startsWith("/analysis") ||
-    pathname.startsWith("/analytics") ||
-    pathname.startsWith("/portfolio") ||
-    pathname.startsWith("/options")
-  );
-}
-
-function isRetirePath(pathname: string) {
-  return pathname === "/retire" || pathname.startsWith("/retire/plans");
 }
 
 export function AppSidebar() {
@@ -104,7 +85,7 @@ export function AppSidebar() {
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {primaryNavItems.map((item) => {
+              {SIGNED_IN_PRIMARY_NAV.map((item) => {
                 if (item.category === "budget") {
                   return (
                     <BudgetSidebarNav
@@ -148,7 +129,8 @@ export function AppSidebar() {
 
                       {investOpen && (
                         <SidebarMenuSub className="nav-invest-submenu mt-1 border-l border-border/60 px-2.5 py-0.5">
-                          {investSubItems.map((subItem) => {
+                          {INVEST_CHILD_NAV.map((subItem) => {
+                            const Icon = investChildIcons[subItem.href];
                             const isLocked = !isLoading && !canAccessProtected;
                             const href = isLocked ? LOGIN_PATH : subItem.href;
 
@@ -165,7 +147,7 @@ export function AppSidebar() {
                                   )}
                                   render={<Link href={href} />}
                                 >
-                                  <subItem.icon className="size-4 opacity-80" />
+                                  <Icon className="size-4 opacity-80" />
                                   <span>{subItem.title}</span>
                                   {isLocked && (
                                     <Lock className="ml-auto size-3.5 text-muted-foreground" />
@@ -244,24 +226,15 @@ export function AppSidebar() {
                   );
                 }
 
-                const isActive =
-                  item.href === APP_HOME_PATH
-                    ? pathname === APP_HOME_PATH
-                    : pathname.startsWith(item.href);
-
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      isActive={isActive}
+                      isActive={pathname === APP_HOME_PATH}
                       tooltip={item.title}
-                      className={navClass(isActive)}
+                      className={navClass(pathname === APP_HOME_PATH)}
                       render={<Link href={item.href} />}
                     >
-                      {item.category === "settings" ? (
-                        <Settings className="size-[1.125rem] opacity-80" />
-                      ) : (
-                        <NavCategoryIcon category={item.category} />
-                      )}
+                      <NavCategoryIcon category={item.category} />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -274,6 +247,19 @@ export function AppSidebar() {
 
       <SidebarFooter className="gap-2 px-2 pb-4">
         <SidebarMenu className="gap-1">
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Settings"
+              isActive={pathname === "/settings" || pathname.startsWith("/settings/")}
+              className={navClass(
+                pathname === "/settings" || pathname.startsWith("/settings/"),
+              )}
+              render={<Link href="/settings" />}
+            >
+              <Settings className="size-[1.125rem] opacity-80" />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Terms"

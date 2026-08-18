@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Layers, PieChart, RefreshCw, TrendingUp } from "lucide-react";
+import { ArrowRight, Eye, Layers, PieChart, RefreshCw, TrendingUp } from "lucide-react";
+import { BookMovers } from "@/components/invest/book-movers";
+import { ownedNameMovers } from "@/lib/portfolio/book-movers";
+import { HoldingExpandPanel } from "@/components/portfolio/holding-expand-panel";
 import { PortfolioAllocationChart } from "@/components/analytics/portfolio-allocation-chart";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
 import { TargetMixPanel } from "@/components/invest/target-mix-panel";
@@ -42,6 +45,8 @@ import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import { computeRetirementProjections } from "@/lib/retirement/projections";
 import { cn } from "@/lib/utils";
+import type { DisplayCurrency, FxRates } from "@/types/currency";
+import type { PortfolioHoldingWithPrices } from "@/types/portfolio";
 import type { RetirementPlan } from "@/types/retirement";
 
 export function InvestHomeContent() {
@@ -60,6 +65,9 @@ export function InvestHomeContent() {
   const { updateTargetAllocation } = usePortfolioPlans();
   const budget = useBudgetPlans();
   const retirement = useRetirementPlansStorage();
+  const [expandedHoldingId, setExpandedHoldingId] = useState<string | null>(
+    null,
+  );
 
   const { enrichedHoldings, totals, portfolioId, portfolioName, isViewingPrimary } =
     portfolio;
@@ -142,7 +150,7 @@ export function InvestHomeContent() {
     <div className="flex flex-1 flex-col gap-5">
       <RetirePageHeader
         title="Invest"
-        description="Fat line for this book — top name, cash, util, and sleeves. Not investment advice."
+        description="The book — checkup, mix, leftover, and options vs the names you own. Not a research terminal."
       />
 
       <LeftoverAction />
@@ -165,6 +173,14 @@ export function InvestHomeContent() {
             }
           />
         </RetirePanel>
+      ) : null}
+
+      {!hasBook ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ChildCard href={bookHref} label="Portfolio" hint="The book" icon={<PieChart className="size-4" />} />
+          <ChildCard href="/options" label="Options" hint="DTE and premium vs book" icon={<Layers className="size-4" />} />
+          <ChildCard href="/watchlist" label="Watchlist" hint="Queue only" icon={<Eye className="size-4" />} />
+        </div>
       ) : (
         <>
           <InvestHero
@@ -176,7 +192,16 @@ export function InvestHomeContent() {
             dayChange={dayChange}
           />
 
-          <CheckupPanel checkup={checkup} leverageUtil={leverageUtil} />
+          <CheckupPanel
+            checkup={checkup}
+            leverageUtil={leverageUtil}
+            holdings={enrichedHoldings}
+            expandedHoldingId={expandedHoldingId}
+            onToggleExpand={setExpandedHoldingId}
+            currency={currency}
+            rates={rates}
+            changes={changes}
+          />
 
           <TargetMixPanel
             checkup={checkup}
@@ -204,6 +229,20 @@ export function InvestHomeContent() {
             </div>
           </RetirePanel>
 
+          {ownedNameMovers(enrichedHoldings, changes, 1).length > 0 ? (
+            <RetirePanel className="px-5 py-4">
+              <BookMovers
+                holdings={enrichedHoldings}
+                changes={changes}
+                onSelect={(holdingId) =>
+                  setExpandedHoldingId((current) =>
+                    current === holdingId ? null : holdingId,
+                  )
+                }
+              />
+            </RetirePanel>
+          ) : null}
+
           {optionsCount > 0 ? (
             <OptionsStrip
               currency={currency}
@@ -216,11 +255,10 @@ export function InvestHomeContent() {
             />
           ) : null}
 
-          <div>
-            <Button render={<Link href={bookHref} />}>
-              Open book
-              <ArrowRight className="size-4" />
-            </Button>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <ChildCard href={bookHref} label="Portfolio" hint="The book" icon={<PieChart className="size-4" />} />
+            <ChildCard href="/options" label="Options" hint="DTE and premium vs book" icon={<Layers className="size-4" />} />
+            <ChildCard href="/watchlist" label="Watchlist" hint="Queue only" icon={<Eye className="size-4" />} />
           </div>
         </>
       )}
@@ -306,9 +344,21 @@ function InvestHero({
 function CheckupPanel({
   checkup,
   leverageUtil,
+  holdings,
+  expandedHoldingId,
+  onToggleExpand,
+  currency,
+  rates,
+  changes,
 }: {
   checkup: ReturnType<typeof buildInvestmentCheckup>;
   leverageUtil: ReturnType<typeof leverageUtilizationFromPortfolio>;
+  holdings: PortfolioHoldingWithPrices[];
+  expandedHoldingId: string | null;
+  onToggleExpand: (id: string | null) => void;
+  currency: DisplayCurrency;
+  rates: FxRates;
+  changes: Record<string, { change: number; changePercent: number }>;
 }) {
   const top = checkup.concentration.topHolding;
   const utilLabel =
@@ -336,13 +386,15 @@ function CheckupPanel({
         </p>
         {top && checkup.concentration.note === "flag" ? (
           <p className="mt-2 text-sm">
-            {top.analysisHref ? (
-              <Link href={top.analysisHref} className="text-primary hover:underline">
-                {top.label}
-              </Link>
-            ) : (
-              <span className="font-medium">{top.label}</span>
-            )}{" "}
+            <button
+              type="button"
+              className="font-medium text-primary hover:underline"
+              onClick={() =>
+                onToggleExpand(expandedHoldingId === top.id ? null : top.id)
+              }
+            >
+              {top.label}
+            </button>{" "}
             is {top.percent.toFixed(1)}% of the book.
           </p>
         ) : null}
@@ -373,39 +425,44 @@ function CheckupPanel({
           <ul className="mt-2 space-y-1.5">
             {checkup.concentration.topHoldings.map((holding) => {
               const note = concentrationNoteForWeight(holding.percent);
-              const row = (
-                <span className="flex w-full items-center justify-between gap-3 text-sm">
-                  <span className="min-w-0 truncate">{holding.label}</span>
-                  <span className="flex shrink-0 items-center gap-2 tabular-nums text-muted-foreground">
-                    {note !== "none" ? (
-                      <span
-                        className={cn(
-                          "text-[11px] font-medium",
-                          note === "flag"
-                            ? "text-[var(--brand-red)]"
-                            : "text-[var(--brand-orange)]",
-                        )}
-                      >
-                        {note === "flag" ? "Flag" : "Note"}
-                      </span>
-                    ) : null}
-                    {holding.percent.toFixed(1)}%
-                  </span>
-                </span>
-              );
-
-              if (!holding.analysisHref) {
-                return <li key={holding.id}>{row}</li>;
-              }
-
+              const expanded = expandedHoldingId === holding.id;
+              const full = holdings.find((item) => item.id === holding.id);
               return (
                 <li key={holding.id}>
-                  <Link
-                    href={holding.analysisHref}
-                    className="block rounded-md hover:bg-muted/40"
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 rounded-md px-1 py-0.5 text-sm hover:bg-muted/40"
+                    onClick={() =>
+                      onToggleExpand(expanded ? null : holding.id)
+                    }
                   >
-                    {row}
-                  </Link>
+                    <span className="min-w-0 truncate">{holding.label}</span>
+                    <span className="flex shrink-0 items-center gap-2 tabular-nums text-muted-foreground">
+                      {note !== "none" ? (
+                        <span
+                          className={cn(
+                            "text-[11px] font-medium",
+                            note === "flag"
+                              ? "text-[var(--brand-red)]"
+                              : "text-[var(--brand-orange)]",
+                          )}
+                        >
+                          {note === "flag" ? "Flag" : "Note"}
+                        </span>
+                      ) : null}
+                      {holding.percent.toFixed(1)}%
+                    </span>
+                  </button>
+                  {expanded && full ? (
+                    <div className="mt-2 rounded-md border border-border/60 bg-muted/15 px-3 py-3">
+                      <HoldingExpandPanel
+                        holding={full}
+                        currency={currency}
+                        rates={rates}
+                        dayChange={changes[full.symbol] ?? null}
+                      />
+                    </div>
+                  ) : null}
                 </li>
               );
             })}
@@ -529,6 +586,31 @@ function OptionsStrip({
         </p>
       )}
     </RetirePanel>
+  );
+}
+
+function ChildCard({
+  href,
+  label,
+  hint,
+  icon,
+}: {
+  href: string;
+  label: string;
+  hint: string;
+  icon: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-xl border border-border/70 px-4 py-3 hover:bg-muted/30"
+    >
+      {icon}
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-muted-foreground">{hint}</span>
+      </span>
+    </Link>
   );
 }
 
