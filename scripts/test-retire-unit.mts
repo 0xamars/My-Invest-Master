@@ -4,6 +4,10 @@
  *   npx tsx --tsconfig tsconfig.json scripts/test-retire-unit.mts
  */
 import { computeRetirementDashboard, verdictFromGap } from "../src/lib/retirement/dashboard.ts";
+import {
+  impliedPathSentence,
+  whatIfLeverSentence,
+} from "../src/lib/retirement/path-copy.ts";
 import { isSuccessfulPath, runRetirementMonteCarlo } from "../src/lib/retirement/monte-carlo.ts";
 import { normalizeRetirementPlan } from "../src/lib/retirement/normalize.ts";
 import { refreshAssetsFromPortfolio } from "../src/lib/retirement/portfolio-import.ts";
@@ -436,6 +440,44 @@ assert(lean?.patch.annualLifestyleSpending === 90_000, "spend-less is 10%");
 const applied = applyScenario(plan({ retirementAge: 65 }), later!, CURRENT_YEAR);
 assert(applied.retirementAge === 67, "applying a scenario updates the base ages");
 assert(applied.retirementYear === CURRENT_YEAR + 27, "applying retire-later syncs the year");
+
+const emptyPath = impliedPathSentence(emptyDash, (value) => `$${value}`);
+assert(
+  emptyPath.includes("Refresh from the book") || emptyPath.includes("add assets"),
+  "empty path does not invent a CAGR",
+);
+const behindDash = computeRetirementDashboard(
+  plan({
+    currentAge: 40,
+    retirementAge: 65,
+    retirementYear: CURRENT_YEAR + 25,
+    annualLifestyleSpending: 80_000,
+    assets: [
+      asset({
+        id: "a1",
+        symbol: "CASH",
+        unitPrice: 1,
+        quantity: 10_000,
+        expectedCagr: 0,
+        type: "cash",
+      }),
+    ],
+  }),
+  { currentYear: CURRENT_YEAR },
+);
+assert(behindDash.verdict === "behind", "tiny pot vs 4% target is behind");
+assert(behindDash.yearsToRetirement === 25, "years left comes from the plan ages");
+assert(behindDash.gapToday != null && behindDash.gapToday < 0, "gap today is already computed");
+const path = impliedPathSentence(behindDash, (value) => `$${Math.round(value)}`);
+assert(path.includes("25 years left"), "path sentence uses years left");
+assert(path.includes("short today"), "path sentence uses the existing gap");
+assert(!/cagr/i.test(path), "path sentence does not invent a CAGR");
+const lever = whatIfLeverSentence(
+  plan({ retirementAge: 65, annualLifestyleSpending: 100_000, annualContribution: 0 }),
+);
+assert(lever.includes("Retire 2 years later"), "lever uses existing retire-later copy");
+assert(lever.includes("Spend 10% less"), "lever uses existing spend-less copy");
+assert(lever.includes("Save $6,000 more / year"), "lever uses existing save-more copy");
 
 if (failed > 0) {
   console.error(`\n${failed} assertion(s) failed`);

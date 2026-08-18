@@ -21,6 +21,10 @@ import {
   previewResetAvailable,
 } from "../src/lib/budget/reset-available.ts";
 import {
+  budgetHabitSnapshot,
+  lastImportedTransactionDate,
+} from "../src/lib/budget/habit.ts";
+import {
   filterTransactions,
   getSpendingByCategoryInRange,
   getSpendingByPayee,
@@ -397,6 +401,35 @@ assert(
 );
 
 assert(READY_TO_ASSIGN_ID === "ready-to-assign", "RTA sentinel is unchanged");
+
+const importedPlan = makePlan({
+  transactions: [
+    tx({
+      id: "imp-1",
+      date: "2026-07-02",
+      amount: 12,
+      type: "outflow",
+      importId: "csv:old",
+      approved: true,
+    }),
+    tx({
+      id: "imp-2",
+      date: "2026-08-09",
+      amount: 8,
+      type: "outflow",
+      importId: "csv:new",
+      approved: false,
+    }),
+  ],
+});
+assert(
+  lastImportedTransactionDate(importedPlan) === "2026-08-09",
+  "last imported row uses the latest importId date",
+);
+const habit = budgetHabitSnapshot(importedPlan, "2026-08");
+assert(habit.inboxCount === 1, "unapproved import is inbox");
+assert(habit.lastImportedDate === "2026-08-09", "habit snapshot keeps last import date");
+assert(habit.needsAttention === true, "inbox means the habit cue fires");
 
 if (failed) {
   console.error(`\n${failed} assertion(s) failed`);

@@ -43,6 +43,7 @@ import {
 import { useBudget } from "@/contexts/budget-context";
 import { getRunningBalances, sortedAccounts } from "@/lib/budget/accounts";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
+import { lastImportedTransactionDate } from "@/lib/budget/habit";
 import {
   getUpcomingScheduledInstances,
   todayDateKey,
@@ -271,6 +272,7 @@ export function BudgetTransactionsContent() {
 
   const showRunningBalance = accountFilter !== "all";
   const hasAnyTransactions = budget.transactions.length > 0;
+  const lastImportedDate = lastImportedTransactionDate(budget);
   const inboxCount = budget.transactions.filter(
     (tx) => !isTransactionApproved(tx),
   ).length;
@@ -289,7 +291,11 @@ export function BudgetTransactionsContent() {
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Register"
-        description="Income, spending, and transfers. Import a bank CSV, then categorize later."
+        description={
+          lastImportedDate
+            ? `Income, spending, and transfers. Latest imported row dated ${formatBudgetDate(lastImportedDate)}.`
+            : "Income, spending, and transfers. Import a bank CSV, then categorize later."
+        }
         action={
           <>
             <Button

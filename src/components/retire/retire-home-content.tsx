@@ -85,7 +85,7 @@ export function RetireHomeContent() {
           <RetireEmptyState
             icon={<Target className="size-5" />}
             title="No retirement plan yet"
-            description="Free accounts can keep one plan. Start with ages, spending, and a 4% target — then import holdings from Invest."
+            description="Start with ages, spending, and a 4% target — then import holdings from Invest. Not investment advice."
             actions={
               <Button className="gap-2" render={<Link href="/retire/plans" />}>
                 Open plans
