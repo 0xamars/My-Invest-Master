@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "InvestSalsa — Budget, Invest, Retire",
   description:
-    "YNAB-style budgeting, a portfolio book and checkup, and a retirement planner. Not investment advice.",
+    "Budget with Ready to Assign and leftover that carries, a portfolio book and checkup, and a retirement planner. Not investment advice.",
   openGraph: {
     title: "InvestSalsa — Budget, Invest, Retire",
     description:

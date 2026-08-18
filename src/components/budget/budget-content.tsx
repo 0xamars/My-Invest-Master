@@ -40,6 +40,7 @@ import {
   getSortedTransactions,
 } from "@/lib/budget/calculations";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
+import { budgetHabitSnapshot } from "@/lib/budget/habit";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
 
 export function BudgetContent() {
@@ -107,6 +108,11 @@ export function BudgetContent() {
       .slice(0, 5);
   }, [budget.transactions, monthKey]);
 
+  const habit = useMemo(
+    () => budgetHabitSnapshot(budget, monthKey),
+    [budget, monthKey],
+  );
+
   const activeGroup = budget.categoryGroups.find(
     (group) => group.id === categoryGroupId,
   );
@@ -165,6 +171,54 @@ export function BudgetContent() {
           {syncError}
         </div>
       )}
+
+      {habit.needsAttention ? (
+        <BudgetPanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Needs a look</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {[
+                habit.inboxCount > 0
+                  ? `${habit.inboxCount} inbox row${habit.inboxCount === 1 ? "" : "s"}`
+                  : null,
+                habit.overspent.length > 0
+                  ? `${habit.overspent.length} overspent categor${habit.overspent.length === 1 ? "y" : "ies"}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              . Assign, cover, then done.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {habit.inboxCount > 0 ? (
+              <Button
+                size="sm"
+                render={
+                  <Link
+                    href={`/budget/plans/${planId}/transactions?inbox=unapproved`}
+                  />
+                }
+              >
+                Review inbox
+                <ArrowRight className="size-3.5" />
+              </Button>
+            ) : null}
+            {habit.overspent[0] ? (
+              <Button
+                size="sm"
+                variant={habit.inboxCount > 0 ? "outline" : "default"}
+                onClick={() => {
+                  setCoverCategoryId(habit.overspent[0].categoryId);
+                  setCoverOpen(true);
+                }}
+              >
+                Cover {habit.overspent[0].name}
+              </Button>
+            ) : null}
+          </div>
+        </BudgetPanel>
+      ) : null}
 
       <BudgetSummaryStats
         summary={summary}

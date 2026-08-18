@@ -138,7 +138,7 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
             </Button>
             <RetirePageHeader
               title={watchlist?.name ?? "Watchlist"}
-              description="Buy queue — names to research. A badge marks names already in the primary book. This is not a second portfolio."
+              description="Research list — symbol, last price, and whether the name is already in the book. Not a ranking and not a recommendation."
             />
           </div>
 

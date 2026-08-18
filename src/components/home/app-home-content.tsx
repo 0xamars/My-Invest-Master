@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { HomeDashboard } from "@/components/home/home-dashboard";
 import { LeftoverAction } from "@/components/invest/leftover-action";
+import { RefreshRetireAction } from "@/components/invest/refresh-retire-action";
 import { MarketNewsSection } from "@/components/home/market-news-section";
 import { RetirePageHeader } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export function AppHomeContent() {
     <div className="flex flex-1 flex-col gap-5">
       <RetirePageHeader
         title="Home"
-        description="Ready to Assign, portfolio value, and whether retirement is on track — then one next action."
+        description="Whether retirement is on track — leftover and the book sit underneath. Not investment advice."
         action={
           <Button variant="outline" onClick={() => void handleSignOut()}>
             <LogOut className="size-4" />
@@ -35,13 +36,10 @@ export function AppHomeContent() {
         }
       />
 
-      <p className="text-sm text-muted-foreground">
-        Leftover in Budget is one number. Apply it to book cash, then check Retire.
-      </p>
+      <HomeDashboard />
 
       <LeftoverAction />
-
-      <HomeDashboard />
+      <RefreshRetireAction />
 
       <div className="space-y-2">
         <div className="flex items-end justify-between gap-3">

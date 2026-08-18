@@ -1,12 +1,6 @@
-import type { Metadata } from "next";
-import { PricingContent } from "@/components/pricing/pricing-content";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Pricing · InvestSalsa",
-  description:
-    "Free includes one budget, one portfolio, and one retirement plan. Premium is unlimited plans and retire-from-portfolio.",
-};
-
+/** /pricing is not a product page. Send visitors to the marketing home. */
 export default function PricingPage() {
-  return <PricingContent />;
+  redirect("/");
 }

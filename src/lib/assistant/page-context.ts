@@ -125,7 +125,7 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       id: "budget-plan",
       path: pathname,
       title: "Budget Plan",
-      description: "YNAB-style envelope budgeting for one plan.",
+      description: "Envelope budgeting for one plan — Ready to Assign and leftover that carries.",
     };
   }
   if (pathname === "/budget" || pathname.startsWith("/budget/")) {
@@ -142,14 +142,6 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       path: pathname,
       title: "Settings",
       description: "Account and display preferences.",
-    };
-  }
-  if (pathname === "/pricing") {
-    return {
-      id: "other",
-      path: pathname,
-      title: "Pricing",
-      description: "Compare Free and Premium plans for InvestSalsa.",
     };
   }
   return {

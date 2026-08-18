@@ -120,7 +120,7 @@ export function LoginForm() {
       <p className="text-sm text-white/50">
         Need an account?{" "}
         <Link href={SIGNUP_PATH} className="text-primary hover:underline">
-          Start free
+          Start
         </Link>
       </p>
     </div>

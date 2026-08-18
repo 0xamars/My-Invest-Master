@@ -1,3 +1,4 @@
+import { PLAN_CAPS_ENFORCED } from "@/lib/plans/access";
 import type { UserPlan } from "@/types/plan";
 
 type DatedPlan = {
@@ -12,7 +13,7 @@ type PortfolioLike = {
 
 /**
  * Stable Free "allowed" plan: oldest by createdAt, then id.
- * Extras stay visible/deletable but are not openable on Free.
+ * Extras stay visible/deletable but are not openable when caps are on.
  */
 export function pickFreeAllowedPlanId(
   plans: DatedPlan[],
@@ -32,6 +33,7 @@ export function canOpenPortfolioOnPlan(
   plan: UserPlan,
   portfolio: PortfolioLike | null | undefined,
 ): boolean {
+  if (!PLAN_CAPS_ENFORCED) return true;
   if (plan === "premium") return true;
   if (!portfolio) return false;
   return portfolio.isPrimary;
@@ -42,6 +44,7 @@ export function canOpenRetirementPlanOnPlan(
   plans: DatedPlan[],
   planId: string,
 ): boolean {
+  if (!PLAN_CAPS_ENFORCED) return true;
   if (plan === "premium") return true;
   const allowedId = pickFreeAllowedPlanId(plans);
   return allowedId !== null && allowedId === planId;
@@ -52,6 +55,7 @@ export function canOpenBudgetPlanOnPlan(
   plans: DatedPlan[],
   planId: string,
 ): boolean {
+  if (!PLAN_CAPS_ENFORCED) return true;
   if (plan === "premium") return true;
   const allowedId = pickFreeAllowedPlanId(plans);
   return allowedId !== null && allowedId === planId;
@@ -62,12 +66,14 @@ export function canOpenWatchlistOnPlan(
   lists: DatedPlan[],
   listId: string,
 ): boolean {
+  if (!PLAN_CAPS_ENFORCED) return true;
   if (plan === "premium") return true;
   const allowedId = pickFreeAllowedPlanId(lists);
   return allowedId !== null && allowedId === listId;
 }
 
-/** Create-from-portfolio retirement import is Premium-only. */
+/** Create-from-portfolio retirement import. Ungated while caps are off. */
 export function canCreateRetirementFromPortfolio(plan: UserPlan): boolean {
+  if (!PLAN_CAPS_ENFORCED) return true;
   return plan === "premium";
 }

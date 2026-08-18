@@ -6,6 +6,12 @@ import {
 } from "@/types/plan";
 import { getPremiumUpgradeCopy } from "@/lib/plans/upgrade-copy";
 
+/**
+ * Caps and Free/Premium feature gates are off. Keep the tables so a cap
+ * can return later — do not enforce any limit now.
+ */
+export const PLAN_CAPS_ENFORCED = false;
+
 /** Always treated as Premium in the app (billing not required). */
 export const PREMIUM_OVERRIDE_EMAILS = ["admin@investsalsa.com"] as const;
 
@@ -79,6 +85,7 @@ export function resolveEffectivePlan(
 }
 
 export function canAccess(plan: UserPlan, feature: PlanFeature): boolean {
+  if (!PLAN_CAPS_ENFORCED) return true;
   const table =
     plan === "premium" ? PREMIUM_FEATURE_ACCESS : FREE_FEATURE_ACCESS;
   return table[feature];
@@ -88,6 +95,7 @@ export function getPlanLimit(
   plan: UserPlan,
   resource: PlanLimitedResource,
 ): number | null {
+  if (!PLAN_CAPS_ENFORCED) return null;
   if (plan === "premium") return null;
 
   if (resource === "retirement") return FREE_PLAN_LIMITS.retirementPlans;

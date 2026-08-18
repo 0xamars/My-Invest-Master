@@ -35,9 +35,9 @@ export default function TermsPage() {
         </p>
         <p>
           You are responsible for the numbers you enter. Plans are stored as
-          JSON in your account. Free includes one budget, one portfolio, and
-          one retirement plan. Premium (unlimited plans and retire-from-portfolio)
-          is offered by request while billing is not live.
+          JSON in your account. InvestSalsa is one product: Budget, Invest, and
+          Retire are included. Create as many budget, portfolio, and retirement
+          plans as you need. Nothing here is a recommendation to buy or sell.
         </p>
         <p>
           Accounts use email and password through Supabase Auth. Do not share

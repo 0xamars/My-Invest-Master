@@ -17,6 +17,8 @@ export const CONCENTRATION_FLAG_PCT = 25;
 export const CONCENTRATION_NOTE_PCT = 10;
 /** Cash share that produces the Cash-heavy chip (when not already Concentrated). */
 export const CASH_HEAVY_PCT = 40;
+/** One holding-type sleeve at or above this share is a dominate flag. */
+export const SLEEVE_DOMINANT_PCT = 50;
 
 export type CheckupRiskChip = "concentrated" | "balanced" | "cash-heavy";
 export type ConcentrationNote = "flag" | "note" | "none";
@@ -49,6 +51,12 @@ export interface CheckupMixItem {
   count: number;
 }
 
+export interface CheckupSleeveFlag {
+  type: AssetType;
+  label: string;
+  percent: number;
+}
+
 export interface CheckupOptionsOverlay {
   netPremium: number;
   percentOfPortfolio: number | null;
@@ -74,6 +82,7 @@ export interface InvestmentCheckup {
   riskChip: CheckupRiskChip;
   concentration: CheckupConcentration;
   mix: CheckupMixItem[];
+  dominatingSleeve: CheckupSleeveFlag | null;
   targets: TargetAllocation;
   targetsAreDefault: boolean;
   drift: AllocationDriftRow[];
@@ -231,11 +240,20 @@ export function buildInvestmentCheckup(
   ) as Partial<Record<AssetType, number>>;
   const mix: CheckupMixItem[] = breakdown.map((item) => ({
     type: item.id,
-    label: item.label,
+    label: item.id === "custom" ? "Other" : item.label,
     percent: item.percent,
     value: item.value,
     count: item.count,
   }));
+  const topSleeve = [...mix].sort((a, b) => b.percent - a.percent)[0] ?? null;
+  const dominatingSleeve: CheckupSleeveFlag | null =
+    topSleeve && topSleeve.percent >= SLEEVE_DOMINANT_PCT
+      ? {
+          type: topSleeve.type,
+          label: topSleeve.label,
+          percent: topSleeve.percent,
+        }
+      : null;
   const portfolioHref = options?.portfolioHref ?? "/portfolio";
   const hasOptions = Boolean(options?.hasOptions);
   const netPremium = options?.netPremium ?? null;
@@ -261,6 +279,7 @@ export function buildInvestmentCheckup(
     riskChip,
     concentration,
     mix,
+    dominatingSleeve,
     targets,
     targetsAreDefault: isDefault,
     drift: buildAllocationDrift(actualPercents, targets, totals.currentValue),

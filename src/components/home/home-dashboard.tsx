@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Loader2, PiggyBank, Target, TrendingUp } from "lucide-react";
+import { ArrowRight, Loader2, Target } from "lucide-react";
 import {
   RetireEmptyState,
-  RetireMoney,
   RetirePanel,
   RetireVerdictChip,
 } from "@/components/retirement/retire-ui";
@@ -13,242 +12,27 @@ import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { useInvestSummary } from "@/hooks/use-invest-summary";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
-import {
-  computeMonthSummary,
-  getCurrentMonthKey,
-} from "@/lib/budget/calculations";
+import { budgetHabitSnapshot } from "@/lib/budget/habit";
 import { formatBudgetMoney } from "@/lib/budget/format";
-import { isTransactionApproved } from "@/lib/budget/reports";
+import {
+  leftoverFromBudgetPlans,
+  pickOpenablePlan,
+} from "@/lib/invest/leftover";
+import { buildInvestmentCheckup } from "@/lib/portfolio/checkup";
+import { formatDisplayMoney } from "@/lib/portfolio/format";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import { formatProjectionMoney } from "@/lib/retirement/format";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
-import { computeRetirementProjections } from "@/lib/retirement/projections";
-import { getPortfolioDayChange } from "@/lib/portfolio/day-change";
 import {
-  formatDisplayMoney,
-  formatPercent,
-  profitLossClass,
-} from "@/lib/portfolio/format";
-import { pickOpenablePlan } from "@/lib/invest/leftover";
+  impliedPathSentence,
+  whatIfLeverSentence,
+} from "@/lib/retirement/path-copy";
+import { computeRetirementProjections } from "@/lib/retirement/projections";
 import { cn } from "@/lib/utils";
 import type { BudgetPlan } from "@/types/budget";
 import type { RetirementPlan } from "@/types/retirement";
 
-function PillarHeader({
-  title,
-  eyebrow,
-  href,
-}: {
-  title: string;
-  eyebrow: string;
-  href: string;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
-      <div>
-        <p className="budget-metric-label">{eyebrow}</p>
-        <h2 className="mt-1 text-base font-semibold tracking-tight">{title}</h2>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 gap-1 text-xs text-muted-foreground"
-        render={<Link href={href} />}
-      >
-        Open
-        <ArrowRight className="size-3.5" />
-      </Button>
-    </div>
-  );
-}
-
-function BudgetPillar({
-  plan,
-  isLoaded,
-}: {
-  plan: BudgetPlan | null;
-  isLoaded: boolean;
-}) {
-  if (!isLoaded) {
-    return (
-      <RetirePanel className="min-h-[17rem]">
-        <PillarHeader title="Budget" eyebrow="This month" href="/budget" />
-        <div className="flex items-center justify-center px-5 py-10 text-sm text-muted-foreground">
-          <Loader2 className="mr-2 size-4 animate-spin" />
-          Checking budget…
-        </div>
-      </RetirePanel>
-    );
-  }
-
-  if (!plan) {
-    return (
-      <RetirePanel>
-        <PillarHeader title="Budget" eyebrow="This month" href="/budget" />
-        <RetireEmptyState
-          icon={<PiggyBank className="size-5" />}
-          title="No budget yet"
-          description="Give every dollar a job. Ready to Assign and category leftover carry forward."
-          actions={
-            <Button render={<Link href="/budget" />}>Create a budget</Button>
-          }
-        />
-      </RetirePanel>
-    );
-  }
-
-  const monthKey = getCurrentMonthKey();
-  const summary = computeMonthSummary(plan, monthKey);
-  const inboxCount = plan.transactions.filter(
-    (tx) => !isTransactionApproved(tx),
-  ).length;
-  const ready = summary.readyToAssign;
-  const href = `/budget/plans/${plan.id}`;
-  const inboxHref = `${href}/transactions?inbox=unapproved`;
-  const next =
-    inboxCount > 0
-      ? { href: inboxHref, label: "Open register inbox" }
-      : { href, label: "Open this month" };
-
-  return (
-    <RetirePanel>
-      <PillarHeader title={plan.name} eyebrow="Budget · this month" href={href} />
-      <div className="grid grid-cols-2 divide-x divide-border/60">
-        <div className="px-5 py-4">
-          <p className="budget-metric-label">Ready to Assign</p>
-          <p
-            className={cn(
-              "budget-metric-value mt-1.5",
-              ready > 0 && "text-[var(--brand-green)]",
-              ready < 0 && "text-[var(--brand-red)]",
-            )}
-          >
-            {ready < 0 ? "−" : ""}
-            {formatBudgetMoney(ready, plan.currency)}
-          </p>
-        </div>
-        <div className="px-5 py-4">
-          <p className="budget-metric-label">Spent this month</p>
-          <p className="budget-metric-value mt-1.5">
-            <RetireMoney
-              value={formatBudgetMoney(summary.totalSpent, plan.currency)}
-              tone="out"
-            />
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-5 py-3">
-        <p className="text-xs text-muted-foreground">
-          {inboxCount > 0
-            ? `${inboxCount} register row${inboxCount === 1 ? "" : "s"} to approve`
-            : ready > 0
-              ? "Income waiting for a job."
-              : "Every dollar through this month has a job."}
-        </p>
-        <Button size="sm" render={<Link href={next.href} />}>
-          {next.label}
-        </Button>
-      </div>
-    </RetirePanel>
-  );
-}
-
-function InvestPillar() {
-  const {
-    portfolio,
-    changes,
-    rates,
-    currency,
-    isLoaded,
-  } = useInvestSummary();
-  const { enrichedHoldings, totals, portfolioId, portfolioName } = portfolio;
-  const href = portfolioId ? `/portfolio/${portfolioId}` : "/portfolio";
-  const dayChange = getPortfolioDayChange(
-    enrichedHoldings,
-    changes,
-    totals.currentValue,
-  );
-
-  if (!isLoaded) {
-    return (
-      <RetirePanel className="min-h-[17rem]">
-        <PillarHeader title="Invest" eyebrow="Portfolio" href="/invest" />
-        <div className="flex items-center justify-center px-5 py-10 text-sm text-muted-foreground">
-          <Loader2 className="mr-2 size-4 animate-spin" />
-          Checking portfolio…
-        </div>
-      </RetirePanel>
-    );
-  }
-
-  if (enrichedHoldings.length === 0) {
-    return (
-      <RetirePanel>
-        <PillarHeader title="Invest" eyebrow="Portfolio" href="/invest" />
-        <RetireEmptyState
-          icon={<TrendingUp className="size-5" />}
-          title={portfolioName ? `No holdings in ${portfolioName}` : "No portfolio yet"}
-          description="Add stocks, crypto, cash, or custom assets. Retire can refresh from this portfolio later."
-          actions={
-            <Button render={<Link href={href} />}>
-              {portfolioId ? "Add holdings" : "Create a portfolio"}
-            </Button>
-          }
-        />
-      </RetirePanel>
-    );
-  }
-
-  return (
-    <RetirePanel>
-      <PillarHeader
-        title={portfolioName ?? "Portfolio"}
-        eyebrow="Invest"
-        href={href}
-      />
-      <div className="grid grid-cols-2 divide-x divide-border/60">
-        <div className="px-5 py-4">
-          <p className="budget-metric-label">Total value</p>
-          <p className="budget-metric-value mt-1.5">
-            {totals.hasLoadingPrices
-              ? "…"
-              : formatDisplayMoney(totals.currentValue, currency, rates)}
-          </p>
-        </div>
-        <div className="px-5 py-4">
-          <p className="budget-metric-label">Day change</p>
-          {dayChange ? (
-            <p
-              className={cn(
-                "budget-metric-value mt-1.5",
-                profitLossClass(dayChange.change),
-              )}
-            >
-              {dayChange.change >= 0 ? "+" : "−"}
-              {formatDisplayMoney(Math.abs(dayChange.change), currency, rates)}
-              <span className="ml-1 text-xs font-medium">
-                {formatPercent(dayChange.changePercent)}
-              </span>
-            </p>
-          ) : (
-            <p className="budget-metric-value mt-1.5 text-muted-foreground">—</p>
-          )}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-5 py-3">
-        <p className="text-xs text-muted-foreground">
-          {enrichedHoldings.length} holding{enrichedHoldings.length === 1 ? "" : "s"}
-          {totals.hasLoadingPrices ? " · prices updating" : ""}
-        </p>
-        <Button size="sm" render={<Link href="/invest" />}>
-          Open checkup
-        </Button>
-      </div>
-    </RetirePanel>
-  );
-}
-
-function RetirePillar({
+function PathHero({
   plan,
   isLoaded,
 }: {
@@ -259,11 +43,10 @@ function RetirePillar({
 
   if (!isLoaded) {
     return (
-      <RetirePanel className="min-h-[17rem]">
-        <PillarHeader title="Retire" eyebrow="Plan" href="/retire" />
+      <RetirePanel className="min-h-[14rem]">
         <div className="flex items-center justify-center px-5 py-10 text-sm text-muted-foreground">
           <Loader2 className="mr-2 size-4 animate-spin" />
-          Checking retirement…
+          Checking the path…
         </div>
       </RetirePanel>
     );
@@ -272,11 +55,10 @@ function RetirePillar({
   if (!plan) {
     return (
       <RetirePanel>
-        <PillarHeader title="Retire" eyebrow="Plan" href="/retire" />
         <RetireEmptyState
           icon={<Target className="size-5" />}
           title="No retirement plan yet"
-          description="Set a spending target, import holdings, and see whether you are on track."
+          description="Start a plan, then refresh holdings from the Invest book to see whether you are on track."
           actions={
             <Button render={<Link href="/retire/plans" />}>Start a plan</Button>
           }
@@ -291,48 +73,171 @@ function RetirePillar({
   const href = `/retire/plans/${normalized.id}`;
   const money = (value: number) =>
     formatProjectionMoney(value, normalized.currency, rates);
-  const nextLabel =
-    dashboard.verdict === "empty" ? "Add assets" : "Open retire levers";
+  const path = impliedPathSentence(dashboard, money);
+  const lever =
+    dashboard.verdict === "empty" ? "" : whatIfLeverSentence(normalized);
 
   return (
-    <RetirePanel>
-      <PillarHeader title={normalized.name} eyebrow="Retire" href="/retire" />
-      <div className="px-5 py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <RetireVerdictChip verdict={dashboard.verdict} />
-          <p className="text-xs text-muted-foreground">
-            Need {money(dashboard.targetNestEgg)} to spend{" "}
-            {money(dashboard.annualSpending)}/year
-          </p>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <p className="budget-metric-label">Current</p>
-            <p className="budget-metric-value mt-1">
-              {money(dashboard.currentPortfolio)}
-            </p>
-          </div>
-          <div>
-            <p className="budget-metric-label">Target</p>
-            <p className="budget-metric-value mt-1">
-              {money(dashboard.targetNestEgg)}
-            </p>
-          </div>
-        </div>
+    <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <RetireVerdictChip verdict={dashboard.verdict} />
+        <span className="text-xs text-muted-foreground">{normalized.name}</span>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-5 py-3">
-        <p className="text-xs text-muted-foreground">
-          {dashboard.verdict === "empty"
-            ? "Add assets or refresh from Invest."
-            : dashboard.lastsPastPlanEnd
-              ? `Lasts past age ${dashboard.planEndAge}`
-              : `Runs out at age ${dashboard.depletionAge}`}
+      <p
+        className={cn(
+          "budget-hero-value mt-3",
+          dashboard.verdict === "behind"
+            ? "text-[var(--brand-orange)]"
+            : dashboard.verdict === "empty"
+              ? "text-foreground"
+              : "text-[var(--brand-green)]",
+        )}
+      >
+        {dashboard.verdict === "ahead"
+          ? "Ahead"
+          : dashboard.verdict === "behind"
+            ? "Behind"
+            : dashboard.verdict === "empty"
+              ? "Add assets"
+              : "On track"}
+      </p>
+      <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div>
+          <dt className="budget-metric-label">Years left</dt>
+          <dd className="budget-metric-value mt-1">
+            {dashboard.yearsToRetirement}
+          </dd>
+        </div>
+        <div>
+          <dt className="budget-metric-label">Target</dt>
+          <dd className="budget-metric-value mt-1">
+            {money(dashboard.targetNestEgg)}
+          </dd>
+        </div>
+        <div>
+          <dt className="budget-metric-label">
+            {dashboard.gapToday != null && dashboard.gapToday >= 0
+              ? "Surplus"
+              : "Gap"}
+          </dt>
+          <dd className="budget-metric-value mt-1">
+            {dashboard.gapToday == null
+              ? "—"
+              : money(Math.abs(dashboard.gapToday))}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        {path}
+      </p>
+      {lever ? (
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          {lever}
         </p>
-        <Button size="sm" render={<Link href={href} />}>
-          {nextLabel}
+      ) : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button render={<Link href={href} />}>
+          Open plan
+          <ArrowRight className="size-4" />
         </Button>
       </div>
-    </RetirePanel>
+    </section>
+  );
+}
+
+function SupportingLines({
+  budgetPlan,
+  budgetLoaded,
+}: {
+  budgetPlan: BudgetPlan | null;
+  budgetLoaded: boolean;
+}) {
+  const leftover = leftoverFromBudgetPlans(budgetPlan ? [budgetPlan] : []);
+  const habit = budgetPlan ? budgetHabitSnapshot(budgetPlan) : null;
+  const {
+    portfolio,
+    rates,
+    currency,
+    isLoaded: investLoaded,
+  } = useInvestSummary();
+  const checkup = buildInvestmentCheckup(
+    portfolio.enrichedHoldings,
+    portfolio.totals,
+    { portfolioHref: portfolio.portfolioId ? `/portfolio/${portfolio.portfolioId}` : "/portfolio" },
+  );
+
+  const budgetHref = budgetPlan ? `/budget/plans/${budgetPlan.id}` : "/budget";
+  const inboxHref = budgetPlan
+    ? `/budget/plans/${budgetPlan.id}/transactions?inbox=unapproved`
+    : "/budget";
+  const budgetCue = !budgetLoaded
+    ? "Checking leftover…"
+    : !budgetPlan
+      ? "No budget yet"
+      : habit?.needsAttention
+        ? [
+            habit.inboxCount > 0
+              ? `${habit.inboxCount} inbox row${habit.inboxCount === 1 ? "" : "s"}`
+              : null,
+            habit.overspent.length > 0
+              ? `${habit.overspent.length} overspent`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : leftover
+          ? `${formatBudgetMoney(leftover.amount, leftover.currency)} leftover`
+          : "Ready to Assign is assigned";
+
+  const bookHref = portfolio.portfolioId
+    ? `/portfolio/${portfolio.portfolioId}`
+    : "/invest";
+  const bookCue = !investLoaded
+    ? "Checking the book…"
+    : checkup.hasData
+      ? `${formatDisplayMoney(checkup.totalValue, currency, rates)} · top name ${checkup.concentration.topHoldingPercent.toFixed(1)}%`
+      : "No holdings yet";
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <div className="min-w-0">
+          <p className="budget-metric-label">Budget leftover</p>
+          <p className="mt-1 text-sm font-medium">{budgetCue}</p>
+        </div>
+        <Button
+          size="sm"
+          render={
+            <Link
+              href={
+                habit?.inboxCount
+                  ? inboxHref
+                  : budgetHref
+              }
+            />
+          }
+        >
+          {habit?.inboxCount
+            ? "Review inbox"
+            : habit?.overspent.length
+              ? "Cover overspend"
+              : budgetPlan
+                ? "Open Budget"
+                : "Start Budget"}
+          <ArrowRight className="size-3.5" />
+        </Button>
+      </RetirePanel>
+      <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <div className="min-w-0">
+          <p className="budget-metric-label">Invest book</p>
+          <p className="mt-1 text-sm font-medium">{bookCue}</p>
+        </div>
+        <Button size="sm" render={<Link href={checkup.hasData ? "/invest" : bookHref} />}>
+          {checkup.hasData ? "Open checkup" : "Open Invest"}
+          <ArrowRight className="size-3.5" />
+        </Button>
+      </RetirePanel>
+    </div>
   );
 }
 
@@ -343,10 +248,12 @@ export function HomeDashboard() {
   const retirePlan = pickOpenablePlan(retirement.plans);
 
   return (
-    <section className="grid gap-3 lg:grid-cols-3">
-      <BudgetPillar plan={budgetPlan} isLoaded={budget.isLoaded} />
-      <InvestPillar />
-      <RetirePillar plan={retirePlan} isLoaded={retirement.isLoaded} />
+    <section className="flex flex-col gap-3">
+      <PathHero plan={retirePlan} isLoaded={retirement.isLoaded} />
+      <SupportingLines
+        budgetPlan={budgetPlan}
+        budgetLoaded={budget.isLoaded}
+      />
     </section>
   );
 }

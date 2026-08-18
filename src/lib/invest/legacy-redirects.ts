@@ -9,6 +9,7 @@ export const INVEST_LEGACY_REDIRECTS = [
   { source: "/holdings", destination: "/portfolio", permanent: true },
   { source: "/analysis", destination: "/invest", permanent: false },
   { source: "/signin", destination: "/login", permanent: false },
+  { source: "/pricing", destination: "/", permanent: false },
 ] as const;
 
 export function destinationForLegacyInvestPath(

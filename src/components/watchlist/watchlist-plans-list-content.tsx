@@ -4,16 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Crown,
   Eye,
   Loader2,
-  Lock,
   Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
-import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callout";
-import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
 import { DeleteWatchlistDialog } from "@/components/watchlist/delete-watchlist-dialog";
 import { WatchlistNameDialog } from "@/components/watchlist/watchlist-name-dialog";
 import { Button } from "@/components/ui/button";
@@ -25,13 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
-import { usePremiumUpgradePrompt } from "@/hooks/use-premium-upgrade-prompt";
-import { useUserPlan } from "@/hooks/use-user-preferences";
-import {
-  canCreateLimitedResource,
-  isPlanLimitError,
-} from "@/lib/plans/access";
-import { canOpenWatchlistOnPlan } from "@/lib/plans/free-access";
 import type { UserWatchlist } from "@/types/watchlist";
 
 function formatUpdatedAt(iso: string): string {
@@ -54,21 +43,10 @@ export function WatchlistPlansListContent() {
     syncError,
     isPlanReady,
   } = useWatchlistPlans();
-  const { plan: userPlan, prefsLoadSucceeded, isLoaded: isPlanLoaded } =
-    useUserPlan();
-  const upgrade = usePremiumUpgradePrompt();
-
   const [createOpen, setCreateOpen] = useState(false);
   const [renaming, setRenaming] = useState<UserWatchlist | null>(null);
   const [deleting, setDeleting] = useState<UserWatchlist | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-
-  const effectivePlan = prefsLoadSucceeded ? userPlan : "free";
-  const atFreeLimit =
-    isPlanReady &&
-    !canCreateLimitedResource(effectivePlan, "watchlist", lists.length);
-  const freeHasExtras =
-    prefsLoadSucceeded && userPlan === "free" && lists.length > 1;
 
   async function handleCreate(name: string) {
     setIsCreating(true);
@@ -76,13 +54,6 @@ export function WatchlistPlansListContent() {
       const list = await createWatchlistAndSave(name);
       setCreateOpen(false);
       router.push(`/watchlist/${list.id}`);
-    } catch (error) {
-      if (isPlanLimitError(error)) {
-        setCreateOpen(false);
-        upgrade.promptLimit(error.resource);
-      } else {
-        throw error;
-      }
     } finally {
       setIsCreating(false);
     }
@@ -90,22 +61,14 @@ export function WatchlistPlansListContent() {
 
   function openCreate() {
     if (!isPlanReady) return;
-    if (atFreeLimit) {
-      upgrade.promptLimit("watchlist");
-      return;
-    }
     setCreateOpen(true);
   }
 
   function openWatchlist(list: UserWatchlist) {
-    if (!canOpenWatchlistOnPlan(effectivePlan, lists, list.id)) {
-      upgrade.promptOpen("watchlist");
-      return;
-    }
     router.push(`/watchlist/${list.id}`);
   }
 
-  if (!isLoaded || !isPlanLoaded) {
+  if (!isLoaded) {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
@@ -120,8 +83,8 @@ export function WatchlistPlansListContent() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Watchlists</h1>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Stage tickers you are researching — not holdings you own. Free
-            includes 1 watchlist; Premium unlocks unlimited lists.
+            Stage tickers you are researching — not holdings you own. Create
+            as many lists as you need.
           </p>
         </div>
 
@@ -132,24 +95,12 @@ export function WatchlistPlansListContent() {
         >
           {isCreating ? (
             <Loader2 className="size-4 animate-spin" />
-          ) : atFreeLimit ? (
-            <Crown className="size-4" />
           ) : (
             <Plus className="size-4" />
           )}
           Create Watchlist
         </Button>
       </div>
-
-      {atFreeLimit && <PremiumUpgradeCallout resource="watchlist" />}
-
-      {freeHasExtras && (
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          You currently have {lists.length} watchlists. Extra lists stay listed
-          so you can delete them, or upgrade to Premium for unlimited
-          watchlists.
-        </div>
-      )}
 
       {syncError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -185,9 +136,6 @@ export function WatchlistPlansListContent() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {
             const list = lists.find((item) => item.id === summary.id);
-            const canOpen =
-              list != null &&
-              canOpenWatchlistOnPlan(effectivePlan, lists, summary.id);
 
             return (
               <Card
@@ -199,12 +147,6 @@ export function WatchlistPlansListContent() {
                     <CardTitle className="truncate text-base font-semibold">
                       {summary.name}
                     </CardTitle>
-                    {!canOpen && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
-                        <Lock className="size-3" />
-                        Premium
-                      </span>
-                    )}
                   </div>
                   <CardDescription>
                     {summary.itemCount} ticker
@@ -223,11 +165,7 @@ export function WatchlistPlansListContent() {
                       className="flex-1 gap-1.5"
                       onClick={() => list && openWatchlist(list)}
                     >
-                      {canOpen ? (
-                        <Pencil className="size-3.5" />
-                      ) : (
-                        <Lock className="size-3.5" />
-                      )}
+                      <Pencil className="size-3.5" />
                       Open
                     </Button>
                     <Button
@@ -288,8 +226,6 @@ export function WatchlistPlansListContent() {
           setDeleting(null);
         }}
       />
-
-      <PremiumUpgradeDialog {...upgrade.dialogProps} />
     </div>
   );
 }

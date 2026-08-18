@@ -6,7 +6,7 @@ export function isUserPlan(value: string): value is UserPlan {
   return USER_PLANS.includes(value as UserPlan);
 }
 
-/** Feature flags for Free vs Premium. Wire enforcement as products mature. */
+/** Feature flags for Free vs Premium. Tables stay; enforcement is off. */
 export const PLAN_FEATURES = [
   "unlimited_retirement_plans",
   "unlimited_budget_plans",

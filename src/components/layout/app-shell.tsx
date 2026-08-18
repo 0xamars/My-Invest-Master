@@ -58,7 +58,6 @@ function resolvePageTitle(pathname: string, planName?: string | null): string {
     "/invest": "Invest",
     "/options": "Options",
     "/market": "Market",
-    "/pricing": "Pricing",
     "/settings": "Settings",
     "/terms": "Terms",
     "/privacy": "Privacy",

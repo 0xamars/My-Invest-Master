@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/layout/brand-logo";
-import { LOGIN_PATH, PRICING_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
+import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 
 export function AuthPageShell({
   children,
@@ -18,8 +18,8 @@ export function AuthPageShell({
       <header className="relative z-20 border-b border-white/8">
         <div className="mx-auto flex h-16 max-w-lg items-center justify-between px-5">
           <BrandLogo variant="sidebar" asLink priority className="!gap-2.5" />
-          <Link href={PRICING_PATH} className="text-sm text-white/60 hover:text-white">
-            Pricing
+          <Link href={LOGIN_PATH} className="text-sm text-white/60 hover:text-white">
+            Sign in
           </Link>
         </div>
       </header>

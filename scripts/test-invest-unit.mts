@@ -20,6 +20,7 @@ import {
   buildInvestmentCheckup,
   CASH_HEAVY_PCT,
   CONCENTRATION_FLAG_PCT,
+  SLEEVE_DOMINANT_PCT,
   CONCENTRATION_NOTE_PCT,
   concentrationNoteForWeight,
   resolveRiskChip,
@@ -35,7 +36,10 @@ import {
   parseStoredLeverage,
 } from "../src/lib/portfolio/leverage.ts";
 import {
+  expiringCallsWithinDays,
   netPremiumPercentOfBook,
+  optionStrikeNotional,
+  optionsNotionalVsBook,
   upcomingOptionExpiries,
 } from "../src/lib/portfolio/options-risk.ts";
 import { computeModifiedDietzReturn } from "../src/lib/portfolio/modified-dietz.ts";
@@ -50,6 +54,17 @@ import {
   PUBLIC_MARKETING_PATHS,
   PUBLIC_ROUTE_PATHS,
 } from "../src/lib/security/protected-routes.ts";
+import {
+  canAccess,
+  canCreateLimitedResource,
+  getPlanLimit,
+  PLAN_CAPS_ENFORCED,
+} from "../src/lib/plans/access.ts";
+import {
+  canCreateRetirementFromPortfolio,
+  canOpenBudgetPlanOnPlan,
+  canOpenPortfolioOnPlan,
+} from "../src/lib/plans/free-access.ts";
 import type { PortfolioHoldingWithPrices } from "../src/types/portfolio.ts";
 
 let failed = 0;
@@ -101,6 +116,7 @@ function withPercents(holdings: PortfolioHoldingWithPrices[]) {
 assert(CONCENTRATION_FLAG_PCT === 25, "flag threshold is 25%");
 assert(CONCENTRATION_NOTE_PCT === 10, "note threshold is 10%");
 assert(CASH_HEAVY_PCT === 40, "cash-heavy threshold is 40%");
+assert(SLEEVE_DOMINANT_PCT === 50, "sleeve dominate threshold is 50%");
 assert(concentrationNoteForWeight(25) === "flag", "25% is a flag");
 assert(concentrationNoteForWeight(24.9) === "note", "24.9% is a note");
 assert(concentrationNoteForWeight(10) === "note", "10% is a note");
@@ -192,6 +208,7 @@ const cashCheckup = buildInvestmentCheckup(cashBook, {
 assert(cashCheckup.riskChip === "cash-heavy", "80% cash is cash-heavy");
 assert(cashCheckup.mix.some((item) => item.type === "cash"), "mix includes cash");
 assert(cashCheckup.mix.some((item) => item.type === "stock"), "mix includes stock");
+assert(cashCheckup.dominatingSleeve?.type === "cash", "80% cash sleeve dominates");
 
 const balanced = withPercents([
   holding({ id: "1", symbol: "AAA", type: "stock", currentValue: 20 }),
@@ -207,6 +224,30 @@ const balancedCheckup = buildInvestmentCheckup(balanced, {
   profitLoss: 10,
 });
 assert(balancedCheckup.riskChip === "balanced", "spread book is balanced");
+assert(
+  balancedCheckup.dominatingSleeve?.type === "stock",
+  "name-balanced book can still have a stock sleeve over 50%",
+);
+
+const sleeveSpread = withPercents([
+  holding({ id: "s1", symbol: "AAA", type: "stock", currentValue: 30 }),
+  holding({ id: "c1", symbol: "BBB", type: "crypto", currentValue: 30 }),
+  holding({ id: "u1", symbol: "USD", type: "cash", currentValue: 25 }),
+  holding({ id: "x1", symbol: "MISC", type: "custom", currentValue: 15 }),
+]);
+const sleeveSpreadCheckup = buildInvestmentCheckup(sleeveSpread, {
+  costValue: 100,
+  currentValue: 100,
+  profitLoss: 0,
+});
+assert(
+  sleeveSpreadCheckup.dominatingSleeve === null,
+  "no sleeve at 50% is not a dominate flag",
+);
+assert(
+  sleeveSpreadCheckup.mix.find((item) => item.type === "custom")?.label === "Other",
+  "custom sleeve is labeled Other",
+);
 assert(
   balancedCheckup.concentration.note === "note",
   "20% top name is a note not a flag",
@@ -309,6 +350,43 @@ assert(typedUtil.flag === "high", "labeled fields still flag high at 70%");
 // --- Options risk vs book (no greeks) ---
 assert(netPremiumPercentOfBook(500, 10_000) === 5, "net premium is 5% of book");
 assert(netPremiumPercentOfBook(500, 0) === null, "no book value → no %");
+assert(optionStrikeNotional({ contracts: 2, strikePrice: 50 }) === 10_000, "2×50×100 notional");
+assert(
+  optionsNotionalVsBook(
+    [{ contracts: 2, strikePrice: 50, displayStatus: "active" }],
+    50_000,
+  ).percentOfBook === 20,
+  "notional is 20% of book",
+);
+assert(
+  expiringCallsWithinDays(
+    [
+      {
+        ticker: "AAPL",
+        optionType: "sell_call",
+        expiryDate: "2099-01-15",
+        displayStatus: "active",
+        dte: 7,
+        contracts: 1,
+        strikePrice: 200,
+        cost: 300,
+      },
+      {
+        ticker: "MSFT",
+        optionType: "buy_put",
+        expiryDate: "2099-01-15",
+        displayStatus: "active",
+        dte: 5,
+        contracts: 1,
+        strikePrice: 400,
+        cost: 200,
+      },
+    ],
+    14,
+    "2099-01-08",
+  ).map((row) => row.ticker).join(",") === "AAPL",
+  "≤14 DTE call is listed; put is not",
+);
 const expiries = upcomingOptionExpiries(
   [
     {
@@ -481,6 +559,32 @@ assert(destinationForLegacyInvestPath("/holdings") === "/portfolio", "/holdings 
 assert(destinationForLegacyInvestPath("/markets") === "/market", "/markets leftover goes to Market");
 assert(destinationForLegacyInvestPath("/analysis") === "/invest", "/analysis hub folds into Invest");
 assert(destinationForLegacyInvestPath("/signin") === "/login", "/signin aliases /login");
+assert(destinationForLegacyInvestPath("/pricing") === "/", "/pricing redirects home");
+assert(isPublicRoute("/pricing"), "/pricing stays public so the redirect is not gated");
+assert(!PLAN_CAPS_ENFORCED, "plan caps are not enforced");
+assert(getPlanLimit("free", "budget") === null, "free budget cap is unlocked");
+assert(getPlanLimit("free", "portfolio") === null, "free portfolio cap is unlocked");
+assert(getPlanLimit("free", "retirement") === null, "free retirement cap is unlocked");
+assert(canCreateLimitedResource("free", "budget", 99), "creating many budgets is allowed");
+assert(canCreateLimitedResource("free", "portfolio", 99), "creating many books is allowed");
+assert(canCreateLimitedResource("free", "retirement", 99), "creating many retire plans is allowed");
+assert(canAccess("free", "retirement_from_portfolio"), "retire-from-portfolio is unlocked");
+assert(canCreateRetirementFromPortfolio("free"), "import from portfolio is unlocked");
+assert(
+  canOpenPortfolioOnPlan("free", { id: "p2", isPrimary: false }),
+  "secondary books are openable",
+);
+assert(
+  canOpenBudgetPlanOnPlan(
+    "free",
+    [
+      { id: "a", createdAt: "2026-01-01T00:00:00.000Z" },
+      { id: "b", createdAt: "2026-02-01T00:00:00.000Z" },
+    ],
+    "b",
+  ),
+  "any budget plan is openable",
+);
 assert(destinationForLegacyInvestPath("/invest") === null, "/invest itself is not redirected");
 assert(destinationForLegacyInvestPath("/portfolio") === null, "the book stays");
 assert(destinationForLegacyInvestPath("/analysis/AAPL") === null, "ticker analysis stays");

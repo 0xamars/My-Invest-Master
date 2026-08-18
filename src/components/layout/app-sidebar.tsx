@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Eye, Layers, LineChart, Lock, PieChart, Settings, Sparkles, Target } from "lucide-react";
+import { ChevronDown, Eye, Layers, LineChart, Lock, PieChart, Settings, Target } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { BudgetSidebarNav } from "@/components/layout/budget-sidebar-nav";
 import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
@@ -274,17 +274,6 @@ export function AppSidebar() {
 
       <SidebarFooter className="gap-2 px-2 pb-4">
         <SidebarMenu className="gap-1">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Pricing"
-              isActive={pathname === "/pricing"}
-              className={navClass(pathname === "/pricing")}
-              render={<Link href="/pricing" />}
-            >
-              <Sparkles className="size-[1.125rem] opacity-80" />
-              <span>Pricing</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Terms"

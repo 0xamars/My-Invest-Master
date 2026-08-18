@@ -4,16 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Crown,
   Loader2,
-  Lock,
   Plus,
   Star,
   Trash2,
   TrendingUp,
 } from "lucide-react";
-import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callout";
-import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
 import { DeletePortfolioDialog } from "@/components/portfolio/delete-portfolio-dialog";
 import { PortfolioNameDialog } from "@/components/portfolio/portfolio-name-dialog";
 import {
@@ -23,13 +19,6 @@ import {
 } from "@/components/budget/budget-ui";
 import { Button } from "@/components/ui/button";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
-import { usePremiumUpgradePrompt } from "@/hooks/use-premium-upgrade-prompt";
-import { useUserPlan } from "@/hooks/use-user-preferences";
-import {
-  canCreateLimitedResource,
-  isPlanLimitError,
-} from "@/lib/plans/access";
-import { canOpenPortfolioOnPlan } from "@/lib/plans/free-access";
 import { cn } from "@/lib/utils";
 import type { UserPortfolio } from "@/types/portfolio";
 
@@ -54,22 +43,11 @@ export function PortfolioPlansListContent() {
     isLoaded,
     syncError,
   } = usePortfolioPlans();
-  const { plan: userPlan, prefsLoadSucceeded, isLoaded: isPlanLoaded } =
-    useUserPlan();
-  const upgrade = usePremiumUpgradePrompt();
-
   const [createOpen, setCreateOpen] = useState(false);
   const [renaming, setRenaming] = useState<UserPortfolio | null>(null);
   const [deleting, setDeleting] = useState<UserPortfolio | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const isPlanReady = isPlanLoaded;
-  const effectivePlan = prefsLoadSucceeded ? userPlan : "free";
-  const atFreeLimit =
-    isPlanReady &&
-    !canCreateLimitedResource(effectivePlan, "portfolio", portfolios.length);
-  const freeHasExtras =
-    prefsLoadSucceeded && userPlan === "free" && portfolios.length > 1;
   const canDelete = portfolios.length > 1;
 
   async function handleCreate(name: string) {
@@ -79,32 +57,16 @@ export function PortfolioPlansListContent() {
       setCreateOpen(false);
       setActivePortfolioId(portfolio.id);
       router.push(`/portfolio/${portfolio.id}`);
-    } catch (error) {
-      if (isPlanLimitError(error)) {
-        setCreateOpen(false);
-        upgrade.promptLimit(error.resource);
-      } else {
-        throw error;
-      }
     } finally {
       setIsCreating(false);
     }
   }
 
   function openCreate() {
-    if (!isPlanReady) return;
-    if (atFreeLimit) {
-      upgrade.promptLimit("portfolio");
-      return;
-    }
     setCreateOpen(true);
   }
 
   function openPortfolio(portfolio: UserPortfolio) {
-    if (!canOpenPortfolioOnPlan(effectivePlan, portfolio)) {
-      upgrade.promptOpen("portfolio");
-      return;
-    }
     setActivePortfolioId(portfolio.id);
     router.push(`/portfolio/${portfolio.id}`);
   }
@@ -124,11 +86,9 @@ export function PortfolioPlansListContent() {
         title="Portfolios"
         description="Each book is a plan. Primary is the checkup default on Invest. Open a book to manage holdings, mix, and leverage."
         action={
-          <Button onClick={openCreate} disabled={isCreating || !isPlanReady}>
+          <Button onClick={openCreate} disabled={isCreating}>
             {isCreating ? (
               <Loader2 className="size-4 animate-spin" />
-            ) : atFreeLimit ? (
-              <Crown className="size-4" />
             ) : (
               <Plus className="size-4" />
             )}
@@ -136,16 +96,6 @@ export function PortfolioPlansListContent() {
           </Button>
         }
       />
-
-      {atFreeLimit && <PremiumUpgradeCallout resource="portfolio" />}
-
-      {freeHasExtras && (
-        <div className="rounded-xl border border-border/80 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          You currently have {portfolios.length} books. Extra plans were kept so
-          no data was lost — delete ones you do not need, or upgrade to Premium
-          for unlimited books.
-        </div>
-      )}
 
       {syncError && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -161,7 +111,7 @@ export function PortfolioPlansListContent() {
             title="No books yet"
             description="Create a portfolio, then add holdings. You must keep at least one book after that."
             actions={
-              <Button onClick={openCreate} disabled={isCreating || !isPlanReady}>
+              <Button onClick={openCreate} disabled={isCreating}>
                 <Plus className="size-4" />
                 Create your first book
               </Button>
@@ -172,9 +122,6 @@ export function PortfolioPlansListContent() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {
             const portfolio = portfolios.find((item) => item.id === summary.id);
-            const canOpen =
-              portfolio != null &&
-              canOpenPortfolioOnPlan(effectivePlan, portfolio);
 
             return (
               <div
@@ -202,12 +149,6 @@ export function PortfolioPlansListContent() {
                       {summary.name}
                     </button>
                     <div className="flex shrink-0 items-center gap-1.5">
-                      {!canOpen && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                          <Lock className="size-3" />
-                          Premium
-                        </span>
-                      )}
                       {summary.isPrimary && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-green)]/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--brand-green)]">
                           <Star className="size-3 fill-current" />
@@ -269,11 +210,6 @@ export function PortfolioPlansListContent() {
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>
-                  {!canOpen && (
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      Premium to open this extra book.
-                    </p>
-                  )}
                 </div>
               </div>
             );
@@ -315,8 +251,6 @@ export function PortfolioPlansListContent() {
           setDeleting(null);
         }}
       />
-
-      <PremiumUpgradeDialog {...upgrade.dialogProps} />
     </div>
   );
 }

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Lock, Wallet } from "lucide-react";
-import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
 import { NavCategoryIcon } from "@/components/layout/nav-category-icon";
 import {
   SidebarMenuButton,
@@ -14,9 +13,6 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
-import { usePremiumUpgradePrompt } from "@/hooks/use-premium-upgrade-prompt";
-import { useUserPlan } from "@/hooks/use-user-preferences";
-import { canOpenBudgetPlanOnPlan } from "@/lib/plans/free-access";
 import { cn } from "@/lib/utils";
 
 function navClass(isActive: boolean) {
@@ -46,8 +42,6 @@ export function BudgetSidebarNav({
   const pathname = usePathname();
   const router = useRouter();
   const { plans, isLoaded } = useBudgetPlans();
-  const { plan: userPlan, isLoaded: isPlanLoaded } = useUserPlan();
-  const upgrade = usePremiumUpgradePrompt();
   const hasPlans = isLoaded && plans.length > 0;
   const [budgetOpen, setBudgetOpen] = useState(isBudgetPath(pathname) && hasPlans);
 
@@ -63,13 +57,6 @@ export function BudgetSidebarNav({
   function openPlan(planId: string) {
     if (!isLoading && !canAccessProtected) {
       router.push("/login");
-      return;
-    }
-    if (
-      isPlanLoaded &&
-      !canOpenBudgetPlanOnPlan(userPlan, plans, planId)
-    ) {
-      upgrade.promptOpen("budget");
       return;
     }
     router.push(`/budget/plans/${planId}`);
@@ -124,12 +111,7 @@ export function BudgetSidebarNav({
           <SidebarMenuSub className="nav-invest-submenu mt-1 border-l border-border/60 px-2.5 py-0.5">
             {plans.map((plan) => {
               const isSubActive = isPlanPath(pathname, plan.id);
-              const canOpen =
-                !isPlanLoaded ||
-                canOpenBudgetPlanOnPlan(userPlan, plans, plan.id);
-              const showLock =
-                (!canAccessProtected && !isLoading) ||
-                (isPlanLoaded && !canOpen);
+              const showLock = !canAccessProtected && !isLoading;
 
               return (
                 <SidebarMenuSubItem key={plan.id}>
@@ -152,7 +134,6 @@ export function BudgetSidebarNav({
           </SidebarMenuSub>
         )}
       </SidebarMenuItem>
-      <PremiumUpgradeDialog {...upgrade.dialogProps} />
     </>
   );
 }

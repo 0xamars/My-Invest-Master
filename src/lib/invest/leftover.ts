@@ -2,7 +2,6 @@ import {
   computeMonthSummary,
   getCurrentMonthKey,
 } from "@/lib/budget/calculations";
-import { pickFreeAllowedPlanId } from "@/lib/plans/free-access";
 import type { BudgetCurrency, BudgetPlan } from "@/types/budget";
 
 export interface LeftoverSnapshot {
@@ -17,14 +16,13 @@ function latestPlan<T extends { updatedAt: string }>(plans: T[]): T | null {
 }
 
 /**
- * Same openable-plan picker Home and Invest already use: Free's allowed
- * plan, else the most recently updated. Does not invent a leftover amount.
+ * Most recently updated plan. Caps are not enforced, so leftover is not
+ * pinned to a Free-tier “allowed” plan.
  */
 export function pickOpenablePlan<
   T extends { id: string; createdAt: string; updatedAt: string },
 >(plans: T[]): T | null {
-  const allowedId = pickFreeAllowedPlanId(plans);
-  return plans.find((plan) => plan.id === allowedId) ?? latestPlan(plans);
+  return latestPlan(plans);
 }
 
 /** Ready to Assign for the viewed month. Null when there is no leftover. */
