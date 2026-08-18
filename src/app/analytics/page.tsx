@@ -1,5 +1,5 @@
-import { AnalyticsContent } from "@/components/analytics/analytics-content";
+import { redirect } from "next/navigation";
 
 export default function AnalyticsPage() {
-  return <AnalyticsContent />;
+  redirect("/invest");
 }

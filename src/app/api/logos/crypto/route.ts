@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
 const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
 
 export async function GET(request: Request) {
+  const limited = rateLimitJsonResponse(request, "crypto-logo", { max: 60 });
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const priceId = searchParams.get("priceId")?.trim();
 

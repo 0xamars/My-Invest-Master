@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { fetchMarketNews } from "@/lib/market/fetch-news";
+import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = rateLimitJsonResponse(request, "news", { max: 40 });
+  if (limited) return limited;
+
   try {
     const { stockNews, cryptoNews } = await fetchMarketNews();
 

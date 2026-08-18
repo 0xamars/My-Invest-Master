@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
   MoreHorizontal,
   Pencil,
+  Plus,
+  Search,
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -43,10 +46,15 @@ import {
   type SortColumn,
   type SortState,
 } from "@/lib/portfolio/sort-holdings";
+import { buildAnalysisHref } from "@/lib/analysis/types";
+import { concentrationNoteForWeight } from "@/lib/portfolio/checkup";
 import { cn } from "@/lib/utils";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
 import type { PortfolioHoldingWithPrices } from "@/types/portfolio";
 import { getCashCurrency } from "@/types/portfolio";
+import {
+  RetireEmptyState,
+} from "@/components/retirement/retire-ui";
 
 interface PortfolioTableProps {
   holdings: PortfolioHoldingWithPrices[];
@@ -56,6 +64,32 @@ interface PortfolioTableProps {
   onRowClick: (holding: PortfolioHoldingWithPrices) => void;
   onEdit: (holding: PortfolioHoldingWithPrices) => void;
   onDelete: (holding: PortfolioHoldingWithPrices) => void;
+  onAdd?: () => void;
+}
+
+function analysisHrefFor(holding: PortfolioHoldingWithPrices): string | null {
+  if (holding.type !== "stock" && holding.type !== "crypto") return null;
+  return buildAnalysisHref(holding.symbol, holding.type, holding.priceId);
+}
+
+function rowToneClass(note: ReturnType<typeof concentrationNoteForWeight>) {
+  if (note === "flag") {
+    return "bg-[var(--brand-red)]/7 hover:bg-[var(--brand-red)]/12";
+  }
+  if (note === "note") {
+    return "bg-[var(--brand-orange)]/7 hover:bg-[var(--brand-orange)]/12";
+  }
+  return "hover:bg-muted/30";
+}
+
+function stickyToneClass(note: ReturnType<typeof concentrationNoteForWeight>) {
+  if (note === "flag") {
+    return "bg-[var(--brand-red)]/7 group-hover:bg-[var(--brand-red)]/12";
+  }
+  if (note === "note") {
+    return "bg-[var(--brand-orange)]/7 group-hover:bg-[var(--brand-orange)]/12";
+  }
+  return "bg-card group-hover:bg-muted/30";
 }
 
 const CELL = "px-4 py-3.5";
@@ -209,6 +243,7 @@ export function PortfolioTable({
   onRowClick,
   onEdit,
   onDelete,
+  onAdd,
 }: PortfolioTableProps) {
   const [sort, setSort] = useState<SortState>(DEFAULT_SORT);
 
@@ -223,12 +258,19 @@ export function PortfolioTable({
 
   if (holdings.length === 0) {
     return (
-      <div className="surface-card flex min-h-[360px] flex-col items-center justify-center px-8 py-20 text-center">
-        <p className="text-lg font-semibold tracking-tight">No assets yet</p>
-        <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-          Add your first holding to start tracking performance and allocation.
-        </p>
-      </div>
+      <RetireEmptyState
+        icon={<Plus className="size-5" />}
+        title="No assets yet"
+        description="Add a holding to start tracking value, weight, and concentration on this book."
+        actions={
+          onAdd ? (
+            <Button size="sm" onClick={onAdd}>
+              <Plus className="size-4" />
+              Add holding
+            </Button>
+          ) : undefined
+        }
+      />
     );
   }
 
@@ -273,17 +315,25 @@ export function PortfolioTable({
           <TableBody>
             {sortedHoldings.map((holding) => {
               const loading = holding.isPriceLoading;
+              const note = concentrationNoteForWeight(
+                holding.portfolioPercent ?? 0,
+              );
+              const analysisHref = analysisHrefFor(holding);
 
               return (
                 <TableRow
                   key={holding.id}
                   onClick={() => onRowClick(holding)}
-                  className="group cursor-pointer border-border/50 transition-colors duration-150 hover:bg-muted/30"
+                  className={cn(
+                    "group cursor-pointer border-border/50 transition-colors duration-150",
+                    rowToneClass(note),
+                  )}
                 >
                   <TableCell
                     className={cn(
                       CELL,
-                      "sticky left-0 z-10 bg-card pl-5 font-medium group-hover:bg-muted/30",
+                      "sticky left-0 z-10 pl-5 font-medium backdrop-blur-sm",
+                      stickyToneClass(note),
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -296,9 +346,19 @@ export function PortfolioTable({
                         size="sm"
                       />
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="font-semibold tracking-tight">
-                          {holding.symbol}
-                        </span>
+                        {analysisHref ? (
+                          <Link
+                            href={analysisHref}
+                            onClick={(event) => event.stopPropagation()}
+                            className="font-semibold tracking-tight hover:text-primary hover:underline"
+                          >
+                            {holding.symbol}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold tracking-tight">
+                            {holding.symbol}
+                          </span>
+                        )}
                         <Badge
                           variant="outline"
                           className="border-border/70 bg-muted/30 px-1.5 py-0 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"
@@ -384,14 +444,29 @@ export function PortfolioTable({
                       : "—"}
                   </PriceCell>
                   <PriceCell loading={loading} className={cn(NUMERIC, "pr-5")}>
-                    {holding.portfolioPercent !== null
-                      ? `${holding.portfolioPercent.toFixed(2)}%`
-                      : "—"}
+                    <span className="inline-flex items-center justify-end gap-2">
+                      {note !== "none" ? (
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium uppercase tracking-wide",
+                            note === "flag"
+                              ? "text-[var(--brand-red)]"
+                              : "text-[var(--brand-orange)]",
+                          )}
+                        >
+                          {note === "flag" ? "Flag" : "Note"}
+                        </span>
+                      ) : null}
+                      {holding.portfolioPercent !== null
+                        ? `${holding.portfolioPercent.toFixed(2)}%`
+                        : "—"}
+                    </span>
                   </PriceCell>
                   <TableCell
                     className={cn(
                       CELL,
-                      "sticky right-0 z-10 w-[52px] bg-card pr-5 group-hover:bg-muted/30",
+                      "sticky right-0 z-10 w-[52px] pr-5 backdrop-blur-sm",
+                      stickyToneClass(note),
                     )}
                     onClick={(event) => event.stopPropagation()}
                   >
@@ -408,7 +483,16 @@ export function PortfolioTable({
                           </Button>
                         }
                       />
-                      <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuContent align="end" className="w-44">
+                        {analysisHref ? (
+                          <DropdownMenuItem
+                            className="gap-2"
+                            render={<Link href={analysisHref} />}
+                          >
+                            <Search className="size-4" />
+                            Analysis
+                          </DropdownMenuItem>
+                        ) : null}
                         <DropdownMenuItem
                           onClick={() => onEdit(holding)}
                           className="gap-2"

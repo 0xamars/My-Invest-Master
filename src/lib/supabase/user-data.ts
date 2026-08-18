@@ -7,6 +7,8 @@ import type { OptionsPosition } from "@/types/options";
 import { isUserPlan, type UserPlan } from "@/types/plan";
 import type { PortfolioHolding, UserPortfolio } from "@/types/portfolio";
 import { createEmptyPortfolio } from "@/types/portfolio";
+import { parseStoredTargetAllocation } from "@/lib/portfolio/allocation-targets";
+import { parseStoredLeverage } from "@/lib/portfolio/leverage";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import type { RetirementPlan } from "@/types/retirement";
 import {
@@ -72,6 +74,8 @@ function normalizePortfolio(raw: unknown): UserPortfolio | null {
   const data = raw as Partial<UserPortfolio>;
   if (typeof data.id !== "string" || typeof data.name !== "string") return null;
 
+  const targetAllocation = parseStoredTargetAllocation(data.targetAllocation);
+
   return {
     id: data.id,
     name: data.name.trim() || "My Portfolio",
@@ -79,6 +83,8 @@ function normalizePortfolio(raw: unknown): UserPortfolio | null {
     holdings: Array.isArray(data.holdings)
       ? (data.holdings as PortfolioHolding[])
       : [],
+    ...(targetAllocation ? { targetAllocation } : {}),
+    leverage: parseStoredLeverage(data.leverage),
     createdAt:
       typeof data.createdAt === "string"
         ? data.createdAt

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { fetchAnalysisQuote } from "@/lib/analysis/quote";
 import { parseAnalysisAssetType } from "@/lib/analysis/types";
+import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
+  const limited = rateLimitJsonResponse(request, "analysis-quote", { max: 40 });
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get("symbol")?.trim() ?? "";

@@ -6,7 +6,7 @@ import { MarketingHomeContent } from "@/components/home/marketing-home-content";
 export const metadata: Metadata = {
   title: "InvestSalsa — Budget, Invest, Retire",
   description:
-    "YNAB-style budgeting, portfolio tracking, and a retirement planner that shows your target, on-track verdict, and what-ifs.",
+    "YNAB-style budgeting, a portfolio checkup for concentration and mix, and a retirement planner that shows your target, on-track verdict, and what-ifs.",
 };
 
 function HomeLoading() {

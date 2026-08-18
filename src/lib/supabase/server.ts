@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { mergeSessionCookieOptions } from "@/lib/security/cookies";
 import type { Database } from "@/types/database";
 
 export async function createClient() {
@@ -16,7 +17,11 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              cookieStore.set(
+                name,
+                value,
+                mergeSessionCookieOptions(options, process.env.NODE_ENV === "production"),
+              ),
             );
           } catch {
             // Called from a Server Component — safe to ignore when middleware

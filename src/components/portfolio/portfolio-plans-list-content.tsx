@@ -7,24 +7,21 @@ import {
   Crown,
   Loader2,
   Lock,
-  Pencil,
-  PieChart,
   Plus,
   Star,
   Trash2,
+  TrendingUp,
 } from "lucide-react";
 import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callout";
 import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
 import { DeletePortfolioDialog } from "@/components/portfolio/delete-portfolio-dialog";
 import { PortfolioNameDialog } from "@/components/portfolio/portfolio-name-dialog";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  BudgetEmptyState,
+  BudgetPageHeader,
+  BudgetPanel,
+} from "@/components/budget/budget-ui";
+import { Button } from "@/components/ui/button";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { usePremiumUpgradePrompt } from "@/hooks/use-premium-upgrade-prompt";
 import { useUserPlan } from "@/hooks/use-user-preferences";
@@ -33,6 +30,7 @@ import {
   isPlanLimitError,
 } from "@/lib/plans/access";
 import { canOpenPortfolioOnPlan } from "@/lib/plans/free-access";
+import { cn } from "@/lib/utils";
 import type { UserPortfolio } from "@/types/portfolio";
 
 function formatUpdatedAt(iso: string): string {
@@ -71,9 +69,7 @@ export function PortfolioPlansListContent() {
     isPlanReady &&
     !canCreateLimitedResource(effectivePlan, "portfolio", portfolios.length);
   const freeHasExtras =
-    prefsLoadSucceeded &&
-    userPlan === "free" &&
-    portfolios.length > 1;
+    prefsLoadSucceeded && userPlan === "free" && portfolios.length > 1;
   const canDelete = portfolios.length > 1;
 
   async function handleCreate(name: string) {
@@ -123,77 +119,57 @@ export function PortfolioPlansListContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Portfolios</h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Manage your investment portfolios. Mark one as Primary — that is the
-            default used on Invest, Analytics, and AI. Open a portfolio for
-            holdings or Intelligence (allocation, concentration, and risk). Free
-            can open only the Primary portfolio; extras stay listed for cleanup.
-          </p>
-        </div>
-
-        <Button
-          onClick={openCreate}
-          className="gap-2"
-          disabled={isCreating || !isPlanReady}
-        >
-          {isCreating ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : atFreeLimit ? (
-            <Crown className="size-4" />
-          ) : (
-            <Plus className="size-4" />
-          )}
-          Create New Portfolio
-        </Button>
-      </div>
+    <div className="flex flex-1 flex-col gap-6">
+      <BudgetPageHeader
+        title="Portfolios"
+        description="Each book is a plan. Primary is the checkup default on Invest. Open a book to manage holdings, mix, and leverage."
+        action={
+          <Button onClick={openCreate} disabled={isCreating || !isPlanReady}>
+            {isCreating ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : atFreeLimit ? (
+              <Crown className="size-4" />
+            ) : (
+              <Plus className="size-4" />
+            )}
+            New book
+          </Button>
+        }
+      />
 
       {atFreeLimit && <PremiumUpgradeCallout resource="portfolio" />}
 
       {freeHasExtras && (
-        <div className="rounded-lg border border-border/80 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          You currently have {portfolios.length} portfolios. Extra portfolios
-          were kept so no data was lost — delete ones you do not need, or upgrade
-          to Premium for unlimited portfolios.
+        <div className="rounded-xl border border-border/80 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          You currently have {portfolios.length} books. Extra plans were kept so
+          no data was lost — delete ones you do not need, or upgrade to Premium
+          for unlimited books.
         </div>
       )}
 
       {syncError && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           <AlertCircle className="size-4 shrink-0" />
           {syncError}
         </div>
       )}
 
       {summaries.length === 0 ? (
-        <Card className="surface-card border-dashed shadow-none">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <PieChart className="size-6" />
-            </div>
-            <CardTitle>No portfolios yet</CardTitle>
-            <CardDescription>
-              Start with zero portfolios, then create your first one. After that
-              you must keep at least one portfolio (the last one cannot be
-              deleted).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center pb-8">
-            <Button
-              onClick={openCreate}
-              className="gap-2"
-              disabled={isCreating || !isPlanReady}
-            >
-              <Plus className="size-4" />
-              Create your first portfolio
-            </Button>
-          </CardContent>
-        </Card>
+        <BudgetPanel>
+          <BudgetEmptyState
+            icon={<TrendingUp className="size-5" />}
+            title="No books yet"
+            description="Create a portfolio, then add holdings. You must keep at least one book after that."
+            actions={
+              <Button onClick={openCreate} disabled={isCreating || !isPlanReady}>
+                <Plus className="size-4" />
+                Create your first book
+              </Button>
+            }
+          />
+        </BudgetPanel>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {
             const portfolio = portfolios.find((item) => item.id === summary.id);
             const canOpen =
@@ -201,115 +177,105 @@ export function PortfolioPlansListContent() {
               canOpenPortfolioOnPlan(effectivePlan, portfolio);
 
             return (
-              <Card
+              <div
                 key={summary.id}
-                className="surface-card gap-0 py-0 shadow-none transition-colors hover:border-border"
+                className={cn(
+                  "budget-panel group relative transition-colors hover:border-[var(--brand-green)]/35",
+                  summary.isPrimary && "border-[var(--brand-green)]/40",
+                )}
               >
-                <CardHeader className="border-b border-border/60 px-5 py-4">
+                <div
+                  className={cn(
+                    "absolute inset-y-3 left-0 w-1 rounded-full",
+                    summary.isPrimary
+                      ? "bg-[var(--brand-green)]"
+                      : "bg-[var(--brand-green)]/40 opacity-80",
+                  )}
+                />
+                <div className="px-5 py-4 pl-6">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="truncate text-base font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => portfolio && openPortfolio(portfolio)}
+                      className="min-w-0 truncate text-left text-sm font-semibold tracking-tight hover:text-[var(--brand-green)]"
+                    >
                       {summary.name}
-                    </CardTitle>
+                    </button>
                     <div className="flex shrink-0 items-center gap-1.5">
                       {!canOpen && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[0.7rem] font-medium text-muted-foreground">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
                           <Lock className="size-3" />
                           Premium
                         </span>
                       )}
                       {summary.isPrimary && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[0.7rem] font-medium text-primary">
-                          <Star className="size-3 fill-primary" />
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--brand-green)]/12 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--brand-green)]">
+                          <Star className="size-3 fill-current" />
                           Primary
                         </span>
                       )}
                     </div>
                   </div>
-                  <CardDescription>
-                    {summary.holdingCount} holding
-                    {summary.holdingCount === 1 ? "" : "s"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 px-5 py-4">
-                  <p className="text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => portfolio && openPortfolio(portfolio)}
+                    className="mt-4 block w-full text-left"
+                  >
+                    <p className="budget-metric-label">Holdings</p>
+                    <p className="mt-1 text-[1.65rem] font-semibold tracking-tight tabular-nums">
+                      {summary.holdingCount}
+                    </p>
+                  </button>
+                  <p className="mt-4 text-[11px] text-muted-foreground">
                     Updated {formatUpdatedAt(summary.updatedAt)}
                   </p>
-
-                  <div className="flex flex-wrap gap-2 pt-1">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-1.5"
                       onClick={() => portfolio && openPortfolio(portfolio)}
                     >
-                      {canOpen ? (
-                        <Pencil className="size-3.5" />
-                      ) : (
-                        <Lock className="size-3.5" />
-                      )}
-                      Open
+                      Open book
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="gap-1.5"
-                      disabled={!canOpen}
-                      title={
-                        canOpen
-                          ? "Open Portfolio Intelligence"
-                          : "Upgrade to open this portfolio"
-                      }
-                      onClick={() => {
-                        if (!portfolio) return;
-                        if (!canOpenPortfolioOnPlan(effectivePlan, portfolio)) {
-                          upgrade.promptOpen("portfolio");
-                          return;
-                        }
-                        setActivePortfolioId(portfolio.id);
-                        router.push(
-                          `/portfolio/${portfolio.id}?tab=intelligence`,
-                        );
-                      }}
-                    >
-                      Intelligence
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
                       onClick={() => portfolio && setRenaming(portfolio)}
                     >
                       Rename
                     </Button>
                     {!summary.isPrimary && (
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="gap-1.5"
                         onClick={() => setPrimaryPortfolio(summary.id)}
                       >
-                        <Crown className="size-3.5" />
-                        Primary
+                        Make primary
                       </Button>
                     )}
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5 text-destructive hover:text-destructive"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="ml-auto text-muted-foreground hover:text-destructive"
                       disabled={!canDelete}
                       title={
                         canDelete
-                          ? "Delete portfolio"
-                          : "You must keep at least one portfolio"
+                          ? "Delete book"
+                          : "You must keep at least one book"
                       }
                       onClick={() => portfolio && setDeleting(portfolio)}
+                      aria-label={`Delete ${summary.name}`}
                     >
                       <Trash2 className="size-3.5" />
-                      Delete
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                  {!canOpen && (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Premium to open this extra book.
+                    </p>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
@@ -319,8 +285,8 @@ export function PortfolioPlansListContent() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         title="Create portfolio"
-        description="Give your portfolio a name so you can find it easily."
-        confirmLabel="Create portfolio"
+        description="Give this book a name so you can find it on Invest."
+        confirmLabel="Create book"
         onConfirm={handleCreate}
         isSubmitting={isCreating}
       />
@@ -329,7 +295,7 @@ export function PortfolioPlansListContent() {
         open={Boolean(renaming)}
         onOpenChange={(open) => !open && setRenaming(null)}
         title="Rename portfolio"
-        description="Update the display name for this portfolio."
+        description="Update the display name for this book."
         confirmLabel="Save name"
         defaultName={renaming?.name ?? ""}
         onConfirm={async (name) => {

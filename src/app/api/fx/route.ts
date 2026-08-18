@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { fetchFxRates } from "@/lib/portfolio/prices/fx";
+import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = rateLimitJsonResponse(request, "fx", { max: 60 });
+  if (limited) return limited;
+
   try {
     const rates = await fetchFxRates();
     return NextResponse.json(rates);

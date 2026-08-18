@@ -34,6 +34,10 @@ export function AppHomeContent() {
         }
       />
 
+      <p className="text-sm text-muted-foreground">
+        Assign leftover → fund Invest → check Retire.
+      </p>
+
       <HomeDashboard />
 
       <div className="space-y-2">

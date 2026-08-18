@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { complete, isAiConfigured, logAiFallback } from "@/lib/ai";
+import { requireAssistantAuth } from "@/lib/assistant/auth";
+import { checkAssistantRateLimit } from "@/lib/assistant/rate-limit";
 import { AiNotConfiguredError, AiRequestError } from "@/lib/ai/types";
 import {
   buildCompanyBlurbUserMessage,
@@ -30,6 +32,27 @@ function asTrimmed(value: unknown, max: number): string | null {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAssistantAuth();
+  if (!auth.ok) {
+    return NextResponse.json(
+      { error: auth.error ?? "Authentication required." },
+      { status: 401 },
+    );
+  }
+
+  const rate = checkAssistantRateLimit(
+    `analysis-blurb:${auth.userId ?? "anon"}`,
+  );
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${rate.retryAfterSec}s.` },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      },
+    );
+  }
+
   let body: BlurbBody;
   try {
     body = (await request.json()) as BlurbBody;

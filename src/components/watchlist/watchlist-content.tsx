@@ -12,16 +12,15 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
+import {
+  RetireEmptyState,
+  RetirePageHeader,
+  RetirePanel,
+} from "@/components/retirement/retire-ui";
 import { AddWatchlistTickerDialog } from "@/components/watchlist/add-watchlist-ticker-dialog";
 import { WatchlistTable } from "@/components/watchlist/watchlist-table";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import {
   Select,
   SelectContent,
@@ -49,6 +48,7 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
     isLoaded,
     syncError,
   } = useWatchlistPlans();
+  const { primaryPortfolio } = usePortfolioPlans();
   const { plan: userPlan, prefsLoadSucceeded } = useUserPlan();
   const effectivePlan = prefsLoadSucceeded ? userPlan : "free";
 
@@ -88,6 +88,16 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
     [items],
   );
 
+  const heldKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const holding of primaryPortfolio?.holdings ?? []) {
+      if (holding.quantity <= 0) continue;
+      if (holding.type !== "stock" && holding.type !== "crypto") continue;
+      keys.add(`${holding.symbol.toUpperCase()}:${holding.type}`);
+    }
+    return keys;
+  }, [primaryPortfolio]);
+
   const openableLists = lists.filter((list) =>
     canOpenWatchlistOnPlan(effectivePlan, lists, list.id),
   );
@@ -126,15 +136,10 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
               <ArrowLeft className="size-3.5" />
               All watchlists
             </Button>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {watchlist?.name ?? "Watchlist"}
-              </h1>
-              <p className="max-w-2xl text-sm text-muted-foreground">
-                Research staging for tickers you are tracking. Add stocks and
-                crypto without creating portfolio holdings.
-              </p>
-            </div>
+            <RetirePageHeader
+              title={watchlist?.name ?? "Watchlist"}
+              description="Buy queue — names to research. A badge marks names already in the primary book. This is not a second portfolio."
+            />
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -200,28 +205,24 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
             Loading watchlist…
           </div>
         ) : items.length === 0 ? (
-          <Card className="surface-card border-dashed shadow-none">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Eye className="size-6" />
-              </div>
-              <CardTitle>No tickers yet</CardTitle>
-              <CardDescription>
-                Add stocks or crypto you want to research. You can remove them
-                anytime — this list is not your portfolio.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center pb-8">
-              <Button className="gap-2" onClick={() => setAddOpen(true)}>
-                <Plus className="size-4" />
-                Add your first ticker
-              </Button>
-            </CardContent>
-          </Card>
+          <RetirePanel>
+            <RetireEmptyState
+              icon={<Eye className="size-5" />}
+              title="No tickers yet"
+              description="Add stocks or crypto you want to research. This list is not your portfolio."
+              actions={
+                <Button className="gap-2" onClick={() => setAddOpen(true)}>
+                  <Plus className="size-4" />
+                  Add your first ticker
+                </Button>
+              }
+            />
+          </RetirePanel>
         ) : (
           <WatchlistTable
             items={enrichedItems}
             isLoading={isLoading}
+            heldKeys={heldKeys}
             onRemove={(item) => removeTicker(listId, item.id)}
           />
         )}
