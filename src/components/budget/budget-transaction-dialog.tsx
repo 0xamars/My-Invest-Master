@@ -21,7 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ACCOUNT_TYPE_LABELS, sortedAccounts } from "@/lib/budget/accounts";
+import {
+  ACCOUNT_TYPE_LABELS,
+  isOnBudgetAccount,
+  sortedAccounts,
+} from "@/lib/budget/accounts";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { buildTransferPayee, isSplitTransaction } from "@/lib/budget/transactions";
@@ -241,7 +245,7 @@ export function BudgetTransactionDialog({
       return;
     }
 
-    if (type === "outflow" && splitEnabled) {
+    if (type === "outflow" && splitEnabled && selectedOnBudget) {
       if (!payee.trim() || !splitsBalanced || !splitLinesValid) return;
       onSave({
         date,
@@ -271,7 +275,11 @@ export function BudgetTransactionDialog({
       amount: parsedAmount,
       type,
       categoryId:
-        type === "inflow" ? null : categoryId === "none" ? null : categoryId,
+        type === "inflow" || !selectedOnBudget
+          ? null
+          : categoryId === "none"
+            ? null
+            : categoryId,
       memo: memo.trim() || undefined,
       cleared: transaction?.cleared ?? false,
     });
@@ -284,20 +292,39 @@ export function BudgetTransactionDialog({
       return Boolean(transferAccountId) && transferAccountId !== accountId;
     }
     if (!payee.trim()) return false;
-    if (type === "outflow" && splitEnabled) {
+    if (type === "outflow" && splitEnabled && selectedOnBudget) {
       return splitsBalanced && splitLinesValid;
     }
     return true;
   })();
 
+  const selectedAccount = orderedAccounts.find((account) => account.id === accountId);
+  const transferAccount = orderedAccounts.find(
+    (account) => account.id === transferAccountId,
+  );
+  const selectedOnBudget = isOnBudgetAccount(selectedAccount);
+  const transferOnBudget = isOnBudgetAccount(transferAccount);
+  const transferCrossesBudget =
+    type === "transfer" &&
+    Boolean(transferAccountId) &&
+    selectedOnBudget !== transferOnBudget;
+
   const description =
     type === "transfer"
-      ? "Move money between accounts. Transfers do not count as income or spending."
+      ? transferCrossesBudget
+        ? selectedOnBudget
+          ? "This leaves the budget. Ready to Assign goes down by the transfer amount."
+          : "This enters the budget. Ready to Assign goes up by the transfer amount."
+        : "Move money between accounts. Transfers between the same budget side do not change Ready to Assign."
       : type === "inflow"
-        ? "Record income. Inflows go to Ready to Assign."
-        : splitEnabled
-          ? "Split this outflow across categories. Lines must add up to the total."
-          : "Record spending, linked to an account and category.";
+        ? selectedOnBudget
+          ? "Record income. Inflows go to Ready to Assign."
+          : "Tracking inflow. This changes the account balance only — not Ready to Assign."
+        : !selectedOnBudget
+          ? "Tracking outflow. This changes the account balance only — not Ready to Assign or category Activity."
+          : splitEnabled
+            ? "Split this outflow across categories. Lines must add up to the total."
+            : "Record spending, linked to an account and category.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -452,7 +479,7 @@ export function BudgetTransactionDialog({
             </div>
           )}
 
-          {type === "outflow" && !splitEnabled && (
+          {type === "outflow" && selectedOnBudget && !splitEnabled && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <Label>Category</Label>
@@ -491,7 +518,7 @@ export function BudgetTransactionDialog({
             </div>
           )}
 
-          {type === "outflow" && splitEnabled && (
+          {type === "outflow" && selectedOnBudget && splitEnabled && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <Label>Split categories</Label>

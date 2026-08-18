@@ -1,4 +1,4 @@
-import { isLiabilityAccount } from "@/lib/budget/accounts";
+import { isCreditCardPaymentAccount } from "@/lib/budget/accounts";
 import { removeCategoryFromBudget } from "@/lib/budget/category-mutations";
 import type {
   BudgetCategory,
@@ -87,7 +87,7 @@ function removeCategories(
  */
 export function ensureCreditCardPaymentCategories(plan: BudgetPlan): BudgetPlan {
   const liabilities = plan.accounts.filter((account) =>
-    isLiabilityAccount(account.type),
+    isCreditCardPaymentAccount(account),
   );
   const liabilityIds = new Set(liabilities.map((account) => account.id));
 

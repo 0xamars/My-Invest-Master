@@ -13,6 +13,7 @@ import {
   isPaymentCategory,
 } from "@/lib/budget/credit-card-payments";
 import { materializeDueSchedules } from "@/lib/budget/scheduled";
+import { defaultOnBudgetForType } from "@/lib/budget/accounts";
 import type {
   BudgetAccountType,
   BudgetCategory,
@@ -22,6 +23,7 @@ import type {
   BudgetTransaction,
   BudgetTransactionType,
   CategoryGoal,
+  CategoryGoalType,
   RecurringFrequency,
 } from "@/types/budget";
 
@@ -477,11 +479,16 @@ export function useBudgetPlanMutations(planId: string) {
         const existing = current.goals.find(
           (entry) => entry.categoryId === goal.categoryId,
         );
+        const type: CategoryGoalType = goal.type ?? existing?.type ?? "target-balance";
         const nextGoal: CategoryGoal = {
           id: goal.id ?? existing?.id ?? crypto.randomUUID(),
           categoryId: goal.categoryId,
+          type,
           targetAmount: Math.max(0, goal.targetAmount),
-          targetDate: goal.targetDate,
+          targetDate:
+            type === "monthly-funding"
+              ? undefined
+              : goal.targetDate || undefined,
           label: goal.label?.trim() || undefined,
         };
 
@@ -509,7 +516,7 @@ export function useBudgetPlanMutations(planId: string) {
   );
 
   const addAccount = useCallback(
-    (name: string, type: BudgetAccountType) => {
+    (name: string, type: BudgetAccountType, onBudget?: boolean) => {
       commitPlan((current) =>
         ensureCreditCardPaymentCategories({
           ...current,
@@ -519,6 +526,7 @@ export function useBudgetPlanMutations(planId: string) {
               id: crypto.randomUUID(),
               name: name.trim(),
               type,
+              onBudget: onBudget ?? defaultOnBudgetForType(type),
               sortOrder: current.accounts.length,
             },
           ],
@@ -531,7 +539,11 @@ export function useBudgetPlanMutations(planId: string) {
   const updateAccount = useCallback(
     (
       accountId: string,
-      updates: { name?: string; type?: BudgetAccountType },
+      updates: {
+        name?: string;
+        type?: BudgetAccountType;
+        onBudget?: boolean;
+      },
     ) => {
       commitPlan((current) =>
         ensureCreditCardPaymentCategories({
@@ -542,6 +554,7 @@ export function useBudgetPlanMutations(planId: string) {
                   ...account,
                   name: updates.name?.trim() || account.name,
                   type: updates.type ?? account.type,
+                  onBudget: updates.onBudget ?? account.onBudget,
                 }
               : account,
           ),

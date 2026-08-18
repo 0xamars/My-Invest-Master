@@ -1,4 +1,5 @@
-import type { BudgetTransaction } from "@/types/budget";
+import { isOnBudgetAccount, accountById } from "@/lib/budget/accounts";
+import type { BudgetAccount, BudgetTransaction } from "@/types/budget";
 
 /** YNAB-style: Age of Money uses the last 10 spending transactions. */
 export const AGE_OF_MONEY_MIN_OUTFLOWS = 10;
@@ -30,10 +31,15 @@ export function daysBetweenDateKeys(from: string, to: string): number {
  */
 export function computeAgeOfMoney(
   transactions: BudgetTransaction[],
+  accounts?: BudgetAccount[],
 ): AgeOfMoneyResult {
-  const inflows = transactions.filter((tx) => tx.type === "inflow").sort(byDateThenId);
+  const onBudget = (accountId: string) =>
+    isOnBudgetAccount(accountById(accounts, accountId));
+  const inflows = transactions
+    .filter((tx) => tx.type === "inflow" && onBudget(tx.accountId))
+    .sort(byDateThenId);
   const outflows = transactions
-    .filter((tx) => tx.type === "outflow")
+    .filter((tx) => tx.type === "outflow" && onBudget(tx.accountId))
     .sort(byDateThenId);
 
   if (inflows.length === 0 && outflows.length === 0) {

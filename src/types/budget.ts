@@ -4,6 +4,8 @@ export type BudgetAccountType =
   | "credit-card"
   | "cash"
   | "line-of-credit"
+  | "brokerage"
+  | "mortgage"
   | "other";
 
 export interface BudgetAccount {
@@ -11,6 +13,12 @@ export interface BudgetAccount {
   name: string;
   type: BudgetAccountType;
   sortOrder: number;
+  /**
+   * On-budget accounts affect Ready to Assign and category Activity.
+   * Tracking / off-budget accounts (brokerage, mortgage, etc.) do not.
+   * Missing or true means on-budget; normalize writes this explicitly.
+   */
+  onBudget?: boolean;
   lastReconciledAt?: string;
 }
 
@@ -90,9 +98,15 @@ export interface MonthBudget {
   assignments: Record<string, number>;
 }
 
+export type CategoryGoalType =
+  | "monthly-funding"
+  | "needed-for-spending"
+  | "target-balance";
+
 export interface CategoryGoal {
   id: string;
   categoryId: string;
+  type: CategoryGoalType;
   targetAmount: number;
   targetDate?: string;
   label?: string;
@@ -138,6 +152,7 @@ export function createDefaultAccount(name = "Chequing"): BudgetAccount {
     id: crypto.randomUUID(),
     name,
     type: "chequing",
+    onBudget: true,
     sortOrder: 0,
   };
 }

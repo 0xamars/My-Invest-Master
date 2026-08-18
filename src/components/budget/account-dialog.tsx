@@ -19,7 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ACCOUNT_TYPE_LABELS } from "@/lib/budget/accounts";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ACCOUNT_TYPE_LABELS,
+  defaultOnBudgetForType,
+  isOnBudgetAccount,
+} from "@/lib/budget/accounts";
 import type { BudgetAccount, BudgetAccountType } from "@/types/budget";
 
 const ACCOUNT_TYPES = Object.keys(ACCOUNT_TYPE_LABELS) as BudgetAccountType[];
@@ -28,7 +33,7 @@ interface AccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: BudgetAccount | null;
-  onSave: (name: string, type: BudgetAccountType) => void;
+  onSave: (name: string, type: BudgetAccountType, onBudget: boolean) => void;
 }
 
 export function AccountDialog({
@@ -40,16 +45,28 @@ export function AccountDialog({
   const isEdit = Boolean(account);
   const [name, setName] = useState("");
   const [type, setType] = useState<BudgetAccountType>("chequing");
+  const [onBudget, setOnBudget] = useState(true);
 
   useEffect(() => {
     if (!open) return;
+    const nextType = account?.type ?? "chequing";
     setName(account?.name ?? "");
-    setType(account?.type ?? "chequing");
+    setType(nextType);
+    setOnBudget(
+      account ? isOnBudgetAccount(account) : defaultOnBudgetForType(nextType),
+    );
   }, [open, account]);
+
+  function handleTypeChange(nextType: BudgetAccountType) {
+    setType(nextType);
+    if (!isEdit) {
+      setOnBudget(defaultOnBudgetForType(nextType));
+    }
+  }
 
   function handleSubmit() {
     if (!name.trim()) return;
-    onSave(name, type);
+    onSave(name, type, onBudget);
     onOpenChange(false);
   }
 
@@ -60,8 +77,8 @@ export function AccountDialog({
           <DialogTitle>{isEdit ? "Edit Account" : "Add Account"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Update the account name or type."
-              : "Create an account to track balances and reconcile against your statements."}
+              ? "Update the name, type, or convert between on-budget and tracking."
+              : "On-budget accounts fund the plan. Tracking accounts (brokerage, mortgage) stay off-budget."}
           </DialogDescription>
         </DialogHeader>
 
@@ -81,10 +98,34 @@ export function AccountDialog({
           </div>
 
           <div className="space-y-1.5">
+            <Label>Budget</Label>
+            <Tabs
+              value={onBudget ? "on-budget" : "tracking"}
+              onValueChange={(value) => setOnBudget(value === "on-budget")}
+            >
+              <TabsList className="grid w-full grid-cols-2 rounded-full p-1">
+                <TabsTrigger value="on-budget" className="rounded-full">
+                  On-budget
+                </TabsTrigger>
+                <TabsTrigger value="tracking" className="rounded-full">
+                  Tracking
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <p className="text-xs text-muted-foreground">
+              {onBudget
+                ? "Inflows go to Ready to Assign. Spending hits category Activity."
+                : "Off-budget. Activity does not change Ready to Assign or category Activity. Transfers in or out of the budget do."}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Account type</Label>
             <Select
               value={type}
-              onValueChange={(value) => setType(value as BudgetAccountType)}
+              onValueChange={(value) =>
+                handleTypeChange(value as BudgetAccountType)
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />

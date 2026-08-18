@@ -1,5 +1,7 @@
 import {
   getMonthKey,
+  shiftMonthKey,
+  type BudgetAccount,
   type BudgetCategory,
   type BudgetCategoryGroup,
   type BudgetData,
@@ -12,10 +14,14 @@ import {
   sortCategoryGroupsForBudget,
 } from "@/lib/budget/credit-card-payments";
 import {
-  getOutflowActivityForCategory,
-  isExpenseTransaction,
-  isIncomeTransaction,
-} from "@/lib/budget/transactions";
+  computeGoalProgress,
+  type CategoryGoalProgress,
+} from "@/lib/budget/goals";
+import {
+  getReadyToAssignEffect,
+  isOnBudgetOutflow,
+} from "@/lib/budget/on-budget";
+import { getOutflowActivityForCategory } from "@/lib/budget/transactions";
 
 export type CategoryBudgetStatus = "healthy" | "low" | "overspent";
 
@@ -26,6 +32,7 @@ export interface CategoryBudgetRow {
   available: number;
   status: CategoryBudgetStatus;
   goal: CategoryGoal | null;
+  goalProgress: CategoryGoalProgress | null;
   isPaymentCategory: boolean;
 }
 
@@ -68,10 +75,12 @@ function activityForCategory(
   tx: BudgetTransaction,
   categoryId: string,
   paymentAccountId?: string,
+  accounts?: BudgetAccount[],
 ): number {
   if (paymentAccountId) {
     return getPaymentCategoryActivity(tx, paymentAccountId);
   }
+  if (!isOnBudgetOutflow(tx, accounts)) return 0;
   return getOutflowActivityForCategory(tx, categoryId);
 }
 
@@ -80,9 +89,11 @@ export function getCategoryActivity(
   categoryId: string,
   monthKey: string,
   paymentAccountId?: string,
+  accounts?: BudgetAccount[],
 ): number {
   return getTransactionsForMonth(transactions, monthKey).reduce(
-    (sum, tx) => sum + activityForCategory(tx, categoryId, paymentAccountId),
+    (sum, tx) =>
+      sum + activityForCategory(tx, categoryId, paymentAccountId, accounts),
     0,
   );
 }
@@ -92,9 +103,11 @@ export function getCategoryActivityThroughMonth(
   categoryId: string,
   monthKey: string,
   paymentAccountId?: string,
+  accounts?: BudgetAccount[],
 ): number {
   return getTransactionsThroughMonth(transactions, monthKey).reduce(
-    (sum, tx) => sum + activityForCategory(tx, categoryId, paymentAccountId),
+    (sum, tx) =>
+      sum + activityForCategory(tx, categoryId, paymentAccountId, accounts),
     0,
   );
 }
@@ -147,10 +160,12 @@ export function getCategoryAssignedThroughMonth(
 export function getIncomeThroughMonth(
   transactions: BudgetTransaction[],
   monthKey: string,
+  accounts?: BudgetAccount[],
 ): number {
-  return getTransactionsThroughMonth(transactions, monthKey)
-    .filter(isIncomeTransaction)
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  return getTransactionsThroughMonth(transactions, monthKey).reduce(
+    (sum, tx) => sum + getReadyToAssignEffect(tx, accounts),
+    0,
+  );
 }
 
 /**
@@ -167,7 +182,7 @@ export function getReadyToAssign(
   monthKey: string,
 ): number {
   return (
-    getIncomeThroughMonth(budget.transactions, monthKey) -
+    getIncomeThroughMonth(budget.transactions, monthKey, budget.accounts) -
     getAssignedThroughMonth(budget, monthKey)
   );
 }
@@ -196,6 +211,7 @@ export function getCategoryAvailable(
       categoryId,
       monthKey,
       paymentAccountId,
+      budget.accounts,
     )
   );
 }
@@ -214,11 +230,13 @@ export function computeMonthSummary(
   monthKey: string,
 ): MonthBudgetSummary {
   const monthTransactions = getTransactionsForMonth(budget.transactions, monthKey);
-  const totalIncome = monthTransactions
-    .filter(isIncomeTransaction)
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  const totalIncome = monthTransactions.reduce(
+    (sum, tx) =>
+      sum + Math.max(0, getReadyToAssignEffect(tx, budget.accounts)),
+    0,
+  );
   const totalSpent = monthTransactions
-    .filter(isExpenseTransaction)
+    .filter((tx) => isOnBudgetOutflow(tx, budget.accounts))
     .reduce((sum, tx) => sum + tx.amount, 0);
   const assignments = getMonthAssignments(budget, monthKey);
   const totalAssigned = Object.values(assignments).reduce(
@@ -255,10 +273,27 @@ export function buildCategoryRows(
           category.id,
           monthKey,
           paymentAccountId,
+          budget.accounts,
         );
         const available = getCategoryAvailable(budget, category.id, monthKey);
         const goal =
           budget.goals.find((entry) => entry.categoryId === category.id) ?? null;
+        const priorMonth = shiftMonthKey(monthKey, -1);
+        const goalProgress = goal
+          ? computeGoalProgress(goal, monthKey, {
+              assignedThisMonth: assigned,
+              assignedBeforeMonth: getCategoryAssignedThroughMonth(
+                budget,
+                category.id,
+                priorMonth,
+              ),
+              availableBeforeMonth: getCategoryAvailable(
+                budget,
+                category.id,
+                priorMonth,
+              ),
+            })
+          : null;
 
         return {
           category,
@@ -267,6 +302,7 @@ export function buildCategoryRows(
           available,
           status: getCategoryStatus(assigned, available),
           goal,
+          goalProgress,
           isPaymentCategory: Boolean(paymentAccountId),
         };
       });
