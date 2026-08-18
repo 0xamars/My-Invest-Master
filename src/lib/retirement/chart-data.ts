@@ -4,6 +4,8 @@ import {
   BRAND_ORANGE,
   getProjectionAssetColor,
 } from "@/lib/portfolio/chart-theme";
+import type { MonteCarloPercentileBand } from "@/lib/retirement/monte-carlo";
+import { findDepletionYear as findDepletionYearFromRows } from "@/lib/retirement/projections";
 import type { RetirementPlanAsset, YearProjection } from "@/types/retirement";
 
 export type ProjectionChartView =
@@ -11,6 +13,7 @@ export type ProjectionChartView =
   | "opening-vs-closing"
   | "composition"
   | "appreciation-vs-expenses"
+  | "income-vs-spend"
   | "net-change"
   | "post-growth-vs-close";
 
@@ -22,6 +25,7 @@ export const PROJECTION_CHART_VIEWS: {
   { id: "opening-vs-closing", label: "Opening vs Closing" },
   { id: "composition", label: "Composition (Stacked by Asset)" },
   { id: "appreciation-vs-expenses", label: "Appreciation vs Expenses" },
+  { id: "income-vs-spend", label: "Income vs Spend" },
   { id: "net-change", label: "Net Change (Close - Open)" },
   { id: "post-growth-vs-close", label: "Post-Growth vs Close" },
 ];
@@ -34,8 +38,15 @@ export interface ProjectionChartRow {
   balanceAfterAppreciation: number;
   assetAppreciation: number;
   lifestyleSpending: number;
+  contribution: number;
+  income: number;
+  portfolioWithdrawal: number;
   netChange: number;
-  [assetKey: string]: number | string;
+  p10?: number;
+  p50?: number;
+  p90?: number;
+  mcBand?: number;
+  [assetKey: string]: number | string | undefined;
 }
 
 /** Smallest asset value at bottom of stack, largest on top (uses current portfolio value). */
@@ -53,8 +64,14 @@ export function sortAssetsForCompositionStack(
 export function buildProjectionChartData(
   projections: YearProjection[],
   assets: RetirementPlanAsset[],
+  percentiles?: MonteCarloPercentileBand[],
 ): ProjectionChartRow[] {
+  const bandByYear = new Map(
+    (percentiles ?? []).map((band) => [band.year, band]),
+  );
+
   return projections.map((projection) => {
+    const band = bandByYear.get(projection.year);
     const row: ProjectionChartRow = {
       year: projection.year,
       yearLabel: String(projection.year),
@@ -66,8 +83,21 @@ export function buildProjectionChartData(
         projection.lifestyleSpending > 0
           ? -projection.lifestyleSpending
           : 0,
+      contribution: projection.contribution,
+      income: projection.income,
+      portfolioWithdrawal:
+        projection.portfolioWithdrawal > 0
+          ? -projection.portfolioWithdrawal
+          : 0,
       netChange: projection.closingBalance - projection.openingBalance,
     };
+
+    if (band) {
+      row.p10 = band.p10;
+      row.p50 = band.p50;
+      row.p90 = band.p90;
+      row.mcBand = Math.max(0, band.p90 - band.p10);
+    }
 
     for (const asset of assets) {
       row[`asset_${asset.id}`] =
@@ -122,6 +152,21 @@ export function buildProjectionChartConfig(
           color: BRAND_ORANGE,
         },
       };
+    case "income-vs-spend":
+      return {
+        income: {
+          label: "Income",
+          color: BRAND_GREEN,
+        },
+        lifestyleSpending: {
+          label: "Lifestyle spending",
+          color: BRAND_ORANGE,
+        },
+        portfolioWithdrawal: {
+          label: "Portfolio withdrawal",
+          color: "var(--brand-red)",
+        },
+      };
     case "net-change":
       return {
         netChange: {
@@ -157,12 +202,7 @@ export const PROJECTION_ACCENT_DEEP = BRAND_GREEN_DEEP;
 export function findDepletionYear(
   projections: YearProjection[],
 ): number | null {
-  for (const projection of projections) {
-    if (projection.closingBalance <= 0) {
-      return projection.year;
-    }
-  }
-  return null;
+  return findDepletionYearFromRows(projections);
 }
 
 function viewValueKeys(
@@ -178,6 +218,8 @@ function viewValueKeys(
       return assetKeys;
     case "appreciation-vs-expenses":
       return ["assetAppreciation", "lifestyleSpending"];
+    case "income-vs-spend":
+      return ["income", "lifestyleSpending", "portfolioWithdrawal"];
     case "net-change":
       return ["netChange"];
     case "post-growth-vs-close":
@@ -229,6 +271,9 @@ export function computeProjectionYDomain(
         const value = Number(row[key] ?? 0);
         max = Math.max(max, value);
         min = Math.min(min, value);
+      }
+      if (view === "total-closing") {
+        max = Math.max(max, Number(row.p90 ?? 0), Number(row.p10 ?? 0));
       }
     }
   }

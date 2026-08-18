@@ -92,12 +92,12 @@ export function MarketNewsSection() {
   }, []);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
+    <Card className="budget-panel gap-0 py-0 shadow-none">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 px-5 py-4">
         <div>
-          <CardTitle>Market news</CardTitle>
+          <CardTitle className="text-sm">Headlines</CardTitle>
           <CardDescription>
-            Headlines for stocks and crypto from Yahoo Finance.
+            Stocks and crypto from Yahoo Finance.
           </CardDescription>
         </div>
         <Button
@@ -111,7 +111,7 @@ export function MarketNewsSection() {
           <RefreshCw className={cn("size-4", isRefreshing && "animate-spin")} />
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 pb-5">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
             <RefreshCw className="mr-2 size-4 animate-spin" />

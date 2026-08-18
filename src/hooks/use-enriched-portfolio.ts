@@ -65,6 +65,7 @@ export function useEnrichedPortfolio(
 
   const {
     prices,
+    changes,
     isLoading: isPricesLoading,
     isRefreshing,
     loadingSymbols,
@@ -95,6 +96,7 @@ export function useEnrichedPortfolio(
     holdings,
     enrichedHoldings,
     totals,
+    changes,
     currency,
     setCurrency,
     rates,

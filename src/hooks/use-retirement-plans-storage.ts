@@ -15,6 +15,7 @@ import {
   saveRetirementPlanToCloud,
 } from "@/lib/supabase/user-data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import {
   createEmptyPlan,
   getPlanTotalValue,
@@ -94,7 +95,7 @@ export function useRetirementPlansStorage() {
       try {
         const remote = await loadRetirementPlansFromCloud(user.id);
         if (!cancelled && version === loadVersionRef.current) {
-          setPlans(remote);
+          setPlans(remote.map((plan) => normalizeRetirementPlan(plan)));
         }
       } catch (error) {
         if (!cancelled && version === loadVersionRef.current) {

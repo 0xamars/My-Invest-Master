@@ -23,6 +23,7 @@ import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import {
   portfolioHoldingToPlanAsset,
+  refreshAssetsFromPortfolio,
   resolveHoldingUnitPrice,
 } from "@/lib/retirement/portfolio-import";
 import type { UserPortfolio } from "@/types/portfolio";
@@ -34,6 +35,8 @@ interface CreateRetirementFromPortfolioDialogProps {
   portfolios: UserPortfolio[];
   defaultPortfolioId?: string | null;
   isSubmitting?: boolean;
+  mode?: "create" | "refresh";
+  existingAssets?: RetirementPlanAsset[];
   onConfirm: (input: {
     portfolioId: string;
     portfolioName: string;
@@ -47,8 +50,11 @@ export function CreateRetirementFromPortfolioDialog({
   portfolios,
   defaultPortfolioId,
   isSubmitting = false,
+  mode = "create",
+  existingAssets = [],
   onConfirm,
 }: CreateRetirementFromPortfolioDialogProps) {
+  const isRefresh = mode === "refresh";
   const initialId =
     defaultPortfolioId &&
     portfolios.some((portfolio) => portfolio.id === defaultPortfolioId)
@@ -77,18 +83,30 @@ export function CreateRetirementFromPortfolioDialog({
     usePortfolioPrices(visibleHoldings);
 
   const holdingCount = visibleHoldings.length;
+  const matchedCount = useMemo(() => {
+    if (!isRefresh) return holdingCount;
+    const symbols = new Set(
+      visibleHoldings.map((holding) => holding.symbol.trim().toUpperCase()),
+    );
+    return existingAssets.filter((asset) =>
+      symbols.has(asset.symbol.trim().toUpperCase()),
+    ).length;
+  }, [existingAssets, isRefresh, visibleHoldings, holdingCount]);
+
   const canSubmit =
     Boolean(selectedPortfolio) && holdingCount > 0 && !isSubmitting;
 
   async function handleConfirm() {
     if (!selectedPortfolio || holdingCount === 0) return;
 
-    const assets = visibleHoldings.map((holding) =>
-      portfolioHoldingToPlanAsset(
-        holding,
-        resolveHoldingUnitPrice(holding, prices),
-      ),
-    );
+    const assets = isRefresh
+      ? refreshAssetsFromPortfolio(existingAssets, visibleHoldings, prices)
+      : visibleHoldings.map((holding) =>
+          portfolioHoldingToPlanAsset(
+            holding,
+            resolveHoldingUnitPrice(holding, prices),
+          ),
+        );
 
     await onConfirm({
       portfolioId: selectedPortfolio.id,
@@ -101,10 +119,13 @@ export function CreateRetirementFromPortfolioDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create plan from portfolio</DialogTitle>
+          <DialogTitle>
+            {isRefresh ? "Refresh from portfolio" : "Create plan from portfolio"}
+          </DialogTitle>
           <DialogDescription>
-            Choose which portfolio to import holdings from. Primary portfolios
-            are marked with a star.
+            {isRefresh
+              ? "Matched symbols get updated quantity and price. Custom CAGR and unmatched assets stay put. Nothing is written back to Invest."
+              : "Choose which portfolio to import holdings from. Primary portfolios are marked with a star."}
           </DialogDescription>
         </DialogHeader>
 
@@ -139,7 +160,9 @@ export function CreateRetirementFromPortfolioDialog({
             {selectedPortfolio
               ? isPricesLoading
                 ? "Loading live prices…"
-                : `${holdingCount} holding${holdingCount === 1 ? "" : "s"} will be imported`
+                : isRefresh
+                  ? `${matchedCount} of ${existingAssets.length} plan asset${existingAssets.length === 1 ? "" : "s"} match this portfolio`
+                  : `${holdingCount} holding${holdingCount === 1 ? "" : "s"} will be imported`
               : "Select a portfolio to continue."}
           </p>
         </div>
@@ -158,7 +181,7 @@ export function CreateRetirementFromPortfolioDialog({
             className="gap-2"
           >
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-            Create plan
+            {isRefresh ? "Refresh assets" : "Create plan"}
           </Button>
         </DialogFooter>
       </DialogContent>

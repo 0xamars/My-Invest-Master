@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { HomeDashboard } from "@/components/home/home-dashboard";
 import { MarketNewsSection } from "@/components/home/market-news-section";
+import { RetirePageHeader } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
@@ -21,27 +22,39 @@ export function AppHomeContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="page-title">Home</h1>
-          <p className="page-description">
-            Your InvestSalsa overview across Budget, Invest, and Retire.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button className="premium-cta" render={<Link href="/invest" />}>
-            Open Invest
-          </Button>
+    <div className="flex flex-1 flex-col gap-5">
+      <RetirePageHeader
+        title="Home"
+        description="Ready to Assign, portfolio value, and whether retirement is on track — then one next action."
+        action={
           <Button variant="outline" onClick={() => void handleSignOut()}>
             <LogOut className="size-4" />
             Sign out
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <HomeDashboard />
-      <MarketNewsSection />
+
+      <div className="space-y-2">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold tracking-tight">Market</h2>
+            <p className="text-xs text-muted-foreground">
+              Headlines only — heatmap and themes live under Market.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-muted-foreground"
+            render={<Link href="/market" />}
+          >
+            Open Market
+          </Button>
+        </div>
+        <MarketNewsSection />
+      </div>
     </div>
   );
 }

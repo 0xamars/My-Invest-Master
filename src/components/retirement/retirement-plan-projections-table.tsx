@@ -34,7 +34,10 @@ const METRIC_ROWS: {
     | "openingBalance"
     | "assetAppreciation"
     | "balanceAfterAppreciation"
+    | "contribution"
     | "lifestyleSpending"
+    | "income"
+    | "portfolioWithdrawal"
     | "closingBalance"
   >;
   label: string;
@@ -48,8 +51,23 @@ const METRIC_ROWS: {
   },
   { key: "balanceAfterAppreciation", label: "Balance after Appreciation" },
   {
+    key: "contribution",
+    label: "Contributions",
+    className: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
     key: "lifestyleSpending",
     label: "Lifestyle Spending",
+    className: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    key: "income",
+    label: "Income",
+    className: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    key: "portfolioWithdrawal",
+    label: "Portfolio Withdrawal",
     className: "text-amber-600 dark:text-amber-400",
   },
   {
@@ -72,7 +90,7 @@ function formatProjectionCell(
   currency: DisplayCurrency,
   rates: FxRates,
 ): string {
-  if (key === "lifestyleSpending") {
+  if (key === "lifestyleSpending" || key === "portfolioWithdrawal") {
     return formatProjectionSpending(value, currency, rates);
   }
 
@@ -98,7 +116,7 @@ export function RetirementPlanProjectionsTable({
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="hidden justify-end md:flex">
         <Button
           variant="outline"
           size="sm"
@@ -114,7 +132,74 @@ export function RetirementPlanProjectionsTable({
         </Button>
       </div>
 
-      <ScrollArea className="w-full rounded-xl border border-border/70">
+      <div className="space-y-2 md:hidden">
+        {projections.map((projection) => {
+          const isRetirement = projection.year === retirementYear;
+          return (
+            <div
+              key={projection.year}
+              className={cn(
+                "rounded-xl border border-border/70 px-4 py-3",
+                isRetirement && "border-primary/40 bg-primary/5",
+              )}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm font-semibold">
+                  {projection.year}
+                  <span className="ml-2 text-xs font-medium text-muted-foreground">
+                    Age {projection.age}
+                  </span>
+                </p>
+                {isRetirement ? (
+                  <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    Retire
+                  </span>
+                ) : null}
+              </div>
+              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                <div>
+                  <dt className="text-muted-foreground">Close</dt>
+                  <dd className="font-semibold tabular-nums">
+                    {formatProjectionMoney(
+                      projection.closingBalance,
+                      currency,
+                      rates,
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Spend</dt>
+                  <dd className="tabular-nums text-amber-600 dark:text-amber-400">
+                    {formatProjectionSpending(
+                      projection.lifestyleSpending,
+                      currency,
+                      rates,
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Income</dt>
+                  <dd className="tabular-nums">
+                    {formatProjectionMoney(projection.income, currency, rates)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Withdrawal</dt>
+                  <dd className="tabular-nums">
+                    {formatProjectionSpending(
+                      projection.portfolioWithdrawal,
+                      currency,
+                      rates,
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          );
+        })}
+      </div>
+
+      <ScrollArea className="hidden w-full rounded-xl border border-border/70 md:block">
         <div
           className="min-w-full"
           style={{
