@@ -12,6 +12,7 @@ import { BudgetScheduledDialog } from "@/components/budget/budget-scheduled-dial
 import { BudgetTransactionDialog } from "@/components/budget/budget-transaction-dialog";
 import { useBudget } from "@/contexts/budget-context";
 import { getCurrentMonthKey } from "@/lib/budget/calculations";
+import { derivePayees } from "@/lib/budget/payees";
 
 interface BudgetDialogContextValue {
   openAddTransaction: () => void;
@@ -103,6 +104,8 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
         defaultMonthKey={getCurrentMonthKey()}
         defaultAccountId={budget.accounts[0]?.id}
         transaction={editingTransaction}
+        payees={derivePayees(budget.transactions)}
+        currency={budget.currency}
       />
       <BudgetScheduledDialog
         open={scheduledOpen}

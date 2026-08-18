@@ -3,6 +3,7 @@ import type {
   BudgetAccountType,
   BudgetTransaction,
 } from "@/types/budget";
+import { isClearedForBalance, isUnclearedState } from "@/lib/budget/cleared";
 import { transactionTouchesAccount } from "@/lib/budget/transactions";
 
 export const ACCOUNT_TYPE_LABELS: Record<BudgetAccountType, string> = {
@@ -101,7 +102,7 @@ export function getAccountBalance(
 ): number {
   let rows = getAccountTransactions(account.id, transactions);
   if (options?.clearedOnly) {
-    rows = rows.filter((tx) => tx.cleared);
+    rows = rows.filter((tx) => isClearedForBalance(tx.cleared));
   }
 
   return rows.reduce(
@@ -139,7 +140,7 @@ export function getUnclearedTransactions(
   transactions: BudgetTransaction[],
 ): BudgetTransaction[] {
   return getAccountTransactions(accountId, transactions)
-    .filter((tx) => !tx.cleared)
+    .filter((tx) => isUnclearedState(tx.cleared))
     .sort((a, b) => {
       const dateCompare = b.date.localeCompare(a.date);
       if (dateCompare !== 0) return dateCompare;

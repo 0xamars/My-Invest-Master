@@ -43,6 +43,15 @@ export interface BudgetCategory {
 
 export type BudgetTransactionType = "inflow" | "outflow" | "transfer";
 
+/** YNAB-style register cleared triad. Legacy boolean migrates in normalizeBudgetPlan. */
+export type BudgetClearedState = "uncleared" | "cleared" | "reconciled";
+
+export type BudgetCurrency = "USD" | "CAD";
+
+export const READY_TO_ASSIGN_ID = "ready-to-assign";
+
+export const BUDGET_CURRENCIES: BudgetCurrency[] = ["USD", "CAD"];
+
 export type RecurringFrequency =
   | "weekly"
   | "every-2-weeks"
@@ -84,7 +93,7 @@ export interface BudgetTransaction {
   categoryId: string | null;
   amount: number;
   type: BudgetTransactionType;
-  cleared: boolean;
+  cleared: BudgetClearedState;
   memo?: string;
   /** Destination account when type is "transfer". */
   transferAccountId?: string;
@@ -92,6 +101,15 @@ export interface BudgetTransaction {
   splits?: BudgetTransactionSplit[];
   /** Set when this row was posted from a recurring schedule. */
   scheduledTransactionId?: string;
+  /**
+   * False for CSV-imported inbox rows until the user approves.
+   * Missing means approved (legacy / typed transactions).
+   */
+  approved?: boolean;
+  /** Stable import key. Exact re-imports of the same row stay skipped. */
+  importId?: string;
+  /** Set when an imported row was matched onto this already-entered transaction. */
+  matchedTransactionId?: string;
 }
 
 export interface MonthBudget {
@@ -122,6 +140,8 @@ export interface BudgetPlan {
   scheduledTransactions: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
+  /** Display currency only — no FX conversion. Defaults to USD on normalize. */
+  currency?: BudgetCurrency;
   createdAt: string;
   updatedAt: string;
 }
@@ -135,6 +155,7 @@ export interface BudgetData {
   scheduledTransactions?: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
+  currency?: BudgetCurrency;
   updatedAt: string;
 }
 
@@ -144,6 +165,7 @@ export interface BudgetPlanSummary {
   availableToBudget: number;
   totalAssigned: number;
   totalSpent: number;
+  currency?: BudgetCurrency;
   updatedAt: string;
 }
 
@@ -191,6 +213,7 @@ export function createEmptyBudgetPlan(name = "New Budget Plan"): BudgetPlan {
     scheduledTransactions: [],
     monthBudgets: {},
     goals: [],
+    currency: "USD",
     createdAt: now,
     updatedAt: now,
   };

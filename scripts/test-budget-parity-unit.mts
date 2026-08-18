@@ -67,7 +67,7 @@ function tx(
     payee: partial.payee ?? "Payee",
     accountId: partial.accountId ?? chequing.id,
     categoryId: partial.categoryId ?? null,
-    cleared: partial.cleared ?? true,
+    cleared: partial.cleared ?? "cleared",
     ...partial,
   };
 }
@@ -164,7 +164,7 @@ assert(
     onDue.transactions[0]?.amount === 120 &&
     onDue.transactions[0]?.categoryId === "groceries" &&
     onDue.transactions[0]?.scheduledTransactionId === "sched-rent" &&
-    onDue.transactions[0]?.cleared === false,
+    onDue.transactions[0]?.cleared === "uncleared",
   "Posted copy is a normal outflow linked to the schedule",
 );
 assert(

@@ -1,9 +1,13 @@
 import { isBudgetAccountType } from "@/lib/budget/accounts";
+import { normalizeClearedState } from "@/lib/budget/cleared";
 import { ensureCreditCardPaymentCategories } from "@/lib/budget/credit-card-payments";
+import { resolveBudgetCurrency } from "@/lib/budget/format";
 import { isCategoryGoalType } from "@/lib/budget/goals";
 import {
   createDefaultAccount,
   type BudgetAccount,
+  type BudgetClearedState,
+  type BudgetCurrency,
   type BudgetPlan,
   type BudgetScheduledTransaction,
   type BudgetTransaction,
@@ -20,11 +24,14 @@ type LegacySplit = Partial<BudgetTransactionSplit> & {
 
 type LegacyTransaction = BudgetTransaction & {
   accountId?: string;
-  cleared?: boolean;
+  cleared?: boolean | BudgetClearedState;
   transferAccountId?: string;
   splits?: LegacySplit[];
   type?: string;
   scheduledTransactionId?: string;
+  approved?: boolean;
+  importId?: string;
+  matchedTransactionId?: string;
 };
 
 type LegacyScheduled = Partial<BudgetScheduledTransaction> & {
@@ -49,6 +56,7 @@ type LegacyPlan = BudgetPlan & {
   accounts?: BudgetPlan["accounts"];
   scheduledTransactions?: BudgetScheduledTransaction[];
   goals?: CategoryGoal[];
+  currency?: BudgetCurrency | string;
 };
 
 const FREQUENCIES = new Set<RecurringFrequency>([
@@ -241,16 +249,29 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
         ? legacyTx.scheduledTransactionId
         : undefined;
 
+    const importId =
+      typeof legacyTx.importId === "string" && legacyTx.importId.length > 0
+        ? legacyTx.importId
+        : undefined;
+    const matchedTransactionId =
+      typeof legacyTx.matchedTransactionId === "string" &&
+      legacyTx.matchedTransactionId.length > 0
+        ? legacyTx.matchedTransactionId
+        : undefined;
+
     return {
       ...tx,
       type,
       accountId: legacyTx.accountId ?? fallbackAccountId,
-      cleared: legacyTx.cleared ?? false,
+      cleared: normalizeClearedState(legacyTx.cleared),
       categoryId:
         type === "inflow" || type === "transfer" ? null : (tx.categoryId ?? null),
       transferAccountId,
       splits,
       scheduledTransactionId,
+      approved: legacyTx.approved === false ? false : true,
+      importId,
+      matchedTransactionId,
     };
   });
 
@@ -266,6 +287,7 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
     transactions,
     scheduledTransactions,
     goals: normalizeGoals(legacy.goals),
+    currency: resolveBudgetCurrency(legacy.currency),
   });
 }
 

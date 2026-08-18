@@ -17,6 +17,7 @@ import {
   getReadyToAssign,
   getTransactionsForMonth,
 } from "../src/lib/budget/calculations.ts";
+import { getAbsorbedCashOverspend } from "../src/lib/budget/overspend.ts";
 import { removeCategoryFromBudget } from "../src/lib/budget/category-mutations.ts";
 import { normalizeBudgetPlan } from "../src/lib/budget/migrate-plan.ts";
 import { getSpendingByCategory } from "../src/lib/budget/reports.ts";
@@ -47,7 +48,7 @@ function tx(
     payee: partial.payee ?? "Payee",
     accountId: partial.accountId ?? "acct-1",
     categoryId: partial.categoryId ?? null,
-    cleared: partial.cleared ?? true,
+    cleared: partial.cleared ?? "cleared",
     ...partial,
   };
 }
@@ -90,7 +91,12 @@ function leftoverReadyToAssign(budget: BudgetData, monthKey: string): number {
     );
     ready = ready + income - assigned;
     if (cursor === monthKey) break;
-    cursor = shiftMonthKey(cursor, 1);
+    const next = shiftMonthKey(cursor, 1);
+    const absorbedThisMonth =
+      getAbsorbedCashOverspend(budget, next) -
+      getAbsorbedCashOverspend(budget, cursor);
+    ready -= absorbedThisMonth;
+    cursor = next;
   }
   return ready;
 }
@@ -197,12 +203,20 @@ const overspent = makeBudget({
   },
 });
 assert(
-  getCategoryAvailable(overspent, "groceries", "2026-02") === -50,
-  "Overspend carries as negative available (prior available + assigned − activity)",
+  getCategoryAvailable(overspent, "groceries", "2026-01") === -50,
+  "Open-month cash overspend stays negative so it can be covered",
 );
 assert(
-  computeMonthSummary(overspent, "2026-02").readyToAssign === 100,
-  "RTA is inflows through month minus assignments, not reduced by overspend",
+  getCategoryAvailable(overspent, "groceries", "2026-02") === 0,
+  "Closed-month cash overspend is absorbed — February Available starts at $0",
+);
+assert(
+  computeMonthSummary(overspent, "2026-01").readyToAssign === 100,
+  "Same-month RTA is not reduced by cash overspend",
+);
+assert(
+  computeMonthSummary(overspent, "2026-02").readyToAssign === 50,
+  "Uncovered cash overspend reduces next-month Ready to Assign (100 leftover − 50)",
 );
 
 assert(

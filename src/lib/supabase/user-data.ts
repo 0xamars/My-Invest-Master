@@ -403,7 +403,7 @@ export async function loadBudgetPlansFromCloud(
     transactions: legacy.transactions.map((tx) => ({
       ...tx,
       accountId: defaultAccount.id,
-      cleared: false,
+      cleared: "uncleared",
     })),
     scheduledTransactions: [],
     monthBudgets: legacy.monthBudgets,

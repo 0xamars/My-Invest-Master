@@ -210,20 +210,20 @@ export function BudgetPlansListContent() {
                           : "text-[var(--brand-green)]",
                       )}
                     >
-                      {formatBudgetMoney(summary.availableToBudget)}
+                      {formatBudgetMoney(summary.availableToBudget, summary.currency)}
                     </p>
                   </button>
                   <div className="mt-4 flex gap-5 text-xs text-muted-foreground">
                     <span>
                       Assigned{" "}
                       <span className="font-medium text-foreground tabular-nums">
-                        {formatBudgetMoney(summary.totalAssigned)}
+                        {formatBudgetMoney(summary.totalAssigned, summary.currency)}
                       </span>
                     </span>
                     <span>
                       Spent{" "}
                       <span className="font-medium text-foreground tabular-nums">
-                        {formatBudgetMoney(summary.totalSpent)}
+                        {formatBudgetMoney(summary.totalSpent, summary.currency)}
                       </span>
                     </span>
                   </div>

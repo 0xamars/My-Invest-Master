@@ -35,6 +35,7 @@ function toSummary(plan: BudgetPlan): BudgetPlanSummary {
     availableToBudget: summary.availableToBudget,
     totalAssigned: summary.totalAssigned,
     totalSpent: summary.totalSpent,
+    currency: plan.currency,
     updatedAt: plan.updatedAt,
   };
 }

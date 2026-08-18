@@ -21,9 +21,20 @@ import {
   getReadyToAssignEffect,
   isOnBudgetOutflow,
 } from "@/lib/budget/on-budget";
+import {
+  getAbsorbedCashOverspend,
+  getCategoryOverspendState,
+  getCreditOverspendOnAccount,
+  getOverspendKind,
+  type OverspendKind,
+} from "@/lib/budget/overspend";
 import { getOutflowActivityForCategory } from "@/lib/budget/transactions";
 
-export type CategoryBudgetStatus = "healthy" | "low" | "overspent";
+export type CategoryBudgetStatus =
+  | "healthy"
+  | "low"
+  | "overspent"
+  | "credit-overspent";
 
 export interface CategoryBudgetRow {
   category: BudgetCategory;
@@ -34,6 +45,9 @@ export interface CategoryBudgetRow {
   goal: CategoryGoal | null;
   goalProgress: CategoryGoalProgress | null;
   isPaymentCategory: boolean;
+  overspendKind: OverspendKind | null;
+  cashOverspend: number;
+  creditOverspend: number;
 }
 
 export interface MonthBudgetSummary {
@@ -171,11 +185,11 @@ export function getIncomeThroughMonth(
 /**
  * Ready to Assign for `monthKey`.
  *
- * Cumulative form (no migration):
  *   RTA = inflows through this month − assignments through this month
+ *         − uncovered cash overspend from closed months
  *
- * Equivalent leftover form:
- *   RTA = prior month RTA + this month income − this month assigned
+ * Credit overspend does not reduce Ready to Assign; it underfunds the card
+ * payment category instead (YNAB cash vs credit rollover).
  */
 export function getReadyToAssign(
   budget: BudgetData,
@@ -183,17 +197,18 @@ export function getReadyToAssign(
 ): number {
   return (
     getIncomeThroughMonth(budget.transactions, monthKey, budget.accounts) -
-    getAssignedThroughMonth(budget, monthKey)
+    getAssignedThroughMonth(budget, monthKey) -
+    getAbsorbedCashOverspend(budget, monthKey)
   );
 }
 
 /**
  * Category available for `monthKey`.
  *
- *   available = assigned through this month − activity through this month
- *
- * Equivalent leftover form:
- *   available = prior available + this month assigned − this month activity
+ * Spending categories use the cash/credit overspend walk so closed-month cash
+ * overspend is absorbed (Available returns to $0) instead of staying red.
+ * Payment categories are assigned − card activity, then reduced by remaining
+ * credit overspend on that card.
  */
 export function getCategoryAvailable(
   budget: BudgetData,
@@ -204,23 +219,28 @@ export function getCategoryAvailable(
     budget.categories,
     categoryId,
   );
-  return (
-    getCategoryAssignedThroughMonth(budget, categoryId, monthKey) -
-    getCategoryActivityThroughMonth(
-      budget.transactions,
-      categoryId,
-      monthKey,
-      paymentAccountId,
-      budget.accounts,
-    )
-  );
+  if (paymentAccountId) {
+    const raw =
+      getCategoryAssignedThroughMonth(budget, categoryId, monthKey) -
+      getCategoryActivityThroughMonth(
+        budget.transactions,
+        categoryId,
+        monthKey,
+        paymentAccountId,
+        budget.accounts,
+      );
+    return raw - getCreditOverspendOnAccount(budget, paymentAccountId, monthKey);
+  }
+  return getCategoryOverspendState(budget, categoryId, monthKey).available;
 }
 
 export function getCategoryStatus(
   assigned: number,
   available: number,
+  overspendKind: OverspendKind | null = null,
 ): CategoryBudgetStatus {
-  if (available < 0) return "overspent";
+  if (overspendKind === "credit") return "credit-overspent";
+  if (overspendKind === "cash" || available < 0) return "overspent";
   if (assigned > 0 && available / assigned < 0.25) return "low";
   return "healthy";
 }
@@ -276,6 +296,29 @@ export function buildCategoryRows(
           budget.accounts,
         );
         const available = getCategoryAvailable(budget, category.id, monthKey);
+        const overspendState = paymentAccountId
+          ? null
+          : getCategoryOverspendState(budget, category.id, monthKey);
+        const creditUnderfund = paymentAccountId
+          ? getCreditOverspendOnAccount(budget, paymentAccountId, monthKey)
+          : 0;
+        const cashOverspend = overspendState?.cashOverspend ?? 0;
+        const creditOverspend = paymentAccountId
+          ? creditUnderfund
+          : (overspendState?.creditOverspend ?? 0);
+        const overspendKind: OverspendKind | null = paymentAccountId
+          ? available < 0
+            ? creditUnderfund > 0
+              ? "credit"
+              : "cash"
+            : null
+          : getOverspendKind(
+              overspendState ?? {
+                available,
+                cashOverspend,
+                creditOverspend,
+              },
+            );
         const goal =
           budget.goals.find((entry) => entry.categoryId === category.id) ?? null;
         const priorMonth = shiftMonthKey(monthKey, -1);
@@ -300,10 +343,13 @@ export function buildCategoryRows(
           assigned,
           activity,
           available,
-          status: getCategoryStatus(assigned, available),
+          status: getCategoryStatus(assigned, available, overspendKind),
           goal,
           goalProgress,
           isPaymentCategory: Boolean(paymentAccountId),
+          overspendKind,
+          cashOverspend,
+          creditOverspend,
         };
       });
 

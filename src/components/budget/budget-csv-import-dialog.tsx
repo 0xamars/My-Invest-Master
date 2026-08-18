@@ -47,7 +47,10 @@ interface BudgetCsvImportDialogProps {
   categories: BudgetCategory[];
   transactions: BudgetTransaction[];
   defaultAccountId?: string;
-  onImport: (inputs: AddBudgetTransactionInput[]) => void;
+  onImport: (
+    inputs: AddBudgetTransactionInput[],
+    matches: Array<{ transactionId: string; importId: string }>,
+  ) => void;
 }
 
 export function BudgetCsvImportDialog({
@@ -111,13 +114,24 @@ export function BudgetCsvImportDialog({
   }
 
   function handleConfirm() {
-    if (!preview || preview.imported.length === 0) return;
-    onImport(preview.imported.map(parsedCsvToTransactionInput));
+    if (!preview || preview.error) return;
+    if (preview.imported.length === 0 && preview.matched.length === 0) return;
+    onImport(
+      preview.imported.map(parsedCsvToTransactionInput),
+      preview.matched.map((row) => ({
+        transactionId: row.matchedTransactionId,
+        importId: row.importId,
+      })),
+    );
     onOpenChange(false);
   }
 
   const sample = preview?.imported.slice(0, SAMPLE_LIMIT) ?? [];
-  const canImport = Boolean(preview && !preview.error && preview.imported.length > 0);
+  const canImport = Boolean(
+    preview &&
+      !preview.error &&
+      (preview.imported.length > 0 || preview.matched.length > 0),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,8 +139,7 @@ export function BudgetCsvImportDialog({
         <DialogHeader>
           <DialogTitle>Import CSV</DialogTitle>
           <DialogDescription>
-            Drop a bank or YNAB-style export. Preview first — nothing is added
-            until you confirm.
+            Preview first. New rows land in the inbox unapproved.
           </DialogDescription>
         </DialogHeader>
 
@@ -203,7 +216,7 @@ export function BudgetCsvImportDialog({
 
           {preview && !preview.error && (
             <div className="space-y-3">
-              <div className="grid grid-cols-3 divide-x divide-border/60 overflow-hidden rounded-xl border border-border/60">
+              <div className="grid grid-cols-2 divide-x divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 sm:grid-cols-4 sm:divide-y-0">
                 <PreviewStat
                   label="Rows"
                   value={String(preview.totalRows)}
@@ -214,6 +227,12 @@ export function BudgetCsvImportDialog({
                   value={String(preview.imported.length)}
                   hint={`${preview.inflowCount} in · ${preview.outflowCount} out`}
                   accent="green"
+                />
+                <PreviewStat
+                  label="Matched"
+                  value={String(preview.matched.length)}
+                  hint="Linked to entered rows"
+                  accent={preview.matched.length > 0 ? "green" : undefined}
                 />
                 <PreviewStat
                   label="Skipped"
@@ -232,8 +251,8 @@ export function BudgetCsvImportDialog({
                 {formatBudgetMoney(preview.outflowTotal)}
               </p>
               <p className="text-xs text-muted-foreground">
-                Dedup key is date + payee + amount + account. Transfers and splits
-                import as plain inflow/outflow so Ready to Assign stays intact.
+                Exact date + payee + amount + account is skipped. Same amount and
+                close dates match an existing entered row.
               </p>
 
               {preview.skipped.length > 0 && (

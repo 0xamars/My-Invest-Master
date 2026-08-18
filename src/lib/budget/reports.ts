@@ -161,6 +161,12 @@ export function getAvailableToBudgetSeries(
   });
 }
 
+export function isTransactionApproved(
+  tx: Pick<BudgetTransaction, "approved">,
+): boolean {
+  return tx.approved !== false;
+}
+
 export function filterTransactions(
   budget: BudgetData,
   options: {
@@ -168,6 +174,7 @@ export function filterTransactions(
     categoryId?: string | "all";
     accountId?: string | "all";
     type?: "all" | "inflow" | "outflow" | "transfer";
+    inbox?: "all" | "unapproved";
     search?: string;
   },
 ) {
@@ -205,6 +212,10 @@ export function filterTransactions(
 
   if (options.type && options.type !== "all") {
     rows = rows.filter((tx) => tx.type === options.type);
+  }
+
+  if (options.inbox === "unapproved") {
+    rows = rows.filter((tx) => !isTransactionApproved(tx));
   }
 
   const query = options.search?.trim().toLowerCase();

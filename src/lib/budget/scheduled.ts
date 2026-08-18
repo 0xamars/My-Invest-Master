@@ -134,7 +134,7 @@ export function scheduledToPostedTransaction(
         : schedule.categoryId,
     amount: Math.abs(schedule.amount),
     type: schedule.type,
-    cleared: false,
+    cleared: "uncleared",
     memo: schedule.memo,
     transferAccountId:
       schedule.type === "transfer" ? schedule.transferAccountId : undefined,

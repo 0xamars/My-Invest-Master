@@ -46,7 +46,7 @@ export function DeleteBudgetPlanDialog({
           <p className="font-semibold">{plan.name}</p>
           <p className="text-sm text-muted-foreground">
             {plan.categories.length} categories · {plan.transactions.length}{" "}
-            transactions · {formatBudgetMoney(summary.availableToBudget)} available
+            transactions · {formatBudgetMoney(summary.availableToBudget, plan.currency)} available
             this month
           </p>
         </div>

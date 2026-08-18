@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:fundamentals": "npx --yes tsx --tsconfig tsconfig.json scripts/test-insurance-fs-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-sbc-events-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-forecast-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/run-fundamental-regression.mts",
-    "test:budget": "npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-calculations-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-csv-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-parity-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-tracking-goals-unit.mts"
+    "test:budget": "npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-calculations-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-csv-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-parity-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-tracking-goals-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-daily-use-unit.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
