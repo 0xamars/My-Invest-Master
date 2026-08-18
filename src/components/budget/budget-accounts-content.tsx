@@ -28,6 +28,7 @@ import {
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
+import { isUnclearedState } from "@/lib/budget/cleared";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { cn } from "@/lib/utils";
 import type { BudgetAccount, BudgetTransaction } from "@/types/budget";
@@ -47,7 +48,7 @@ export function BudgetAccountsContent() {
     addAccount,
     updateAccount,
     deleteAccount,
-    setTransactionCleared,
+    cycleTransactionCleared,
     finishAccountReconciliation,
   } = useBudget();
 
@@ -121,6 +122,7 @@ export function BudgetAccountsContent() {
             accounts={onBudgetAccounts}
             allAccounts={accounts}
             transactions={budget.transactions}
+            currency={budget.currency}
             onReconcile={setReconcilingAccount}
             onEdit={setEditingAccount}
             onDelete={setDeletingAccount}
@@ -131,6 +133,7 @@ export function BudgetAccountsContent() {
             accounts={trackingAccounts}
             allAccounts={accounts}
             transactions={budget.transactions}
+            currency={budget.currency}
             onReconcile={setReconcilingAccount}
             onEdit={setEditingAccount}
             onDelete={setDeletingAccount}
@@ -175,7 +178,7 @@ export function BudgetAccountsContent() {
         onOpenChange={(open) => !open && setReconcilingAccount(null)}
         account={reconcilingAccount}
         budget={budget}
-        onToggleCleared={setTransactionCleared}
+        onToggleCleared={cycleTransactionCleared}
         onFinish={finishAccountReconciliation}
       />
     </div>
@@ -188,6 +191,7 @@ function AccountSection({
   accounts,
   allAccounts,
   transactions,
+  currency,
   onReconcile,
   onEdit,
   onDelete,
@@ -197,6 +201,7 @@ function AccountSection({
   accounts: BudgetAccount[];
   allAccounts: BudgetAccount[];
   transactions: BudgetTransaction[];
+  currency?: string;
   onReconcile: (account: BudgetAccount) => void;
   onEdit: (account: BudgetAccount) => void;
   onDelete: (account: BudgetAccount) => void;
@@ -220,7 +225,7 @@ function AccountSection({
             const unclearedCount = getAccountTransactions(
               account.id,
               transactions,
-            ).filter((tx) => !tx.cleared).length;
+            ).filter((tx) => isUnclearedState(tx.cleared)).length;
             const lastReconciled = formatReconciledDate(account.lastReconciledAt);
             const liability = isLiabilityAccount(account.type);
             const onBudget = isOnBudgetAccount(account);
@@ -262,7 +267,7 @@ function AccountSection({
                       liability && balance > 0 && "text-[var(--brand-orange)]",
                     )}
                   >
-                    {formatBudgetMoney(balance)}
+                    {formatBudgetMoney(balance, currency)}
                   </p>
                 </div>
                 <div className="flex items-center justify-between md:block md:text-right">
@@ -270,7 +275,7 @@ function AccountSection({
                     Cleared
                   </span>
                   <p className="text-sm tabular-nums text-muted-foreground">
-                    {formatBudgetMoney(clearedBalance)}
+                    {formatBudgetMoney(clearedBalance, currency)}
                   </p>
                 </div>
                 <div className="flex justify-end gap-1">

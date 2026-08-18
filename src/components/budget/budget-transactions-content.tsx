@@ -1,7 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarClock, CheckCircle2, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  Inbox,
+  Lock,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { BudgetCsvImportDialog } from "@/components/budget/budget-csv-import-dialog";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
 import { BudgetUpcomingList } from "@/components/budget/budget-upcoming-list";
@@ -35,17 +45,24 @@ import {
   getUpcomingScheduledInstances,
   todayDateKey,
 } from "@/lib/budget/scheduled";
+import { isReconciledState, isUnclearedState } from "@/lib/budget/cleared";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
 import {
   filterTransactions,
   getBudgetMonthOptions,
+  isTransactionApproved,
 } from "@/lib/budget/reports";
 import { formatMonthLabel } from "@/types/budget";
 import { cn } from "@/lib/utils";
 
 export function BudgetTransactionsContent() {
-  const { budget, deleteTransaction, importTransactions, setTransactionCleared } =
-    useBudget();
+  const {
+    budget,
+    deleteTransaction,
+    importFromCsv,
+    setTransactionApproved,
+    cycleTransactionCleared,
+  } = useBudget();
   const { openAddTransaction, openEditTransaction, openAddScheduled, openEditScheduled } =
     useBudgetDialog();
   const [importOpen, setImportOpen] = useState(false);
@@ -57,6 +74,7 @@ export function BudgetTransactionsContent() {
     "all" | "inflow" | "outflow" | "transfer"
   >("all");
   const [search, setSearch] = useState("");
+  const [inboxFilter, setInboxFilter] = useState<"all" | "unapproved">("all");
 
   const accounts = useMemo(
     () => sortedAccounts(budget.accounts),
@@ -75,9 +93,18 @@ export function BudgetTransactionsContent() {
         accountId: accountFilter,
         categoryId: categoryFilter,
         type: typeFilter,
+        inbox: inboxFilter,
         search,
       }),
-    [budget, monthFilter, accountFilter, categoryFilter, typeFilter, search],
+    [
+      budget,
+      monthFilter,
+      accountFilter,
+      categoryFilter,
+      typeFilter,
+      inboxFilter,
+      search,
+    ],
   );
 
   const upcoming = useMemo(
@@ -165,11 +192,15 @@ export function BudgetTransactionsContent() {
 
   const showRunningBalance = accountFilter !== "all";
   const hasAnyTransactions = budget.transactions.length > 0;
+  const inboxCount = budget.transactions.filter(
+    (tx) => !isTransactionApproved(tx),
+  ).length;
   const filtersActive =
     monthFilter !== "all" ||
     accountFilter !== "all" ||
     categoryFilter !== "all" ||
     typeFilter !== "all" ||
+    inboxFilter !== "all" ||
     search.trim().length > 0;
 
   return (
@@ -207,7 +238,7 @@ export function BudgetTransactionsContent() {
       />
 
       <BudgetPanel>
-        <div className="grid gap-2 border-b border-border/50 p-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-2 border-b border-border/50 p-3 md:grid-cols-2 xl:grid-cols-6">
           <div className="relative md:col-span-2 xl:col-span-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -285,6 +316,23 @@ export function BudgetTransactionsContent() {
               <SelectItem value="inflow">Inflow</SelectItem>
               <SelectItem value="outflow">Outflow</SelectItem>
               <SelectItem value="transfer">Transfer</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={inboxFilter}
+            onValueChange={(value) =>
+              setInboxFilter((value ?? "all") as "all" | "unapproved")
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Inbox" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All transactions</SelectItem>
+              <SelectItem value="unapproved">
+                Inbox{inboxCount > 0 ? ` (${inboxCount})` : ""}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -373,22 +421,29 @@ export function BudgetTransactionsContent() {
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => setTransactionCleared(tx.id, !tx.cleared)}
+                          disabled={isReconciledState(tx.cleared)}
+                          onClick={() => cycleTransactionCleared(tx.id)}
                           aria-label={
-                            tx.cleared
-                              ? `Mark ${display.payee} as uncleared`
-                              : `Mark ${display.payee} as cleared`
+                            isReconciledState(tx.cleared)
+                              ? `${display.payee} is reconciled and locked`
+                              : isUnclearedState(tx.cleared)
+                                ? `Mark ${display.payee} as cleared`
+                                : `Mark ${display.payee} as uncleared`
                           }
-                          aria-pressed={tx.cleared}
+                          aria-pressed={!isUnclearedState(tx.cleared)}
                         >
-                          <CheckCircle2
-                            className={cn(
-                              "size-3.5",
-                              tx.cleared
-                                ? "text-[var(--brand-green)]"
-                                : "text-muted-foreground/40",
-                            )}
-                          />
+                          {isReconciledState(tx.cleared) ? (
+                            <Lock className="size-3.5 text-[var(--brand-green)]" />
+                          ) : (
+                            <CheckCircle2
+                              className={cn(
+                                "size-3.5",
+                                isUnclearedState(tx.cleared)
+                                  ? "text-muted-foreground/40"
+                                  : "text-[var(--brand-green)]",
+                              )}
+                            />
+                          )}
                         </Button>
                       </TableCell>
                       <TableCell className="py-2 whitespace-nowrap text-muted-foreground">
@@ -404,6 +459,12 @@ export function BudgetTransactionsContent() {
                             <BudgetKindBadge kind="transfer" />
                           ) : null}
                           {display.isSplit ? <BudgetKindBadge kind="split" /> : null}
+                          {!isTransactionApproved(tx) ? (
+                            <BudgetKindBadge kind="inbox" />
+                          ) : null}
+                          {tx.matchedTransactionId ? (
+                            <BudgetKindBadge kind="matched" />
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell className="py-2 text-muted-foreground">
@@ -427,17 +488,29 @@ export function BudgetTransactionsContent() {
                       >
                         {display.amountPrefix}
                         {display.amountPrefix ? "" : display.isTransfer ? "↔ " : ""}
-                        {formatBudgetMoney(tx.amount)}
+                        {formatBudgetMoney(tx.amount, budget.currency)}
                       </TableCell>
                       {showRunningBalance && (
                         <TableCell className="py-2 text-right tabular-nums text-muted-foreground">
                           {formatBudgetMoney(
                             runningBalanceByTxId.get(tx.id) ?? 0,
+                            budget.currency,
                           )}
                         </TableCell>
                       )}
                       <TableCell className="py-2">
                         <div className="flex justify-end gap-0.5">
+                          {!isTransactionApproved(tx) ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setTransactionApproved(tx.id, true)}
+                              aria-label={`Approve ${display.payee}`}
+                            >
+                              <Inbox className="size-3.5 text-[var(--brand-orange)]" />
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             variant="ghost"
@@ -476,7 +549,7 @@ export function BudgetTransactionsContent() {
         defaultAccountId={
           accountFilter === "all" ? budget.accounts[0]?.id : accountFilter
         }
-        onImport={importTransactions}
+        onImport={(inputs, matches) => importFromCsv(inputs, matches)}
       />
     </div>
   );

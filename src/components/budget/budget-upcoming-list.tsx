@@ -46,7 +46,7 @@ export function BudgetUpcomingList({
               categoryId: instance.categoryId,
               amount: instance.amount,
               type: instance.type,
-              cleared: false,
+              cleared: "uncleared",
               transferAccountId: instance.transferAccountId,
               splits: instance.splits,
             },

@@ -1,17 +1,31 @@
-export function formatBudgetMoney(value: number): string {
+import type { BudgetCurrency } from "@/types/budget";
+
+export function resolveBudgetCurrency(
+  currency: BudgetCurrency | string | undefined,
+): BudgetCurrency {
+  return currency === "CAD" ? "CAD" : "USD";
+}
+
+export function formatBudgetMoney(
+  value: number,
+  currency: BudgetCurrency | string = "USD",
+): string {
   const abs = Math.abs(value);
   return new Intl.NumberFormat(undefined, {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    currency: resolveBudgetCurrency(currency),
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(abs);
 }
 
-export function formatBudgetMoneySigned(value: number): string {
-  if (value === 0) return formatBudgetMoney(0);
+export function formatBudgetMoneySigned(
+  value: number,
+  currency: BudgetCurrency | string = "USD",
+): string {
+  if (value === 0) return formatBudgetMoney(0, currency);
   const prefix = value > 0 ? "+" : "−";
-  return `${prefix}${formatBudgetMoney(value)}`;
+  return `${prefix}${formatBudgetMoney(value, currency)}`;
 }
 
 export function formatBudgetDate(date: string): string {

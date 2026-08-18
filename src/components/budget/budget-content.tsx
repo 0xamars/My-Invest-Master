@@ -22,6 +22,7 @@ import {
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
 import { BudgetCategoryList } from "@/components/budget/budget-category-list";
 import {
+  CoverOverspendDialog,
   MoveMoneyDialog,
   SetCategoryGoalDialog,
 } from "@/components/budget/budget-dialogs";
@@ -54,6 +55,8 @@ export function BudgetContent() {
     deleteCategory,
     assignToCategory,
     moveMoney,
+    coverOverspend,
+    autoAssignUnderfunded,
     setCategoryGoal,
     removeCategoryGoal,
   } = useBudget();
@@ -65,6 +68,8 @@ export function BudgetContent() {
   const [categoryGroupId, setCategoryGroupId] = useState<string | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveFromCategoryId, setMoveFromCategoryId] = useState<string | null>(null);
+  const [coverOpen, setCoverOpen] = useState(false);
+  const [coverCategoryId, setCoverCategoryId] = useState<string | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalCategoryId, setGoalCategoryId] = useState<string | null>(null);
   const [editGroupOpen, setEditGroupOpen] = useState(false);
@@ -159,11 +164,13 @@ export function BudgetContent() {
       <BudgetSummaryStats
         summary={summary}
         ageOfMoney={ageOfMoney}
+        currency={budget.currency}
         isLoading={!isLoaded}
       />
 
       <BudgetCategoryList
         groups={categoryRows}
+        currency={budget.currency}
         onAssign={(categoryId, amount) =>
           assignToCategory(monthKey, categoryId, amount)
         }
@@ -171,6 +178,11 @@ export function BudgetContent() {
           setMoveFromCategoryId(categoryId);
           setMoveOpen(true);
         }}
+        onCoverOverspend={(categoryId) => {
+          setCoverCategoryId(categoryId);
+          setCoverOpen(true);
+        }}
+        onAutoAssignUnderfunded={() => autoAssignUnderfunded(monthKey)}
         onSetGoal={(categoryId) => {
           setGoalCategoryId(categoryId);
           setGoalOpen(true);
@@ -250,7 +262,7 @@ export function BudgetContent() {
                   </div>
                   <BudgetMoney
                     className="shrink-0 text-sm font-semibold"
-                    value={formatBudgetMoney(tx.amount)}
+                    value={formatBudgetMoney(tx.amount, budget.currency)}
                     prefix={display.amountPrefix || (display.isTransfer ? "↔ " : "")}
                     tone={
                       display.isTransfer
@@ -287,9 +299,57 @@ export function BudgetContent() {
         onOpenChange={setMoveOpen}
         fromCategoryId={moveFromCategoryId}
         categories={budget.categories}
+        available={
+          moveFromCategoryId
+            ? categoryRows
+                .flatMap((entry) => entry.categories)
+                .find((row) => row.category.id === moveFromCategoryId)?.available
+            : undefined
+        }
+        currency={budget.currency}
         onMove={(fromCategoryId, toCategoryId, amount) =>
           moveMoney(monthKey, fromCategoryId, toCategoryId, amount)
         }
+      />
+
+      <CoverOverspendDialog
+        open={coverOpen}
+        onOpenChange={setCoverOpen}
+        categoryName={
+          budget.categories.find((category) => category.id === coverCategoryId)
+            ?.name
+        }
+        overspend={Math.max(
+          0,
+          -(
+            categoryRows
+              .flatMap((entry) => entry.categories)
+              .find((row) => row.category.id === coverCategoryId)?.available ?? 0
+          ),
+        )}
+        overspendKind={
+          categoryRows
+            .flatMap((entry) => entry.categories)
+            .find((row) => row.category.id === coverCategoryId)?.overspendKind ??
+          null
+        }
+        readyToAssign={summary.readyToAssign}
+        sources={categoryRows
+          .flatMap((entry) => entry.categories)
+          .filter(
+            (row) =>
+              row.category.id !== coverCategoryId && row.available > 0,
+          )
+          .map((row) => ({
+            id: row.category.id,
+            name: row.category.name,
+            available: row.available,
+          }))}
+        currency={budget.currency}
+        onCover={(source, amount) => {
+          if (!coverCategoryId) return;
+          coverOverspend(monthKey, coverCategoryId, source, amount);
+        }}
       />
 
       <SetCategoryGoalDialog

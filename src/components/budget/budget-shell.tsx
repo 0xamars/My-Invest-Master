@@ -3,11 +3,20 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, BarChart3, Landmark, LayoutDashboard, List, Plus } from "lucide-react";
+import { ArrowLeft, BarChart3, Landmark, LayoutDashboard, List, Plus, Undo2 } from "lucide-react";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useBudget } from "@/contexts/budget-context";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
+import { BUDGET_CURRENCIES, type BudgetCurrency } from "@/types/budget";
 import { cn } from "@/lib/utils";
 
 interface BudgetShellProps {
@@ -20,12 +29,37 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
   const pathname = usePathname();
   const { openAddTransaction } = useBudgetDialog();
   const { renamePlan } = useBudgetPlans();
+  const {
+    budget,
+    setPlanCurrency,
+    undoLastMutation,
+    canUndo,
+    lastMutationLabel,
+  } = useBudget();
   const [name, setName] = useState(planName);
   const basePath = `/budget/plans/${planId}`;
+  const currency = budget.currency === "CAD" ? "CAD" : "USD";
 
   useEffect(() => {
     setName(planName);
   }, [planName]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) {
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+        if (!canUndo) return;
+        event.preventDefault();
+        undoLastMutation();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [canUndo, undoLastMutation]);
 
   const navItems = [
     { title: "Overview", href: basePath, icon: LayoutDashboard, exact: true },
@@ -73,18 +107,37 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
           <ArrowLeft className="size-3.5" />
           All plans
         </Button>
-        <Input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onBlur={handleNameBlur}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.currentTarget.blur();
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <Input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onBlur={handleNameBlur}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.currentTarget.blur();
+              }
+            }}
+            aria-label="Budget plan name"
+            className="h-auto max-w-xl border-none bg-transparent px-0 text-[1.65rem] font-semibold tracking-tight shadow-none focus-visible:ring-0"
+          />
+          <Select
+            value={currency}
+            onValueChange={(value) =>
+              setPlanCurrency((value ?? "USD") as BudgetCurrency)
             }
-          }}
-          aria-label="Budget plan name"
-          className="h-auto max-w-xl border-none bg-transparent px-0 text-[1.65rem] font-semibold tracking-tight shadow-none focus-visible:ring-0"
-        />
+          >
+            <SelectTrigger className="h-8 w-[7.5rem] rounded-full text-xs">
+              <SelectValue placeholder="Currency" />
+            </SelectTrigger>
+            <SelectContent>
+              {BUDGET_CURRENCIES.map((code) => (
+                <SelectItem key={code} value={code}>
+                  {code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <nav className="budget-nav" aria-label="Budget sections">
           {navItems.map((item) => {
@@ -111,6 +164,21 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
           })}
         </nav>
       </div>
+
+      {canUndo ? (
+        <div className="budget-undo-bar mb-4">
+          <p className="text-sm">
+            {lastMutationLabel ?? "Undo last change"}
+            <span className="ml-2 text-xs text-muted-foreground">
+              ⌘Z / Ctrl+Z
+            </span>
+          </p>
+          <Button type="button" size="sm" variant="outline" onClick={undoLastMutation}>
+            <Undo2 className="size-3.5" />
+            Undo
+          </Button>
+        </div>
+      ) : null}
 
       {children}
 

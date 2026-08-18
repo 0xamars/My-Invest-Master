@@ -37,7 +37,7 @@ interface BudgetReconcileDialogProps {
   onOpenChange: (open: boolean) => void;
   account: BudgetAccount | null;
   budget: BudgetPlan;
-  onToggleCleared: (transactionId: string, cleared: boolean) => void;
+  onToggleCleared: (transactionId: string) => void;
   onFinish: (accountId: string) => void;
 }
 
@@ -119,8 +119,9 @@ export function BudgetReconcileDialog({
         <DialogHeader>
           <DialogTitle>Reconcile {account.name}</DialogTitle>
           <DialogDescription>
-            Enter your bank statement balance, then mark transactions as cleared
-            until the difference is zero.
+            Enter your bank statement balance, then mark transactions as
+            cleared until the difference is zero. Finishing locks those cleared
+            rows as reconciled.
           </DialogDescription>
         </DialogHeader>
 
@@ -224,11 +225,11 @@ export function BudgetReconcileDialog({
                         <TableCell>
                           <Button
                             type="button"
-                            variant={tx.cleared ? "secondary" : "outline"}
+                            variant={tx.cleared !== "uncleared" ? "secondary" : "outline"}
                             size="icon-sm"
-                            onClick={() => onToggleCleared(tx.id, !tx.cleared)}
+                            onClick={() => onToggleCleared(tx.id)}
                             aria-label={`Mark ${display.payee} as cleared`}
-                            aria-pressed={tx.cleared}
+                            aria-pressed={tx.cleared !== "uncleared"}
                           >
                             <CheckCircle2
                               className={cn(

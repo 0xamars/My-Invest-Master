@@ -1,23 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { removeAccountFromBudget } from "@/lib/budget/account-mutations";
+import { applyAutoAssignUnderfunded } from "@/lib/budget/auto-assign";
 import {
   removeCategoryFromBudget,
   sortedCategoryGroups,
 } from "@/lib/budget/category-mutations";
 import {
+  isClearedForBalance,
+  normalizeClearedState,
+  toggleClearedState,
+} from "@/lib/budget/cleared";
+import {
   ensureCreditCardPaymentCategories,
   isCreditCardPaymentsGroup,
   isPaymentCategory,
 } from "@/lib/budget/credit-card-payments";
+import { applyCoverOverspend, applyMoveMoney } from "@/lib/budget/move-money";
 import { materializeDueSchedules } from "@/lib/budget/scheduled";
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
+import { transactionTouchesAccount } from "@/lib/budget/transactions";
 import type {
   BudgetAccountType,
   BudgetCategory,
   BudgetCategoryGroup,
+  BudgetClearedState,
+  BudgetCurrency,
   BudgetPlan,
   BudgetScheduledTransaction,
   BudgetTransaction,
@@ -26,6 +36,8 @@ import type {
   CategoryGoalType,
   RecurringFrequency,
 } from "@/types/budget";
+
+const UNDO_LIMIT = 20;
 
 export interface AddBudgetTransactionSplitInput {
   id?: string;
@@ -42,10 +54,13 @@ export interface AddBudgetTransactionInput {
   amount: number;
   type: BudgetTransactionType;
   memo?: string;
-  cleared?: boolean;
+  cleared?: BudgetClearedState | boolean;
   transferAccountId?: string;
   splits?: AddBudgetTransactionSplitInput[];
   scheduledTransactionId?: string;
+  approved?: boolean;
+  importId?: string;
+  matchedTransactionId?: string;
 }
 
 export interface AddBudgetScheduledTransactionInput {
@@ -89,7 +104,7 @@ function toStoredTransaction(
         : input.categoryId,
     amount: Math.abs(input.amount),
     type,
-    cleared: input.cleared ?? existing?.cleared ?? false,
+    cleared: normalizeClearedState(input.cleared ?? existing?.cleared),
     memo: input.memo?.trim() || undefined,
     transferAccountId:
       type === "transfer" && input.transferAccountId
@@ -97,6 +112,9 @@ function toStoredTransaction(
         : undefined,
     splits,
     scheduledTransactionId: input.scheduledTransactionId ?? existing?.scheduledTransactionId,
+    approved: input.approved ?? existing?.approved ?? true,
+    importId: input.importId ?? existing?.importId,
+    matchedTransactionId: input.matchedTransactionId ?? existing?.matchedTransactionId,
   };
 }
 
@@ -148,13 +166,46 @@ export function useBudgetPlanMutations(planId: string) {
   const { getPlan, updatePlan, isLoaded, syncError, isCloudSynced } =
     useBudgetPlans();
   const plan = getPlan(planId);
+  const [undoStack, setUndoStack] = useState<BudgetPlan[]>([]);
+  const [lastMutationLabel, setLastMutationLabel] = useState<string | null>(null);
+  const undoCaptureRef = useRef<{ snapshot: BudgetPlan; label: string } | null>(
+    null,
+  );
 
   const commitPlan = useCallback(
-    (updater: (current: BudgetPlan) => BudgetPlan) => {
-      updatePlan(planId, updater);
+    (
+      updater: (current: BudgetPlan) => BudgetPlan,
+      options?: { undoable?: boolean; label?: string },
+    ) => {
+      updatePlan(planId, (current) => {
+        const next = updater(current);
+        if (next !== current && options?.undoable !== false) {
+          undoCaptureRef.current = {
+            snapshot: current,
+            label: options?.label ?? "Undo",
+          };
+        }
+        return next;
+      });
+      const captured = undoCaptureRef.current;
+      if (captured) {
+        undoCaptureRef.current = null;
+        setUndoStack((stack) => [...stack.slice(-(UNDO_LIMIT - 1)), captured.snapshot]);
+        setLastMutationLabel(captured.label);
+      }
     },
     [planId, updatePlan],
   );
+
+  const undoLastMutation = useCallback(() => {
+    setUndoStack((stack) => {
+      if (stack.length === 0) return stack;
+      const snapshot = stack[stack.length - 1];
+      updatePlan(planId, () => snapshot);
+      setLastMutationLabel(null);
+      return stack.slice(0, -1);
+    });
+  }, [planId, updatePlan]);
 
   useEffect(() => {
     if (!plan) return;
@@ -166,10 +217,13 @@ export function useBudgetPlanMutations(planId: string) {
 
   const addTransaction = useCallback(
     (input: AddBudgetTransactionInput) => {
-      commitPlan((current) => ({
-        ...current,
-        transactions: [...current.transactions, toStoredTransaction(input)],
-      }));
+      commitPlan(
+        (current) => ({
+          ...current,
+          transactions: [...current.transactions, toStoredTransaction(input)],
+        }),
+        { label: "Undo transaction" },
+      );
     },
     [commitPlan],
   );
@@ -177,13 +231,70 @@ export function useBudgetPlanMutations(planId: string) {
   const importTransactions = useCallback(
     (inputs: AddBudgetTransactionInput[]) => {
       if (inputs.length === 0) return;
-      commitPlan((current) => ({
-        ...current,
-        transactions: [
-          ...current.transactions,
-          ...inputs.map((input) => toStoredTransaction(input)),
-        ],
-      }));
+      commitPlan(
+        (current) => ({
+          ...current,
+          transactions: [
+            ...current.transactions,
+            ...inputs.map((input) =>
+              toStoredTransaction({
+                ...input,
+                approved: input.approved ?? false,
+              }),
+            ),
+          ],
+        }),
+        { label: "Undo import" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const importFromCsv = useCallback(
+    (
+      inputs: AddBudgetTransactionInput[],
+      matches: Array<{ transactionId: string; importId: string }>,
+    ) => {
+      if (inputs.length === 0 && matches.length === 0) return;
+      commitPlan(
+        (current) => {
+          const matchById = new Map(
+            matches.map((match) => [match.transactionId, match.importId]),
+          );
+          return {
+            ...current,
+            transactions: [
+              ...current.transactions.map((tx) => {
+                const importId = matchById.get(tx.id);
+                if (!importId) return tx;
+                return { ...tx, importId, matchedTransactionId: importId };
+              }),
+              ...inputs.map((input) =>
+                toStoredTransaction({
+                  ...input,
+                  approved: false,
+                }),
+              ),
+            ],
+          };
+        },
+        { label: "Undo import" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const setTransactionApproved = useCallback(
+    (transactionId: string, approved: boolean) => {
+      commitPlan(
+        (current) => ({
+          ...current,
+          transactions: current.transactions.map((tx) =>
+            tx.id === transactionId ? { ...tx, approved } : tx,
+          ),
+        }),
+        { label: approved ? "Undo approve" : "Undo" },
+      );
     },
     [commitPlan],
   );
@@ -398,21 +509,24 @@ export function useBudgetPlanMutations(planId: string) {
 
   const assignToCategory = useCallback(
     (monthKey: string, categoryId: string, amount: number) => {
-      commitPlan((current) => {
-        const monthBudget = current.monthBudgets[monthKey] ?? { assignments: {} };
-        return {
-          ...current,
-          monthBudgets: {
-            ...current.monthBudgets,
-            [monthKey]: {
-              assignments: {
-                ...monthBudget.assignments,
-                [categoryId]: Math.max(0, amount),
+      commitPlan(
+        (current) => {
+          const monthBudget = current.monthBudgets[monthKey] ?? { assignments: {} };
+          return {
+            ...current,
+            monthBudgets: {
+              ...current.monthBudgets,
+              [monthKey]: {
+                assignments: {
+                  ...monthBudget.assignments,
+                  [categoryId]: Math.max(0, amount),
+                },
               },
             },
-          },
-        };
-      });
+          };
+        },
+        { label: "Undo assign" },
+      );
     },
     [commitPlan],
   );
@@ -446,29 +560,45 @@ export function useBudgetPlanMutations(planId: string) {
       toCategoryId: string,
       amount: number,
     ) => {
-      const transfer = Math.max(0, amount);
-      if (transfer === 0 || fromCategoryId === toCategoryId) return;
+      commitPlan(
+        (current) => applyMoveMoney(current, monthKey, fromCategoryId, toCategoryId, amount),
+        { label: "Undo move" },
+      );
+    },
+    [commitPlan],
+  );
 
-      commitPlan((current) => {
-        const monthBudget = current.monthBudgets[monthKey] ?? { assignments: {} };
-        const fromAmount = monthBudget.assignments[fromCategoryId] ?? 0;
-        const toAmount = monthBudget.assignments[toCategoryId] ?? 0;
-        const moved = Math.min(transfer, fromAmount);
+  const coverOverspend = useCallback(
+    (
+      monthKey: string,
+      categoryId: string,
+      source: { type: "rta" } | { type: "category"; categoryId: string },
+      amount: number,
+    ) => {
+      commitPlan(
+        (current) => applyCoverOverspend(current, monthKey, categoryId, source, amount),
+        { label: "Undo cover" },
+      );
+    },
+    [commitPlan],
+  );
 
-        return {
-          ...current,
-          monthBudgets: {
-            ...current.monthBudgets,
-            [monthKey]: {
-              assignments: {
-                ...monthBudget.assignments,
-                [fromCategoryId]: fromAmount - moved,
-                [toCategoryId]: toAmount + moved,
-              },
-            },
-          },
-        };
-      });
+  const autoAssignUnderfunded = useCallback(
+    (monthKey: string) => {
+      commitPlan(
+        (current) => applyAutoAssignUnderfunded(current, monthKey),
+        { label: "Undo auto-assign" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const setPlanCurrency = useCallback(
+    (currency: BudgetCurrency) => {
+      commitPlan(
+        (current) => ({ ...current, currency }),
+        { label: "Undo currency" },
+      );
     },
     [commitPlan],
   );
@@ -585,13 +715,34 @@ export function useBudgetPlanMutations(planId: string) {
   );
 
   const setTransactionCleared = useCallback(
-    (transactionId: string, cleared: boolean) => {
-      commitPlan((current) => ({
-        ...current,
-        transactions: current.transactions.map((tx) =>
-          tx.id === transactionId ? { ...tx, cleared } : tx,
-        ),
-      }));
+    (transactionId: string, cleared: BudgetClearedState) => {
+      commitPlan(
+        (current) => ({
+          ...current,
+          transactions: current.transactions.map((tx) => {
+            if (tx.id !== transactionId) return tx;
+            if (tx.cleared === "reconciled") return tx;
+            return { ...tx, cleared };
+          }),
+        }),
+        { label: "Undo cleared" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const cycleTransactionCleared = useCallback(
+    (transactionId: string) => {
+      commitPlan(
+        (current) => ({
+          ...current,
+          transactions: current.transactions.map((tx) => {
+            if (tx.id !== transactionId) return tx;
+            return { ...tx, cleared: toggleClearedState(tx.cleared) };
+          }),
+        }),
+        { label: "Undo cleared" },
+      );
     },
     [commitPlan],
   );
@@ -642,14 +793,24 @@ export function useBudgetPlanMutations(planId: string) {
 
   const finishAccountReconciliation = useCallback(
     (accountId: string) => {
-      commitPlan((current) => ({
-        ...current,
-        accounts: current.accounts.map((account) =>
-          account.id === accountId
-            ? { ...account, lastReconciledAt: new Date().toISOString() }
-            : account,
-        ),
-      }));
+      commitPlan(
+        (current) => ({
+          ...current,
+          accounts: current.accounts.map((account) =>
+            account.id === accountId
+              ? { ...account, lastReconciledAt: new Date().toISOString() }
+              : account,
+          ),
+          transactions: current.transactions.map((tx) => {
+            if (!transactionTouchesAccount(tx, accountId)) return tx;
+            if (!isClearedForBalance(tx.cleared) || tx.cleared === "reconciled") {
+              return tx;
+            }
+            return { ...tx, cleared: "reconciled" as const };
+          }),
+        }),
+        { label: "Undo reconcile" },
+      );
     },
     [commitPlan],
   );
@@ -664,6 +825,8 @@ export function useBudgetPlanMutations(planId: string) {
       isCloudSynced,
       addTransaction,
       importTransactions,
+      importFromCsv,
+      setTransactionApproved,
       updateTransaction,
       deleteTransaction,
       addCategoryGroup,
@@ -676,16 +839,23 @@ export function useBudgetPlanMutations(planId: string) {
       assignToCategory,
       adjustCategoryAssignment,
       moveMoney,
+      coverOverspend,
+      autoAssignUnderfunded,
+      setPlanCurrency,
       setCategoryGoal,
       removeCategoryGoal,
       addAccount,
       updateAccount,
       deleteAccount,
       setTransactionCleared,
+      cycleTransactionCleared,
       finishAccountReconciliation,
       addScheduledTransaction,
       updateScheduledTransaction,
       deleteScheduledTransaction,
+      undoLastMutation,
+      canUndo: undoStack.length > 0,
+      lastMutationLabel,
     }),
     [
       plan,
@@ -695,6 +865,8 @@ export function useBudgetPlanMutations(planId: string) {
       isCloudSynced,
       addTransaction,
       importTransactions,
+      importFromCsv,
+      setTransactionApproved,
       updateTransaction,
       deleteTransaction,
       addCategoryGroup,
@@ -707,16 +879,23 @@ export function useBudgetPlanMutations(planId: string) {
       assignToCategory,
       adjustCategoryAssignment,
       moveMoney,
+      coverOverspend,
+      autoAssignUnderfunded,
+      setPlanCurrency,
       setCategoryGoal,
       removeCategoryGoal,
       addAccount,
       updateAccount,
       deleteAccount,
       setTransactionCleared,
+      cycleTransactionCleared,
       finishAccountReconciliation,
       addScheduledTransaction,
       updateScheduledTransaction,
       deleteScheduledTransaction,
+      undoLastMutation,
+      undoStack.length,
+      lastMutationLabel,
     ],
   );
 }

@@ -28,6 +28,7 @@ import {
 } from "@/lib/budget/accounts";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
+import { suggestPayees, type DerivedPayee } from "@/lib/budget/payees";
 import { buildTransferPayee, isSplitTransaction } from "@/lib/budget/transactions";
 import { cn } from "@/lib/utils";
 import type { AddBudgetTransactionInput } from "@/hooks/use-budget-plan-mutations";
@@ -49,6 +50,8 @@ interface BudgetTransactionDialogProps {
   defaultMonthKey?: string;
   defaultAccountId?: string;
   transaction?: BudgetTransaction | null;
+  payees?: DerivedPayee[];
+  currency?: string;
 }
 
 interface SplitLineDraft {
@@ -85,6 +88,8 @@ export function BudgetTransactionDialog({
   defaultMonthKey,
   defaultAccountId,
   transaction,
+  payees = [],
+  currency,
 }: BudgetTransactionDialogProps) {
   const isEdit = Boolean(transaction);
   const orderedAccounts = sortedAccounts(accounts);
@@ -104,6 +109,8 @@ export function BudgetTransactionDialog({
     newSplitLine(),
   ]);
   const [memo, setMemo] = useState("");
+  const [categoryTouched, setCategoryTouched] = useState(false);
+  const [payeeSuggestionsOpen, setPayeeSuggestionsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -117,6 +124,8 @@ export function BudgetTransactionDialog({
       setTransferAccountId(transaction.transferAccountId ?? "");
       setCategoryId(transaction.categoryId ?? "none");
       setMemo(transaction.memo ?? "");
+      setCategoryTouched(false);
+      setPayeeSuggestionsOpen(false);
       if (isSplitTransaction(transaction) && transaction.splits) {
         setSplitEnabled(true);
         setSplitLines(
@@ -152,7 +161,22 @@ export function BudgetTransactionDialog({
     setSplitEnabled(false);
     setSplitLines([newSplitLine(), newSplitLine()]);
     setMemo("");
+    setCategoryTouched(false);
+    setPayeeSuggestionsOpen(false);
   }, [open, transaction, defaultMonthKey, fallbackAccountId, accounts]);
+
+  const payeeSuggestions = useMemo(
+    () => suggestPayees(payees, payee),
+    [payees, payee],
+  );
+
+  function applyPayee(next: DerivedPayee) {
+    setPayee(next.name);
+    setPayeeSuggestionsOpen(false);
+    if (!categoryTouched && next.lastCategoryId) {
+      setCategoryId(next.lastCategoryId);
+    }
+  }
 
   const assignableCategories = userAssignableCategories(categories);
   const sortedGroups = [...categoryGroups].sort(
@@ -239,7 +263,7 @@ export function BudgetTransactionDialog({
         type: "transfer",
         categoryId: null,
         memo: memo.trim() || undefined,
-        cleared: transaction?.cleared ?? false,
+        cleared: transaction?.cleared ?? "uncleared",
       });
       onOpenChange(false);
       return;
@@ -255,7 +279,7 @@ export function BudgetTransactionDialog({
         type: "outflow",
         categoryId: null,
         memo: memo.trim() || undefined,
-        cleared: transaction?.cleared ?? false,
+        cleared: transaction?.cleared ?? "uncleared",
         splits: splitLines.map((line) => ({
           id: line.key,
           categoryId: line.categoryId === "none" ? null : line.categoryId,
@@ -281,7 +305,7 @@ export function BudgetTransactionDialog({
             ? null
             : categoryId,
       memo: memo.trim() || undefined,
-      cleared: transaction?.cleared ?? false,
+      cleared: transaction?.cleared ?? "uncleared",
     });
     onOpenChange(false);
   }
@@ -468,14 +492,45 @@ export function BudgetTransactionDialog({
           </div>
 
           {type !== "transfer" && (
-            <div className="space-y-1.5">
+            <div className="relative space-y-1.5">
               <Label htmlFor="budget-tx-payee">Payee</Label>
               <Input
                 id="budget-tx-payee"
                 placeholder="Who was this paid to or from?"
                 value={payee}
-                onChange={(event) => setPayee(event.target.value)}
+                autoComplete="off"
+                onChange={(event) => {
+                  setPayee(event.target.value);
+                  setPayeeSuggestionsOpen(true);
+                }}
+                onFocus={() => setPayeeSuggestionsOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setPayeeSuggestionsOpen(false), 120);
+                }}
               />
+              {payeeSuggestionsOpen && payeeSuggestions.length > 0 ? (
+                <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border/70 bg-popover p-1 shadow-md">
+                  {payeeSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.name}
+                      type="button"
+                      className="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => applyPayee(suggestion)}
+                    >
+                      <span className="font-medium">{suggestion.name}</span>
+                      {suggestion.lastCategoryId ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          Last used{" "}
+                          {categories.find(
+                            (category) => category.id === suggestion.lastCategoryId,
+                          )?.name ?? "category"}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -495,7 +550,10 @@ export function BudgetTransactionDialog({
               </div>
               <Select
                 value={categoryId}
-                onValueChange={(value) => setCategoryId(value ?? "none")}
+                onValueChange={(value) => {
+                  setCategoryTouched(true);
+                  setCategoryId(value ?? "none");
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -544,9 +602,9 @@ export function BudgetTransactionDialog({
                 {splitsBalanced
                   ? "Split lines add up to the total."
                   : hasValidAmount
-                    ? `${formatBudgetMoney(Math.abs(splitRemaining))} ${
+                    ? `${formatBudgetMoney(Math.abs(splitRemaining), currency)} ${
                         splitRemaining > 0 ? "left to assign" : "over the total"
-                      }. Lines must sum to ${formatBudgetMoney(parsedAmount)}.`
+                      }. Lines must sum to ${formatBudgetMoney(parsedAmount, currency)}.`
                     : "Enter a total amount, then assign each line."}
               </div>
 

@@ -70,7 +70,7 @@ function tx(
     payee: partial.payee ?? "Payee",
     accountId: partial.accountId ?? chequing.id,
     categoryId: partial.categoryId ?? null,
-    cleared: partial.cleared ?? true,
+    cleared: partial.cleared ?? "cleared",
     ...partial,
   };
 }

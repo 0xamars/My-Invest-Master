@@ -8,12 +8,14 @@ import { cn } from "@/lib/utils";
 interface BudgetSummaryStatsProps {
   summary: MonthBudgetSummary;
   ageOfMoney: AgeOfMoneyResult;
+  currency?: string;
   isLoading?: boolean;
 }
 
 export function BudgetSummaryStats({
   summary,
   ageOfMoney,
+  currency,
   isLoading,
 }: BudgetSummaryStatsProps) {
   const ready = summary.readyToAssign;
@@ -35,7 +37,7 @@ export function BudgetSummaryStats({
             isLoading && "animate-pulse",
           )}
         >
-          {formatBudgetMoney(ready)}
+          {formatBudgetMoney(ready, currency)}
         </p>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
           {ready > 0
@@ -50,17 +52,17 @@ export function BudgetSummaryStats({
       <div className="budget-panel grid grid-cols-3 divide-x divide-border/60">
         <Metric
           label="Income"
-          value={formatBudgetMoney(summary.totalIncome)}
+          value={formatBudgetMoney(summary.totalIncome, currency)}
           isLoading={isLoading}
         />
         <Metric
           label="Assigned"
-          value={formatBudgetMoney(summary.totalAssigned)}
+          value={formatBudgetMoney(summary.totalAssigned, currency)}
           isLoading={isLoading}
         />
         <Metric
           label="Spent"
-          value={formatBudgetMoney(summary.totalSpent)}
+          value={formatBudgetMoney(summary.totalSpent, currency)}
           isLoading={isLoading}
         />
       </div>

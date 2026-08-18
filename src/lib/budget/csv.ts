@@ -1,4 +1,7 @@
+import { clearedStateFromCsvFlag } from "@/lib/budget/cleared";
 import type { BudgetAccount, BudgetCategory, BudgetTransaction } from "@/types/budget";
+
+export const IMPORT_MATCH_DAY_WINDOW = 5;
 
 /**
  * Dedup key for CSV import: date + normalized payee + amount (cents) + account.
@@ -13,6 +16,49 @@ export function budgetImportDedupeKey(tx: {
   const payee = tx.payee.trim().toLowerCase().replace(/\s+/g, " ");
   const cents = Math.round(Math.abs(tx.amount) * 100);
   return `${tx.date}|${payee}|${cents}|${tx.accountId}`;
+}
+
+export function budgetImportId(tx: {
+  date: string;
+  payee: string;
+  amount: number;
+  accountId: string;
+}): string {
+  return `csv:${budgetImportDedupeKey(tx)}`;
+}
+
+export function daysBetweenDateKeys(a: string, b: string): number {
+  const start = Date.parse(`${a}T12:00:00Z`);
+  const end = Date.parse(`${b}T12:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return Number.POSITIVE_INFINITY;
+  return Math.abs(Math.round((end - start) / 86_400_000));
+}
+
+export function findImportMatch(
+  row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "type">,
+  existing: ParseBudgetCsvOptions["existingTransactions"],
+  usedMatchIds: Set<string>,
+): string | undefined {
+  const cents = Math.round(Math.abs(row.amount) * 100);
+  const candidates = existing.filter((tx) => {
+    if (!tx.id || usedMatchIds.has(tx.id)) return false;
+    if (tx.importId) return false;
+    if (tx.accountId !== row.accountId) return false;
+    if (Math.round(Math.abs(tx.amount) * 100) !== cents) return false;
+    if (tx.type && tx.type !== row.type) return false;
+    return daysBetweenDateKeys(tx.date, row.date) <= IMPORT_MATCH_DAY_WINDOW;
+  });
+
+  if (candidates.length === 0) return undefined;
+
+  candidates.sort((a, b) => {
+    const dateDelta =
+      daysBetweenDateKeys(a.date, row.date) - daysBetweenDateKeys(b.date, row.date);
+    if (dateDelta !== 0) return dateDelta;
+    return (a.id ?? "").localeCompare(b.id ?? "");
+  });
+
+  return candidates[0]?.id;
 }
 
 export type CsvSkipReason =
@@ -37,6 +83,11 @@ export interface ParsedCsvTransaction {
   cleared: boolean;
   memo?: string;
   sourceRow: number;
+  importId: string;
+}
+
+export interface CsvMatchedTransaction extends ParsedCsvTransaction {
+  matchedTransactionId: string;
 }
 
 export interface CsvSkippedRow {
@@ -49,6 +100,7 @@ export interface CsvImportPreview {
   totalRows: number;
   imported: ParsedCsvTransaction[];
   duplicates: ParsedCsvTransaction[];
+  matched: CsvMatchedTransaction[];
   skipped: CsvSkippedRow[];
   inflowCount: number;
   outflowCount: number;
@@ -65,7 +117,8 @@ export interface ParseBudgetCsvOptions {
   accounts: Pick<BudgetAccount, "id" | "name">[];
   categories: Pick<BudgetCategory, "id" | "name">[];
   existingTransactions: Array<
-    Pick<BudgetTransaction, "date" | "payee" | "amount" | "accountId">
+    Pick<BudgetTransaction, "date" | "payee" | "amount" | "accountId"> &
+      Partial<Pick<BudgetTransaction, "id" | "type" | "importId">>
   >;
   fallbackAccountId?: string;
 }
@@ -513,6 +566,7 @@ export function parseBudgetCsv(
     totalRows: 0,
     imported: [],
     duplicates: [],
+    matched: [],
     skipped: [],
     inflowCount: 0,
     outflowCount: 0,
@@ -556,15 +610,22 @@ export function parseBudgetCsv(
   const notes = [
     "Transfers and splits are imported as plain inflows or outflows so Ready to Assign math stays intact. Categorize or convert them after import if needed.",
     "Uncategorized outflows are left uncategorized unless Category exactly matches an existing category name.",
-    "Duplicates use date + payee + amount + account and are skipped.",
+    "Exact duplicates (date + payee + amount + account) are skipped. Close-date matches stay on the existing row.",
   ];
 
   const existingKeys = new Set(
     options.existingTransactions.map((tx) => budgetImportDedupeKey(tx)),
   );
+  const existingImportIds = new Set(
+    options.existingTransactions
+      .map((tx) => tx.importId)
+      .filter((value): value is string => Boolean(value)),
+  );
   const seenKeys = new Set<string>();
+  const usedMatchIds = new Set<string>();
   const imported: ParsedCsvTransaction[] = [];
   const duplicates: ParsedCsvTransaction[] = [];
+  const matched: CsvMatchedTransaction[] = [];
   const skipped: CsvSkippedRow[] = [];
   let sawTransferLike = false;
 
@@ -664,11 +725,25 @@ export function parseBudgetCsv(
       cleared: parseCleared(cell(row, columns.cleared)),
       memo,
       sourceRow: rowNumber,
+      importId: "",
     };
+    parsed.importId = budgetImportId(parsed);
+
+    if (existingImportIds.has(parsed.importId)) {
+      duplicates.push(parsed);
+      return;
+    }
 
     const key = budgetImportDedupeKey(parsed);
     if (existingKeys.has(key) || seenKeys.has(key)) {
       duplicates.push(parsed);
+      return;
+    }
+
+    const matchedId = findImportMatch(parsed, options.existingTransactions, usedMatchIds);
+    if (matchedId) {
+      usedMatchIds.add(matchedId);
+      matched.push({ ...parsed, matchedTransactionId: matchedId });
       return;
     }
 
@@ -686,6 +761,7 @@ export function parseBudgetCsv(
     totalRows: dataRows.length,
     imported,
     duplicates,
+    matched,
     skipped,
     inflowCount: imported.filter((tx) => tx.type === "inflow").length,
     outflowCount: imported.filter((tx) => tx.type === "outflow").length,
@@ -711,6 +787,8 @@ export function parsedCsvToTransactionInput(row: ParsedCsvTransaction) {
     amount: row.amount,
     type: row.type,
     memo: row.memo,
-    cleared: row.cleared,
+    cleared: clearedStateFromCsvFlag(row.cleared),
+    approved: false,
+    importId: row.importId || budgetImportId(row),
   };
 }

@@ -817,6 +817,16 @@
     color: oklch(0.84 0.08 280);
   }
 
+  .budget-kind--inbox {
+    background: color-mix(in oklch, var(--brand-orange) 14%, transparent);
+    color: var(--brand-orange);
+  }
+
+  .budget-kind--matched {
+    background: color-mix(in oklch, var(--brand-green) 14%, transparent);
+    color: var(--brand-green);
+  }
+
   .budget-dropzone {
     display: flex;
     min-height: 9.5rem;
@@ -857,6 +867,28 @@
 
   .dark .budget-row-overspent {
     background: color-mix(in oklch, var(--brand-red) 12%, transparent);
+  }
+
+  .budget-row-credit-overspent {
+    background: color-mix(in oklch, var(--brand-orange) 8%, transparent);
+  }
+
+  .dark .budget-row-credit-overspent {
+    background: color-mix(in oklch, var(--brand-orange) 14%, transparent);
+  }
+
+  .budget-undo-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: 0.9rem;
+    border: 1px solid color-mix(in oklch, var(--brand-green) 28%, var(--border));
+    background: color-mix(in oklch, var(--brand-green) 8%, var(--card));
+    padding: 0.55rem 0.85rem;
   }
 }
 

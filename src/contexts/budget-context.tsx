@@ -11,6 +11,8 @@ import type {
   BudgetAccountType,
   BudgetCategory,
   BudgetCategoryGroup,
+  BudgetClearedState,
+  BudgetCurrency,
   BudgetPlan,
   BudgetTransaction,
   CategoryGoalType,
@@ -25,6 +27,11 @@ interface BudgetContextValue {
   isCloudSynced: boolean;
   addTransaction: (input: AddBudgetTransactionInput) => void;
   importTransactions: (inputs: AddBudgetTransactionInput[]) => void;
+  importFromCsv: (
+    inputs: AddBudgetTransactionInput[],
+    matches: Array<{ transactionId: string; importId: string }>,
+  ) => void;
+  setTransactionApproved: (transactionId: string, approved: boolean) => void;
   updateTransaction: (
     transactionId: string,
     input: AddBudgetTransactionInput,
@@ -57,6 +64,14 @@ interface BudgetContextValue {
     toCategoryId: string,
     amount: number,
   ) => void;
+  coverOverspend: (
+    monthKey: string,
+    categoryId: string,
+    source: { type: "rta" } | { type: "category"; categoryId: string },
+    amount: number,
+  ) => void;
+  autoAssignUnderfunded: (monthKey: string) => void;
+  setPlanCurrency: (currency: BudgetCurrency) => void;
   setCategoryGoal: (goal: {
     id?: string;
     categoryId: string;
@@ -81,8 +96,15 @@ interface BudgetContextValue {
       | { type: "move"; targetAccountId: string }
       | { type: "delete-transactions" },
   ) => void;
-  setTransactionCleared: (transactionId: string, cleared: boolean) => void;
+  setTransactionCleared: (
+    transactionId: string,
+    cleared: BudgetClearedState,
+  ) => void;
+  cycleTransactionCleared: (transactionId: string) => void;
   finishAccountReconciliation: (accountId: string) => void;
+  undoLastMutation: () => void;
+  canUndo: boolean;
+  lastMutationLabel: string | null;
   addScheduledTransaction: (input: AddBudgetScheduledTransactionInput) => void;
   updateScheduledTransaction: (
     scheduleId: string,

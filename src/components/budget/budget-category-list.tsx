@@ -8,6 +8,8 @@ import {
   FolderPlus,
   Pencil,
   Plus,
+  ShieldAlert,
+  Sparkles,
   Target,
   Trash2,
 } from "lucide-react";
@@ -23,8 +25,11 @@ import type { BudgetCategoryGroup } from "@/types/budget";
 
 interface BudgetCategoryListProps {
   groups: Array<{ group: BudgetCategoryGroup; categories: CategoryBudgetRow[] }>;
+  currency?: string;
   onAssign: (categoryId: string, amount: number) => void;
   onMoveMoney: (fromCategoryId: string) => void;
+  onCoverOverspend: (categoryId: string) => void;
+  onAutoAssignUnderfunded: () => void;
   onSetGoal: (categoryId: string) => void;
   onAddCategory: (groupId: string) => void;
   onAddGroup: () => void;
@@ -39,6 +44,8 @@ function availableTone(status: CategoryBudgetRow["status"]): string {
   switch (status) {
     case "overspent":
       return "text-[var(--brand-red)]";
+    case "credit-overspent":
+      return "text-[var(--brand-orange)]";
     case "low":
       return "text-[var(--brand-orange)]";
     default:
@@ -48,8 +55,11 @@ function availableTone(status: CategoryBudgetRow["status"]): string {
 
 export function BudgetCategoryList({
   groups,
+  currency,
   onAssign,
   onMoveMoney,
+  onCoverOverspend,
+  onAutoAssignUnderfunded,
   onSetGoal,
   onAddCategory,
   onAddGroup,
@@ -87,13 +97,25 @@ export function BudgetCategoryList({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Categories</h2>
           <p className="text-xs text-muted-foreground">
-            Assign this month. Available carries leftover and overspend.
+            Assign this month. Cash overspend (red) must be covered or it steals
+            next-month Ready to Assign. Credit overspend stays orange.
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={onAddGroup}>
-          <FolderPlus className="size-3.5" />
-          Add Group
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onAutoAssignUnderfunded}
+          >
+            <Sparkles className="size-3.5" />
+            Auto-Assign
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onAddGroup}>
+            <FolderPlus className="size-3.5" />
+            Add Group
+          </Button>
+        </div>
       </div>
 
       <div className="hidden grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(4.5rem,1fr))_6.5rem] gap-3 border-y border-border/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5">
@@ -211,6 +233,8 @@ export function BudgetCategoryList({
                     className={cn(
                       "grid gap-2 px-4 py-2.5 md:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(4.5rem,1fr))_6.5rem] md:items-center md:gap-3 sm:px-5",
                       row.status === "overspent" && "budget-row-overspent",
+                      row.status === "credit-overspent" &&
+                        "budget-row-credit-overspent",
                     )}
                   >
                     <div className="min-w-0">
@@ -218,6 +242,23 @@ export function BudgetCategoryList({
                       {row.isPaymentCategory ? (
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
                           Card payment
+                          {row.creditOverspend > 0
+                            ? ` · underfunded ${formatBudgetMoney(row.creditOverspend, currency)}`
+                            : ""}
+                        </p>
+                      ) : null}
+                      {row.overspendKind ? (
+                        <p
+                          className={cn(
+                            "mt-0.5 text-[11px] font-medium",
+                            row.overspendKind === "credit"
+                              ? "text-[var(--brand-orange)]"
+                              : "text-[var(--brand-red)]",
+                          )}
+                        >
+                          {row.overspendKind === "credit"
+                            ? "Credit overspend"
+                            : "Cash overspend"}
                         </p>
                       ) : null}
                       {row.goal && row.goalProgress && (
@@ -227,7 +268,10 @@ export function BudgetCategoryList({
                             {GOAL_TYPE_LABELS[row.goal.type] ??
                               GOAL_TYPE_LABELS["target-balance"]}{" "}
                             · needed{" "}
-                            {formatBudgetMoney(row.goalProgress.neededThisMonth)}
+                            {formatBudgetMoney(
+                              row.goalProgress.neededThisMonth,
+                              currency,
+                            )}
                           </span>
                           <span
                             className={cn(
@@ -270,7 +314,7 @@ export function BudgetCategoryList({
                           onClick={() => startEdit(row)}
                           className="rounded-md px-1.5 py-0.5 text-sm tabular-nums hover:bg-muted"
                         >
-                          {formatBudgetMoney(row.assigned)}
+                          {formatBudgetMoney(row.assigned, currency)}
                         </button>
                       )}
                     </div>
@@ -283,8 +327,8 @@ export function BudgetCategoryList({
                         {row.activity === 0
                           ? "—"
                           : row.isPaymentCategory
-                            ? formatBudgetMoneySigned(-row.activity)
-                            : formatBudgetMoney(row.activity)}
+                            ? formatBudgetMoneySigned(-row.activity, currency)
+                            : formatBudgetMoney(row.activity, currency)}
                       </span>
                     </div>
 
@@ -299,11 +343,22 @@ export function BudgetCategoryList({
                         )}
                       >
                         {row.available < 0 ? "−" : ""}
-                        {formatBudgetMoney(row.available)}
+                        {formatBudgetMoney(row.available, currency)}
                       </span>
                     </div>
 
                     <div className="flex justify-end gap-0.5">
+                      {row.available < 0 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => onCoverOverspend(row.category.id)}
+                          aria-label={`Cover overspending in ${row.category.name}`}
+                        >
+                          <ShieldAlert className="size-3.5" />
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         variant="ghost"
