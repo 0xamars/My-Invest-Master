@@ -1,6 +1,5 @@
 import type { MonteCarloPercentileBand, MonteCarloResult } from "@/lib/retirement/monte-carlo";
 import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
-import { defaultExtraAnnualSavings } from "@/lib/retirement/scenarios";
 import type { RetirementPlan } from "@/types/retirement";
 
 export type OutlookLifeKey = "bad" | "typical" | "good";
@@ -188,8 +187,13 @@ export function nudgeAnnualSavings(
   plan: RetirementPlan,
   direction: 1 | -1,
   currentYear?: number,
-  step = defaultExtraAnnualSavings(plan.annualContribution),
+  step?: number,
 ): RetirementPlan {
-  const next = Math.max(0, plan.annualContribution + direction * step);
+  const extra =
+    step ??
+    (plan.annualContribution <= 0
+      ? 6_000
+      : Math.max(1_200, Math.round((plan.annualContribution * 0.25) / 500) * 500));
+  const next = Math.max(0, plan.annualContribution + direction * extra);
   return applyRetirementPlanPatch(plan, { annualContribution: next }, currentYear);
 }

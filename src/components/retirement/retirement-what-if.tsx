@@ -1,36 +1,34 @@
 "use client";
 
+import { RetireVerdictChip } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { formatProjectionMoney } from "@/lib/retirement/format";
-import {
-  nudgeAnnualSavings,
-  nudgeAnnualSpending,
-  nudgeRetirementAge,
-} from "@/lib/retirement/outlook";
-import { defaultExtraAnnualSavings } from "@/lib/retirement/scenarios";
+import type { ScenarioComparison } from "@/lib/retirement/scenarios";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
 import type { RetirementPlan } from "@/types/retirement";
+import { cn } from "@/lib/utils";
 
 export function RetirementWhatIf({
-  plan,
-  preview,
+  comparisons,
+  selectedId,
   currency,
   rates,
-  onPreview,
+  dirty,
+  onSelect,
   onApply,
   onReset,
-  dirty,
 }: {
-  plan: RetirementPlan;
-  preview: RetirementPlan;
+  comparisons: ScenarioComparison[];
+  selectedId: string | null;
   currency: DisplayCurrency;
   rates: FxRates;
-  onPreview: (next: RetirementPlan) => void;
-  onApply: (next: RetirementPlan) => void;
-  onReset: () => void;
   dirty: boolean;
+  onSelect: (plan: RetirementPlan, id: string) => void;
+  onApply: (plan: RetirementPlan) => void;
+  onReset: () => void;
 }) {
-  const saveStep = defaultExtraAnnualSavings(plan.annualContribution);
+  const alts = comparisons.filter((item) => item.id !== "base");
+  const selected = alts.find((item) => item.id === selectedId);
 
   return (
     <div className="space-y-3">
@@ -38,50 +36,70 @@ export function RetirementWhatIf({
         <h3 className="text-sm font-semibold tracking-tight">Try a change</h3>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           Retire earlier or later, spend more or less, save more or less. The
-          ages and path update right away. Apply when you want it as the plan.
+          sentence and ages update right away. Apply when you want it as the
+          plan.
         </p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <Lever
-          label="Retire"
-          value={`Age ${preview.retirementAge}`}
-          lessLabel="Earlier"
-          moreLabel="Later"
-          onLess={() => onPreview(nudgeRetirementAge(preview, -1))}
-          onMore={() => onPreview(nudgeRetirementAge(preview, 1))}
-          lessDisabled={preview.retirementAge <= preview.currentAge}
-          moreDisabled={preview.retirementAge >= preview.planEndAge}
-        />
-        <Lever
-          label="Spend / year"
-          value={`${formatProjectionMoney(preview.annualLifestyleSpending, currency, rates)}/yr`}
-          lessLabel="Less"
-          moreLabel="More"
-          onLess={() => onPreview(nudgeAnnualSpending(preview, -1))}
-          onMore={() => onPreview(nudgeAnnualSpending(preview, 1))}
-          lessDisabled={preview.annualLifestyleSpending <= 0}
-        />
-        <Lever
-          label="Save / year"
-          value={`${formatProjectionMoney(preview.annualContribution, currency, rates)}/yr`}
-          lessLabel="Less"
-          moreLabel="More"
-          onLess={() =>
-            onPreview(nudgeAnnualSavings(preview, -1, undefined, saveStep))
-          }
-          onMore={() =>
-            onPreview(nudgeAnnualSavings(preview, 1, undefined, saveStep))
-          }
-          lessDisabled={preview.annualContribution <= 0}
-        />
+      <div className="grid gap-3 md:grid-cols-3">
+        {alts.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onSelect(item.plan, item.id)}
+            className={cn(
+              "flex flex-col rounded-xl border px-4 py-4 text-left transition-colors",
+              selectedId === item.id
+                ? "border-[var(--brand-green)]/50 bg-[var(--brand-green)]/6"
+                : "border-border/60 hover:bg-muted/30",
+            )}
+          >
+            <p className="text-sm font-semibold tracking-tight">{item.label}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+            <dl className="mt-3 space-y-1.5 text-sm">
+              <Row
+                label="Typical market"
+                value={
+                  item.typicalAgeLabel == null
+                    ? "—"
+                    : item.typicalLastsToTarget
+                      ? `Lasts to ${item.plan.planEndAge}`
+                      : `Age ${item.typicalAgeLabel}`
+                }
+              />
+              <Row
+                label="Nest egg at retirement"
+                value={
+                  item.nestEggAtRetirement == null
+                    ? "—"
+                    : formatProjectionMoney(
+                        item.nestEggAtRetirement,
+                        currency,
+                        rates,
+                      )
+                }
+              />
+            </dl>
+            <div className="mt-3">
+              <RetireVerdictChip
+                verdict={
+                  item.nestEggAtRetirement == null
+                    ? "empty"
+                    : item.typicalLastsToTarget || item.lastsPastPlanEnd
+                      ? "on-track"
+                      : "behind"
+                }
+              />
+            </div>
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
-          disabled={!dirty}
-          onClick={() => onApply(preview)}
+          disabled={!dirty || !selected}
+          onClick={() => selected && onApply(selected.plan)}
         >
           Apply as base
         </Button>
@@ -98,51 +116,11 @@ export function RetirementWhatIf({
   );
 }
 
-function Lever({
-  label,
-  value,
-  lessLabel,
-  moreLabel,
-  onLess,
-  onMore,
-  lessDisabled,
-  moreDisabled,
-}: {
-  label: string;
-  value: string;
-  lessLabel: string;
-  moreLabel: string;
-  onLess: () => void;
-  onMore: () => void;
-  lessDisabled?: boolean;
-  moreDisabled?: boolean;
-}) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 px-3 py-3">
-      <p className="budget-metric-label">{label}</p>
-      <p className="mt-1 text-sm font-semibold tabular-nums tracking-tight">
-        {value}
-      </p>
-      <div className="mt-2 flex gap-1.5">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={lessDisabled}
-          onClick={onLess}
-        >
-          {lessLabel}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={moreDisabled}
-          onClick={onMore}
-        >
-          {moreLabel}
-        </Button>
-      </div>
+    <div className="flex items-start justify-between gap-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-right text-xs font-medium tabular-nums">{value}</dd>
     </div>
   );
 }

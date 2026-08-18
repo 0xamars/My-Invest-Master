@@ -1,5 +1,9 @@
 import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
 import {
+  formatOutlookAge,
+  outlookLivesFromResult,
+} from "@/lib/retirement/outlook";
+import {
   findDepletionAge,
   nestEggAtRetirement,
   computeRetirementProjections,
@@ -9,8 +13,11 @@ import type { RetirementPlan } from "@/types/retirement";
 
 export type RetirementScenarioId =
   | "base"
+  | "retire-earlier"
   | "retire-later"
   | "spend-less"
+  | "spend-more"
+  | "save-less"
   | "save-more";
 
 export interface RetirementScenario {
@@ -28,6 +35,8 @@ export interface ScenarioComparison {
   successRate: number | null;
   depletionAge: number | null;
   lastsPastPlanEnd: boolean;
+  typicalAgeLabel: string | null;
+  typicalLastsToTarget: boolean;
   plan: RetirementPlan;
 }
 
@@ -41,29 +50,52 @@ export function defaultExtraAnnualSavings(currentContribution: number): number {
 
 export function buildWhatIfScenarios(plan: RetirementPlan): RetirementScenario[] {
   const extra = defaultExtraAnnualSavings(plan.annualContribution);
+  const earlierAge = Math.max(plan.currentAge, plan.retirementAge - 2);
+  const laterAge = Math.min(plan.planEndAge, plan.retirementAge + 2);
+  const spendLess = Math.max(0, Math.round(plan.annualLifestyleSpending * 0.9));
+  const spendMore =
+    plan.annualLifestyleSpending <= 0
+      ? 1_000
+      : Math.round(plan.annualLifestyleSpending * 1.1);
+  const saveLess = Math.max(0, plan.annualContribution - extra);
+  const saveMore = plan.annualContribution + extra;
 
   return [
     {
+      id: "retire-earlier",
+      label: "Retire 2 years earlier",
+      description: `Work until ${earlierAge} instead of ${plan.retirementAge}.`,
+      patch: { retirementAge: earlierAge },
+    },
+    {
       id: "retire-later",
       label: "Retire 2 years later",
-      description: `Work until ${plan.retirementAge + 2} instead of ${plan.retirementAge}.`,
-      patch: { retirementAge: plan.retirementAge + 2 },
+      description: `Work until ${laterAge} instead of ${plan.retirementAge}.`,
+      patch: { retirementAge: laterAge },
     },
     {
       id: "spend-less",
       label: "Spend 10% less",
       description: "Cut annual lifestyle spending by 10%.",
-      patch: {
-        annualLifestyleSpending: Math.round(plan.annualLifestyleSpending * 0.9),
-      },
+      patch: { annualLifestyleSpending: spendLess },
+    },
+    {
+      id: "spend-more",
+      label: "Spend 10% more",
+      description: "Raise annual lifestyle spending by 10%.",
+      patch: { annualLifestyleSpending: spendMore },
+    },
+    {
+      id: "save-less",
+      label: `Save $${extra.toLocaleString("en-US")} less / year`,
+      description: "Reduce annual savings until retirement.",
+      patch: { annualContribution: saveLess },
     },
     {
       id: "save-more",
       label: `Save $${extra.toLocaleString("en-US")} more / year`,
       description: "Increase annual savings until retirement.",
-      patch: {
-        annualContribution: plan.annualContribution + extra,
-      },
+      patch: { annualContribution: saveMore },
     },
   ];
 }
@@ -109,6 +141,7 @@ export function compareRetirementScenarios(
       seed: options?.seed ?? 7,
     });
     const depletionAge = findDepletionAge(projections);
+    const lives = outlookLivesFromResult(monteCarlo, next.planEndAge);
 
     return {
       id: scenario.id,
@@ -118,6 +151,10 @@ export function compareRetirementScenarios(
       successRate: next.assets.length === 0 ? null : monteCarlo.successRate,
       depletionAge,
       lastsPastPlanEnd: depletionAge === null && projections.length > 0,
+      typicalAgeLabel: lives
+        ? formatOutlookAge(lives.typical, next.planEndAge)
+        : null,
+      typicalLastsToTarget: lives?.typical.lastsToTarget ?? false,
       plan: next,
     };
   });

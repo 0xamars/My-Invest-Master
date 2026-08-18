@@ -349,6 +349,7 @@ export function RetirementPlanEditorContent({
           currency={currency}
           rates={rates}
           retirementYear={workingPlan.retirementYear}
+          percentiles={monteCarlo?.percentiles}
         />
 
         <div className="space-y-4">

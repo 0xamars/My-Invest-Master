@@ -43,6 +43,7 @@ import {
   PROJECTION_PRIMARY_LINE,
   PROJECTION_RETIREMENT_LINE_COLOR,
   PROJECTION_SECONDARY_LINE,
+  PROJECTION_TOOLTIP_HIDDEN_KEYS,
   type ProjectionChartView,
 } from "@/lib/retirement/chart-data";
 import { ProjectionXAxisLabels } from "@/components/retirement/projection-x-axis-labels";
@@ -104,9 +105,20 @@ function ProjectionChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
 
-  const items = payload.filter(
-    (item) => item.type !== "none" && item.value != null,
-  );
+  const seen = new Set<string>();
+  const items = payload.filter((item) => {
+    const key = String(item.dataKey ?? item.name ?? "value");
+    if (
+      item.type === "none" ||
+      item.value == null ||
+      PROJECTION_TOOLTIP_HIDDEN_KEYS.has(key) ||
+      seen.has(key)
+    ) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 
   return (
     <div className="min-w-[210px] rounded-xl border border-border/40 bg-card/96 px-4 py-3 shadow-2xl backdrop-blur-md">
@@ -265,7 +277,11 @@ export function RetirementPlanProjectionsChart({
   return (
     <AnalyticsChartCard
       title="Portfolio Projections"
-      description="Interactive view of projected portfolio growth and spending"
+      description={
+        showMonteCarloBand
+          ? "Portfolio if markets are bad, typical, or good — plus the other year-by-year views."
+          : "Interactive view of projected portfolio growth and spending"
+      }
       contentClassName="space-y-4"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -287,7 +303,9 @@ export function RetirementPlanProjectionsChart({
           <SelectContent>
             {PROJECTION_CHART_VIEWS.map((option) => (
               <SelectItem key={option.id} value={option.id}>
-                {option.label}
+                {option.id === "total-closing" && showMonteCarloBand
+                  ? "Bad, typical, good"
+                  : option.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -436,44 +454,80 @@ export function RetirementPlanProjectionsChart({
                   <>
                     <Area
                       type="monotone"
-                      dataKey="p10"
+                      dataKey="bad"
                       stackId="mc"
                       stroke="none"
                       fill="transparent"
                       isAnimationActive={false}
+                      legendType="none"
                     />
                     <Area
                       type="monotone"
-                      dataKey="mcBand"
+                      dataKey="spread"
                       stackId="mc"
                       stroke="none"
                       fill={PROJECTION_PRIMARY_LINE}
-                      fillOpacity={0.18}
+                      fillOpacity={0.12}
+                      isAnimationActive={false}
+                      legendType="none"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="bad"
+                      stroke="var(--brand-orange)"
+                      strokeWidth={1.75}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="typical"
+                      stroke={PROJECTION_PRIMARY_LINE}
+                      strokeWidth={2.5}
+                      dot={false}
+                      activeDot={{
+                        r: 5,
+                        strokeWidth: 2,
+                        stroke: PROJECTION_PRIMARY_LINE,
+                        fill: "var(--background)",
+                      }}
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="good"
+                      stroke="var(--brand-green-deep)"
+                      strokeWidth={1.75}
+                      dot={false}
                       isAnimationActive={false}
                     />
                   </>
                 )}
-                <Area
-                  type="monotone"
-                  dataKey="closingBalance"
-                  fill={`url(#${gradientIdPrefix}-line-fill)`}
-                  stroke="none"
-                  isAnimationActive={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="closingBalance"
-                  stroke={PROJECTION_PRIMARY_LINE}
-                  strokeWidth={2.75}
-                  dot={false}
-                  activeDot={{
-                    r: 5,
-                    strokeWidth: 2,
-                    stroke: PROJECTION_PRIMARY_LINE,
-                    fill: "var(--background)",
-                  }}
-                  isAnimationActive={false}
-                />
+                {!showMonteCarloBand && (
+                  <>
+                    <Area
+                      type="monotone"
+                      dataKey="closingBalance"
+                      fill={`url(#${gradientIdPrefix}-line-fill)`}
+                      stroke="none"
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="closingBalance"
+                      stroke={PROJECTION_PRIMARY_LINE}
+                      strokeWidth={2.75}
+                      dot={false}
+                      activeDot={{
+                        r: 5,
+                        strokeWidth: 2,
+                        stroke: PROJECTION_PRIMARY_LINE,
+                        fill: "var(--background)",
+                      }}
+                      isAnimationActive={false}
+                    />
+                  </>
+                )}
               </>
             )}
 

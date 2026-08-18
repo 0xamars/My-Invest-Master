@@ -31,9 +31,11 @@ import {
   findDepletionYear,
   nestEggAtRetirement,
 } from "../src/lib/retirement/projections.ts";
+import { buildProjectionChartData } from "../src/lib/retirement/chart-data.ts";
 import {
   applyScenario,
   buildWhatIfScenarios,
+  compareRetirementScenarios,
   defaultExtraAnnualSavings,
 } from "../src/lib/retirement/scenarios.ts";
 import { computeTargetNestEgg, presentValue } from "../src/lib/retirement/target.ts";
@@ -448,9 +450,13 @@ assert(defaultExtraAnnualSavings(0) === 6_000, "zero contribution suggests +$6k"
 assert(defaultExtraAnnualSavings(10_000) === 2_500, "25% extra on $10k rounds to $2,500");
 const scenarios = buildWhatIfScenarios(plan({ retirementAge: 65, annualLifestyleSpending: 100_000 }));
 const later = scenarios.find((item) => item.id === "retire-later");
+const earlier = scenarios.find((item) => item.id === "retire-earlier");
 const lean = scenarios.find((item) => item.id === "spend-less");
+const richer = scenarios.find((item) => item.id === "spend-more");
 assert(later?.patch.retirementAge === 67, "retire-later adds 2 years");
+assert(earlier?.patch.retirementAge === 63, "retire-earlier subtracts 2 years");
 assert(lean?.patch.annualLifestyleSpending === 90_000, "spend-less is 10%");
+assert(richer?.patch.annualLifestyleSpending === 110_000, "spend-more is 10%");
 const applied = applyScenario(plan({ retirementAge: 65 }), later!, CURRENT_YEAR);
 assert(applied.retirementAge === 67, "applying a scenario updates the base ages");
 assert(applied.retirementYear === CURRENT_YEAR + 27, "applying retire-later syncs the year");
@@ -490,8 +496,24 @@ const lever = whatIfLeverSentence(
   plan({ retirementAge: 65, annualLifestyleSpending: 100_000, annualContribution: 0 }),
 );
 assert(lever.includes("Retire 2 years later"), "lever uses existing retire-later copy");
+assert(lever.includes("Retire 2 years earlier"), "lever uses retire-earlier copy");
 assert(lever.includes("Spend 10% less"), "lever uses existing spend-less copy");
 assert(lever.includes("Save $6,000 more / year"), "lever uses existing save-more copy");
+
+const compared = compareRetirementScenarios(sureWin, {
+  currentYear: CURRENT_YEAR,
+  paths: 40,
+  seed: 11,
+  includeBase: false,
+});
+assert(
+  compared.every((item) => item.typicalAgeLabel != null),
+  "what-if typical market age comes from the existing sim",
+);
+assert(
+  compared.every((item) => item.typicalLastsToTarget === true),
+  "no-spend cash what-ifs last in a typical market",
+);
 
 // --- Outlook copy from existing p10 / p50 / p90 ----------------------------
 
@@ -578,11 +600,23 @@ const chartRows = outlookChartRows(
 assert(chartRows[0]?.bad === 10 && chartRows[0]?.typical === 20 && chartRows[0]?.good === 40, "chart rows are the existing three lives");
 assert(chartRows[0]?.spread === 30, "band width is p90 minus p10");
 
+const projectionRows = buildProjectionChartData(
+  winRows,
+  sureWin.assets,
+  winMc.percentiles,
+);
+assert(
+  projectionRows.some(
+    (row) => row.typical != null && row.typical === row.p50 && row.bad === row.p10,
+  ),
+  "Total chart maps p50 to Typical instead of leaving it unused",
+);
+
 const nudged = nudgeRetirementAge(plan({ retirementAge: 65 }), 1, CURRENT_YEAR);
 assert(nudged.retirementAge === 66, "retire later is +1 year");
 assert(nudged.retirementYear === CURRENT_YEAR + 26, "retire later keeps the year in sync");
-const earlier = nudgeRetirementAge(plan({ currentAge: 40, retirementAge: 40 }), -1, CURRENT_YEAR);
-assert(earlier.retirementAge === 40, "cannot retire earlier than current age");
+const alreadyRetired = nudgeRetirementAge(plan({ currentAge: 40, retirementAge: 40 }), -1, CURRENT_YEAR);
+assert(alreadyRetired.retirementAge === 40, "cannot retire earlier than current age");
 assert(nudgeAnnualSpending(plan({ annualLifestyleSpending: 100_000 }), -1).annualLifestyleSpending === 90_000, "spend less is 10%");
 assert(nudgeAnnualSpending(plan({ annualLifestyleSpending: 100_000 }), 1).annualLifestyleSpending === 110_000, "spend more is 10%");
 assert(nudgeAnnualSavings(plan({ annualContribution: 0 }), 1).annualContribution === 6_000, "save more uses the existing extra step");

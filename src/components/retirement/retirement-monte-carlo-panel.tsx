@@ -17,6 +17,10 @@ import {
   outlookLivesFromResult,
   outlookSentence,
 } from "@/lib/retirement/outlook";
+import {
+  compareRetirementScenarios,
+  type RetirementScenarioId,
+} from "@/lib/retirement/scenarios";
 import { cn } from "@/lib/utils";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
 import {
@@ -40,10 +44,14 @@ export function RetirementMonteCarloPanel({
   onApply: (next: RetirementPlan) => void;
 }) {
   const [preview, setPreview] = useState<RetirementPlan | null>(null);
+  const [selectedId, setSelectedId] = useState<RetirementScenarioId | null>(
+    null,
+  );
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     setPreview(null);
+    setSelectedId(null);
   }, [
     plan.id,
     plan.retirementAge,
@@ -58,6 +66,18 @@ export function RetirementMonteCarloPanel({
 
   const displayed = preview ?? plan;
   const dirty = preview != null && outlookLeversDirty(plan, preview);
+
+  const whatIf = useMemo(
+    () =>
+      plan.assets.length > 0
+        ? compareRetirementScenarios(plan, {
+            includeBase: false,
+            paths: 400,
+            seed: 17,
+          })
+        : [],
+    [plan],
+  );
 
   const displayedResult = useMemo(() => {
     if (!preview) return result;
@@ -121,17 +141,24 @@ export function RetirementMonteCarloPanel({
       {plan.assets.length > 0 ? (
         <div className="mt-5 border-t border-border/60 pt-5">
           <RetirementWhatIf
-            plan={plan}
-            preview={displayed}
+            comparisons={whatIf}
+            selectedId={selectedId}
             currency={currency}
             rates={rates}
             dirty={dirty}
-            onPreview={setPreview}
+            onSelect={(next, id) => {
+              setSelectedId(id as RetirementScenarioId);
+              setPreview(next);
+            }}
             onApply={(next) => {
               onApply(next);
               setPreview(null);
+              setSelectedId(null);
             }}
-            onReset={() => setPreview(null)}
+            onReset={() => {
+              setPreview(null);
+              setSelectedId(null);
+            }}
           />
         </div>
       ) : null}
