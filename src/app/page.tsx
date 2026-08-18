@@ -6,7 +6,7 @@ import { MarketingHomeContent } from "@/components/home/marketing-home-content";
 export const metadata: Metadata = {
   title: "InvestSalsa — Budget, Invest, Retire",
   description:
-    "Build financial independence with clarity. Budget, Invest, and Retire work together in one modern workspace.",
+    "YNAB-style budgeting, portfolio tracking, and a retirement planner that shows your target, on-track verdict, and what-ifs.",
 };
 
 function HomeLoading() {

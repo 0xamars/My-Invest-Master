@@ -90,8 +90,8 @@ export function MarketingHomePage({
               <span className="brand-text-salsa">engineered.</span>
             </h1>
             <p className="max-w-lg text-pretty text-base leading-relaxed text-white/65 sm:text-lg">
-              A complete system to take control of your money and build lasting
-              independence.
+              Budget like YNAB, track a real portfolio, and see whether
+              retirement is on track — target, gap, and the lever to pull.
             </p>
             <div className="flex flex-wrap gap-3 pt-1">
               {isSignedIn ? (
@@ -119,8 +119,8 @@ export function MarketingHomePage({
             </div>
             <p className="text-xs text-white/45">
               {isSignedIn
-                ? "You're signed in — open your dashboard to continue."
-                : "Free forever for one of each plan · No credit card required"}
+                ? "You're signed in — open Home for Budget, Invest, and Retire at a glance."
+                : "Free for one budget, one portfolio, and one retirement plan. No credit card — billing is not live yet."}
             </p>
           </div>
 
@@ -153,19 +153,47 @@ export function MarketingHomePage({
                 Budget → Invest → Retire
               </h2>
               <p className="text-pretty text-white/60">
-                One continuous path toward financial independence — manage cash
-                today, grow wealth, and plan the future with the same brand of
-                clarity.
+                Three products that are actually live: a working budget, a
+                portfolio, and a retirement planner that answers the useful
+                questions.
               </p>
             </div>
-            <div className="marketing-visual mx-auto max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_20px_60px_-24px_oklch(0.72_0.18_55/35%)]">
-              <Image
-                src="/marketing/journey.png"
-                alt="Budget, Invest, and Retire journey cards"
-                width={1400}
-                height={700}
-                className="h-auto w-full object-contain"
-              />
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                {
+                  step: "01",
+                  title: "Budget",
+                  body: "YNAB-style Ready to Assign, leftover that carries, a register inbox, and CSV import. Manual tracking — bank sync is not live.",
+                  accent: "text-primary",
+                },
+                {
+                  step: "02",
+                  title: "Invest",
+                  body: "Track stocks, crypto, cash, and custom holdings. See value, allocation, options, and watchlists in one workspace.",
+                  accent: "text-[oklch(0.78_0.19_55)]",
+                },
+                {
+                  step: "03",
+                  title: "Retire",
+                  body: "Know the target nest egg, whether you are on track, and when money runs out. CPP, OAS, savings, and one-click what-ifs.",
+                  accent: "text-primary",
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-5"
+                >
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/40">
+                    {item.step}
+                  </p>
+                  <h3 className={cn("mt-2 text-lg font-semibold", item.accent)}>
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">
+                    {item.body}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -182,8 +210,7 @@ export function MarketingHomePage({
                   Tools that keep you ahead
                 </h2>
                 <p className="text-pretty text-white/60">
-                  Track portfolios, read the market, and project retirement —
-                  without drowning in noise.
+                  The same three pillars as the product — not a wishlist.
                 </p>
               </div>
             </div>
@@ -191,18 +218,18 @@ export function MarketingHomePage({
             <div className="mb-8 grid gap-4 sm:grid-cols-3">
               {[
                 {
-                  title: "Portfolio tracking",
-                  body: "Monitor holdings and allocation in one clear view.",
+                  title: "Budget that works like YNAB",
+                  body: "Ready to Assign, category available, cover overspend, and a register you can actually use.",
                   accent: "text-primary",
                 },
                 {
-                  title: "Market insights",
-                  body: "Stay informed with live data and trend context.",
+                  title: "Invest without a second app",
+                  body: "Holdings, live prices, allocation, options, and watchlists — plus refresh into Retire.",
                   accent: "text-[oklch(0.78_0.19_55)]",
                 },
                 {
-                  title: "Retirement planning",
-                  body: "See growth paths and plan with confidence.",
+                  title: "Retire: target and on-track",
+                  body: "4% nest-egg target, income vs spend, depletion age, light Monte Carlo, and apply-as-base what-ifs.",
                   accent: "text-primary",
                 },
               ].map((item) => (
@@ -351,7 +378,7 @@ export function MarketingHomePage({
                 <p className="mx-auto max-w-md text-pretty text-white/65">
                   {isSignedIn
                     ? "Jump back into Budget, Invest, and Retire from your account dashboard."
-                    : "Create your account and begin with Budget, Invest, and Retire. No credit card required."}
+                    : "Create an account and start with one budget, one portfolio, and one retirement plan. No credit card — Premium billing is not live yet."}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
                   {isSignedIn ? (

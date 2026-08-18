@@ -44,6 +44,7 @@ export function useInvestSummary() {
 
   return {
     portfolio,
+    changes: portfolio.changes,
     optionsSummary,
     activeOptionsCount,
     optionsCount: positions.length,
