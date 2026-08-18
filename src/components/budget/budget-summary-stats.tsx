@@ -1,16 +1,19 @@
 "use client";
 
+import { AGE_OF_MONEY_MIN_OUTFLOWS, type AgeOfMoneyResult } from "@/lib/budget/age-of-money";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { MonthBudgetSummary } from "@/lib/budget/calculations";
 import { cn } from "@/lib/utils";
 
 interface BudgetSummaryStatsProps {
   summary: MonthBudgetSummary;
+  ageOfMoney: AgeOfMoneyResult;
   isLoading?: boolean;
 }
 
 export function BudgetSummaryStats({
   summary,
+  ageOfMoney,
   isLoading,
 }: BudgetSummaryStatsProps) {
   const ready = summary.readyToAssign;
@@ -41,6 +44,7 @@ export function BudgetSummaryStats({
               ? "Assigned more than has come in through this month. Move money or record missing income."
               : "Every dollar through this month already has a job."}
         </p>
+        <AgeOfMoneyBlock ageOfMoney={ageOfMoney} isLoading={isLoading} />
       </section>
 
       <div className="budget-panel grid grid-cols-3 divide-x divide-border/60">
@@ -60,6 +64,66 @@ export function BudgetSummaryStats({
           isLoading={isLoading}
         />
       </div>
+    </div>
+  );
+}
+
+function AgeOfMoneyBlock({
+  ageOfMoney,
+  isLoading,
+}: {
+  ageOfMoney: AgeOfMoneyResult;
+  isLoading?: boolean;
+}) {
+  if (ageOfMoney.status === "ready" && ageOfMoney.days != null) {
+    return (
+      <div className="mt-5 border-t border-border/50 pt-4">
+        <p className="budget-metric-label">Age of Money</p>
+        <p
+          className={cn(
+            "mt-1 text-2xl font-semibold tracking-tight tabular-nums",
+            isLoading && "animate-pulse",
+          )}
+        >
+          {ageOfMoney.days} {ageOfMoney.days === 1 ? "day" : "days"}
+        </p>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          The dollars you are spending now are about {ageOfMoney.days}{" "}
+          {ageOfMoney.days === 1 ? "day" : "days"} old, based on your last{" "}
+          {AGE_OF_MONEY_MIN_OUTFLOWS} spending transactions.
+        </p>
+      </div>
+    );
+  }
+
+  if (ageOfMoney.status === "insufficient") {
+    const remaining = Math.max(
+      0,
+      AGE_OF_MONEY_MIN_OUTFLOWS - ageOfMoney.outflowCount,
+    );
+    return (
+      <div className="mt-5 border-t border-border/50 pt-4">
+        <p className="budget-metric-label">Age of Money</p>
+        <p className="mt-1 text-base font-semibold tracking-tight">
+          Not enough history yet
+        </p>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          Need {AGE_OF_MONEY_MIN_OUTFLOWS} spending transactions to calculate
+          honestly. {ageOfMoney.outflowCount} so far
+          {remaining > 0 ? ` · ${remaining} more to go` : ""}.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 border-t border-border/50 pt-4">
+      <p className="budget-metric-label">Age of Money</p>
+      <p className="mt-1 text-base font-semibold tracking-tight">—</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        Add income and spending to see how old the dollars you spend are. Empty
+        budgets do not get a made-up number.
+      </p>
     </div>
   );
 }

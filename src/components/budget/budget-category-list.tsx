@@ -15,7 +15,8 @@ import { BudgetEmptyState, BudgetPanel } from "@/components/budget/budget-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CategoryBudgetRow } from "@/lib/budget/calculations";
-import { formatBudgetMoney } from "@/lib/budget/format";
+import { isCreditCardPaymentsGroup } from "@/lib/budget/credit-card-payments";
+import { formatBudgetMoney, formatBudgetMoneySigned } from "@/lib/budget/format";
 import { cn } from "@/lib/utils";
 import type { BudgetCategoryGroup } from "@/types/budget";
 
@@ -116,12 +117,22 @@ export function BudgetCategoryList({
         />
       ) : (
         <div>
-          {groups.map(({ group, categories }, groupIndex) => (
+          {groups.map(({ group, categories }, groupIndex) => {
+            const paymentGroup = isCreditCardPaymentsGroup(group);
+            return (
             <div key={group.id} className="border-b border-border/40 last:border-b-0">
               <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/25 px-4 py-2 sm:px-5">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                  {group.name}
-                </h3>
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                    {group.name}
+                  </h3>
+                  {paymentGroup ? (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Assign here to plan the card payment. Card spending moves money into these categories; paying the card is a transfer.
+                    </p>
+                  ) : null}
+                </div>
+                {paymentGroup ? null : (
                 <div className="flex items-center gap-0.5">
                   <Button
                     type="button"
@@ -172,18 +183,25 @@ export function BudgetCategoryList({
                     Category
                   </Button>
                 </div>
+                )}
               </div>
 
               {categories.length === 0 ? (
                 <div className="px-4 py-3 text-xs text-muted-foreground sm:px-5">
-                  No categories yet.{" "}
-                  <button
-                    type="button"
-                    className="font-medium text-[var(--brand-green)] hover:underline"
-                    onClick={() => onAddCategory(group.id)}
-                  >
-                    Add one
-                  </button>
+                  {paymentGroup ? (
+                    "Payment categories appear automatically for credit cards and lines of credit."
+                  ) : (
+                    <>
+                      No categories yet.{" "}
+                      <button
+                        type="button"
+                        className="font-medium text-[var(--brand-green)] hover:underline"
+                        onClick={() => onAddCategory(group.id)}
+                      >
+                        Add one
+                      </button>
+                    </>
+                  )}
                 </div>
               ) : (
                 categories.map((row) => (
@@ -196,6 +214,11 @@ export function BudgetCategoryList({
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{row.category.name}</p>
+                      {row.isPaymentCategory ? (
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          Card payment
+                        </p>
+                      ) : null}
                       {row.goal && (
                         <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                           <Target className="size-3 text-[var(--brand-orange)]" />
@@ -242,7 +265,11 @@ export function BudgetCategoryList({
                         Activity
                       </span>
                       <span className="text-sm tabular-nums text-muted-foreground">
-                        {row.activity === 0 ? "—" : formatBudgetMoney(row.activity)}
+                        {row.activity === 0
+                          ? "—"
+                          : row.isPaymentCategory
+                            ? formatBudgetMoneySigned(-row.activity)
+                            : formatBudgetMoney(row.activity)}
                       </span>
                     </div>
 
@@ -271,39 +298,44 @@ export function BudgetCategoryList({
                       >
                         <ArrowLeftRight className="size-3.5" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => onSetGoal(row.category.id)}
-                        aria-label={`Set goal for ${row.category.name}`}
-                      >
-                        <Target className="size-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => onEditCategory(row.category.id)}
-                        aria-label={`Edit ${row.category.name}`}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => onDeleteCategory(row.category.id)}
-                        aria-label={`Delete ${row.category.name}`}
-                      >
-                        <Trash2 className="size-3.5 text-muted-foreground" />
-                      </Button>
+                      {row.isPaymentCategory ? null : (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => onSetGoal(row.category.id)}
+                            aria-label={`Set goal for ${row.category.name}`}
+                          >
+                            <Target className="size-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => onEditCategory(row.category.id)}
+                            aria-label={`Edit ${row.category.name}`}
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => onDeleteCategory(row.category.id)}
+                            aria-label={`Delete ${row.category.name}`}
+                          >
+                            <Trash2 className="size-3.5 text-muted-foreground" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </BudgetPanel>

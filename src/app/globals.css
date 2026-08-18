@@ -807,6 +807,16 @@
     color: oklch(0.84 0.12 55);
   }
 
+  .budget-kind--scheduled {
+    background: oklch(0.62 0.08 280 / 12%);
+    color: oklch(0.42 0.1 280);
+  }
+
+  .dark .budget-kind--scheduled {
+    background: oklch(0.7 0.1 280 / 16%);
+    color: oklch(0.84 0.08 280);
+  }
+
   .budget-dropzone {
     display: flex;
     min-height: 9.5rem;

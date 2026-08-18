@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import {
   useBudgetPlanMutations,
+  type AddBudgetScheduledTransactionInput,
   type AddBudgetTransactionInput,
 } from "@/hooks/use-budget-plan-mutations";
 import type {
@@ -76,6 +77,12 @@ interface BudgetContextValue {
   ) => void;
   setTransactionCleared: (transactionId: string, cleared: boolean) => void;
   finishAccountReconciliation: (accountId: string) => void;
+  addScheduledTransaction: (input: AddBudgetScheduledTransactionInput) => void;
+  updateScheduledTransaction: (
+    scheduleId: string,
+    input: AddBudgetScheduledTransactionInput,
+  ) => void;
+  deleteScheduledTransaction: (scheduleId: string) => void;
 }
 
 const BudgetContext = createContext<BudgetContextValue | null>(null);

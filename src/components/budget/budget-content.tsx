@@ -29,6 +29,7 @@ import { BudgetMonthNav } from "@/components/budget/budget-month-nav";
 import { BudgetSummaryStats } from "@/components/budget/budget-summary-stats";
 import { Button } from "@/components/ui/button";
 import { useBudget } from "@/contexts/budget-context";
+import { computeAgeOfMoney } from "@/lib/budget/age-of-money";
 import {
   buildCategoryRows,
   computeMonthSummary,
@@ -83,6 +84,11 @@ export function BudgetContent() {
   const categoryRows = useMemo(
     () => buildCategoryRows(budget, monthKey),
     [budget, monthKey],
+  );
+
+  const ageOfMoney = useMemo(
+    () => computeAgeOfMoney(budget.transactions),
+    [budget.transactions],
   );
 
   const recentTransactions = useMemo(() => {
@@ -150,7 +156,11 @@ export function BudgetContent() {
         </div>
       )}
 
-      <BudgetSummaryStats summary={summary} isLoading={!isLoaded} />
+      <BudgetSummaryStats
+        summary={summary}
+        ageOfMoney={ageOfMoney}
+        isLoading={!isLoaded}
+      />
 
       <BudgetCategoryList
         groups={categoryRows}

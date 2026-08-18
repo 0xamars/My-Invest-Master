@@ -1,5 +1,14 @@
 import type { BudgetData } from "@/types/budget";
 
+function clearCategoryOnSplits<T extends { categoryId: string | null }>(
+  splits: T[] | undefined,
+  categoryId: string,
+): T[] | undefined {
+  return splits?.map((line) =>
+    line.categoryId === categoryId ? { ...line, categoryId: null } : line,
+  );
+}
+
 /** Remove a category and clean up assignments, goals, and transaction links. */
 export function removeCategoryFromBudget(
   budget: BudgetData,
@@ -19,9 +28,12 @@ export function removeCategoryFromBudget(
     transactions: budget.transactions.map((tx) => ({
       ...tx,
       categoryId: tx.categoryId === categoryId ? null : tx.categoryId,
-      splits: tx.splits?.map((line) =>
-        line.categoryId === categoryId ? { ...line, categoryId: null } : line,
-      ),
+      splits: clearCategoryOnSplits(tx.splits, categoryId),
+    })),
+    scheduledTransactions: budget.scheduledTransactions?.map((schedule) => ({
+      ...schedule,
+      categoryId: schedule.categoryId === categoryId ? null : schedule.categoryId,
+      splits: clearCategoryOnSplits(schedule.splits, categoryId),
     })),
     monthBudgets,
   };

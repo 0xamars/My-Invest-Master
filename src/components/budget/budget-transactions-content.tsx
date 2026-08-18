@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { CalendarClock, CheckCircle2, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { BudgetCsvImportDialog } from "@/components/budget/budget-csv-import-dialog";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
+import { BudgetUpcomingList } from "@/components/budget/budget-upcoming-list";
 import {
   BudgetEmptyState,
   BudgetKindBadge,
@@ -30,6 +31,10 @@ import {
 import { useBudget } from "@/contexts/budget-context";
 import { getRunningBalances, sortedAccounts } from "@/lib/budget/accounts";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
+import {
+  getUpcomingScheduledInstances,
+  todayDateKey,
+} from "@/lib/budget/scheduled";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
 import {
   filterTransactions,
@@ -41,7 +46,8 @@ import { cn } from "@/lib/utils";
 export function BudgetTransactionsContent() {
   const { budget, deleteTransaction, importTransactions, setTransactionCleared } =
     useBudget();
-  const { openAddTransaction, openEditTransaction } = useBudgetDialog();
+  const { openAddTransaction, openEditTransaction, openAddScheduled, openEditScheduled } =
+    useBudgetDialog();
   const [importOpen, setImportOpen] = useState(false);
 
   const [monthFilter, setMonthFilter] = useState<string>("all");
@@ -72,6 +78,65 @@ export function BudgetTransactionsContent() {
         search,
       }),
     [budget, monthFilter, accountFilter, categoryFilter, typeFilter, search],
+  );
+
+  const upcoming = useMemo(
+    () =>
+      getUpcomingScheduledInstances(budget.scheduledTransactions, {
+        fromDate: todayDateKey(),
+        horizonDays: 60,
+        limitPerSchedule: 2,
+      }).filter((instance) => {
+        if (monthFilter !== "all" && !instance.date.startsWith(monthFilter)) {
+          return false;
+        }
+        if (
+          accountFilter !== "all" &&
+          instance.accountId !== accountFilter &&
+          instance.transferAccountId !== accountFilter
+        ) {
+          return false;
+        }
+        if (typeFilter !== "all" && instance.type !== typeFilter) {
+          return false;
+        }
+        if (categoryFilter !== "all") {
+          const paymentAccountId = budget.categories.find(
+            (category) => category.id === categoryFilter,
+          )?.creditCardAccountId;
+          if (paymentAccountId) {
+            if (
+              instance.accountId !== paymentAccountId &&
+              instance.transferAccountId !== paymentAccountId
+            ) {
+              return false;
+            }
+          } else if (
+            instance.categoryId !== categoryFilter &&
+            !instance.splits?.some((line) => line.categoryId === categoryFilter)
+          ) {
+            return false;
+          }
+        }
+        const query = search.trim().toLowerCase();
+        if (
+          query &&
+          !instance.payee.toLowerCase().includes(query) &&
+          !(instance.memo?.toLowerCase().includes(query) ?? false)
+        ) {
+          return false;
+        }
+        return true;
+      }),
+    [
+      budget.scheduledTransactions,
+      budget.categories,
+      monthFilter,
+      accountFilter,
+      categoryFilter,
+      typeFilter,
+      search,
+    ],
   );
 
   const runningBalanceByTxId = useMemo(() => {
@@ -122,12 +187,23 @@ export function BudgetTransactionsContent() {
               <Upload className="size-4" />
               Import CSV
             </Button>
+            <Button type="button" variant="outline" onClick={openAddScheduled}>
+              <CalendarClock className="size-4" />
+              Schedule
+            </Button>
             <Button type="button" onClick={openAddTransaction}>
               <Plus className="size-4" />
               Add
             </Button>
           </>
         }
+      />
+
+      <BudgetUpcomingList
+        instances={upcoming}
+        accounts={budget.accounts}
+        categories={budget.categories}
+        onEdit={openEditScheduled}
       />
 
       <BudgetPanel>
@@ -321,6 +397,9 @@ export function BudgetTransactionsContent() {
                       <TableCell className="py-2">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{display.payee}</span>
+                          {tx.scheduledTransactionId ? (
+                            <BudgetKindBadge kind="scheduled" />
+                          ) : null}
                           {display.isTransfer ? (
                             <BudgetKindBadge kind="transfer" />
                           ) : null}

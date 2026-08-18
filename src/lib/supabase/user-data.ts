@@ -405,6 +405,7 @@ export async function loadBudgetPlansFromCloud(
       accountId: defaultAccount.id,
       cleared: false,
     })),
+    scheduledTransactions: [],
     monthBudgets: legacy.monthBudgets,
     goals: legacy.goals,
     createdAt: legacy.updatedAt || now,

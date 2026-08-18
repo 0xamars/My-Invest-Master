@@ -1,21 +1,28 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { removeAccountFromBudget } from "@/lib/budget/account-mutations";
 import {
   removeCategoryFromBudget,
   sortedCategoryGroups,
 } from "@/lib/budget/category-mutations";
+import {
+  ensureCreditCardPaymentCategories,
+  isCreditCardPaymentsGroup,
+  isPaymentCategory,
+} from "@/lib/budget/credit-card-payments";
+import { materializeDueSchedules } from "@/lib/budget/scheduled";
 import type {
-  BudgetAccount,
   BudgetAccountType,
   BudgetCategory,
   BudgetCategoryGroup,
   BudgetPlan,
+  BudgetScheduledTransaction,
   BudgetTransaction,
   BudgetTransactionType,
   CategoryGoal,
+  RecurringFrequency,
 } from "@/types/budget";
 
 export interface AddBudgetTransactionSplitInput {
@@ -36,6 +43,22 @@ export interface AddBudgetTransactionInput {
   cleared?: boolean;
   transferAccountId?: string;
   splits?: AddBudgetTransactionSplitInput[];
+  scheduledTransactionId?: string;
+}
+
+export interface AddBudgetScheduledTransactionInput {
+  nextDate: string;
+  frequency: RecurringFrequency;
+  payee: string;
+  accountId: string;
+  categoryId: string | null;
+  amount: number;
+  type: BudgetTransactionType;
+  memo?: string;
+  transferAccountId?: string;
+  splits?: AddBudgetTransactionSplitInput[];
+  endDate?: string;
+  remainingCount?: number;
 }
 
 function toStoredTransaction(
@@ -71,6 +94,51 @@ function toStoredTransaction(
         ? input.transferAccountId
         : undefined,
     splits,
+    scheduledTransactionId: input.scheduledTransactionId ?? existing?.scheduledTransactionId,
+  };
+}
+
+function toStoredSchedule(
+  input: AddBudgetScheduledTransactionInput,
+  existing?: BudgetScheduledTransaction,
+): BudgetScheduledTransaction {
+  const type = input.type;
+  const splits =
+    type === "outflow" && input.splits && input.splits.length > 0
+      ? input.splits.map((line, index) => ({
+          id: line.id ?? existing?.splits?.[index]?.id ?? crypto.randomUUID(),
+          categoryId: line.categoryId,
+          amount: Math.abs(line.amount),
+          memo: line.memo?.trim() || undefined,
+        }))
+      : undefined;
+
+  const remainingCount =
+    typeof input.remainingCount === "number" && Number.isFinite(input.remainingCount)
+      ? Math.max(0, Math.floor(input.remainingCount))
+      : undefined;
+
+  return {
+    id: existing?.id ?? crypto.randomUUID(),
+    nextDate: input.nextDate,
+    frequency: input.frequency,
+    payee: input.payee.trim(),
+    accountId: input.accountId,
+    categoryId:
+      type === "inflow" || type === "transfer" || splits
+        ? null
+        : input.categoryId,
+    amount: Math.abs(input.amount),
+    type,
+    memo: input.memo?.trim() || undefined,
+    transferAccountId:
+      type === "transfer" && input.transferAccountId
+        ? input.transferAccountId
+        : undefined,
+    splits,
+    endDate: input.endDate || undefined,
+    remainingCount,
+    active: existing?.active === false ? false : true,
   };
 }
 
@@ -85,6 +153,14 @@ export function useBudgetPlanMutations(planId: string) {
     },
     [planId, updatePlan],
   );
+
+  useEffect(() => {
+    if (!plan) return;
+    const next = materializeDueSchedules(plan);
+    if (next !== plan) {
+      updatePlan(planId, () => next);
+    }
+  }, [plan, planId, updatePlan]);
 
   const addTransaction = useCallback(
     (input: AddBudgetTransactionInput) => {
@@ -219,6 +295,9 @@ export function useBudgetPlanMutations(planId: string) {
         | { type: "delete-categories" },
     ) => {
       commitPlan((current) => {
+        const group = current.categoryGroups.find((entry) => entry.id === groupId);
+        if (group && isCreditCardPaymentsGroup(group)) return current;
+
         const groupCategories = current.categories.filter(
           (category) => category.groupId === groupId,
         );
@@ -268,6 +347,7 @@ export function useBudgetPlanMutations(planId: string) {
       commitPlan((current) => {
         const category = current.categories.find((entry) => entry.id === categoryId);
         if (!category) return current;
+        if (isPaymentCategory(category)) return current;
 
         const nextName = updates.name?.trim() || category.name;
         const nextGroupId = updates.groupId ?? category.groupId;
@@ -305,9 +385,11 @@ export function useBudgetPlanMutations(planId: string) {
 
   const deleteCategory = useCallback(
     (categoryId: string) => {
-      commitPlan((current) =>
-        removeCategoryFromBudget(current, categoryId) as BudgetPlan,
-      );
+      commitPlan((current) => {
+        const category = current.categories.find((entry) => entry.id === categoryId);
+        if (category && isPaymentCategory(category)) return current;
+        return removeCategoryFromBudget(current, categoryId) as BudgetPlan;
+      });
     },
     [commitPlan],
   );
@@ -428,18 +510,20 @@ export function useBudgetPlanMutations(planId: string) {
 
   const addAccount = useCallback(
     (name: string, type: BudgetAccountType) => {
-      commitPlan((current) => ({
-        ...current,
-        accounts: [
-          ...current.accounts,
-          {
-            id: crypto.randomUUID(),
-            name: name.trim(),
-            type,
-            sortOrder: current.accounts.length,
-          },
-        ],
-      }));
+      commitPlan((current) =>
+        ensureCreditCardPaymentCategories({
+          ...current,
+          accounts: [
+            ...current.accounts,
+            {
+              id: crypto.randomUUID(),
+              name: name.trim(),
+              type,
+              sortOrder: current.accounts.length,
+            },
+          ],
+        }),
+      );
     },
     [commitPlan],
   );
@@ -449,18 +533,20 @@ export function useBudgetPlanMutations(planId: string) {
       accountId: string,
       updates: { name?: string; type?: BudgetAccountType },
     ) => {
-      commitPlan((current) => ({
-        ...current,
-        accounts: current.accounts.map((account) =>
-          account.id === accountId
-            ? {
-                ...account,
-                name: updates.name?.trim() || account.name,
-                type: updates.type ?? account.type,
-              }
-            : account,
-        ),
-      }));
+      commitPlan((current) =>
+        ensureCreditCardPaymentCategories({
+          ...current,
+          accounts: current.accounts.map((account) =>
+            account.id === accountId
+              ? {
+                  ...account,
+                  name: updates.name?.trim() || account.name,
+                  type: updates.type ?? account.type,
+                }
+              : account,
+          ),
+        }),
+      );
     },
     [commitPlan],
   );
@@ -486,6 +572,50 @@ export function useBudgetPlanMutations(planId: string) {
         ...current,
         transactions: current.transactions.map((tx) =>
           tx.id === transactionId ? { ...tx, cleared } : tx,
+        ),
+      }));
+    },
+    [commitPlan],
+  );
+
+  const addScheduledTransaction = useCallback(
+    (input: AddBudgetScheduledTransactionInput) => {
+      commitPlan((current) =>
+        materializeDueSchedules({
+          ...current,
+          scheduledTransactions: [
+            ...(current.scheduledTransactions ?? []),
+            toStoredSchedule(input),
+          ],
+        }),
+      );
+    },
+    [commitPlan],
+  );
+
+  const updateScheduledTransaction = useCallback(
+    (scheduleId: string, input: AddBudgetScheduledTransactionInput) => {
+      commitPlan((current) =>
+        materializeDueSchedules({
+          ...current,
+          scheduledTransactions: (current.scheduledTransactions ?? []).map(
+            (schedule) =>
+              schedule.id === scheduleId
+                ? toStoredSchedule(input, { ...schedule, active: true })
+                : schedule,
+          ),
+        }),
+      );
+    },
+    [commitPlan],
+  );
+
+  const deleteScheduledTransaction = useCallback(
+    (scheduleId: string) => {
+      commitPlan((current) => ({
+        ...current,
+        scheduledTransactions: (current.scheduledTransactions ?? []).filter(
+          (schedule) => schedule.id !== scheduleId,
         ),
       }));
     },
@@ -535,6 +665,9 @@ export function useBudgetPlanMutations(planId: string) {
       deleteAccount,
       setTransactionCleared,
       finishAccountReconciliation,
+      addScheduledTransaction,
+      updateScheduledTransaction,
+      deleteScheduledTransaction,
     }),
     [
       plan,
@@ -563,6 +696,9 @@ export function useBudgetPlanMutations(planId: string) {
       deleteAccount,
       setTransactionCleared,
       finishAccountReconciliation,
+      addScheduledTransaction,
+      updateScheduledTransaction,
+      deleteScheduledTransaction,
     ],
   );
 }
