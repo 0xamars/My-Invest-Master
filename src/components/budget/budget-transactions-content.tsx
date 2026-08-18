@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import {
   CalendarClock,
-  CheckCircle2,
   Inbox,
   Lock,
   Pencil,
@@ -238,7 +237,29 @@ export function BudgetTransactionsContent() {
       />
 
       <BudgetPanel>
-        <div className="grid gap-2 border-b border-border/50 p-3 md:grid-cols-2 xl:grid-cols-6">
+        {inboxCount > 0 ? (
+          <div className="budget-inbox-banner">
+            <div>
+              <p className="text-sm font-semibold">{inboxCount} to approve</p>
+              <p className="text-xs text-muted-foreground">
+                Imported rows waiting for a category and a check.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant={inboxFilter === "unapproved" ? "default" : "outline"}
+              onClick={() =>
+                setInboxFilter(inboxFilter === "unapproved" ? "all" : "unapproved")
+              }
+            >
+              <Inbox className="size-3.5" />
+              {inboxFilter === "unapproved" ? "Show all" : "Review inbox"}
+            </Button>
+          </div>
+        ) : null}
+
+        <div className="grid gap-2 border-b border-border/50 p-3 md:grid-cols-2 xl:grid-cols-5">
           <div className="relative md:col-span-2 xl:col-span-1">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -318,26 +339,25 @@ export function BudgetTransactionsContent() {
               <SelectItem value="transfer">Transfer</SelectItem>
             </SelectContent>
           </Select>
-
-          <Select
-            value={inboxFilter}
-            onValueChange={(value) =>
-              setInboxFilter((value ?? "all") as "all" | "unapproved")
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Inbox" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All transactions</SelectItem>
-              <SelectItem value="unapproved">
-                Inbox{inboxCount > 0 ? ` (${inboxCount})` : ""}
-              </SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {filtered.length === 0 ? (
+          inboxFilter === "unapproved" ? (
+            <BudgetEmptyState
+              icon={<Inbox className="size-5" />}
+              title="Inbox is clear"
+              description="Imported rows to approve will show up here."
+              actions={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setInboxFilter("all")}
+                >
+                  Show all transactions
+                </Button>
+              }
+            />
+          ) : (
           <BudgetEmptyState
             icon={hasAnyTransactions ? <Search className="size-5" /> : <Upload className="size-5" />}
             title={
@@ -369,6 +389,7 @@ export function BudgetTransactionsContent() {
               ) : undefined
             }
           />
+          )
         ) : (
           <div className="max-h-[min(70vh,44rem)] overflow-auto">
             <Table>
@@ -414,35 +435,40 @@ export function BudgetTransactionsContent() {
                       ? `${accountName(tx.accountId)} → ${accountName(tx.transferAccountId)}`
                       : accountName(tx.accountId);
 
+                  const reconciled = isReconciledState(tx.cleared);
+                  const uncleared = isUnclearedState(tx.cleared);
+                  const approved = isTransactionApproved(tx);
+
                   return (
-                    <TableRow key={tx.id} className="hover:bg-muted/30">
+                    <TableRow
+                      key={tx.id}
+                      className={cn(
+                        "budget-register-row hover:bg-muted/30",
+                        reconciled && "budget-register-row--reconciled",
+                      )}
+                    >
                       <TableCell className="py-2">
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          disabled={isReconciledState(tx.cleared)}
+                          disabled={reconciled}
                           onClick={() => cycleTransactionCleared(tx.id)}
                           aria-label={
-                            isReconciledState(tx.cleared)
+                            reconciled
                               ? `${display.payee} is reconciled and locked`
-                              : isUnclearedState(tx.cleared)
+                              : uncleared
                                 ? `Mark ${display.payee} as cleared`
                                 : `Mark ${display.payee} as uncleared`
                           }
-                          aria-pressed={!isUnclearedState(tx.cleared)}
+                          aria-pressed={!uncleared}
                         >
-                          {isReconciledState(tx.cleared) ? (
-                            <Lock className="size-3.5 text-[var(--brand-green)]" />
+                          {reconciled ? (
+                            <Lock className="size-3.5 text-muted-foreground" />
+                          ) : uncleared ? (
+                            <span className="budget-cleared-dot" />
                           ) : (
-                            <CheckCircle2
-                              className={cn(
-                                "size-3.5",
-                                isUnclearedState(tx.cleared)
-                                  ? "text-muted-foreground/40"
-                                  : "text-[var(--brand-green)]",
-                              )}
-                            />
+                            <span className="budget-cleared-dot budget-cleared-dot--cleared" />
                           )}
                         </Button>
                       </TableCell>
@@ -459,7 +485,7 @@ export function BudgetTransactionsContent() {
                             <BudgetKindBadge kind="transfer" />
                           ) : null}
                           {display.isSplit ? <BudgetKindBadge kind="split" /> : null}
-                          {!isTransactionApproved(tx) ? (
+                          {!approved ? (
                             <BudgetKindBadge kind="inbox" />
                           ) : null}
                           {tx.matchedTransactionId ? (
@@ -499,36 +525,36 @@ export function BudgetTransactionsContent() {
                         </TableCell>
                       )}
                       <TableCell className="py-2">
-                        <div className="flex justify-end gap-0.5">
-                          {!isTransactionApproved(tx) ? (
+                        <div className="flex justify-end gap-1">
+                          {!approved ? (
+                            <Button
+                              type="button"
+                              size="xs"
+                              onClick={() => setTransactionApproved(tx.id, true)}
+                            >
+                              Approve
+                            </Button>
+                          ) : null}
+                          <div className="budget-row-actions flex gap-0.5">
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon-sm"
-                              onClick={() => setTransactionApproved(tx.id, true)}
-                              aria-label={`Approve ${display.payee}`}
+                              onClick={() => openEditTransaction(tx.id)}
+                              aria-label={`Edit ${display.payee}`}
                             >
-                              <Inbox className="size-3.5 text-[var(--brand-orange)]" />
+                              <Pencil className="size-3.5" />
                             </Button>
-                          ) : null}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => openEditTransaction(tx.id)}
-                            aria-label={`Edit ${display.payee}`}
-                          >
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => deleteTransaction(tx.id)}
-                            aria-label={`Delete ${display.payee}`}
-                          >
-                            <Trash2 className="size-3.5 text-muted-foreground" />
-                          </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => deleteTransaction(tx.id)}
+                              aria-label={`Delete ${display.payee}`}
+                            >
+                              <Trash2 className="size-3.5 text-muted-foreground" />
+                            </Button>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>

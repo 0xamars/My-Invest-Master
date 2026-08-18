@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ShieldAlert, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,9 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BudgetEmptyState } from "@/components/budget/budget-ui";
+import { previewAutoAssignUnderfunded } from "@/lib/budget/auto-assign";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { GOAL_TYPE_LABELS } from "@/lib/budget/goals";
-import { READY_TO_ASSIGN_ID, type BudgetCategory, type CategoryGoalType } from "@/types/budget";
+import {
+  READY_TO_ASSIGN_ID,
+  type BudgetCategory,
+  type BudgetData,
+  type CategoryGoalType,
+} from "@/types/budget";
 
 interface MoveMoneyDialogProps {
   open: boolean;
@@ -46,6 +54,11 @@ export function MoveMoneyDialog({
   const [amount, setAmount] = useState("");
 
   const fromCategory = categories.find((category) => category.id === fromCategoryId);
+  const parsedAmount = Number.parseFloat(amount);
+  const canSubmit =
+    Boolean(fromCategoryId && toCategoryId) &&
+    !Number.isNaN(parsedAmount) &&
+    parsedAmount > 0;
 
   const destinationOptions = useMemo(
     () => categories.filter((category) => category.id !== fromCategoryId),
@@ -73,8 +86,7 @@ export function MoveMoneyDialog({
         <DialogHeader>
           <DialogTitle>Move Money</DialogTitle>
           <DialogDescription>
-            Move leftover Available — including money assigned in earlier months —
-            to another category or back to Ready to Assign.
+            Move leftover Available. Assigned this month can go negative.
           </DialogDescription>
         </DialogHeader>
 
@@ -129,8 +141,10 @@ export function MoveMoneyDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit}>
-            Move Money
+          <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
+            {canSubmit
+              ? `Move ${formatBudgetMoney(parsedAmount, currency)}`
+              : "Move"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -187,74 +201,180 @@ export function CoverOverspendDialog({
     onOpenChange(false);
   }
 
-  const kindLabel =
-    overspendKind === "credit" ? "credit (orange)" : "cash (red)";
+  const kindLabel = overspendKind === "credit" ? "credit" : "cash";
+  const parsedAmount = Number.parseFloat(amount);
+  const canCoverFrom =
+    (sourceId === "rta" && readyToAssign > 0) ||
+    sources.some((source) => source.id === sourceId);
+  const canSubmit =
+    !Number.isNaN(parsedAmount) && parsedAmount > 0 && canCoverFrom;
+  const nothingToCoverWith = readyToAssign <= 0 && sources.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Cover overspending</DialogTitle>
+          <DialogTitle>Cover Overspend</DialogTitle>
           <DialogDescription>
-            {categoryName
-              ? `Cover ${kindLabel} overspending in ${categoryName}.`
-              : `Cover ${kindLabel} overspending.`}{" "}
-            Cash left uncovered reduces next-month Ready to Assign. Credit
-            overspend underfunds the card payment category.
+            Cover {formatBudgetMoney(overspend, currency)} of {kindLabel} overspend
+            {categoryName ? ` in ${categoryName}` : ""}.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
-          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm">
-            Overspent{" "}
-            <span className="font-semibold tabular-nums">
-              {formatBudgetMoney(overspend, currency)}
-            </span>
-          </div>
+        {nothingToCoverWith ? (
+          <BudgetEmptyState
+            icon={<ShieldAlert className="size-5" />}
+            title="Nothing to cover with"
+            description="Assign leftover to another category, or add income to Ready to Assign, then cover this overspend."
+          />
+        ) : (
+          <div className="space-y-4 py-1">
+            <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm">
+              Overspent{" "}
+              <span className="font-semibold tabular-nums">
+                {formatBudgetMoney(overspend, currency)}
+              </span>
+            </div>
 
-          <div className="space-y-1.5">
-            <Label>Cover from</Label>
-            <Select
-              value={sourceId}
-              onValueChange={(value) => setSourceId(value ?? "rta")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rta">
-                  Ready to Assign ({formatBudgetMoney(Math.max(0, readyToAssign), currency)})
-                </SelectItem>
-                {sources.map((source) => (
-                  <SelectItem key={source.id} value={source.id}>
-                    {source.name} ({formatBudgetMoney(source.available, currency)})
+            <div className="space-y-1.5">
+              <Label>Cover from</Label>
+              <Select
+                value={sourceId}
+                onValueChange={(value) => setSourceId(value ?? "rta")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rta">
+                    Ready to Assign ({formatBudgetMoney(Math.max(0, readyToAssign), currency)})
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                  {sources.map((source) => (
+                    <SelectItem key={source.id} value={source.id}>
+                      {source.name} ({formatBudgetMoney(source.available, currency)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="cover-amount">Amount</Label>
-            <Input
-              id="cover-amount"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="0.00"
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-            />
+            <div className="space-y-1.5">
+              <Label htmlFor="cover-amount">Amount</Label>
+              <Input
+                id="cover-amount"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit}>
-            Cover
+          {nothingToCoverWith ? null : (
+            <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
+              {canSubmit
+                ? `Cover ${formatBudgetMoney(parsedAmount, currency)}`
+                : "Cover"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface AutoAssignUnderfundedDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  budget: BudgetData;
+  monthKey: string;
+  currency?: string;
+  onConfirm: () => void;
+}
+
+export function AutoAssignUnderfundedDialog({
+  open,
+  onOpenChange,
+  budget,
+  monthKey,
+  currency,
+  onConfirm,
+}: AutoAssignUnderfundedDialogProps) {
+  const preview = useMemo(
+    () => previewAutoAssignUnderfunded(budget, monthKey),
+    [budget, monthKey],
+  );
+
+  const names = useMemo(
+    () => new Map(budget.categories.map((category) => [category.id, category.name])),
+    [budget.categories],
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="budget-dialog sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Auto-Assign Underfunded</DialogTitle>
+          <DialogDescription>
+            Put leftover Ready to Assign on underfunded categories. Payment
+            categories first, then the rest of the list.
+          </DialogDescription>
+        </DialogHeader>
+
+        {preview.assigned <= 0 ? (
+          <BudgetEmptyState
+            icon={<Sparkles className="size-5" />}
+            title="Nothing underfunded"
+            description="When Ready to Assign is leftover and a goal or card payment still needs money, Auto-Assign will fill it here."
+          />
+        ) : (
+          <div className="space-y-3 py-1">
+            <ul className="max-h-56 space-y-1.5 overflow-y-auto">
+              {preview.lines.map((line) => (
+                <li
+                  key={line.categoryId}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm"
+                >
+                  <span className="truncate font-medium">
+                    {names.get(line.categoryId) ?? "Category"}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-[var(--brand-green)]">
+                    {formatBudgetMoney(line.amount, currency)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {preview.leftover > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {formatBudgetMoney(preview.leftover, currency)} stays in Ready to
+                Assign.
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
           </Button>
+          {preview.assigned <= 0 ? null : (
+            <Button
+              type="button"
+              onClick={() => {
+                onConfirm();
+                onOpenChange(false);
+              }}
+            >
+              Auto-assign {formatBudgetMoney(preview.assigned, currency)}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

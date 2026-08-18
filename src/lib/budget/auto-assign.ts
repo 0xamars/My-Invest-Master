@@ -10,6 +10,17 @@ export interface AutoAssignTarget {
   needed: number;
 }
 
+export interface AutoAssignPreviewLine {
+  categoryId: string;
+  amount: number;
+}
+
+export interface AutoAssignPreview {
+  assigned: number;
+  leftover: number;
+  lines: AutoAssignPreviewLine[];
+}
+
 /**
  * Underfunded amounts in budget-row order (Credit Card Payments group first,
  * then group/category sortOrder). Payment categories without a goal are
@@ -46,20 +57,38 @@ export function listUnderfundedAutoAssignTargets(
   return targets;
 }
 
-export function applyAutoAssignUnderfunded<T extends BudgetData>(
-  budget: T,
+export function previewAutoAssignUnderfunded(
+  budget: BudgetData,
   monthKey: string,
-): T {
+): AutoAssignPreview {
   const targets = listUnderfundedAutoAssignTargets(budget, monthKey);
   let remaining = Math.max(0, getReadyToAssign(budget, monthKey));
-  let next = budget;
+  const lines: AutoAssignPreviewLine[] = [];
 
   for (const target of targets) {
     if (remaining <= 0) break;
     const give = Math.min(target.needed, remaining);
     if (give <= 0) continue;
-    next = applyAssignmentDelta(next, monthKey, target.categoryId, give);
+    lines.push({ categoryId: target.categoryId, amount: give });
     remaining -= give;
+  }
+
+  return {
+    assigned: lines.reduce((sum, line) => sum + line.amount, 0),
+    leftover: remaining,
+    lines,
+  };
+}
+
+export function applyAutoAssignUnderfunded<T extends BudgetData>(
+  budget: T,
+  monthKey: string,
+): T {
+  const preview = previewAutoAssignUnderfunded(budget, monthKey);
+  let next = budget;
+
+  for (const line of preview.lines) {
+    next = applyAssignmentDelta(next, monthKey, line.categoryId, line.amount);
   }
 
   return next;

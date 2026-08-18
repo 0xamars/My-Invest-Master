@@ -89,10 +89,8 @@ function AgeOfMoneyBlock({
         >
           {ageOfMoney.days} {ageOfMoney.days === 1 ? "day" : "days"}
         </p>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          The dollars you are spending now are about {ageOfMoney.days}{" "}
-          {ageOfMoney.days === 1 ? "day" : "days"} old, based on your last{" "}
-          {AGE_OF_MONEY_MIN_OUTFLOWS} spending transactions.
+        <p className="mt-1 text-sm text-muted-foreground">
+          Typical age of the dollars you just spent.
         </p>
       </div>
     );
@@ -109,10 +107,10 @@ function AgeOfMoneyBlock({
         <p className="mt-1 text-base font-semibold tracking-tight">
           Not enough history yet
         </p>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          Need {AGE_OF_MONEY_MIN_OUTFLOWS} spending transactions to calculate
-          honestly. {ageOfMoney.outflowCount} so far
-          {remaining > 0 ? ` · ${remaining} more to go` : ""}.
+        <p className="mt-1 text-sm text-muted-foreground">
+          {remaining > 0
+            ? `${remaining} more spend${remaining === 1 ? "" : "s"} to calculate.`
+            : `${ageOfMoney.outflowCount} spends so far.`}
         </p>
       </div>
     );
@@ -122,9 +120,8 @@ function AgeOfMoneyBlock({
     <div className="mt-5 border-t border-border/50 pt-4">
       <p className="budget-metric-label">Age of Money</p>
       <p className="mt-1 text-base font-semibold tracking-tight">—</p>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        Add income and spending to see how old the dollars you spend are. Empty
-        budgets do not get a made-up number.
+        <p className="mt-1 text-sm text-muted-foreground">
+        Add a few spends to calculate.
       </p>
     </div>
   );

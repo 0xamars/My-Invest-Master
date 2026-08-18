@@ -173,7 +173,7 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
               ⌘Z / Ctrl+Z
             </span>
           </p>
-          <Button type="button" size="sm" variant="outline" onClick={undoLastMutation}>
+          <Button type="button" size="sm" onClick={undoLastMutation}>
             <Undo2 className="size-3.5" />
             Undo
           </Button>

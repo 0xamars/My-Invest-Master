@@ -8,12 +8,16 @@ import {
   FolderPlus,
   Pencil,
   Plus,
-  ShieldAlert,
   Sparkles,
   Target,
   Trash2,
 } from "lucide-react";
-import { BudgetEmptyState, BudgetPanel } from "@/components/budget/budget-ui";
+import {
+  BudgetAvailableChip,
+  BudgetEmptyState,
+  BudgetGoalBar,
+  BudgetPanel,
+} from "@/components/budget/budget-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CategoryBudgetRow } from "@/lib/budget/calculations";
@@ -26,6 +30,7 @@ import type { BudgetCategoryGroup } from "@/types/budget";
 interface BudgetCategoryListProps {
   groups: Array<{ group: BudgetCategoryGroup; categories: CategoryBudgetRow[] }>;
   currency?: string;
+  readyToAssign?: number;
   onAssign: (categoryId: string, amount: number) => void;
   onMoveMoney: (fromCategoryId: string) => void;
   onCoverOverspend: (categoryId: string) => void;
@@ -40,22 +45,10 @@ interface BudgetCategoryListProps {
   onDeleteCategory: (categoryId: string) => void;
 }
 
-function availableTone(status: CategoryBudgetRow["status"]): string {
-  switch (status) {
-    case "overspent":
-      return "text-[var(--brand-red)]";
-    case "credit-overspent":
-      return "text-[var(--brand-orange)]";
-    case "low":
-      return "text-[var(--brand-orange)]";
-    default:
-      return "text-[var(--brand-green)]";
-  }
-}
-
 export function BudgetCategoryList({
   groups,
   currency,
+  readyToAssign = 0,
   onAssign,
   onMoveMoney,
   onCoverOverspend,
@@ -77,6 +70,17 @@ export function BudgetCategoryList({
     [groups],
   );
 
+  const underfundedCount = useMemo(
+    () =>
+      flatCategories.filter((row) => {
+        if (row.goalProgress?.status === "underfunded") return true;
+        return row.isPaymentCategory && row.available < 0;
+      }).length,
+    [flatCategories],
+  );
+
+  const canAutoAssign = readyToAssign > 0 && underfundedCount > 0;
+
   function startEdit(row: CategoryBudgetRow) {
     setEditingId(row.category.id);
     setDraftAmount(String(row.assigned));
@@ -97,20 +101,16 @@ export function BudgetCategoryList({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Categories</h2>
           <p className="text-xs text-muted-foreground">
-            Assign this month. Cash overspend (red) must be covered or it steals
-            next-month Ready to Assign. Credit overspend stays orange.
+            Assign this month. Cover red cash overspend before the month rolls.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onAutoAssignUnderfunded}
-          >
-            <Sparkles className="size-3.5" />
-            Auto-Assign
-          </Button>
+          {canAutoAssign ? (
+            <Button type="button" size="sm" onClick={onAutoAssignUnderfunded}>
+              <Sparkles className="size-3.5" />
+              Auto-Assign Underfunded
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" size="sm" onClick={onAddGroup}>
             <FolderPlus className="size-3.5" />
             Add Group
@@ -118,7 +118,7 @@ export function BudgetCategoryList({
         </div>
       </div>
 
-      <div className="hidden grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(4.5rem,1fr))_6.5rem] gap-3 border-y border-border/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5">
+      <div className="hidden grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(4.25rem,1fr))_5.5rem] gap-3 border-y border-border/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5">
         <span>Category</span>
         <span className="text-right">Assigned</span>
         <span className="text-right">Activity</span>
@@ -151,7 +151,7 @@ export function BudgetCategoryList({
                   </h3>
                   {paymentGroup ? (
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      Assign here to plan the card payment. Card spending moves money into these categories; paying the card is a transfer.
+                      Card spend moves money here. Paying the card is a transfer.
                     </p>
                   ) : null}
                 </div>
@@ -227,11 +227,13 @@ export function BudgetCategoryList({
                   )}
                 </div>
               ) : (
-                categories.map((row) => (
+                categories.map((row) => {
+                  const overspent = row.available < 0;
+                  return (
                   <div
                     key={row.category.id}
                     className={cn(
-                      "grid gap-2 px-4 py-2.5 md:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(4.5rem,1fr))_6.5rem] md:items-center md:gap-3 sm:px-5",
+                      "budget-category-row grid gap-2 px-4 py-2.5 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(4.25rem,1fr))_5.5rem] md:items-center md:gap-3 sm:px-5",
                       row.status === "overspent" && "budget-row-overspent",
                       row.status === "credit-overspent" &&
                         "budget-row-credit-overspent",
@@ -239,6 +241,33 @@ export function BudgetCategoryList({
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{row.category.name}</p>
+                      {row.goal && row.goalProgress ? (
+                        <div className="mt-1.5 max-w-xs">
+                          <BudgetGoalBar
+                            assigned={row.goalProgress.assignedThisMonth}
+                            needed={row.goalProgress.neededThisMonth}
+                            onTrack={row.goalProgress.status === "on-track"}
+                          />
+                          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <span>
+                              {GOAL_TYPE_LABELS[row.goal.type] ??
+                                GOAL_TYPE_LABELS["target-balance"]}
+                            </span>
+                            <span
+                              className={cn(
+                                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                                row.goalProgress.status === "on-track"
+                                  ? "bg-[var(--brand-green)]/12 text-[var(--brand-green)]"
+                                  : "bg-[var(--brand-orange)]/12 text-[var(--brand-orange)]",
+                              )}
+                            >
+                              {row.goalProgress.status === "on-track"
+                                ? "On track"
+                                : "Underfunded"}
+                            </span>
+                          </p>
+                        </div>
+                      ) : null}
                       {row.isPaymentCategory ? (
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
                           Card payment
@@ -247,46 +276,6 @@ export function BudgetCategoryList({
                             : ""}
                         </p>
                       ) : null}
-                      {row.overspendKind ? (
-                        <p
-                          className={cn(
-                            "mt-0.5 text-[11px] font-medium",
-                            row.overspendKind === "credit"
-                              ? "text-[var(--brand-orange)]"
-                              : "text-[var(--brand-red)]",
-                          )}
-                        >
-                          {row.overspendKind === "credit"
-                            ? "Credit overspend"
-                            : "Cash overspend"}
-                        </p>
-                      ) : null}
-                      {row.goal && row.goalProgress && (
-                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                          <Target className="size-3 text-[var(--brand-orange)]" />
-                          <span>
-                            {GOAL_TYPE_LABELS[row.goal.type] ??
-                              GOAL_TYPE_LABELS["target-balance"]}{" "}
-                            · needed{" "}
-                            {formatBudgetMoney(
-                              row.goalProgress.neededThisMonth,
-                              currency,
-                            )}
-                          </span>
-                          <span
-                            className={cn(
-                              "rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
-                              row.goalProgress.status === "on-track"
-                                ? "bg-[var(--brand-green)]/12 text-[var(--brand-green)]"
-                                : "bg-[var(--brand-orange)]/12 text-[var(--brand-orange)]",
-                            )}
-                          >
-                            {row.goalProgress.status === "on-track"
-                              ? "On track"
-                              : "Underfunded"}
-                          </span>
-                        </p>
-                      )}
                     </div>
 
                     <div className="flex items-center justify-between gap-2 md:justify-end">
@@ -336,29 +325,25 @@ export function BudgetCategoryList({
                       <span className="text-[11px] text-muted-foreground md:hidden">
                         Available
                       </span>
-                      <span
-                        className={cn(
-                          "text-sm font-semibold tabular-nums",
-                          availableTone(row.status),
-                        )}
-                      >
-                        {row.available < 0 ? "−" : ""}
-                        {formatBudgetMoney(row.available, currency)}
-                      </span>
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <BudgetAvailableChip status={row.status}>
+                          {row.available < 0 ? "−" : ""}
+                          {formatBudgetMoney(row.available, currency)}
+                        </BudgetAvailableChip>
+                        {overspent ? (
+                          <Button
+                            type="button"
+                            size="xs"
+                            variant={row.status === "overspent" ? "default" : "outline"}
+                            onClick={() => onCoverOverspend(row.category.id)}
+                          >
+                            Cover
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
 
-                    <div className="flex justify-end gap-0.5">
-                      {row.available < 0 ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => onCoverOverspend(row.category.id)}
-                          aria-label={`Cover overspending in ${row.category.name}`}
-                        >
-                          <ShieldAlert className="size-3.5" />
-                        </Button>
-                      ) : null}
+                    <div className="budget-row-actions flex justify-end gap-0.5">
                       <Button
                         type="button"
                         variant="ghost"
@@ -401,7 +386,8 @@ export function BudgetCategoryList({
                       )}
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
             );

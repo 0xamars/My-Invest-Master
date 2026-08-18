@@ -22,6 +22,7 @@ import {
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
 import { BudgetCategoryList } from "@/components/budget/budget-category-list";
 import {
+  AutoAssignUnderfundedDialog,
   CoverOverspendDialog,
   MoveMoneyDialog,
   SetCategoryGoalDialog,
@@ -70,6 +71,7 @@ export function BudgetContent() {
   const [moveFromCategoryId, setMoveFromCategoryId] = useState<string | null>(null);
   const [coverOpen, setCoverOpen] = useState(false);
   const [coverCategoryId, setCoverCategoryId] = useState<string | null>(null);
+  const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalCategoryId, setGoalCategoryId] = useState<string | null>(null);
   const [editGroupOpen, setEditGroupOpen] = useState(false);
@@ -171,6 +173,7 @@ export function BudgetContent() {
       <BudgetCategoryList
         groups={categoryRows}
         currency={budget.currency}
+        readyToAssign={summary.readyToAssign}
         onAssign={(categoryId, amount) =>
           assignToCategory(monthKey, categoryId, amount)
         }
@@ -182,7 +185,7 @@ export function BudgetContent() {
           setCoverCategoryId(categoryId);
           setCoverOpen(true);
         }}
-        onAutoAssignUnderfunded={() => autoAssignUnderfunded(monthKey)}
+        onAutoAssignUnderfunded={() => setAutoAssignOpen(true)}
         onSetGoal={(categoryId) => {
           setGoalCategoryId(categoryId);
           setGoalOpen(true);
@@ -350,6 +353,15 @@ export function BudgetContent() {
           if (!coverCategoryId) return;
           coverOverspend(monthKey, coverCategoryId, source, amount);
         }}
+      />
+
+      <AutoAssignUnderfundedDialog
+        open={autoAssignOpen}
+        onOpenChange={setAutoAssignOpen}
+        budget={budget}
+        monthKey={monthKey}
+        currency={budget.currency}
+        onConfirm={() => autoAssignUnderfunded(monthKey)}
       />
 
       <SetCategoryGoalDialog

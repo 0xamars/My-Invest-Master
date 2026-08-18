@@ -111,6 +111,7 @@ export function BudgetTransactionDialog({
   const [memo, setMemo] = useState("");
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [payeeSuggestionsOpen, setPayeeSuggestionsOpen] = useState(false);
+  const [payeeHighlight, setPayeeHighlight] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -126,6 +127,7 @@ export function BudgetTransactionDialog({
       setMemo(transaction.memo ?? "");
       setCategoryTouched(false);
       setPayeeSuggestionsOpen(false);
+      setPayeeHighlight(0);
       if (isSplitTransaction(transaction) && transaction.splits) {
         setSplitEnabled(true);
         setSplitLines(
@@ -163,6 +165,7 @@ export function BudgetTransactionDialog({
     setMemo("");
     setCategoryTouched(false);
     setPayeeSuggestionsOpen(false);
+    setPayeeHighlight(0);
   }, [open, transaction, defaultMonthKey, fallbackAccountId, accounts]);
 
   const payeeSuggestions = useMemo(
@@ -173,6 +176,7 @@ export function BudgetTransactionDialog({
   function applyPayee(next: DerivedPayee) {
     setPayee(next.name);
     setPayeeSuggestionsOpen(false);
+    setPayeeHighlight(0);
     if (!categoryTouched && next.lastCategoryId) {
       setCategoryId(next.lastCategoryId);
     }
@@ -502,23 +506,50 @@ export function BudgetTransactionDialog({
                 onChange={(event) => {
                   setPayee(event.target.value);
                   setPayeeSuggestionsOpen(true);
+                  setPayeeHighlight(0);
                 }}
                 onFocus={() => setPayeeSuggestionsOpen(true)}
                 onBlur={() => {
                   window.setTimeout(() => setPayeeSuggestionsOpen(false), 120);
                 }}
+                onKeyDown={(event) => {
+                  if (!payeeSuggestionsOpen || payeeSuggestions.length === 0) return;
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setPayeeHighlight((index) =>
+                      Math.min(payeeSuggestions.length - 1, index + 1),
+                    );
+                  } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setPayeeHighlight((index) => Math.max(0, index - 1));
+                  } else if (event.key === "Enter") {
+                    const suggestion = payeeSuggestions[payeeHighlight];
+                    if (suggestion) {
+                      event.preventDefault();
+                      applyPayee(suggestion);
+                    }
+                  } else if (event.key === "Escape") {
+                    setPayeeSuggestionsOpen(false);
+                  }
+                }}
+                role="combobox"
+                aria-expanded={payeeSuggestionsOpen}
+                aria-autocomplete="list"
               />
               {payeeSuggestionsOpen && payeeSuggestions.length > 0 ? (
-                <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border/70 bg-popover p-1 shadow-md">
-                  {payeeSuggestions.map((suggestion) => (
+                <div className="budget-payee-menu" role="listbox" aria-label="Payees">
+                  {payeeSuggestions.map((suggestion, index) => (
                     <button
                       key={suggestion.name}
                       type="button"
-                      className="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                      role="option"
+                      aria-selected={index === payeeHighlight}
+                      data-active={index === payeeHighlight ? "true" : undefined}
+                      className="budget-payee-option"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => applyPayee(suggestion)}
                     >
-                      <span className="font-medium">{suggestion.name}</span>
+                      <span className="text-sm font-medium">{suggestion.name}</span>
                       {suggestion.lastCategoryId ? (
                         <span className="text-[11px] text-muted-foreground">
                           Last used{" "}
