@@ -2,16 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Layers,
-  PieChart,
-  RefreshCw,
-  Target,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowRight, Layers, PieChart, RefreshCw, Target, TrendingUp } from "lucide-react";
 import { PortfolioAllocationChart } from "@/components/analytics/portfolio-allocation-chart";
-import { CategorySummaryLink } from "@/components/category/category-page-header";
 import {
   RetireEmptyState,
   RetireMoney,
@@ -21,7 +13,6 @@ import {
 } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatCard } from "@/components/ui/stat-card";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useInvestSummary } from "@/hooks/use-invest-summary";
@@ -37,16 +28,13 @@ import {
 } from "@/lib/portfolio/allocation-targets";
 import {
   buildInvestmentCheckup,
+  concentrationNoteForWeight,
   riskChipDescription,
   riskChipLabel,
   type CheckupRiskChip,
 } from "@/lib/portfolio/checkup";
 import { getPortfolioDayChange } from "@/lib/portfolio/day-change";
-import {
-  formatDisplayMoney,
-  formatPercent,
-  profitLossClass,
-} from "@/lib/portfolio/format";
+import { formatDisplayMoney, formatPercent } from "@/lib/portfolio/format";
 import { pickFreeAllowedPlanId } from "@/lib/plans/free-access";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
@@ -69,12 +57,8 @@ function pickOpenablePlan<
 }
 
 function riskChipClass(chip: CheckupRiskChip): string {
-  if (chip === "concentrated") {
-    return "budget-available-chip--cash";
-  }
-  if (chip === "cash-heavy") {
-    return "budget-available-chip--low";
-  }
+  if (chip === "concentrated") return "budget-available-chip--cash";
+  if (chip === "cash-heavy") return "budget-available-chip--low";
   return "budget-available-chip--healthy";
 }
 
@@ -94,14 +78,9 @@ export function InvestHomeContent() {
   const budget = useBudgetPlans();
   const retirement = useRetirementPlansStorage();
 
-  const {
-    enrichedHoldings,
-    totals,
-    portfolioId,
-    portfolioName,
-    isViewingPrimary,
-  } = portfolio;
-  const portfolioHref = portfolioId ? `/portfolio/${portfolioId}` : "/portfolio";
+  const { enrichedHoldings, totals, portfolioId, portfolioName, isViewingPrimary } =
+    portfolio;
+  const bookHref = portfolioId ? `/portfolio/${portfolioId}` : "/portfolio";
   const budgetPlan = pickOpenablePlan(budget.plans);
   const retirePlan = pickOpenablePlan(retirement.plans);
 
@@ -116,7 +95,6 @@ export function InvestHomeContent() {
       amount: ready,
       currency: budgetPlan.currency,
       href: `/budget/plans/${budgetPlan.id}`,
-      plan: budgetPlan,
     };
   }, [budgetPlan]);
 
@@ -136,7 +114,7 @@ export function InvestHomeContent() {
         storedTargets: portfolio.portfolio?.targetAllocation,
         netPremium: optionsCount > 0 ? optionsSummary.netPremium : null,
         hasOptions: optionsCount > 0,
-        portfolioHref,
+        portfolioHref: bookHref,
         budgetLeftoverHref: budgetLeftover?.href ?? null,
         retireRefreshHref: retireOutlook
           ? `/retire/plans/${retireOutlook.plan.id}`
@@ -148,7 +126,7 @@ export function InvestHomeContent() {
       portfolio.portfolio?.targetAllocation,
       optionsCount,
       optionsSummary.netPremium,
-      portfolioHref,
+      bookHref,
       budgetLeftover?.href,
       retireOutlook,
     ],
@@ -164,7 +142,7 @@ export function InvestHomeContent() {
     ? isViewingPrimary
       ? `Primary · ${portfolioName}`
       : portfolioName
-    : "Primary portfolio";
+    : "Primary book";
 
   if (!isLoaded) {
     return (
@@ -174,204 +152,98 @@ export function InvestHomeContent() {
     );
   }
 
-  const hasPortfolio = enrichedHoldings.length > 0;
-  const hasOptions = optionsCount > 0;
+  const hasBook = enrichedHoldings.length > 0;
+  const pricesBusy = totals.hasLoadingPrices || isLoading;
 
   return (
     <div className="flex flex-1 flex-col gap-5">
       <RetirePageHeader
         title="Invest"
-        description="Check concentration, mix, and drift — then open the portfolio, watchlist, or analysis."
+        description="Checkup for this book — concentration, mix, drift, and what to do next."
       />
 
-      <JourneyStrip
-        budgetLeftover={budgetLeftover}
-        retireOutlook={retireOutlook}
-      />
-
-      {!hasPortfolio && !hasOptions ? (
+      {!hasBook ? (
         <RetirePanel>
           <RetireEmptyState
             icon={<TrendingUp className="size-5" />}
             title={
               portfolioId
-                ? `No holdings in ${portfolioName ? `“${portfolioName}”` : "your Primary portfolio"}`
+                ? `No holdings in ${portfolioName ? `“${portfolioName}”` : "your Primary book"}`
                 : "No portfolio yet"
             }
-            description="Add stocks, crypto, cash, or custom assets. The checkup scores concentration and mix once prices are in."
+            description="Create or open a book, then add stocks, crypto, cash, or custom assets. The checkup starts once prices are in."
             actions={
-              <>
-                <Button render={<Link href={portfolioHref} />}>
-                  {portfolioId ? "Add holdings" : "Create portfolio"}
-                </Button>
-                <Button variant="outline" render={<Link href="/watchlist" />}>
-                  Open watchlist
-                </Button>
-              </>
+              <Button render={<Link href={bookHref} />}>
+                {portfolioId ? "Open book" : "Create a portfolio"}
+              </Button>
             }
           />
         </RetirePanel>
       ) : (
         <>
-          {hasPortfolio ? (
-            <CheckupHero
-              checkup={checkup}
-              showingLabel={showingLabel}
+          <InvestHero
+            checkup={checkup}
+            showingLabel={showingLabel}
+            currency={currency}
+            rates={rates}
+            isLoading={pricesBusy}
+            dayChange={dayChange}
+          />
+
+          <CheckupPanel checkup={checkup} />
+
+          <TargetAllocationPanel
+            checkup={checkup}
+            currency={currency}
+            rates={rates}
+            portfolioId={portfolioId}
+            storedTargets={portfolio.portfolio?.targetAllocation}
+            onSave={updateTargetAllocation}
+          />
+
+          <JourneyStrip
+            budgetLeftover={budgetLeftover}
+            retireOutlook={retireOutlook}
+          />
+
+          <RetirePanel>
+            <div className="flex items-center gap-2 border-b border-border/60 px-5 py-4">
+              <PieChart className="size-4 text-primary" />
+              <h2 className="text-sm font-semibold">Allocation</h2>
+            </div>
+            <div className="px-5 py-4">
+              <PortfolioAllocationChart
+                holdings={enrichedHoldings}
+                currency={currency}
+                rates={rates}
+                compact
+              />
+            </div>
+          </RetirePanel>
+
+          {optionsCount > 0 ? (
+            <OptionsStrip
               currency={currency}
               rates={rates}
-              isLoading={totals.hasLoadingPrices || isLoading}
-              dayChange={dayChange}
+              activeCount={activeOptionsCount}
+              netPremium={optionsSummary.netPremium}
+              percentOfBook={checkup.optionsOverlay?.percentOfPortfolio ?? null}
             />
           ) : null}
 
-          {hasPortfolio ? (
-            <TargetAllocationPanel
-              checkup={checkup}
-              currency={currency}
-              rates={rates}
-              portfolioId={portfolioId}
-              storedTargets={portfolio.portfolio?.targetAllocation}
-              onSave={updateTargetAllocation}
-            />
-          ) : null}
-
-          {hasPortfolio ? (
-            <RetirePanel>
-              <div className="category-panel-header px-5 py-4">
-                <div className="flex min-w-0 items-center gap-2">
-                  <PieChart className="size-4 shrink-0 text-primary" />
-                  <h2 className="text-sm font-semibold">Allocation</h2>
-                </div>
-                <CategorySummaryLink href={portfolioHref} label="View portfolio" />
-              </div>
-              <div className="px-5 pb-5">
-                <PortfolioAllocationChart
-                  holdings={enrichedHoldings}
-                  currency={currency}
-                  rates={rates}
-                  compact
-                />
-              </div>
-            </RetirePanel>
-          ) : null}
-
-          {hasOptions ? (
-            <RetirePanel>
-              <div className="category-panel-header px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <Layers className="size-4 text-primary" />
-                  <h2 className="text-sm font-semibold">
-                    Options
-                    <span className="ml-2 font-normal text-muted-foreground">
-                      {activeOptionsCount} active
-                    </span>
-                  </h2>
-                </div>
-                <CategorySummaryLink href="/options" label="View options" />
-              </div>
-              <div className="grid gap-4 px-5 pb-5 sm:grid-cols-3">
-                <StatCard
-                  label={`Premium paid · ${currency}`}
-                  value={formatDisplayMoney(
-                    optionsSummary.premiumPaid,
-                    currency,
-                    rates,
-                  )}
-                />
-                <StatCard
-                  label={`Premium received · ${currency}`}
-                  value={formatDisplayMoney(
-                    optionsSummary.premiumReceived,
-                    currency,
-                    rates,
-                  )}
-                  valueClassName="text-emerald-600 dark:text-emerald-400"
-                />
-                <StatCard
-                  label={`Net premium · ${currency}`}
-                  value={`${optionsSummary.netPremium >= 0 ? "+" : ""}${formatDisplayMoney(optionsSummary.netPremium, currency, rates)}`}
-                  valueClassName={profitLossClass(optionsSummary.netPremium)}
-                  subValue={
-                    checkup.optionsOverlay?.percentOfPortfolio != null
-                      ? `${formatPercent(checkup.optionsOverlay.percentOfPortfolio)} of book`
-                      : undefined
-                  }
-                />
-              </div>
-            </RetirePanel>
-          ) : null}
+          <div>
+            <Button render={<Link href={bookHref} />}>
+              Open book
+              <ArrowRight className="size-4" />
+            </Button>
+          </div>
         </>
       )}
-
-      <div className="flex flex-wrap gap-2">
-        <CategorySummaryLink href={portfolioHref} label="Portfolio" />
-        <CategorySummaryLink href="/watchlist" label="Watchlist" />
-        <CategorySummaryLink href="/analysis" label="Analysis" />
-        <CategorySummaryLink href="/options" label="Options" />
-        <CategorySummaryLink href="/retire" label="Retire" />
-      </div>
     </div>
   );
 }
 
-function JourneyStrip({
-  budgetLeftover,
-  retireOutlook,
-}: {
-  budgetLeftover: {
-    amount: number;
-    currency: BudgetPlan["currency"];
-    href: string;
-  } | null;
-  retireOutlook: {
-    plan: RetirementPlan;
-    dashboard: ReturnType<typeof computeRetirementDashboard>;
-  } | null;
-}) {
-  if (!budgetLeftover && !retireOutlook) return null;
-
-  return (
-    <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-      {budgetLeftover ? (
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-[var(--brand-green)]">
-            {formatBudgetMoney(budgetLeftover.amount, budgetLeftover.currency)}
-          </span>{" "}
-          unassigned in Budget.
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-1 h-7 px-2 text-xs"
-            render={<Link href={budgetLeftover.href} />}
-          >
-            Assign leftover
-            <ArrowRight className="size-3.5" />
-          </Button>
-        </p>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Assign leftover → fund Invest → check Retire.
-        </p>
-      )}
-      {retireOutlook ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <RetireVerdictChip verdict={retireOutlook.dashboard.verdict} />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            render={<Link href={`/retire/plans/${retireOutlook.plan.id}`} />}
-          >
-            Refresh Retire from this portfolio
-            <ArrowRight className="size-3.5" />
-          </Button>
-        </div>
-      ) : null}
-    </RetirePanel>
-  );
-}
-
-function CheckupHero({
+function InvestHero({
   checkup,
   showingLabel,
   currency,
@@ -386,8 +258,8 @@ function CheckupHero({
   isLoading: boolean;
   dayChange: ReturnType<typeof getPortfolioDayChange>;
 }) {
-  const top = checkup.concentration.topHolding;
   const money = (value: number) => formatDisplayMoney(value, currency, rates);
+  const nextIsBook = checkup.nextAction.code === "open-portfolio";
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
@@ -403,58 +275,24 @@ function CheckupHero({
           </span>
           <span className="text-xs text-muted-foreground">{showingLabel}</span>
         </div>
-        <p
-          className={cn(
-            "budget-hero-value mt-3",
-            checkup.riskChip === "concentrated" && "text-[var(--brand-red)]",
-            checkup.riskChip === "cash-heavy" && "text-[var(--brand-orange)]",
-            checkup.riskChip === "balanced" && "text-[var(--brand-green)]",
-          )}
-        >
-          {riskChipLabel(checkup.riskChip)}
+        <p className="budget-hero-value mt-3">
+          {isLoading ? "…" : money(checkup.totalValue)}
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Total value · {currency}
         </p>
         <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
-          {riskChipDescription(checkup.riskChip)} Top holding{" "}
-          {checkup.concentration.topHoldingPercent.toFixed(1)}% · top 5{" "}
-          {checkup.concentration.top5Percent.toFixed(1)}% ·{" "}
-          {checkup.concentration.nameCount} name
-          {checkup.concentration.nameCount === 1 ? "" : "s"}. Cash is{" "}
-          {checkup.cashPercent.toFixed(1)}% of book.
+          {riskChipDescription(checkup.riskChip)}
         </p>
-        {top && checkup.concentration.note !== "none" ? (
-          <p className="mt-2 text-sm">
-            {checkup.concentration.note === "flag" ? (
-              <span className="font-medium text-[var(--brand-red)]">
-                Flag · {top.label} is {top.percent.toFixed(1)}%
-              </span>
-            ) : (
-              <span className="font-medium text-[var(--brand-orange)]">
-                Note · {top.label} is {top.percent.toFixed(1)}%
-              </span>
-            )}
-            {top.analysisHref ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-1 h-7 px-2 text-xs"
-                render={<Link href={top.analysisHref} />}
-              >
-                Open analysis
-                <ArrowRight className="size-3.5" />
-              </Button>
-            ) : null}
-          </p>
+        {!nextIsBook ? (
+          <Button className="mt-4" render={<Link href={checkup.nextAction.href} />}>
+            {checkup.nextAction.label}
+            <ArrowRight className="size-4" />
+          </Button>
         ) : null}
-        <Button className="mt-4" render={<Link href={checkup.nextAction.href} />}>
-          {checkup.nextAction.label}
-        </Button>
       </section>
 
-      <RetirePanel className="grid grid-cols-2 divide-x divide-y divide-border/60">
-        <Metric
-          label={`Value · ${currency}`}
-          value={isLoading ? "…" : money(checkup.totalValue)}
-        />
+      <RetirePanel className="grid grid-cols-1 divide-y divide-border/60">
         <Metric
           label="Day change"
           value={
@@ -463,9 +301,7 @@ function CheckupHero({
               : `${dayChange.change >= 0 ? "+" : "−"}${money(Math.abs(dayChange.change))}`
           }
           hint={dayChange ? formatPercent(dayChange.changePercent) : undefined}
-          tone={
-            !dayChange ? "neutral" : dayChange.change >= 0 ? "in" : "danger"
-          }
+          tone={!dayChange ? "neutral" : dayChange.change >= 0 ? "in" : "danger"}
         />
         <Metric
           label="Cost-basis P/L"
@@ -477,45 +313,107 @@ function CheckupHero({
           hint={formatPercent(checkup.profitLossPercent)}
           tone={checkup.profitLoss >= 0 ? "in" : "danger"}
         />
-        <Metric
-          label="Modified Dietz"
-          value={
-            checkup.modifiedDietzPercent == null
-              ? "—"
-              : formatPercent(checkup.modifiedDietzPercent)
-          }
-          hint={
-            checkup.modifiedDietzPercent == null
-              ? "Needs dated buys/sells across more than one day"
-              : "Money-weighted from transactions — not a benchmark"
-          }
-        />
+        {checkup.modifiedDietzPercent != null ? (
+          <Metric
+            label="Modified Dietz"
+            value={formatPercent(checkup.modifiedDietzPercent)}
+            hint="Money-weighted from dated transactions — not a benchmark"
+          />
+        ) : null}
       </RetirePanel>
     </div>
   );
 }
 
-function Metric({
-  label,
-  value,
-  hint,
-  tone = "neutral",
+function CheckupPanel({
+  checkup,
 }: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "in" | "out" | "danger" | "neutral";
+  checkup: ReturnType<typeof buildInvestmentCheckup>;
 }) {
   return (
-    <div className="flex flex-col justify-center px-4 py-4 sm:px-5">
-      <p className="budget-metric-label">{label}</p>
-      <p className="budget-metric-value mt-1.5">
-        <RetireMoney value={value} tone={tone} />
-      </p>
-      {hint ? (
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
+    <RetirePanel>
+      <div className="border-b border-border/60 px-5 py-4">
+        <h2 className="text-sm font-semibold">Checkup</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Top name {checkup.concentration.topHoldingPercent.toFixed(1)}% · top 5{" "}
+          {checkup.concentration.top5Percent.toFixed(1)}% ·{" "}
+          {checkup.concentration.nameCount} name
+          {checkup.concentration.nameCount === 1 ? "" : "s"} · cash{" "}
+          {checkup.cashPercent.toFixed(1)}%
+        </p>
+      </div>
+
+      <div className="grid gap-px border-b border-border/60 bg-border/60 sm:grid-cols-3">
+        <Stat
+          label="Top name"
+          value={`${checkup.concentration.topHoldingPercent.toFixed(1)}%`}
+        />
+        <Stat
+          label="Top 5"
+          value={`${checkup.concentration.top5Percent.toFixed(1)}%`}
+        />
+        <Stat label="Names" value={String(checkup.concentration.nameCount)} />
+      </div>
+
+      <div className="grid gap-2 px-5 py-4 sm:grid-cols-2">
+        <div>
+          <p className="budget-metric-label">Mix</p>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {checkup.mix.map((item) => (
+              <li key={item.type} className="flex justify-between gap-3">
+                <span>{item.label}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {item.percent.toFixed(1)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="budget-metric-label">Names</p>
+          <ul className="mt-2 space-y-1.5">
+            {checkup.concentration.topHoldings.map((holding) => {
+              const note = concentrationNoteForWeight(holding.percent);
+              const row = (
+                <span className="flex w-full items-center justify-between gap-3 text-sm">
+                  <span className="min-w-0 truncate">{holding.label}</span>
+                  <span className="flex shrink-0 items-center gap-2 tabular-nums text-muted-foreground">
+                    {note !== "none" ? (
+                      <span
+                        className={cn(
+                          "text-[11px] font-medium",
+                          note === "flag"
+                            ? "text-[var(--brand-red)]"
+                            : "text-[var(--brand-orange)]",
+                        )}
+                      >
+                        {note === "flag" ? "Flag" : "Note"}
+                      </span>
+                    ) : null}
+                    {holding.percent.toFixed(1)}%
+                  </span>
+                </span>
+              );
+
+              if (!holding.analysisHref) {
+                return <li key={holding.id}>{row}</li>;
+              }
+
+              return (
+                <li key={holding.id}>
+                  <Link
+                    href={holding.analysisHref}
+                    className="block rounded-md hover:bg-muted/40"
+                  >
+                    {row}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </RetirePanel>
   );
 }
 
@@ -534,8 +432,8 @@ function TargetAllocationPanel({
   storedTargets: TargetAllocation | undefined;
   onSave: (id: string, targets: TargetAllocation) => void;
 }) {
-  const [draft, setDraft] = useState<TargetAllocation>(() =>
-    storedTargets ?? checkup.targets,
+  const [draft, setDraft] = useState<TargetAllocation>(
+    () => storedTargets ?? checkup.targets,
   );
   const [saved, setSaved] = useState(false);
 
@@ -548,31 +446,33 @@ function TargetAllocationPanel({
     setSaved(false);
   }
 
-  function handleSave() {
-    if (!portfolioId) return;
-    onSave(portfolioId, draft);
-    setSaved(true);
-  }
-
   return (
     <RetirePanel>
-      <div className="category-panel-header px-5 py-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <Target className="size-4 shrink-0 text-primary" />
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
+        <div className="flex min-w-0 items-start gap-2">
+          <Target className="mt-0.5 size-4 shrink-0 text-primary" />
           <div>
-            <h2 className="text-sm font-semibold">Target allocation</h2>
+            <h2 className="text-sm font-semibold">Target mix</h2>
             <p className="text-xs text-muted-foreground">
               {checkup.targetsAreDefault
-                ? "Default 80 / 10 / 10 / 0 until you save your own mix. No trades are placed."
-                : "Drift vs your saved mix. Hints only — no auto-trades."}
+                ? "Default 80 / 10 / 10 / 0 until you save. Trim / add is a hint — no trades."
+                : "Drift vs your saved mix. No auto-trades."}
             </p>
           </div>
         </div>
-        <Button size="sm" onClick={handleSave} disabled={!portfolioId}>
+        <Button
+          size="sm"
+          onClick={() => {
+            if (!portfolioId) return;
+            onSave(portfolioId, draft);
+            setSaved(true);
+          }}
+          disabled={!portfolioId}
+        >
           {saved ? "Saved" : "Save targets"}
         </Button>
       </div>
-      <div className="grid gap-3 px-5 pb-4 sm:grid-cols-4">
+      <div className="grid gap-3 px-5 py-4 sm:grid-cols-4">
         {TARGET_ALLOCATION_TYPES.map((type) => (
           <label key={type} className="space-y-1.5 text-xs text-muted-foreground">
             {type === "stock"
@@ -632,13 +532,133 @@ function TargetAllocationPanel({
   );
 }
 
-/** Compact summary still used if other surfaces import it. */
-export function InvestSummaryPanel({ compact = false }: { compact?: boolean }) {
-  return compact ? (
-    <div className="flex flex-wrap gap-2">
-      <CategorySummaryLink href="/invest" label="Open Invest" />
+function JourneyStrip({
+  budgetLeftover,
+  retireOutlook,
+}: {
+  budgetLeftover: {
+    amount: number;
+    currency: BudgetPlan["currency"];
+    href: string;
+  } | null;
+  retireOutlook: {
+    plan: RetirementPlan;
+    dashboard: ReturnType<typeof computeRetirementDashboard>;
+  } | null;
+}) {
+  if (!budgetLeftover && !retireOutlook) return null;
+
+  return (
+    <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+      {budgetLeftover ? (
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-[var(--brand-green)]">
+            {formatBudgetMoney(budgetLeftover.amount, budgetLeftover.currency)}
+          </span>{" "}
+          unassigned in Budget.
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-1 h-7 px-2 text-xs"
+            render={<Link href={budgetLeftover.href} />}
+          >
+            Assign leftover
+            <ArrowRight className="size-3.5" />
+          </Button>
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Assign leftover → fund Invest → check Retire.
+        </p>
+      )}
+      {retireOutlook ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <RetireVerdictChip verdict={retireOutlook.dashboard.verdict} />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            render={<Link href={`/retire/plans/${retireOutlook.plan.id}`} />}
+          >
+            Refresh Retire from this book
+            <ArrowRight className="size-3.5" />
+          </Button>
+        </div>
+      ) : null}
+    </RetirePanel>
+  );
+}
+
+function OptionsStrip({
+  currency,
+  rates,
+  activeCount,
+  netPremium,
+  percentOfBook,
+}: {
+  currency: Parameters<typeof formatDisplayMoney>[1];
+  rates: Parameters<typeof formatDisplayMoney>[2];
+  activeCount: number;
+  netPremium: number;
+  percentOfBook: number | null;
+}) {
+  return (
+    <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <Layers className="size-4 text-primary" />
+        <p className="text-sm">
+          <span className="font-medium">Options</span>
+          <span className="text-muted-foreground">
+            {" "}
+            · {activeCount} active · net premium{" "}
+            {netPremium >= 0 ? "+" : "−"}
+            {formatDisplayMoney(Math.abs(netPremium), currency, rates)}
+            {percentOfBook != null ? ` (${formatPercent(percentOfBook)} of book)` : ""}
+          </span>
+        </p>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs"
+        render={<Link href="/options" />}
+      >
+        Open options
+        <ArrowRight className="size-3.5" />
+      </Button>
+    </RetirePanel>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "in" | "out" | "danger" | "neutral";
+}) {
+  return (
+    <div className="flex flex-col justify-center px-5 py-4">
+      <p className="budget-metric-label">{label}</p>
+      <p className="budget-metric-value mt-1.5">
+        <RetireMoney value={value} tone={tone} />
+      </p>
+      {hint ? (
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
-  ) : (
-    <InvestHomeContent />
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-card px-5 py-4">
+      <p className="budget-metric-label">{label}</p>
+      <p className="budget-metric-value mt-1.5">{value}</p>
+    </div>
   );
 }

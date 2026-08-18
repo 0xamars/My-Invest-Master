@@ -37,6 +37,7 @@ export interface CheckupConcentration {
   top5Percent: number;
   nameCount: number;
   topHolding: CheckupHoldingRef | null;
+  topHoldings: CheckupHoldingRef[];
   note: ConcentrationNote;
 }
 
@@ -155,6 +156,7 @@ function buildConcentration(
     top5Percent: weightOf(sorted.slice(0, 5)),
     nameCount: priced.length,
     topHolding: top ? toHoldingRef(top) : null,
+    topHoldings: sorted.slice(0, 5).map(toHoldingRef),
     note: concentrationNoteForWeight(topHoldingPercent),
   };
 }

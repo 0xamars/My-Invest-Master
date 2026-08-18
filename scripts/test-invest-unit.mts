@@ -2,6 +2,7 @@
  * Invest checkup: concentration, risk chip, allocation drift, auth routes.
  *   npx tsx --tsconfig tsconfig.json scripts/test-invest-unit.mts
  */
+import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
 import { buildAllocationDrift } from "../src/lib/portfolio/allocation-targets.ts";
 import {
   buildInvestmentCheckup,
@@ -124,10 +125,20 @@ assert(
 assert(concentratedCheckup.concentration.nameCount === 2, "name count is 2");
 assert(concentratedCheckup.concentration.note === "flag", "60% is a flag");
 assert(
+  concentratedCheckup.concentration.topHoldings.length === 2,
+  "checkup lists top names for the hub",
+);
+assert(
   concentratedCheckup.concentration.topHolding?.analysisHref?.startsWith(
     "/analysis/AAPL",
   ) === true,
   "concentrated stock deep-links to analysis",
+);
+assert(
+  concentratedCheckup.concentration.topHoldings[0]?.analysisHref?.includes(
+    "AAPL",
+  ) === true,
+  "top-name row is analysis-clickable",
 );
 assert(concentratedCheckup.cashPercent === 40, "cash % of book is 40");
 
@@ -306,6 +317,12 @@ for (const path of mustProtect) {
 }
 assert(isProtectedRoute("/markets"), "/markets is gated separately from /market");
 assert(isProtectedRoute("/market"), "/market is gated");
+assert(destinationForLegacyInvestPath("/analytics") === "/invest", "/analytics folds into checkup");
+assert(destinationForLegacyInvestPath("/performance") === "/invest", "/performance folds into checkup");
+assert(destinationForLegacyInvestPath("/holdings") === "/portfolio", "/holdings is leftover of the book");
+assert(destinationForLegacyInvestPath("/markets") === "/market", "/markets leftover goes to Market");
+assert(destinationForLegacyInvestPath("/invest") === null, "/invest itself is not redirected");
+assert(destinationForLegacyInvestPath("/portfolio") === null, "the book stays");
 
 // --- Cookies ---
 const http = mergeSessionCookieOptions(undefined, false);

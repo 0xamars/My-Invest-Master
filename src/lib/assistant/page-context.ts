@@ -44,7 +44,8 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       id: "invest",
       path: pathname,
       title: "Invest",
-      description: "Invest hub summarizing portfolio and options.",
+      description:
+        "Invest checkup: concentration, mix, allocation drift, and performance for the Primary book.",
     };
   }
   if (pathname === "/portfolio" || pathname.startsWith("/portfolio/")) {

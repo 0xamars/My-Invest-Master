@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { INVEST_LEGACY_REDIRECTS } from "./src/lib/invest/legacy-redirects";
 import { buildSecurityHeaders } from "./src/lib/security/headers";
 
 const isProduction =
@@ -18,6 +19,13 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
     ];
+  },
+  redirects() {
+    return INVEST_LEGACY_REDIRECTS.map((entry) => ({
+      source: entry.source,
+      destination: entry.destination,
+      permanent: entry.permanent,
+    }));
   },
 };
 
