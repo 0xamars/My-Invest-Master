@@ -231,6 +231,46 @@ export function materializeDueSchedules(
   };
 }
 
+/**
+ * Post the next scheduled occurrence immediately (even if the date is still
+ * upcoming) and advance `nextDate`. Same posting rules as materialize.
+ */
+export function enterScheduledNow(
+  plan: BudgetPlan,
+  scheduleId: string,
+): BudgetPlan {
+  const schedules = plan.scheduledTransactions ?? [];
+  const schedule = schedules.find((entry) => entry.id === scheduleId);
+  if (!schedule) return plan;
+  if (!canPostScheduledOccurrence(schedule, schedule.nextDate)) return plan;
+
+  let transactions = plan.transactions;
+  if (!alreadyPosted(transactions, schedule.id, schedule.nextDate)) {
+    transactions = [
+      ...transactions,
+      scheduledToPostedTransaction(schedule, schedule.nextDate),
+    ];
+  }
+
+  const advanced = advanceAfterPost(schedule, schedule.nextDate);
+  if (
+    transactions === plan.transactions &&
+    advanced.nextDate === schedule.nextDate &&
+    advanced.remainingCount === schedule.remainingCount &&
+    advanced.active === schedule.active
+  ) {
+    return plan;
+  }
+
+  return {
+    ...plan,
+    transactions,
+    scheduledTransactions: schedules.map((entry) =>
+      entry.id === scheduleId ? advanced : entry,
+    ),
+  };
+}
+
 export function getUpcomingScheduledInstances(
   schedules: BudgetScheduledTransaction[] | undefined,
   options?: { fromDate?: string; horizonDays?: number; limitPerSchedule?: number },

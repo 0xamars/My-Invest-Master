@@ -8,6 +8,7 @@ import {
   FolderPlus,
   Pencil,
   Plus,
+  RotateCcw,
   Sparkles,
   Target,
   Trash2,
@@ -35,6 +36,7 @@ interface BudgetCategoryListProps {
   onMoveMoney: (fromCategoryId: string) => void;
   onCoverOverspend: (categoryId: string) => void;
   onAutoAssignUnderfunded: () => void;
+  onResetAvailable: () => void;
   onSetGoal: (categoryId: string) => void;
   onAddCategory: (groupId: string) => void;
   onAddGroup: () => void;
@@ -53,6 +55,7 @@ export function BudgetCategoryList({
   onMoveMoney,
   onCoverOverspend,
   onAutoAssignUnderfunded,
+  onResetAvailable,
   onSetGoal,
   onAddCategory,
   onAddGroup,
@@ -79,7 +82,16 @@ export function BudgetCategoryList({
     [flatCategories],
   );
 
+  const leftoverCount = useMemo(
+    () =>
+      flatCategories.filter(
+        (row) => !row.isPaymentCategory && row.available > 0,
+      ).length,
+    [flatCategories],
+  );
+
   const canAutoAssign = readyToAssign > 0 && underfundedCount > 0;
+  const canResetAvailable = leftoverCount > 0;
 
   function startEdit(row: CategoryBudgetRow) {
     setEditingId(row.category.id);
@@ -105,6 +117,12 @@ export function BudgetCategoryList({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canResetAvailable ? (
+            <Button type="button" variant="outline" size="sm" onClick={onResetAvailable}>
+              <RotateCcw className="size-3.5" />
+              Reset Available
+            </Button>
+          ) : null}
           {canAutoAssign ? (
             <Button type="button" size="sm" onClick={onAutoAssignUnderfunded}>
               <Sparkles className="size-3.5" />

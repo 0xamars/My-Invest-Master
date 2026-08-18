@@ -23,6 +23,7 @@ import {
 import { BudgetEmptyState } from "@/components/budget/budget-ui";
 import { previewAutoAssignUnderfunded } from "@/lib/budget/auto-assign";
 import { formatBudgetMoney } from "@/lib/budget/format";
+import { previewResetAvailable } from "@/lib/budget/reset-available";
 import { GOAL_TYPE_LABELS } from "@/lib/budget/goals";
 import {
   READY_TO_ASSIGN_ID,
@@ -373,6 +374,132 @@ export function AutoAssignUnderfundedDialog({
               }}
             >
               Auto-assign {formatBudgetMoney(preview.assigned, currency)}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface ResetAvailableDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  budget: BudgetData;
+  monthKey: string;
+  currency?: string;
+  onConfirm: (options: { coverOverspend: boolean }) => void;
+}
+
+export function ResetAvailableDialog({
+  open,
+  onOpenChange,
+  budget,
+  monthKey,
+  currency,
+  onConfirm,
+}: ResetAvailableDialogProps) {
+  const [coverOverspend, setCoverOverspend] = useState(false);
+
+  useEffect(() => {
+    if (open) setCoverOverspend(false);
+  }, [open]);
+
+  const leftoverPreview = useMemo(
+    () => previewResetAvailable(budget, monthKey),
+    [budget, monthKey],
+  );
+  const coverPreview = useMemo(
+    () => previewResetAvailable(budget, monthKey, { coverOverspend: true }),
+    [budget, monthKey],
+  );
+  const preview = coverOverspend ? coverPreview : leftoverPreview;
+  const names = useMemo(
+    () => new Map(budget.categories.map((category) => [category.id, category.name])),
+    [budget.categories],
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="budget-dialog sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Reset Available</DialogTitle>
+          <DialogDescription>
+            Move leftover Available back to Ready to Assign so this month starts
+            clean. Payment categories stay put.
+          </DialogDescription>
+        </DialogHeader>
+
+        {preview.leftover <= 0 && preview.coverLines.length === 0 ? (
+          <BudgetEmptyState
+            icon={<Sparkles className="size-5" />}
+            title="Nothing to reset"
+            description="Positive leftover Available will show up here. Overspent rows stay unless you include Cover."
+          />
+        ) : (
+          <div className="space-y-3 py-1">
+            <ul className="max-h-56 space-y-1.5 overflow-y-auto">
+              {preview.leftoverLines.map((line) => (
+                <li
+                  key={line.categoryId}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm"
+                >
+                  <span className="truncate font-medium">
+                    {names.get(line.categoryId) ?? line.categoryName}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-[var(--brand-green)]">
+                    {formatBudgetMoney(line.amount, currency)}
+                  </span>
+                </li>
+              ))}
+              {coverOverspend
+                ? preview.coverLines.map((line) => (
+                    <li
+                      key={`cover-${line.categoryId}`}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-[var(--brand-orange)]/25 bg-[var(--brand-orange)]/8 px-3 py-2 text-sm"
+                    >
+                      <span className="truncate font-medium">
+                        Cover {names.get(line.categoryId) ?? line.categoryName}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-[var(--brand-orange)]">
+                        {formatBudgetMoney(line.amount, currency)}
+                      </span>
+                    </li>
+                  ))
+                : null}
+            </ul>
+            {coverPreview.coverLines.length > 0 ? (
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="budget-check mt-0.5"
+                  checked={coverOverspend}
+                  onChange={(event) => setCoverOverspend(event.target.checked)}
+                />
+                <span>
+                  Also cover overspend from Ready to Assign
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Overspent rows stay negative unless this is on.
+                  </span>
+                </span>
+              </label>
+            ) : null}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          {preview.leftover <= 0 && !coverOverspend ? null : (
+            <Button
+              type="button"
+              onClick={() => {
+                onConfirm({ coverOverspend });
+                onOpenChange(false);
+              }}
+            >
+              Reset {formatBudgetMoney(preview.leftover, currency)}
             </Button>
           )}
         </DialogFooter>

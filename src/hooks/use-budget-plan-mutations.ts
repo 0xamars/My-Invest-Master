@@ -5,6 +5,12 @@ import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { removeAccountFromBudget } from "@/lib/budget/account-mutations";
 import { applyAutoAssignUnderfunded } from "@/lib/budget/auto-assign";
 import {
+  applyBulkApprove,
+  applyBulkCategorize,
+  applyBulkDelete,
+  applyBulkToggleCleared,
+} from "@/lib/budget/bulk-transactions";
+import {
   removeCategoryFromBudget,
   sortedCategoryGroups,
 } from "@/lib/budget/category-mutations";
@@ -19,7 +25,8 @@ import {
   isPaymentCategory,
 } from "@/lib/budget/credit-card-payments";
 import { applyCoverOverspend, applyMoveMoney } from "@/lib/budget/move-money";
-import { materializeDueSchedules } from "@/lib/budget/scheduled";
+import { applyResetAvailable } from "@/lib/budget/reset-available";
+import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
 import { transactionTouchesAccount } from "@/lib/budget/transactions";
 import type {
@@ -593,6 +600,66 @@ export function useBudgetPlanMutations(planId: string) {
     [commitPlan],
   );
 
+  const resetAvailable = useCallback(
+    (monthKey: string, options?: { coverOverspend?: boolean }) => {
+      commitPlan(
+        (current) => applyResetAvailable(current, monthKey, options),
+        { label: "Undo reset available" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const bulkCategorizeTransactions = useCallback(
+    (transactionIds: string[], categoryId: string | null) => {
+      commitPlan(
+        (current) => applyBulkCategorize(current, transactionIds, categoryId),
+        { label: "Undo categorize" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const bulkApproveTransactions = useCallback(
+    (transactionIds: string[]) => {
+      commitPlan(
+        (current) => applyBulkApprove(current, transactionIds, true),
+        { label: "Undo approve" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const bulkDeleteTransactions = useCallback(
+    (transactionIds: string[]) => {
+      commitPlan(
+        (current) => applyBulkDelete(current, transactionIds),
+        { label: "Undo delete" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const bulkToggleClearedTransactions = useCallback(
+    (transactionIds: string[]) => {
+      commitPlan(
+        (current) => applyBulkToggleCleared(current, transactionIds),
+        { label: "Undo cleared" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const enterScheduledTransactionNow = useCallback(
+    (scheduleId: string) => {
+      commitPlan(
+        (current) => enterScheduledNow(current, scheduleId),
+        { label: "Undo enter now" },
+      );
+    },
+    [commitPlan],
+  );
+
   const setPlanCurrency = useCallback(
     (currency: BudgetCurrency) => {
       commitPlan(
@@ -841,6 +908,12 @@ export function useBudgetPlanMutations(planId: string) {
       moveMoney,
       coverOverspend,
       autoAssignUnderfunded,
+      resetAvailable,
+      bulkCategorizeTransactions,
+      bulkApproveTransactions,
+      bulkDeleteTransactions,
+      bulkToggleClearedTransactions,
+      enterScheduledTransactionNow,
       setPlanCurrency,
       setCategoryGoal,
       removeCategoryGoal,
@@ -881,6 +954,12 @@ export function useBudgetPlanMutations(planId: string) {
       moveMoney,
       coverOverspend,
       autoAssignUnderfunded,
+      resetAvailable,
+      bulkCategorizeTransactions,
+      bulkApproveTransactions,
+      bulkDeleteTransactions,
+      bulkToggleClearedTransactions,
+      enterScheduledTransactionNow,
       setPlanCurrency,
       setCategoryGoal,
       removeCategoryGoal,

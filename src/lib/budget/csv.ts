@@ -1,5 +1,11 @@
+import { isOnBudgetAccount } from "@/lib/budget/accounts";
 import { clearedStateFromCsvFlag } from "@/lib/budget/cleared";
-import type { BudgetAccount, BudgetCategory, BudgetTransaction } from "@/types/budget";
+import type {
+  BudgetAccount,
+  BudgetCategory,
+  BudgetTransaction,
+  BudgetTransactionType,
+} from "@/types/budget";
 
 export const IMPORT_MATCH_DAY_WINDOW = 5;
 
@@ -34,8 +40,23 @@ export function daysBetweenDateKeys(a: string, b: string): number {
   return Math.abs(Math.round((end - start) / 86_400_000));
 }
 
+function sameTransferPair(
+  row: Pick<ParsedCsvTransaction, "accountId" | "transferAccountId">,
+  tx: Pick<BudgetTransaction, "accountId" | "transferAccountId">,
+): boolean {
+  const rowTo = row.transferAccountId;
+  const txTo = tx.transferAccountId;
+  if (!rowTo || !txTo) {
+    return tx.accountId === row.accountId;
+  }
+  return (
+    (tx.accountId === row.accountId && txTo === rowTo) ||
+    (tx.accountId === rowTo && txTo === row.accountId)
+  );
+}
+
 export function findImportMatch(
-  row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "type">,
+  row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "type" | "transferAccountId">,
   existing: ParseBudgetCsvOptions["existingTransactions"],
   usedMatchIds: Set<string>,
 ): string | undefined {
@@ -43,10 +64,17 @@ export function findImportMatch(
   const candidates = existing.filter((tx) => {
     if (!tx.id || usedMatchIds.has(tx.id)) return false;
     if (tx.importId) return false;
-    if (tx.accountId !== row.accountId) return false;
     if (Math.round(Math.abs(tx.amount) * 100) !== cents) return false;
+    if (daysBetweenDateKeys(tx.date, row.date) > IMPORT_MATCH_DAY_WINDOW) {
+      return false;
+    }
+    if (row.type === "transfer") {
+      if (tx.type && tx.type !== "transfer") return false;
+      return sameTransferPair(row, tx);
+    }
+    if (tx.accountId !== row.accountId) return false;
     if (tx.type && tx.type !== row.type) return false;
-    return daysBetweenDateKeys(tx.date, row.date) <= IMPORT_MATCH_DAY_WINDOW;
+    return true;
   });
 
   if (candidates.length === 0) return undefined;
@@ -79,11 +107,12 @@ export interface ParsedCsvTransaction {
   accountId: string;
   categoryId: string | null;
   amount: number;
-  type: "inflow" | "outflow";
+  type: BudgetTransactionType;
   cleared: boolean;
   memo?: string;
   sourceRow: number;
   importId: string;
+  transferAccountId?: string;
 }
 
 export interface CsvMatchedTransaction extends ParsedCsvTransaction {
@@ -104,6 +133,7 @@ export interface CsvImportPreview {
   skipped: CsvSkippedRow[];
   inflowCount: number;
   outflowCount: number;
+  transferCount: number;
   inflowTotal: number;
   outflowTotal: number;
   hasAccountColumn: boolean;
@@ -114,11 +144,13 @@ export interface CsvImportPreview {
 }
 
 export interface ParseBudgetCsvOptions {
-  accounts: Pick<BudgetAccount, "id" | "name">[];
+  accounts: Pick<BudgetAccount, "id" | "name" | "onBudget">[];
   categories: Pick<BudgetCategory, "id" | "name">[];
   existingTransactions: Array<
     Pick<BudgetTransaction, "date" | "payee" | "amount" | "accountId"> &
-      Partial<Pick<BudgetTransaction, "id" | "type" | "importId">>
+      Partial<
+        Pick<BudgetTransaction, "id" | "type" | "importId" | "transferAccountId">
+      >
   >;
   fallbackAccountId?: string;
 }
@@ -421,6 +453,168 @@ function looksLikeTransferPayee(payee: string): boolean {
   return /^transfer(\s+to|\s+from|\s*:)/i.test(payee.trim());
 }
 
+function csvAccountOnBudget(
+  account: ParseBudgetCsvOptions["accounts"][number] | undefined,
+): boolean {
+  return isOnBudgetAccount(account);
+}
+
+function matchOnBudgetAccountId(
+  name: string,
+  accounts: ParseBudgetCsvOptions["accounts"],
+): string | undefined {
+  const accountId = matchAccountId(name, accounts);
+  if (!accountId) return undefined;
+  const account = accounts.find((entry) => entry.id === accountId);
+  return csvAccountOnBudget(account) ? accountId : undefined;
+}
+
+export function parseTransferCounterpart(
+  payee: string,
+  accounts: ParseBudgetCsvOptions["accounts"],
+): { otherAccountId: string; direction: "to" | "from" | "named" } | undefined {
+  const raw = payee.trim();
+  const toMatch = /^transfer\s+to\s+(.+)$/i.exec(raw);
+  if (toMatch) {
+    const otherAccountId = matchOnBudgetAccountId(toMatch[1], accounts);
+    return otherAccountId
+      ? { otherAccountId, direction: "to" }
+      : undefined;
+  }
+  const fromMatch = /^transfer\s+from\s+(.+)$/i.exec(raw);
+  if (fromMatch) {
+    const otherAccountId = matchOnBudgetAccountId(fromMatch[1], accounts);
+    return otherAccountId
+      ? { otherAccountId, direction: "from" }
+      : undefined;
+  }
+  const namedMatch = /^transfer\s*:\s*(.+)$/i.exec(raw);
+  if (namedMatch) {
+    const otherAccountId = matchOnBudgetAccountId(namedMatch[1], accounts);
+    return otherAccountId
+      ? { otherAccountId, direction: "named" }
+      : undefined;
+  }
+  return undefined;
+}
+
+function asCsvTransfer(
+  row: ParsedCsvTransaction,
+  fromAccountId: string,
+  toAccountId: string,
+): ParsedCsvTransaction {
+  const next: ParsedCsvTransaction = {
+    ...row,
+    accountId: fromAccountId,
+    transferAccountId: toAccountId,
+    categoryId: null,
+    type: "transfer",
+  };
+  next.importId = budgetImportId(next);
+  return next;
+}
+
+function applyPayeeTransfer(
+  row: ParsedCsvTransaction,
+  accounts: ParseBudgetCsvOptions["accounts"],
+): ParsedCsvTransaction {
+  if (row.type === "transfer") return row;
+  const source = accounts.find((account) => account.id === row.accountId);
+  if (!csvAccountOnBudget(source)) return row;
+
+  const counterpart = parseTransferCounterpart(row.payee, accounts);
+  if (!counterpart || counterpart.otherAccountId === row.accountId) return row;
+
+  let fromAccountId = row.accountId;
+  let toAccountId = counterpart.otherAccountId;
+  if (counterpart.direction === "from") {
+    fromAccountId = counterpart.otherAccountId;
+    toAccountId = row.accountId;
+  } else if (counterpart.direction === "named" && row.type === "inflow") {
+    fromAccountId = counterpart.otherAccountId;
+    toAccountId = row.accountId;
+  }
+
+  return asCsvTransfer(row, fromAccountId, toAccountId);
+}
+
+function transferPairKey(row: ParsedCsvTransaction): string {
+  const other = row.transferAccountId ?? "";
+  const [left, right] =
+    row.accountId < other ? [row.accountId, other] : [other, row.accountId];
+  return `${row.date}|${Math.round(Math.abs(row.amount) * 100)}|${left}|${right}`;
+}
+
+function pairOppositeAmountTransfers(
+  rows: ParsedCsvTransaction[],
+  accounts: ParseBudgetCsvOptions["accounts"],
+): ParsedCsvTransaction[] {
+  const leftover = rows.filter((row) => row.type !== "transfer");
+  const transfers = rows.filter((row) => row.type === "transfer");
+  const groups = new Map<string, ParsedCsvTransaction[]>();
+
+  for (const row of leftover) {
+    const key = `${row.date}|${Math.round(Math.abs(row.amount) * 100)}`;
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
+  }
+
+  const used = new Set<number>();
+  const paired: ParsedCsvTransaction[] = [];
+
+  for (const group of groups.values()) {
+    if (group.length !== 2) continue;
+    const first = group[0]!;
+    const second = group[1]!;
+    if (first.type === second.type) continue;
+    if (first.accountId === second.accountId) continue;
+    const firstAccount = accounts.find((account) => account.id === first.accountId);
+    const secondAccount = accounts.find((account) => account.id === second.accountId);
+    if (!csvAccountOnBudget(firstAccount) || !csvAccountOnBudget(secondAccount)) {
+      continue;
+    }
+    const outflow = first.type === "outflow" ? first : second;
+    const inflow = first.type === "inflow" ? first : second;
+    used.add(first.sourceRow);
+    used.add(second.sourceRow);
+    paired.push(asCsvTransfer(outflow, outflow.accountId, inflow.accountId));
+  }
+
+  return [
+    ...transfers,
+    ...paired,
+    ...leftover.filter((row) => !used.has(row.sourceRow)),
+  ];
+}
+
+function collapseDuplicateTransfers(
+  rows: ParsedCsvTransaction[],
+): ParsedCsvTransaction[] {
+  const transfers = rows.filter((row) => row.type === "transfer");
+  const others = rows.filter((row) => row.type !== "transfer");
+  const seen = new Set<string>();
+  const kept: ParsedCsvTransaction[] = [];
+
+  for (const row of [...transfers].sort((a, b) => a.sourceRow - b.sourceRow)) {
+    const key = transferPairKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    kept.push(row);
+  }
+
+  return [...kept, ...others].sort((a, b) => a.sourceRow - b.sourceRow);
+}
+
+/** Reconstruct on-budget transfers from payee names or a unique opposite pair. */
+export function reconstructCsvTransfers(
+  rows: ParsedCsvTransaction[],
+  accounts: ParseBudgetCsvOptions["accounts"],
+): ParsedCsvTransaction[] {
+  const named = rows.map((row) => applyPayeeTransfer(row, accounts));
+  return collapseDuplicateTransfers(pairOppositeAmountTransfers(named, accounts));
+}
+
 interface ResolvedAmount {
   amount: number;
   type: "inflow" | "outflow";
@@ -570,6 +764,7 @@ export function parseBudgetCsv(
     skipped: [],
     inflowCount: 0,
     outflowCount: 0,
+    transferCount: 0,
     inflowTotal: 0,
     outflowTotal: 0,
     hasAccountColumn: false,
@@ -608,7 +803,7 @@ export function parseBudgetCsv(
   }
 
   const notes = [
-    "Transfers and splits are imported as plain inflows or outflows so Ready to Assign math stays intact. Categorize or convert them after import if needed.",
+    "Transfers between two on-budget accounts are reconstructed when the payee names the other account, or a unique same-date opposite pair is found. Splits stay flattened.",
     "Uncategorized outflows are left uncategorized unless Category exactly matches an existing category name.",
     "Exact duplicates (date + payee + amount + account) are skipped. Close-date matches stay on the existing row.",
   ];
@@ -623,7 +818,7 @@ export function parseBudgetCsv(
   );
   const seenKeys = new Set<string>();
   const usedMatchIds = new Set<string>();
-  const imported: ParsedCsvTransaction[] = [];
+  const candidates: ParsedCsvTransaction[] = [];
   const duplicates: ParsedCsvTransaction[] = [];
   const matched: CsvMatchedTransaction[] = [];
   const skipped: CsvSkippedRow[] = [];
@@ -728,32 +923,48 @@ export function parseBudgetCsv(
       importId: "",
     };
     parsed.importId = budgetImportId(parsed);
+    candidates.push(parsed);
+  });
 
+  const reconstructed = reconstructCsvTransfers(candidates, options.accounts);
+  const reconstructedCount = reconstructed.filter((row) => row.type === "transfer").length;
+  const leftoverTransferLike = reconstructed.filter(
+    (row) => row.type !== "transfer" && looksLikeTransferPayee(row.payee),
+  ).length;
+
+  const imported: ParsedCsvTransaction[] = [];
+
+  for (const parsed of reconstructed) {
     if (existingImportIds.has(parsed.importId)) {
       duplicates.push(parsed);
-      return;
+      continue;
     }
 
     const key = budgetImportDedupeKey(parsed);
     if (existingKeys.has(key) || seenKeys.has(key)) {
       duplicates.push(parsed);
-      return;
+      continue;
     }
 
     const matchedId = findImportMatch(parsed, options.existingTransactions, usedMatchIds);
     if (matchedId) {
       usedMatchIds.add(matchedId);
       matched.push({ ...parsed, matchedTransactionId: matchedId });
-      return;
+      continue;
     }
 
     seenKeys.add(key);
     imported.push(parsed);
-  });
+  }
 
-  if (sawTransferLike) {
+  if (reconstructedCount > 0) {
     notes.unshift(
-      "Some payees look like transfers. They are still stored as inflow/outflow, not type: transfer.",
+      `Reconstructed ${reconstructedCount} transfer${reconstructedCount === 1 ? "" : "s"} between on-budget accounts.`,
+    );
+  }
+  if (sawTransferLike && leftoverTransferLike > 0) {
+    notes.unshift(
+      "Some transfer-like payees did not name a known on-budget account, so they stayed inflow/outflow.",
     );
   }
 
@@ -765,6 +976,7 @@ export function parseBudgetCsv(
     skipped,
     inflowCount: imported.filter((tx) => tx.type === "inflow").length,
     outflowCount: imported.filter((tx) => tx.type === "outflow").length,
+    transferCount: imported.filter((tx) => tx.type === "transfer").length,
     inflowTotal: imported
       .filter((tx) => tx.type === "inflow")
       .reduce((sum, tx) => sum + tx.amount, 0),
@@ -783,12 +995,13 @@ export function parsedCsvToTransactionInput(row: ParsedCsvTransaction) {
     date: row.date,
     payee: row.payee,
     accountId: row.accountId,
-    categoryId: row.type === "inflow" ? null : row.categoryId,
+    categoryId: row.type === "inflow" || row.type === "transfer" ? null : row.categoryId,
     amount: row.amount,
     type: row.type,
     memo: row.memo,
     cleared: clearedStateFromCsvFlag(row.cleared),
     approved: false,
     importId: row.importId || budgetImportId(row),
+    transferAccountId: row.type === "transfer" ? row.transferAccountId : undefined,
   };
 }
