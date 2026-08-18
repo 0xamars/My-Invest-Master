@@ -18,6 +18,7 @@ import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callou
 import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
 import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
 import { DeleteRetirementPlanDialog } from "@/components/retirement/delete-retirement-plan-dialog";
+import { RetirePageHeader, RetirePanel, RetireVerdictChip } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,7 +43,9 @@ import {
   pickFreeAllowedPlanId,
 } from "@/lib/plans/free-access";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
+import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import { formatDisplayMoney } from "@/lib/portfolio/format";
+import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import type { RetirementPlan } from "@/types/retirement";
 
 function formatUpdatedAt(iso: string): string {
@@ -142,19 +145,11 @@ export function RetirementPlansListContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Retirement Planning Models
-          </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Build and compare retirement scenarios with projected growth,
-            lifestyle spending, and asset-level breakdowns. Free can open one
-            plan and create manually; create-from-portfolio is Premium.
-          </p>
-        </div>
-
+    <div className="flex flex-1 flex-col gap-5">
+      <RetirePageHeader
+        title="Retirement plans"
+        description="One working plan on Free. Create from a blank model, or import holdings from Invest (Premium)."
+        action={
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => void handleCreateNew()}
@@ -198,7 +193,8 @@ export function RetirementPlansListContent() {
             Create Plan from Existing Portfolio
           </Button>
         </div>
-      </div>
+        }
+      />
 
       {atFreeLimit && <PremiumUpgradeCallout resource="retirement" />}
 
@@ -254,6 +250,10 @@ export function RetirementPlansListContent() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {
             const plan = plans.find((item) => item.id === summary.id);
+            const normalized = plan ? normalizeRetirementPlan(plan) : null;
+            const dash = normalized
+              ? computeRetirementDashboard(normalized)
+              : null;
             const canOpen = canOpenRetirementPlanOnPlan(
               userPlan,
               plans,
@@ -290,9 +290,12 @@ export function RetirementPlansListContent() {
                       </span>
                     )}
                   </div>
-                  <CardDescription className="flex items-center gap-1.5">
+                  <CardDescription className="flex flex-wrap items-center gap-1.5">
                     <Calendar className="size-3.5" />
-                    Retire {summary.retirementYear}
+                    Retire {normalized?.retirementAge ?? summary.retirementYear}
+                    {dash ? (
+                      <RetireVerdictChip verdict={dash.verdict} />
+                    ) : null}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 px-5 py-4">

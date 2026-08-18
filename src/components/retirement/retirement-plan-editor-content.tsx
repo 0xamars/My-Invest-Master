@@ -5,20 +5,25 @@ import Link from "next/link";
 import {
   AlertCircle,
   ArrowLeft,
+  Copy,
   Loader2,
   RefreshCw,
   Settings2,
-  Target,
-  Wallet,
 } from "lucide-react";
 import {
   AddRetirementAssetButton,
   AddRetirementAssetDialog,
 } from "@/components/retirement/add-retirement-asset-dialog";
+import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
+import { RetirementIncomeStreams } from "@/components/retirement/retirement-income-streams";
+import { RetirementMonteCarloPanel } from "@/components/retirement/retirement-monte-carlo-panel";
 import { RetirementPlanAssetsTable } from "@/components/retirement/retirement-plan-assets-table";
+import { RetirementPlanLevers } from "@/components/retirement/retirement-plan-levers";
 import { RetirementPlanProjectionsChart } from "@/components/retirement/retirement-plan-projections-chart";
 import { RetirementPlanProjectionsTable } from "@/components/retirement/retirement-plan-projections-table";
-import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
+import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
+import { RetirementWhatIf } from "@/components/retirement/retirement-what-if";
+import { RetirePanel } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,23 +33,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { StatCard } from "@/components/ui/stat-card";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
-import { useDisplayCurrency } from "@/hooks/use-display-currency";
+import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { useRetirementPlanPrices } from "@/hooks/use-retirement-plan-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { useUserPlan } from "@/hooks/use-user-preferences";
 import { canOpenRetirementPlanOnPlan } from "@/lib/plans/free-access";
+import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
+import { runRetirementMonteCarlo } from "@/lib/retirement/monte-carlo";
+import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
+import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import { computeRetirementProjections } from "@/lib/retirement/projections";
-import { formatDisplayMoney } from "@/lib/portfolio/format";
+import { compareRetirementScenarios } from "@/lib/retirement/scenarios";
 import { cn } from "@/lib/utils";
-import {
-  getPlanTotalValue,
-  type RetirementPlan,
-  type RetirementPlanAsset,
-} from "@/types/retirement";
+import type { RetirementPlan, RetirementPlanAsset } from "@/types/retirement";
 import { isLivePricedAsset } from "@/types/portfolio";
 
 interface RetirementPlanEditorContentProps {
@@ -59,22 +62,28 @@ export function RetirementPlanEditorContent({
   const { plan: userPlan, isLoaded: isPlanLoaded } = useUserPlan();
   const plan = getPlan(planId);
   const canOpen = canOpenRetirementPlanOnPlan(userPlan, plans, planId);
-
-  const { currency, setCurrency, isLoaded: isCurrencyLoaded } =
-    useDisplayCurrency();
-  const { rates, isLoading: isFxLoading, error: fxError } = useFxRate();
+  const { rates, error: fxError } = useFxRate();
+  const {
+    portfolios,
+    activePortfolioId,
+    primaryPortfolio,
+    isLoaded: portfoliosLoaded,
+  } = usePortfolioPlans();
 
   const [addAssetOpen, setAddAssetOpen] = useState(false);
+  const [refreshOpen, setRefreshOpen] = useState(false);
+  const [isRefreshingPortfolio, setIsRefreshingPortfolio] = useState(false);
   const [localPlan, setLocalPlan] = useState<RetirementPlan | null>(null);
 
   useEffect(() => {
     if (plan) {
-      setLocalPlan(plan);
+      setLocalPlan(normalizeRetirementPlan(plan));
     }
   }, [plan]);
 
-  const workingPlan = localPlan ?? plan ?? null;
+  const workingPlan = localPlan ?? (plan ? normalizeRetirementPlan(plan) : null);
   const assets = workingPlan?.assets ?? [];
+  const currency = workingPlan?.currency ?? "CAD";
 
   const {
     prices,
@@ -90,25 +99,44 @@ export function RetirementPlanEditorContent({
     [workingPlan],
   );
 
-  const totalValue = useMemo(
-    () => (workingPlan ? getPlanTotalValue(workingPlan) : 0),
+  const monteCarlo = useMemo(
+    () =>
+      workingPlan && workingPlan.assets.length > 0
+        ? runRetirementMonteCarlo(workingPlan, { paths: 750, seed: 17 })
+        : null,
+    [workingPlan],
+  );
+
+  const dashboard = useMemo(
+    () =>
+      workingPlan
+        ? computeRetirementDashboard(workingPlan, {
+            projections,
+            monteCarlo,
+          })
+        : null,
+    [workingPlan, projections, monteCarlo],
+  );
+
+  const whatIf = useMemo(
+    () =>
+      workingPlan
+        ? compareRetirementScenarios(workingPlan, {
+            includeBase: true,
+            paths: 400,
+            seed: 17,
+          })
+        : [],
     [workingPlan],
   );
 
   const persistPlan = useCallback(
     (next: RetirementPlan) => {
-      setLocalPlan(next);
-      updatePlan(planId, () => next);
+      const normalized = normalizeRetirementPlan(next);
+      setLocalPlan(normalized);
+      updatePlan(planId, () => normalized);
     },
     [planId, updatePlan],
-  );
-
-  const patchPlan = useCallback(
-    (patch: Partial<RetirementPlan>) => {
-      if (!workingPlan) return;
-      persistPlan({ ...workingPlan, ...patch });
-    },
-    [workingPlan, persistPlan],
   );
 
   const handleUpdateAsset = useCallback(
@@ -172,7 +200,11 @@ export function RetirementPlanEditorContent({
     }
   }, [prices, workingPlan, persistPlan]);
 
-  if (!isLoaded || !isCurrencyLoaded || !isPlanLoaded) {
+  const portfoliosWithHoldings = portfolios.filter((portfolio) =>
+    portfolio.holdings.some(isHoldingVisible),
+  );
+
+  if (!isLoaded || !isPlanLoaded) {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
@@ -181,7 +213,7 @@ export function RetirementPlanEditorContent({
     );
   }
 
-  if (!workingPlan) {
+  if (!workingPlan || !dashboard) {
     return (
       <Card className="mx-auto max-w-lg">
         <CardHeader>
@@ -200,10 +232,6 @@ export function RetirementPlanEditorContent({
     );
   }
 
-  const closingAtRetirement = projections.find(
-    (row) => row.year === workingPlan.retirementYear,
-  )?.closingBalance;
-
   return (
     <FreeResourceOpenGuard
       resource="retirement"
@@ -212,193 +240,189 @@ export function RetirementPlanEditorContent({
       listHref="/retire/plans"
       listLabel="Back to Retirement Plans"
     >
-      <div className="flex flex-1 flex-col gap-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 gap-1.5 text-muted-foreground"
-            render={<Link href="/retire/plans" />}
-          >
-            <ArrowLeft className="size-4" />
-            All plans
-          </Button>
-          <Input
-            value={workingPlan.name}
-            onChange={(event) => patchPlan({ name: event.target.value })}
-            className="h-auto max-w-xl border-none bg-transparent px-0 text-2xl font-semibold tracking-tight shadow-none focus-visible:ring-0"
-          />
-          <p className="text-sm text-muted-foreground">
-            Projections update live as you adjust assets, CAGR, spending, and
-            retirement year.
-          </p>
-        </div>
-
-        <CurrencyToggle
-          currency={currency}
-          onChange={setCurrency}
-          rates={rates}
-          isLoading={isFxLoading}
-          error={fxError}
-        />
-      </div>
-
-      {(syncError || pricesError || fxError) && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="size-4 shrink-0" />
-          {syncError ?? pricesError ?? fxError}
-        </div>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Portfolio Overview"
-          value={formatDisplayMoney(totalValue, currency, rates)}
-          subValue={`${assets.length} asset${assets.length === 1 ? "" : "s"}`}
-        />
-        <div className="stat-card space-y-2">
-          <p className="stat-label flex items-center gap-1.5">
-            <Target className="size-3.5" />
-            Retirement Year
-          </p>
-          <Input
-            type="number"
-            min={new Date().getFullYear()}
-            max={new Date().getFullYear() + 80}
-            value={workingPlan.retirementYear}
-            onChange={(event) =>
-              patchPlan({
-                retirementYear:
-                  Number(event.target.value) || workingPlan.retirementYear,
-              })
-            }
-            className="h-9 text-lg font-semibold tabular-nums"
-          />
-          {closingAtRetirement !== undefined && (
-            <p className="stat-sub">
-              Projected {formatDisplayMoney(closingAtRetirement, currency, rates)} at retirement
-            </p>
-          )}
-        </div>
-        <div className="stat-card space-y-3">
-          <p className="stat-label flex items-center gap-1.5">
-            <Wallet className="size-3.5" />
-            Retirement Settings
-          </p>
-          <div className="space-y-2">
-            <Label htmlFor="spending" className="text-xs text-muted-foreground">
-              Annual lifestyle spending (USD)
-            </Label>
-            <Input
-              id="spending"
-              type="number"
-              min="0"
-              step="1000"
-              value={workingPlan.annualLifestyleSpending}
-              onChange={(event) =>
-                patchPlan({
-                  annualLifestyleSpending:
-                    Number(event.target.value) || 0,
-                })
-              }
-              className="h-9 tabular-nums"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="inflation" className="text-xs text-muted-foreground">
-              Inflation rate %
-            </Label>
-            <Input
-              id="inflation"
-              type="number"
-              step="0.1"
-              value={workingPlan.inflationRate}
-              onChange={(event) =>
-                patchPlan({
-                  inflationRate: Number(event.target.value) || 0,
-                })
-              }
-              className="h-9 tabular-nums"
-            />
-          </div>
-        </div>
-        <StatCard
-          label="Price Projection Scenario"
-          value="Expected"
-          subValue="CAGR-based asset growth"
-        />
-      </div>
-
-      <Card className="surface-card gap-0 py-0 shadow-none">
-        <CardHeader className="flex flex-col gap-4 border-b border-border/60 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="text-base font-semibold">
-              Your Investment Breakdown
-            </CardTitle>
-            <CardDescription>
-              {lastUpdated
-                ? `Prices updated ${lastUpdated.toLocaleTimeString()}`
-                : "Adjust quantities, CAGR, and prices for each asset"}
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <AddRetirementAssetButton onClick={() => setAddAssetOpen(true)} />
+      <div className="flex flex-1 flex-col gap-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3">
             <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleFetchPrices}
-              disabled={isRefreshing}
+              variant="ghost"
+              size="sm"
+              className="-ml-2 gap-1.5 text-muted-foreground"
+              render={<Link href="/retire/plans" />}
             >
-              <RefreshCw
-                className={cn("size-4", isRefreshing && "animate-spin")}
-              />
-              Fetch Latest Prices
+              <ArrowLeft className="size-4" />
+              All plans
             </Button>
+            <Input
+              value={workingPlan.name}
+              onChange={(event) =>
+                persistPlan({ ...workingPlan, name: event.target.value })
+              }
+              className="h-auto max-w-xl border-none bg-transparent px-0 text-2xl font-semibold tracking-tight shadow-none focus-visible:ring-0"
+            />
+            <p className="text-sm text-muted-foreground">
+              Target, on-track verdict, and the lever that moves the date money
+              runs out.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="px-4 py-4 sm:px-6">
-          <RetirementPlanAssetsTable
-            assets={assets}
-            currency={currency}
-            rates={rates}
-            loadingSymbols={loadingSymbols}
-            onUpdateAsset={handleUpdateAsset}
-            onDeleteAsset={handleDeleteAsset}
-          />
-        </CardContent>
-      </Card>
-
-      <RetirementPlanProjectionsChart
-        projections={projections}
-        assets={assets}
-        currency={currency}
-        rates={rates}
-        retirementYear={workingPlan.retirementYear}
-      />
-
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Settings2 className="size-4 text-muted-foreground" />
-          <h2 className="text-lg font-semibold tracking-tight">
-            Year-by-Year Projections
-          </h2>
         </div>
-        <RetirementPlanProjectionsTable
+
+        {(syncError || pricesError || fxError) && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            <AlertCircle className="size-4 shrink-0" />
+            {syncError ?? pricesError ?? fxError}
+          </div>
+        )}
+
+        <RetirementVerdictHero
+          dashboard={dashboard}
+          currency={currency}
+          rates={rates}
+          planName={workingPlan.name}
+          emptyActions={
+            <>
+              <AddRetirementAssetButton onClick={() => setAddAssetOpen(true)} />
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setRefreshOpen(true)}
+                disabled={!portfoliosLoaded || portfoliosWithHoldings.length === 0}
+              >
+                <Copy className="size-4" />
+                Import from portfolio
+              </Button>
+            </>
+          }
+        />
+
+        <RetirementPlanLevers plan={workingPlan} onChange={persistPlan} />
+        <RetirementIncomeStreams
+          streams={workingPlan.incomeStreams}
+          onChange={(incomeStreams) =>
+            persistPlan({ ...workingPlan, incomeStreams })
+          }
+        />
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <RetirementMonteCarloPanel result={monteCarlo} />
+          <RetirePanel className="flex flex-col justify-center px-5 py-5">
+            <p className="budget-metric-label">Expected path</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              The green line is still the deterministic CAGR path. Monte Carlo
+              only adds a success rate and a p10–p90 band on the total chart.
+            </p>
+            {dashboard.successRate != null ? (
+              <p className="mt-3 text-sm">
+                {Math.round(dashboard.successRate * 100)}% of paths still have
+                money at age {workingPlan.planEndAge}.
+              </p>
+            ) : null}
+          </RetirePanel>
+        </div>
+
+        <RetirementWhatIf
+          comparisons={whatIf}
+          currency={currency}
+          rates={rates}
+          onApply={persistPlan}
+        />
+
+        <Card className="surface-card gap-0 py-0 shadow-none">
+          <CardHeader className="flex flex-col gap-4 border-b border-border/60 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base font-semibold">
+                Assets
+              </CardTitle>
+              <CardDescription>
+                {lastUpdated
+                  ? `Prices updated ${lastUpdated.toLocaleTimeString()}`
+                  : "Quantities and prices can refresh from Invest. CAGR stays yours."}
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <AddRetirementAssetButton onClick={() => setAddAssetOpen(true)} />
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setRefreshOpen(true)}
+                disabled={!portfoliosLoaded || portfoliosWithHoldings.length === 0}
+              >
+                <Copy className="size-4" />
+                Refresh from portfolio
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleFetchPrices}
+                disabled={isRefreshing}
+              >
+                <RefreshCw
+                  className={cn("size-4", isRefreshing && "animate-spin")}
+                />
+                Fetch latest prices
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 py-4 sm:px-6">
+            <RetirementPlanAssetsTable
+              assets={assets}
+              currency={currency}
+              rates={rates}
+              loadingSymbols={loadingSymbols}
+              onUpdateAsset={handleUpdateAsset}
+              onDeleteAsset={handleDeleteAsset}
+            />
+          </CardContent>
+        </Card>
+
+        <RetirementPlanProjectionsChart
           projections={projections}
           assets={assets}
           currency={currency}
           rates={rates}
           retirementYear={workingPlan.retirementYear}
+          percentiles={monteCarlo?.percentiles}
         />
-      </div>
 
-      <AddRetirementAssetDialog
-        open={addAssetOpen}
-        onOpenChange={setAddAssetOpen}
-        onAdd={handleAddAsset}
-        existingSymbols={assets.map((asset) => asset.symbol)}
-      />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Settings2 className="size-4 text-muted-foreground" />
+            <h2 className="text-lg font-semibold tracking-tight">
+              Year-by-year
+            </h2>
+          </div>
+          <RetirementPlanProjectionsTable
+            projections={projections}
+            assets={assets}
+            currency={currency}
+            rates={rates}
+            retirementYear={workingPlan.retirementYear}
+          />
+        </div>
+
+        <AddRetirementAssetDialog
+          open={addAssetOpen}
+          onOpenChange={setAddAssetOpen}
+          onAdd={handleAddAsset}
+          existingSymbols={assets.map((asset) => asset.symbol)}
+        />
+        <CreateRetirementFromPortfolioDialog
+          open={refreshOpen}
+          onOpenChange={setRefreshOpen}
+          mode={assets.length === 0 ? "create" : "refresh"}
+          existingAssets={assets}
+          portfolios={portfoliosWithHoldings}
+          defaultPortfolioId={primaryPortfolio?.id ?? activePortfolioId}
+          isSubmitting={isRefreshingPortfolio}
+          onConfirm={async ({ assets: nextAssets }) => {
+            setIsRefreshingPortfolio(true);
+            try {
+              persistPlan({ ...workingPlan, assets: nextAssets });
+              setRefreshOpen(false);
+            } finally {
+              setIsRefreshingPortfolio(false);
+            }
+          }}
+        />
       </div>
     </FreeResourceOpenGuard>
   );

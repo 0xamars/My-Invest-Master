@@ -7,6 +7,7 @@ import type { OptionsPosition } from "@/types/options";
 import { isUserPlan, type UserPlan } from "@/types/plan";
 import type { PortfolioHolding, UserPortfolio } from "@/types/portfolio";
 import { createEmptyPortfolio } from "@/types/portfolio";
+import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import type { RetirementPlan } from "@/types/retirement";
 import {
   isWatchlistAssetType,
@@ -336,7 +337,8 @@ export async function loadRetirementPlansFromCloud(
 
   return data
     .map((row) => row.data as RetirementPlan)
-    .filter((plan) => plan && typeof plan.id === "string");
+    .filter((plan) => plan && typeof plan.id === "string")
+    .map((plan) => normalizeRetirementPlan(plan));
 }
 
 export async function saveRetirementPlanToCloud(

@@ -58,6 +58,7 @@ import {
 } from "@/lib/retirement/format";
 import { cn } from "@/lib/utils";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
+import type { MonteCarloPercentileBand } from "@/lib/retirement/monte-carlo";
 import type { RetirementPlanAsset, YearProjection } from "@/types/retirement";
 
 interface RetirementPlanProjectionsChartProps {
@@ -66,6 +67,7 @@ interface RetirementPlanProjectionsChartProps {
   currency: DisplayCurrency;
   rates: FxRates;
   retirementYear: number;
+  percentiles?: MonteCarloPercentileBand[];
 }
 
 const AXIS_TICK = { fill: CHART_AXIS_COLOR, fontSize: 11, fontWeight: 500 };
@@ -131,7 +133,7 @@ function ProjectionChartTooltip({
                 </span>
               </div>
               <span className="shrink-0 text-xs font-semibold tabular-nums text-foreground">
-                {key === "lifestyleSpending"
+                {key === "lifestyleSpending" || key === "portfolioWithdrawal"
                   ? formatProjectionSpending(
                       Math.abs(Number(item.value)),
                       currency,
@@ -153,13 +155,19 @@ export function RetirementPlanProjectionsChart({
   currency,
   rates,
   retirementYear,
+  percentiles,
 }: RetirementPlanProjectionsChartProps) {
   const [view, setView] = useState<ProjectionChartView>("total-closing");
   const gradientIdPrefix = useId().replace(/:/g, "");
 
   const chartData = useMemo(
-    () => buildProjectionChartData(projections, assets),
-    [projections, assets],
+    () => buildProjectionChartData(projections, assets, percentiles),
+    [projections, assets, percentiles],
+  );
+  const showMonteCarloBand = Boolean(
+    percentiles &&
+      percentiles.length > 0 &&
+      chartData.some((row) => row.p90 != null),
   );
 
   const compositionAssets = useMemo(
@@ -250,7 +258,9 @@ export function RetirementPlanProjectionsChart({
   ]);
 
   const isBarView =
-    view === "appreciation-vs-expenses" || view === "net-change";
+    view === "appreciation-vs-expenses" ||
+    view === "net-change" ||
+    view === "income-vs-spend";
 
   return (
     <AnalyticsChartCard
@@ -422,6 +432,27 @@ export function RetirementPlanProjectionsChart({
 
             {view === "total-closing" && (
               <>
+                {showMonteCarloBand && (
+                  <>
+                    <Area
+                      type="monotone"
+                      dataKey="p10"
+                      stackId="mc"
+                      stroke="none"
+                      fill="transparent"
+                      isAnimationActive={false}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="mcBand"
+                      stackId="mc"
+                      stroke="none"
+                      fill={PROJECTION_PRIMARY_LINE}
+                      fillOpacity={0.18}
+                      isAnimationActive={false}
+                    />
+                  </>
+                )}
                 <Area
                   type="monotone"
                   dataKey="closingBalance"
@@ -498,6 +529,35 @@ export function RetirementPlanProjectionsChart({
                   />
                 );
               })}
+
+            {view === "income-vs-spend" && (
+              <>
+                <Bar
+                  dataKey="income"
+                  fill={PROJECTION_POSITIVE}
+                  fillOpacity={0.92}
+                  radius={[5, 5, 0, 0]}
+                  maxBarSize={12}
+                  isAnimationActive={false}
+                />
+                <Bar
+                  dataKey="lifestyleSpending"
+                  fill={PROJECTION_NEGATIVE}
+                  fillOpacity={0.88}
+                  radius={[0, 0, 5, 5]}
+                  maxBarSize={12}
+                  isAnimationActive={false}
+                />
+                <Bar
+                  dataKey="portfolioWithdrawal"
+                  fill={PROJECTION_DEPLETION_LINE_COLOR}
+                  fillOpacity={0.8}
+                  radius={[0, 0, 5, 5]}
+                  maxBarSize={12}
+                  isAnimationActive={false}
+                />
+              </>
+            )}
 
             {view === "appreciation-vs-expenses" && (
               <>
