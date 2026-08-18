@@ -225,7 +225,7 @@ export function BudgetCsvImportDialog({
                 <PreviewStat
                   label="Import"
                   value={String(preview.imported.length)}
-                  hint={`${preview.inflowCount} in · ${preview.outflowCount} out`}
+                  hint={`${preview.inflowCount} in · ${preview.outflowCount} out · ${preview.transferCount} transfer`}
                   accent="green"
                 />
                 <PreviewStat
@@ -294,10 +294,12 @@ export function BudgetCsvImportDialog({
                               "text-right font-semibold tabular-nums",
                               tx.type === "inflow"
                                 ? "text-[var(--brand-green)]"
-                                : "text-[var(--brand-orange)]",
+                                : tx.type === "transfer"
+                                  ? "text-foreground"
+                                  : "text-[var(--brand-orange)]",
                             )}
                           >
-                            {tx.type === "inflow" ? "+" : "−"}
+                            {tx.type === "inflow" ? "+" : tx.type === "transfer" ? "↔ " : "−"}
                             {formatBudgetMoney(tx.amount)}
                           </TableCell>
                         </TableRow>

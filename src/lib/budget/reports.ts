@@ -8,7 +8,44 @@ import {
   getCategoryActivity,
   getSortedTransactions,
 } from "@/lib/budget/calculations";
+import { isOnBudgetOutflow } from "@/lib/budget/on-budget";
+import { getOutflowActivityForCategory } from "@/lib/budget/transactions";
 import { getMonthKey, parseMonthKey, shiftMonthKey } from "@/types/budget";
+
+export type ReportRangePreset =
+  | "this-month"
+  | "last-month"
+  | "last-3-months"
+  | "last-6-months"
+  | "custom";
+
+export const REPORT_RANGE_PRESETS: ReportRangePreset[] = [
+  "this-month",
+  "last-month",
+  "last-3-months",
+  "last-6-months",
+  "custom",
+];
+
+export const REPORT_RANGE_LABELS: Record<ReportRangePreset, string> = {
+  "this-month": "This month",
+  "last-month": "Last month",
+  "last-3-months": "Last 3 months",
+  "last-6-months": "Last 6 months",
+  custom: "Custom",
+};
+
+export interface ReportDateRange {
+  preset: ReportRangePreset;
+  fromDate: string;
+  toDate: string;
+  monthKeys: string[];
+}
+
+export interface PayeeSpendingRow {
+  payee: string;
+  amount: number;
+}
 
 export interface CategorySpendingRow {
   categoryId: string;
@@ -111,6 +148,73 @@ export function getNetWorthSeries(
   });
 }
 
+function lastDateOfMonth(monthKey: string): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${monthKey}-${String(lastDay).padStart(2, "0")}`;
+}
+
+function firstDateOfMonth(monthKey: string): string {
+  return `${monthKey}-01`;
+}
+
+function monthKeysInclusive(fromMonth: string, toMonth: string): string[] {
+  if (fromMonth > toMonth) return monthKeysInclusive(toMonth, fromMonth);
+  const keys: string[] = [];
+  let cursor = fromMonth;
+  while (cursor <= toMonth) {
+    keys.push(cursor);
+    if (cursor === toMonth) break;
+    cursor = shiftMonthKey(cursor, 1);
+  }
+  return keys;
+}
+
+function isValidDateKey(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+export function resolveReportDateRange(
+  preset: ReportRangePreset,
+  options?: { now?: Date; fromDate?: string; toDate?: string },
+): ReportDateRange {
+  const now = options?.now ?? new Date();
+  const currentMonth = getMonthKey(now);
+  const lastMonth = shiftMonthKey(currentMonth, -1);
+
+  if (preset === "custom") {
+    const fromDate = isValidDateKey(options?.fromDate ?? "")
+      ? options!.fromDate!
+      : firstDateOfMonth(currentMonth);
+    const toDate = isValidDateKey(options?.toDate ?? "")
+      ? options!.toDate!
+      : lastDateOfMonth(currentMonth);
+    const start = fromDate <= toDate ? fromDate : toDate;
+    const end = fromDate <= toDate ? toDate : fromDate;
+    return {
+      preset,
+      fromDate: start,
+      toDate: end,
+      monthKeys: monthKeysInclusive(start.slice(0, 7), end.slice(0, 7)),
+    };
+  }
+
+  const monthCount =
+    preset === "this-month" ? 1 : preset === "last-month" ? 1 : preset === "last-3-months" ? 3 : 6;
+  const endMonth = preset === "last-month" ? lastMonth : currentMonth;
+  const monthKeys = getRecentMonthKeys(monthCount, endMonth);
+  return {
+    preset,
+    fromDate: firstDateOfMonth(monthKeys[0]!),
+    toDate: lastDateOfMonth(monthKeys[monthKeys.length - 1]!),
+    monthKeys,
+  };
+}
+
+function isInDateRange(date: string, fromDate: string, toDate: string): boolean {
+  return date >= fromDate && date <= toDate;
+}
+
 export function getSpendingByCategory(
   budget: BudgetData,
   monthKey: string,
@@ -132,11 +236,64 @@ export function getSpendingByCategory(
     .sort((a, b) => b.amount - a.amount);
 }
 
+export function getSpendingByCategoryInRange(
+  budget: BudgetData,
+  fromDate: string,
+  toDate: string,
+): CategorySpendingRow[] {
+  return budget.categories
+    .filter((category) => !category.creditCardAccountId)
+    .map((category) => ({
+      categoryId: category.id,
+      categoryName: category.name,
+      amount: budget.transactions.reduce((sum, tx) => {
+        if (!isInDateRange(tx.date, fromDate, toDate)) return sum;
+        if (!isOnBudgetOutflow(tx, budget.accounts)) return sum;
+        return sum + getOutflowActivityForCategory(tx, category.id);
+      }, 0),
+    }))
+    .filter((row) => row.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+}
+
+export function getSpendingByPayee(
+  budget: BudgetData,
+  fromDate: string,
+  toDate: string,
+): PayeeSpendingRow[] {
+  const totals = new Map<string, PayeeSpendingRow>();
+
+  for (const tx of budget.transactions) {
+    if (!isInDateRange(tx.date, fromDate, toDate)) continue;
+    if (!isOnBudgetOutflow(tx, budget.accounts)) continue;
+    const name = tx.payee.trim();
+    if (!name) continue;
+    const key = name.toLowerCase().replace(/\s+/g, " ");
+    const current = totals.get(key);
+    if (current) {
+      current.amount += tx.amount;
+    } else {
+      totals.set(key, { payee: name, amount: tx.amount });
+    }
+  }
+
+  return [...totals.values()]
+    .filter((row) => row.amount > 0)
+    .sort((a, b) => b.amount - a.amount || a.payee.localeCompare(b.payee));
+}
+
 export function getIncomeVsExpensesSeries(
   budget: BudgetData,
   monthCount = 6,
 ): MonthCashFlowRow[] {
-  return getRecentMonthKeys(monthCount).map((monthKey) => {
+  return getIncomeVsExpensesForMonths(budget, getRecentMonthKeys(monthCount));
+}
+
+export function getIncomeVsExpensesForMonths(
+  budget: BudgetData,
+  monthKeys: string[],
+): MonthCashFlowRow[] {
+  return monthKeys.map((monthKey) => {
     const summary = computeMonthSummary(budget, monthKey);
     return {
       monthKey,
@@ -176,11 +333,18 @@ export function filterTransactions(
     type?: "all" | "inflow" | "outflow" | "transfer";
     inbox?: "all" | "unapproved";
     search?: string;
+    payee?: string;
+    fromDate?: string;
+    toDate?: string;
   },
 ) {
   let rows = getSortedTransactions(budget.transactions);
 
-  if (options.monthKey && options.monthKey !== "all") {
+  if (options.fromDate || options.toDate) {
+    const fromDate = options.fromDate || "0000-01-01";
+    const toDate = options.toDate || "9999-12-31";
+    rows = rows.filter((tx) => isInDateRange(tx.date, fromDate, toDate));
+  } else if (options.monthKey && options.monthKey !== "all") {
     rows = rows.filter((tx) => tx.date.startsWith(options.monthKey!));
   }
 
@@ -225,6 +389,11 @@ export function filterTransactions(
         tx.payee.toLowerCase().includes(query) ||
         (tx.memo?.toLowerCase().includes(query) ?? false),
     );
+  }
+
+  const payee = options.payee?.trim().toLowerCase();
+  if (payee) {
+    rows = rows.filter((tx) => tx.payee.trim().toLowerCase() === payee);
   }
 
   return rows;

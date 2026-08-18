@@ -14,6 +14,7 @@ interface BudgetUpcomingListProps {
   accounts: BudgetAccount[];
   categories: BudgetCategory[];
   onEdit: (scheduleId: string) => void;
+  onEnterNow?: (scheduleId: string) => void;
 }
 
 export function BudgetUpcomingList({
@@ -21,6 +22,7 @@ export function BudgetUpcomingList({
   accounts,
   categories,
   onEdit,
+  onEnterNow,
 }: BudgetUpcomingListProps) {
   if (instances.length === 0) return null;
 
@@ -31,12 +33,15 @@ export function BudgetUpcomingList({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Upcoming</h2>
           <p className="text-xs text-muted-foreground">
-            Scheduled rows. They post as normal transactions when this plan is opened on or after the date.
+            Scheduled rows. Enter now posts the next one immediately. Others post when this plan is opened on or after the date.
           </p>
         </div>
       </div>
       <div className="divide-y divide-border/40">
-        {instances.map((instance) => {
+        {instances.map((instance, index) => {
+          const isNextOccurrence = !instances
+            .slice(0, index)
+            .some((entry) => entry.scheduleId === instance.scheduleId);
           const display = getTransactionDisplay(
             {
               id: instance.scheduleId,
@@ -84,6 +89,15 @@ export function BudgetUpcomingList({
                         : "out"
                   }
                 />
+                {onEnterNow && isNextOccurrence ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onEnterNow(instance.scheduleId)}
+                  >
+                    Enter now
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"

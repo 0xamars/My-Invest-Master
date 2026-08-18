@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Landmark } from "lucide-react";
 import {
   Bar,
@@ -18,22 +20,29 @@ import {
   BudgetPageHeader,
   BudgetPanel,
 } from "@/components/budget/budget-ui";
+import { Button } from "@/components/ui/button";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { Input } from "@/components/ui/input";
 import { useBudget } from "@/contexts/budget-context";
 import { getCurrentMonthKey } from "@/lib/budget/calculations";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { cn } from "@/lib/utils";
 import {
   getAvailableToBudgetSeries,
-  getIncomeVsExpensesSeries,
+  getIncomeVsExpensesForMonths,
   getNetWorthSeries,
   getNetWorthSnapshot,
-  getSpendingByCategory,
+  getSpendingByCategoryInRange,
+  getSpendingByPayee,
+  REPORT_RANGE_LABELS,
+  REPORT_RANGE_PRESETS,
+  resolveReportDateRange,
+  type ReportRangePreset,
 } from "@/lib/budget/reports";
 import {
   BRAND_GREEN,
@@ -42,27 +51,36 @@ import {
   CHART_GRID_COLOR,
   getChartSeriesColor,
 } from "@/lib/portfolio/chart-theme";
-import { shiftMonthKey, formatMonthLabel } from "@/types/budget";
+import { formatMonthLabel } from "@/types/budget";
 
 const AXIS_TICK = { fill: CHART_AXIS_COLOR, fontSize: 11, fontWeight: 500 };
 
 export function BudgetReportsContent() {
-  const { budget } = useBudget();
-  const currentMonth = getCurrentMonthKey();
-  const lastMonth = shiftMonthKey(currentMonth, -1);
+  const { budget, planId } = useBudget();
+  const [preset, setPreset] = useState<ReportRangePreset>("this-month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
-  const thisMonthSpending = useMemo(
-    () => getSpendingByCategory(budget, currentMonth),
-    [budget, currentMonth],
-  );
-  const lastMonthSpending = useMemo(
-    () => getSpendingByCategory(budget, lastMonth),
-    [budget, lastMonth],
+  const range = useMemo(
+    () =>
+      resolveReportDateRange(preset, {
+        fromDate: customFrom || undefined,
+        toDate: customTo || undefined,
+      }),
+    [preset, customFrom, customTo],
   );
 
+  const spending = useMemo(
+    () => getSpendingByCategoryInRange(budget, range.fromDate, range.toDate),
+    [budget, range.fromDate, range.toDate],
+  );
+  const payeeSpending = useMemo(
+    () => getSpendingByPayee(budget, range.fromDate, range.toDate),
+    [budget, range.fromDate, range.toDate],
+  );
   const cashFlowSeries = useMemo(
-    () => getIncomeVsExpensesSeries(budget, 6),
-    [budget],
+    () => getIncomeVsExpensesForMonths(budget, range.monthKeys),
+    [budget, range.monthKeys],
   );
 
   const availableSeries = useMemo(
@@ -79,29 +97,103 @@ export function BudgetReportsContent() {
     available: { label: "Available to Budget", color: BRAND_GREEN },
   } satisfies ChartConfig;
 
+  const rangeLabel =
+    range.monthKeys.length === 1
+      ? formatMonthLabel(range.monthKeys[0]!)
+      : `${formatMonthLabel(range.monthKeys[0]!)} – ${formatMonthLabel(range.monthKeys[range.monthKeys.length - 1]!)}`;
+
+  function registerHref(query: Record<string, string | undefined>) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value) params.set(key, value);
+    }
+    const suffix = params.toString();
+    return `/budget/plans/${planId}/transactions${suffix ? `?${suffix}` : ""}`;
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Reports"
-        description="Net worth, spending, cash flow, and Ready to Assign over time."
+        description="Spending, payees, and cash flow for a date range. Click a category or payee bar to open matching register rows."
       />
+
+      <BudgetPanel>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+          <div>
+            <h2 className="text-sm font-semibold tracking-tight">Date range</h2>
+            <p className="text-xs text-muted-foreground">
+              Applies to Spending, Payees, and Income vs Expenses.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {REPORT_RANGE_PRESETS.map((value) => (
+              <Button
+                key={value}
+                type="button"
+                size="sm"
+                variant="outline"
+                className="budget-range-chip"
+                data-active={preset === value}
+                onClick={() => setPreset(value)}
+              >
+                {REPORT_RANGE_LABELS[value]}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {preset === "custom" ? (
+          <div className="flex flex-wrap items-end gap-3 border-t border-border/50 px-4 py-3 sm:px-5">
+            <label className="space-y-1 text-xs">
+              <span className="text-muted-foreground">From</span>
+              <Input
+                type="date"
+                value={customFrom}
+                onChange={(event) => setCustomFrom(event.target.value)}
+              />
+            </label>
+            <label className="space-y-1 text-xs">
+              <span className="text-muted-foreground">To</span>
+              <Input
+                type="date"
+                value={customTo}
+                onChange={(event) => setCustomTo(event.target.value)}
+              />
+            </label>
+          </div>
+        ) : null}
+      </BudgetPanel>
 
       <NetWorthReport budget={budget} />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <SpendingByCategoryChart
-          title={`Spending by Category — ${formatMonthLabel(currentMonth)}`}
-          data={thisMonthSpending}
+          title={`Spending by Category — ${rangeLabel}`}
+          data={spending}
+          hrefForRow={(row) =>
+            registerHref({
+              category: row.categoryId,
+              from: range.fromDate,
+              to: range.toDate,
+            })
+          }
         />
-        <SpendingByCategoryChart
-          title={`Spending by Category — ${formatMonthLabel(lastMonth)}`}
-          data={lastMonthSpending}
+        <PayeeSpendingChart
+          title={`Spending by Payee — ${rangeLabel}`}
+          data={payeeSpending}
+          hrefForRow={(row) =>
+            registerHref({
+              payee: row.payee,
+              from: range.fromDate,
+              to: range.toDate,
+            })
+          }
         />
       </div>
 
       <ChartFrame
         title="Income vs Expenses"
-        description="Monthly cash flow over the last 6 months"
+        description={`Monthly cash flow · ${rangeLabel}`}
       >
         {cashFlowSeries.every((row) => row.income === 0 && row.expenses === 0) ? (
           <ChartEmpty message="Add transactions to see income and expense trends." />
@@ -408,67 +500,143 @@ function ChartEmpty({ message }: { message: string }) {
 function SpendingByCategoryChart({
   title,
   data,
+  hrefForRow,
 }: {
   title: string;
   data: Array<{ categoryId: string; categoryName: string; amount: number }>;
+  hrefForRow: (row: { categoryId: string }) => string;
 }) {
-  const chartData = data.slice(0, 8).map((row, index) => ({
+  return (
+    <HorizontalSpendChart
+      title={title}
+      description="Top categories by spending. Click a bar to open the register."
+      empty="No spending recorded for this range."
+      rows={data.slice(0, 8).map((row) => ({
+        key: row.categoryId,
+        label: row.categoryName,
+        amount: row.amount,
+        href: hrefForRow(row),
+      }))}
+    />
+  );
+}
+
+function PayeeSpendingChart({
+  title,
+  data,
+  hrefForRow,
+}: {
+  title: string;
+  data: Array<{ payee: string; amount: number }>;
+  hrefForRow: (row: { payee: string }) => string;
+}) {
+  return (
+    <HorizontalSpendChart
+      title={title}
+      description="Top payees by spending. Click a bar to open the register."
+      empty="No payee spending recorded for this range."
+      rows={data.slice(0, 8).map((row) => ({
+        key: row.payee,
+        label: row.payee,
+        amount: row.amount,
+        href: hrefForRow(row),
+      }))}
+    />
+  );
+}
+
+function HorizontalSpendChart({
+  title,
+  description,
+  empty,
+  rows,
+}: {
+  title: string;
+  description: string;
+  empty: string;
+  rows: Array<{ key: string; label: string; amount: number; href: string }>;
+}) {
+  const chartData = rows.map((row, index) => ({
     ...row,
-    label: row.categoryName,
     fill: getChartSeriesColor(index),
   }));
 
+  const router = useRouter();
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {
       amount: { label: "Spent", color: BRAND_ORANGE },
     };
     for (const row of chartData) {
-      config[row.categoryId] = { label: row.categoryName, color: row.fill };
+      config[row.key] = { label: row.label, color: row.fill };
     }
     return config;
   }, [chartData]);
 
   return (
-    <ChartFrame title={title} description="Top categories by spending">
+    <ChartFrame title={title} description={description}>
       {chartData.length === 0 ? (
-        <ChartEmpty message="No spending recorded for this month." />
+        <ChartEmpty message={empty} />
       ) : (
-        <ChartContainer
-          config={chartConfig}
-          className="w-full"
-          style={{ height: Math.max(220, chartData.length * 36 + 32) }}
-        >
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 4, right: 12, left: 4, bottom: 4 }}
+        <>
+          <ChartContainer
+            config={chartConfig}
+            className="w-full"
+            style={{ height: Math.max(220, chartData.length * 36 + 32) }}
           >
-            <XAxis type="number" hide />
-            <YAxis
-              type="category"
-              dataKey="label"
-              width={100}
-              tick={{ fontSize: 11, fill: CHART_AXIS_COLOR }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value, _name, item) => [
-                    formatBudgetMoney(Number(value)),
-                    (item.payload as { label: string }).label,
-                  ]}
-                />
-              }
-            />
-            <Bar dataKey="amount" radius={[0, 6, 6, 0]} maxBarSize={18}>
-              {chartData.map((entry) => (
-                <Cell key={entry.categoryId} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 4, right: 12, left: 4, bottom: 4 }}
+            >
+              <XAxis type="number" hide />
+              <YAxis
+                type="category"
+                dataKey="label"
+                width={100}
+                tick={{ fontSize: 11, fill: CHART_AXIS_COLOR }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value, _name, item) => [
+                      formatBudgetMoney(Number(value)),
+                      (item.payload as { label: string }).label,
+                    ]}
+                  />
+                }
+              />
+              <Bar
+                dataKey="amount"
+                radius={[0, 6, 6, 0]}
+                maxBarSize={18}
+                cursor="pointer"
+                onClick={(data) => {
+                  const href = (data as { href?: string } | undefined)?.href;
+                  if (href) router.push(href);
+                }}
+              >
+                {chartData.map((entry) => (
+                  <Cell key={entry.key} fill={entry.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+          <div className="mt-2 flex flex-wrap gap-1.5 px-1">
+            {chartData.map((row) => (
+              <Button
+                key={row.key}
+                type="button"
+                size="xs"
+                variant="outline"
+                render={<Link href={row.href} />}
+              >
+                {row.label}
+              </Button>
+            ))}
+          </div>
+        </>
       )}
     </ChartFrame>
   );

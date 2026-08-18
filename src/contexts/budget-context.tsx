@@ -71,6 +71,18 @@ interface BudgetContextValue {
     amount: number,
   ) => void;
   autoAssignUnderfunded: (monthKey: string) => void;
+  resetAvailable: (
+    monthKey: string,
+    options?: { coverOverspend?: boolean },
+  ) => void;
+  bulkCategorizeTransactions: (
+    transactionIds: string[],
+    categoryId: string | null,
+  ) => void;
+  bulkApproveTransactions: (transactionIds: string[]) => void;
+  bulkDeleteTransactions: (transactionIds: string[]) => void;
+  bulkToggleClearedTransactions: (transactionIds: string[]) => void;
+  enterScheduledTransactionNow: (scheduleId: string) => void;
   setPlanCurrency: (currency: BudgetCurrency) => void;
   setCategoryGoal: (goal: {
     id?: string;

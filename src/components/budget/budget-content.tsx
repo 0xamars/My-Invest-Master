@@ -25,6 +25,7 @@ import {
   AutoAssignUnderfundedDialog,
   CoverOverspendDialog,
   MoveMoneyDialog,
+  ResetAvailableDialog,
   SetCategoryGoalDialog,
 } from "@/components/budget/budget-dialogs";
 import { BudgetMonthNav } from "@/components/budget/budget-month-nav";
@@ -58,6 +59,7 @@ export function BudgetContent() {
     moveMoney,
     coverOverspend,
     autoAssignUnderfunded,
+    resetAvailable,
     setCategoryGoal,
     removeCategoryGoal,
   } = useBudget();
@@ -72,6 +74,7 @@ export function BudgetContent() {
   const [coverOpen, setCoverOpen] = useState(false);
   const [coverCategoryId, setCoverCategoryId] = useState<string | null>(null);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
+  const [resetAvailableOpen, setResetAvailableOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalCategoryId, setGoalCategoryId] = useState<string | null>(null);
   const [editGroupOpen, setEditGroupOpen] = useState(false);
@@ -186,6 +189,7 @@ export function BudgetContent() {
           setCoverOpen(true);
         }}
         onAutoAssignUnderfunded={() => setAutoAssignOpen(true)}
+        onResetAvailable={() => setResetAvailableOpen(true)}
         onSetGoal={(categoryId) => {
           setGoalCategoryId(categoryId);
           setGoalOpen(true);
@@ -362,6 +366,15 @@ export function BudgetContent() {
         monthKey={monthKey}
         currency={budget.currency}
         onConfirm={() => autoAssignUnderfunded(monthKey)}
+      />
+
+      <ResetAvailableDialog
+        open={resetAvailableOpen}
+        onOpenChange={setResetAvailableOpen}
+        budget={budget}
+        monthKey={monthKey}
+        currency={budget.currency}
+        onConfirm={(options) => resetAvailable(monthKey, options)}
       />
 
       <SetCategoryGoalDialog

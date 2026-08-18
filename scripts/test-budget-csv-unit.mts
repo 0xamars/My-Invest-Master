@@ -73,9 +73,10 @@ const bankPreview = parseBudgetCsv(bankCsv, {
 
 assert(bankPreview.totalRows === 6, "Counts data rows including bad ones");
 assert(bankPreview.inflowCount === 1, "Positive Amount is an inflow");
-assert(bankPreview.outflowCount === 2, "Negative Amount is an outflow");
+assert(bankPreview.outflowCount === 1, "Negative Amount that is not a known transfer is an outflow");
+assert(bankPreview.transferCount === 1, "Transfer to a known on-budget account is reconstructed");
 assert(bankPreview.inflowTotal === 3200, "Sums parsed inflows");
-assert(bankPreview.outflowTotal === 584, "Sums parsed outflows (84 + 500)");
+assert(bankPreview.outflowTotal === 84, "Sums leftover outflows after transfer reconstruction");
 assert(
   bankPreview.imported.every((tx) => tx.accountId === "acct-chequing"),
   "Uses the destination account when the file has no Account column",
@@ -89,8 +90,27 @@ assert(
 assert(bankPreview.skipped.length === 3, "Reports three skipped bad rows");
 assert(
   bankPreview.imported.find((tx) => tx.payee === "Transfer to Savings")?.type ===
-    "outflow",
-  "Transfer-like payees import as plain outflow, not type transfer",
+    "transfer" &&
+    bankPreview.imported.find((tx) => tx.payee === "Transfer to Savings")
+      ?.transferAccountId === "acct-savings",
+  "Transfer to a known on-budget account imports as type transfer",
+);
+
+const leftoverTransfer = parseBudgetCsv(
+  `Date,Description,Amount
+2026-03-03,Transfer to External Wallet,-40
+`,
+  {
+    accounts,
+    categories,
+    existingTransactions: [],
+    fallbackAccountId: "acct-chequing",
+  },
+);
+assert(
+  leftoverTransfer.imported[0]?.type === "outflow" &&
+    leftoverTransfer.imported[0]?.transferAccountId == null,
+  "Transfer-like payees that do not name a known on-budget account stay inflow/outflow",
 );
 
 const debitCredit = parseBudgetCsv(
@@ -123,7 +143,7 @@ const ynabPreview = parseBudgetCsv(ynabCsv, {
   existingTransactions: [],
   fallbackAccountId: "acct-chequing",
 });
-assert(ynabPreview.imported.length === 5, "Parses the YNAB-ish fixture");
+assert(ynabPreview.imported.length === 4, "Parses the YNAB-ish fixture and collapses the transfer pair");
 assert(
   ynabPreview.imported.find((tx) => tx.payee === "Whole Foods")?.categoryId ===
     "groceries",
@@ -139,15 +159,16 @@ assert(
     "dining",
   "Matches Dining Out exactly",
 );
+const ynabTransfer = ynabPreview.imported.find((tx) => tx.type === "transfer");
 assert(
-  ynabPreview.imported.every((tx) => tx.type === "inflow" || tx.type === "outflow"),
-  "YNAB transfer-looking rows stay inflow/outflow",
+  ynabTransfer?.accountId === "acct-chequing" &&
+    ynabTransfer.transferAccountId === "acct-savings" &&
+    ynabTransfer.amount === 500,
+  "YNAB Transfer : Account pair reconstructs as one Chequing → Savings transfer",
 );
 assert(
   ynabPreview.imported.find((tx) => tx.payee === "Acme Payroll")?.accountId ===
-    "acct-chequing" &&
-    ynabPreview.imported.find((tx) => tx.payee.startsWith("Transfer : Chequing"))
-      ?.accountId === "acct-savings",
+    "acct-chequing",
   "Uses the Account column when the name matches",
 );
 
@@ -260,6 +281,70 @@ assert(
 assert(
   getAccountBalance(accounts[0], applied) === 3200 - 84 - 500,
   "Imported signed amounts update the destination account balance",
+);
+
+const oppositePair = parseBudgetCsv(
+  `Account,Date,Payee,Amount
+Chequing,2026-07-01,Move cash,-250
+Savings,2026-07-01,Move cash,250
+`,
+  {
+    accounts,
+    categories,
+    existingTransactions: [],
+  },
+);
+const oppositeTransfer = oppositePair.imported.find((tx) => tx.type === "transfer");
+assert(
+  oppositePair.imported.length === 1 &&
+    oppositeTransfer?.accountId === "acct-chequing" &&
+    oppositeTransfer.transferAccountId === "acct-savings" &&
+    oppositeTransfer.amount === 250,
+  "A unique same-date opposite pair between known on-budget accounts reconstructs as one transfer",
+);
+
+const leftoverOpposite = parseBudgetCsv(
+  `Account,Date,Payee,Amount
+Chequing,2026-07-02,Cafe,-12
+Savings,2026-07-02,Interest,12
+Chequing,2026-07-02,Refund,12
+`,
+  {
+    accounts,
+    categories,
+    existingTransactions: [],
+  },
+);
+assert(
+  leftoverOpposite.imported.every((tx) => tx.type !== "transfer") &&
+    leftoverOpposite.imported.length === 3,
+  "Ambiguous same-date equal amounts are not guessed into a transfer",
+);
+
+const existingTransfer = [
+  {
+    date: "2026-03-03",
+    payee: "Transfer to Savings",
+    amount: 500,
+    accountId: "acct-chequing",
+    type: "transfer" as const,
+    transferAccountId: "acct-savings",
+  },
+];
+const transferDup = parseBudgetCsv(
+  `Date,Description,Amount
+2026-03-03,Transfer to Savings,-500
+`,
+  {
+    accounts,
+    categories,
+    existingTransactions: existingTransfer,
+    fallbackAccountId: "acct-chequing",
+  },
+);
+assert(
+  transferDup.duplicates.length === 1 && transferDup.imported.length === 0,
+  "Exact reconstructed transfer is still skipped as a duplicate",
 );
 
 if (failed) {
