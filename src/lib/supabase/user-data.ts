@@ -8,6 +8,7 @@ import { isUserPlan, type UserPlan } from "@/types/plan";
 import type { PortfolioHolding, UserPortfolio } from "@/types/portfolio";
 import { createEmptyPortfolio } from "@/types/portfolio";
 import { parseStoredTargetAllocation } from "@/lib/portfolio/allocation-targets";
+import { parseStoredLeverage } from "@/lib/portfolio/leverage";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import type { RetirementPlan } from "@/types/retirement";
 import {
@@ -83,6 +84,7 @@ function normalizePortfolio(raw: unknown): UserPortfolio | null {
       ? (data.holdings as PortfolioHolding[])
       : [],
     ...(targetAllocation ? { targetAllocation } : {}),
+    leverage: parseStoredLeverage(data.leverage),
     createdAt:
       typeof data.createdAt === "string"
         ? data.createdAt

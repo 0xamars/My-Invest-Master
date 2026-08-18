@@ -1,6 +1,7 @@
 "use client";
 
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { MoreHorizontal, Search, Trash2 } from "lucide-react";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,19 @@ import {
   formatPrice,
   profitLossClass,
 } from "@/lib/portfolio/format";
+import { buildAnalysisHref } from "@/lib/analysis/types";
 import { cn } from "@/lib/utils";
 import type { WatchlistItemWithPrices } from "@/types/watchlist";
 
 interface WatchlistTableProps {
   items: WatchlistItemWithPrices[];
   isLoading?: boolean;
+  heldKeys?: Set<string>;
   onRemove: (item: WatchlistItemWithPrices) => void;
+}
+
+function watchlistKey(symbol: string, type: string) {
+  return `${symbol.toUpperCase()}:${type}`;
 }
 
 const CELL = "px-4 py-3.5";
@@ -45,6 +52,7 @@ function typeLabel(type: "stock" | "crypto") {
 export function WatchlistTable({
   items,
   isLoading = false,
+  heldKeys,
   onRemove,
 }: WatchlistTableProps) {
   if (!isLoading && items.length === 0) {
@@ -59,6 +67,7 @@ export function WatchlistTable({
             <TableRow className="hover:bg-transparent">
               <TableHead className={cn(CELL, "pl-5")}>Ticker</TableHead>
               <TableHead className={CELL}>Type</TableHead>
+              <TableHead className={CELL}>In book</TableHead>
               <TableHead className={NUMERIC}>Price</TableHead>
               <TableHead className={NUMERIC}>Change</TableHead>
               <TableHead className={NUMERIC}>Change %</TableHead>
@@ -83,6 +92,9 @@ export function WatchlistTable({
                     <TableCell className={CELL}>
                       <Skeleton className="h-5 w-14" />
                     </TableCell>
+                    <TableCell className={CELL}>
+                      <Skeleton className="h-5 w-14" />
+                    </TableCell>
                     <TableCell className={NUMERIC}>
                       <Skeleton className="ml-auto h-4 w-16" />
                     </TableCell>
@@ -100,6 +112,14 @@ export function WatchlistTable({
                     item.changePercent == null
                       ? "text-muted-foreground"
                       : profitLossClass(item.changePercent);
+                  const inBook = Boolean(
+                    heldKeys?.has(watchlistKey(item.symbol, item.type)),
+                  );
+                  const analysisHref = buildAnalysisHref(
+                    item.symbol,
+                    item.type,
+                    item.priceId,
+                  );
 
                   return (
                     <TableRow key={item.id} className="group">
@@ -114,9 +134,12 @@ export function WatchlistTable({
                             size="sm"
                           />
                           <div className="min-w-0">
-                            <p className="font-medium tracking-tight">
+                            <Link
+                              href={analysisHref}
+                              className="font-medium tracking-tight hover:text-primary hover:underline"
+                            >
                               {item.symbol}
-                            </p>
+                            </Link>
                             <p className="truncate text-xs text-muted-foreground">
                               {item.name}
                             </p>
@@ -127,6 +150,20 @@ export function WatchlistTable({
                         <Badge variant="secondary" className="font-normal">
                           {typeLabel(item.type)}
                         </Badge>
+                      </TableCell>
+                      <TableCell className={CELL}>
+                        {inBook ? (
+                          <Badge
+                            variant="outline"
+                            className="border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-[var(--brand-green)]"
+                          >
+                            In book
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            Queue
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className={NUMERIC}>
                         {item.isPriceLoading && item.currentPrice == null ? (
@@ -172,6 +209,13 @@ export function WatchlistTable({
                             }
                           />
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="gap-2"
+                              render={<Link href={analysisHref} />}
+                            >
+                              <Search className="size-4" />
+                              Analysis
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => onRemove(item)}

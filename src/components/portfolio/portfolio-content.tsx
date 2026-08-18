@@ -2,11 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, RefreshCw, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { StatCard } from "@/components/ui/stat-card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useParams, useRouter } from "next/navigation";
+import { AlertCircle, ArrowLeft, Plus, RefreshCw, Star } from "lucide-react";
 import {
   AddTransactionButton,
   AddTransactionDialog,
@@ -15,9 +12,18 @@ import { DeleteHoldingDialog } from "@/components/portfolio/delete-holding-dialo
 import { EditHoldingDialog } from "@/components/portfolio/edit-holding-dialog";
 import { HoldingDetailsDialog } from "@/components/portfolio/holding-details-dialog";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
-import { PortfolioIntelligenceContent } from "@/components/portfolio/intelligence/portfolio-intelligence-content";
+import { LeveragePanel } from "@/components/portfolio/leverage-panel";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
+import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
+import { TargetMixPanel } from "@/components/invest/target-mix-panel";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
+import {
+  RetireEmptyState,
+  RetireMoney,
+  RetirePageHeader,
+  RetirePanel,
+} from "@/components/retirement/retire-ui";
+import { Button } from "@/components/ui/button";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
@@ -27,27 +33,23 @@ import {
   enrichHoldings,
   getPortfolioTotals,
 } from "@/lib/portfolio/calculations";
+import { buildInvestmentCheckup } from "@/lib/portfolio/checkup";
+import { getPortfolioDayChange } from "@/lib/portfolio/day-change";
+import {
+  cashValueFromHoldings,
+  leverageUtilizationFromPortfolio,
+} from "@/lib/portfolio/leverage";
 import { canOpenPortfolioOnPlan } from "@/lib/plans/free-access";
 import { isArchivedHolding, isHoldingVisible } from "@/lib/portfolio/transactions";
-import {
-  formatDisplayMoney,
-  formatPercent,
-  profitLossClass,
-} from "@/lib/portfolio/format";
+import { formatDisplayMoney, formatPercent } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
 import type { PortfolioHolding, PortfolioHoldingWithPrices } from "@/types/portfolio";
-
-type PortfolioTab = "holdings" | "intelligence";
 
 export function PortfolioContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const portfolioId = params.id;
 
-  const initialTab =
-    searchParams.get("tab") === "intelligence" ? "intelligence" : "holdings";
-  const [tab, setTab] = useState<PortfolioTab>(initialTab);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHolding, setEditingHolding] = useState<PortfolioHolding | null>(
     null,
@@ -63,6 +65,8 @@ export function PortfolioContent() {
     addTransaction,
     updateHolding,
     removeHolding,
+    updateTargetAllocation,
+    updateLeverage,
     isLoaded,
     syncError,
     hasLegacyPortfolioBackup,
@@ -141,6 +145,27 @@ export function PortfolioContent() {
     [archivedHoldings, prices, loadingSymbols, rates],
   );
 
+  const checkup = useMemo(
+    () =>
+      buildInvestmentCheckup(enrichedHoldings, totals, {
+        storedTargets: activePortfolio?.targetAllocation,
+        portfolioHref: `/portfolio/${portfolioId}`,
+      }),
+    [enrichedHoldings, totals, activePortfolio?.targetAllocation, portfolioId],
+  );
+
+  const dayChange = getPortfolioDayChange(
+    enrichedHoldings,
+    changes,
+    totals.currentValue,
+  );
+
+  const cashValue = cashValueFromHoldings(enrichedHoldings);
+  const leverageUtil = leverageUtilizationFromPortfolio(
+    activePortfolio?.leverage,
+    cashValue,
+  );
+
   const showEmptyHint =
     isLoaded &&
     visibleHoldings.length === 0 &&
@@ -153,11 +178,7 @@ export function PortfolioContent() {
     archivedHoldings.length === 0 &&
     hasLegacyPortfolioBackup;
 
-  const totalPlPercent =
-    totals.costValue === 0 ? 0 : (totals.profitLoss / totals.costValue) * 100;
-
   const isActiveReady = activePortfolio?.id === portfolioId;
-  const multiPortfolio = portfolios.length > 1;
 
   if (!isLoaded || !isPlanLoaded) {
     return (
@@ -180,182 +201,136 @@ export function PortfolioContent() {
           <RefreshCw className="size-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex flex-1 flex-col gap-8">
-          <div className="page-header">
-            <div className="space-y-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="-ml-2 w-fit gap-1.5 text-muted-foreground"
-                render={<Link href="/portfolio" />}
-              >
-                <ArrowLeft className="size-4" />
-                All portfolios
-              </Button>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="page-title">{activePortfolio.name}</h1>
-                  {activePortfolio.isPrimary && (
-                    <span className="inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[0.7rem] font-medium text-primary">
-                      <Star className="size-3 fill-primary" />
-                      Primary
-                    </span>
-                  )}
-                </div>
-                <p className="page-description">
-                  {isLoading
-                    ? "Fetching live prices…"
-                    : lastUpdated
-                      ? `Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}`
-                      : "Track stocks, crypto, custom assets, and cash."}
-                  {activePortfolio.isPrimary
-                    ? " · Primary (default for Invest, Analytics, and AI)"
-                    : " · Currently viewing — Primary is used as the app default"}
+        <div className="flex flex-1 flex-col gap-5">
+          <RetirePageHeader
+            title={activePortfolio.name}
+            description={
+              isLoading
+                ? "Fetching live prices…"
+                : lastUpdated
+                  ? `The book — holdings, mix, and the leverage numbers you typed. Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}.`
+                  : "Holdings, concentration, target mix, and leverage you type from the broker. This page does not place trades."
+            }
+            action={
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  render={<Link href="/portfolio" />}
+                >
+                  <ArrowLeft className="size-4" />
+                  All books
+                </Button>
+                <CurrencyToggle
+                  currency={currency}
+                  onChange={setCurrency}
+                  rates={rates}
+                  isLoading={isFxLoading}
+                  error={fxError}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-10 rounded-xl border-border/80 bg-card"
+                  onClick={() => refetch()}
+                  disabled={isLoading || holdings.length === 0}
+                  title="Refresh prices"
+                >
+                  <RefreshCw
+                    className={cn("size-4", isRefreshing && "animate-spin")}
+                  />
+                </Button>
+                <AddTransactionButton onClick={() => setDialogOpen(true)} />
+              </div>
+            }
+          />
+
+          {activePortfolio.isPrimary ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[0.7rem] font-medium text-primary">
+              <Star className="size-3 fill-primary" />
+              Primary book
+            </span>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Viewing this book — Primary is the checkup default.
+            </p>
+          )}
+
+          {showLegacyRestoreHint ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <p>
+                  A browser backup of holdings was found and is not in this
+                  portfolio yet. Restore uploads it into your cloud portfolios
+                  (only when cloud holdings are empty).
                 </p>
               </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <CurrencyToggle
-                currency={currency}
-                onChange={setCurrency}
-                rates={rates}
-                isLoading={isFxLoading}
-                error={fxError}
-              />
               <Button
                 variant="outline"
-                size="icon"
-                className="size-10 rounded-xl border-border/80 bg-card transition-colors hover:bg-muted/60"
-                onClick={() => refetch()}
-                disabled={isLoading || holdings.length === 0}
-                title="Refresh prices"
+                size="sm"
+                onClick={() => void reloadFromCloud()}
               >
-                <RefreshCw
-                  className={cn("size-4", isRefreshing && "animate-spin")}
-                />
+                Restore to cloud
               </Button>
-              <AddTransactionButton onClick={() => setDialogOpen(true)} />
             </div>
-          </div>
+          ) : null}
 
-          <Tabs
-            value={tab}
-            onValueChange={(value) => {
-              if (value === "holdings" || value === "intelligence") {
-                setTab(value);
-                const next = new URLSearchParams(searchParams.toString());
-                if (value === "intelligence") {
-                  next.set("tab", "intelligence");
-                } else {
-                  next.delete("tab");
-                }
-                const query = next.toString();
-                router.replace(
-                  query
-                    ? `/portfolio/${portfolioId}?${query}`
-                    : `/portfolio/${portfolioId}`,
-                  { scroll: false },
-                );
-              }
-            }}
-            className="gap-6"
-          >
-            <TabsList variant="line" className="w-full justify-start sm:w-auto">
-              <TabsTrigger value="holdings" className="px-3">
-                Holdings
-              </TabsTrigger>
-              <TabsTrigger value="intelligence" className="px-3">
-                Intelligence
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="holdings" className="flex flex-col gap-10">
-              {showLegacyRestoreHint && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 text-sm">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <p>
-                      A browser backup of holdings was found and is not in this
-                      portfolio yet. Restore uploads it into your cloud portfolios
-                      (only when cloud holdings are empty).
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void reloadFromCloud()}
-                  >
-                    Restore to cloud
-                  </Button>
-                </div>
+          {(syncError || error || fxError) && (
+            <div
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm",
+                syncError || error
+                  ? "border border-destructive/25 bg-destructive/5 text-destructive"
+                  : "border border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200",
               )}
+            >
+              <AlertCircle className="size-4 shrink-0" />
+              {syncError ?? error ?? fxError}
+            </div>
+          )}
 
-              {showEmptyHint && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/30 px-4 py-3.5 text-sm">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                    <p>
-                      No holdings in this portfolio yet. Use Add transaction to get
-                      started — your data syncs to the cloud.
-                    </p>
-                  </div>
+          {showEmptyHint ? (
+            <RetirePanel>
+              <RetireEmptyState
+                icon={<Plus className="size-5" />}
+                title="No holdings yet"
+                description="Add a stock, crypto, cash, or custom asset to start the book. Buy and sell stay on this page."
+                actions={
                   <AddTransactionButton onClick={() => setDialogOpen(true)} />
-                </div>
-              )}
+                }
+              />
+            </RetirePanel>
+          ) : (
+            <BookHero
+              checkup={checkup}
+              dayChange={dayChange}
+              leverageUtil={leverageUtil}
+              currency={currency}
+              rates={rates}
+              isLoading={totals.hasLoadingPrices || isLoading}
+            />
+          )}
 
-              {(syncError || error || fxError) && (
-                <div
-                  className={cn(
-                    "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm",
-                    syncError || error
-                      ? "border border-destructive/25 bg-destructive/5 text-destructive"
-                      : "border border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200",
-                  )}
-                >
-                  <AlertCircle className="size-4 shrink-0" />
-                  {syncError ?? error ?? fxError}
-                </div>
-              )}
+          <LeveragePanel
+            leverage={activePortfolio.leverage}
+            cashValue={cashValue}
+            currency={currency}
+            rates={rates}
+            onSave={(next) => updateLeverage(portfolioId, next)}
+          />
 
-              {enrichedHoldings.length > 0 && (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <StatCard
-                    label={`Total value · ${currency}`}
-                    value={
-                      totals.hasLoadingPrices
-                        ? "Loading…"
-                        : formatDisplayMoney(totals.currentValue, currency, rates)
-                    }
-                    isLoading={totals.hasLoadingPrices}
-                  />
-                  <StatCard
-                    label={`Total cost · ${currency}`}
-                    value={formatDisplayMoney(totals.costValue, currency, rates)}
-                  />
-                  <StatCard
-                    label={`Total P/L · ${currency}`}
-                    value={
-                      totals.hasLoadingPrices
-                        ? "Loading…"
-                        : `${totals.profitLoss >= 0 ? "+" : ""}${formatDisplayMoney(totals.profitLoss, currency, rates)}`
-                    }
-                    subValue={
-                      totals.hasLoadingPrices
-                        ? undefined
-                        : formatPercent(totalPlPercent)
-                    }
-                    valueClassName={
-                      totals.hasLoadingPrices
-                        ? undefined
-                        : profitLossClass(totals.profitLoss)
-                    }
-                    isLoading={totals.hasLoadingPrices}
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-col gap-6">
+          {!showEmptyHint ? (
+            <RetirePanel>
+              <div className="border-b border-border/60 px-5 py-4">
+                <h2 className="text-sm font-semibold">Holdings</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Weight is % of this book. 10%+ is a note, 25%+ is a flag. Open
+                  a name for research.
+                </p>
+              </div>
+              <div className="px-2 pb-2 sm:px-3 sm:pb-3">
                 <PortfolioTable
                   holdings={enrichedHoldings}
                   isLoading={isLoading}
@@ -364,52 +339,43 @@ export function PortfolioContent() {
                   onRowClick={setViewingHolding}
                   onEdit={(holding) => setEditingHolding(holding)}
                   onDelete={(holding) => setDeletingHolding(holding)}
+                  onAdd={() => setDialogOpen(true)}
                 />
-
-                {enrichedArchived.length > 0 && (
-                  <section className="space-y-4">
-                    <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Closed Positions (zero quantity)
-                    </h2>
-                    <PortfolioTable
-                      holdings={enrichedArchived}
-                      currency={currency}
-                      rates={rates}
-                      onRowClick={setViewingHolding}
-                      onEdit={(holding) => setEditingHolding(holding)}
-                      onDelete={(holding) => setDeletingHolding(holding)}
-                    />
-                  </section>
-                )}
               </div>
-            </TabsContent>
+            </RetirePanel>
+          ) : null}
 
-            <TabsContent value="intelligence" className="outline-none">
-              {(syncError || error || fxError) && (
-                <div
-                  className={cn(
-                    "mb-6 flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm",
-                    syncError || error
-                      ? "border border-destructive/25 bg-destructive/5 text-destructive"
-                      : "border border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-200",
-                  )}
-                >
-                  <AlertCircle className="size-4 shrink-0" />
-                  {syncError ?? error ?? fxError}
-                </div>
-              )}
-              <PortfolioIntelligenceContent
-                holdings={enrichedHoldings}
-                totals={totals}
-                currency={currency}
-                rates={rates}
-                portfolioName={activePortfolio.name}
-                isPrimary={activePortfolio.isPrimary}
-                multiPortfolio={multiPortfolio}
-                onAddHolding={() => setDialogOpen(true)}
-              />
-            </TabsContent>
-          </Tabs>
+          {enrichedArchived.length > 0 ? (
+            <RetirePanel>
+              <div className="border-b border-border/60 px-5 py-4">
+                <h2 className="text-sm font-semibold">Closed positions</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Zero quantity — kept for the buy/sell ledger.
+                </p>
+              </div>
+              <div className="px-2 pb-2 sm:px-3 sm:pb-3">
+                <PortfolioTable
+                  holdings={enrichedArchived}
+                  currency={currency}
+                  rates={rates}
+                  onRowClick={setViewingHolding}
+                  onEdit={(holding) => setEditingHolding(holding)}
+                  onDelete={(holding) => setDeletingHolding(holding)}
+                />
+              </div>
+            </RetirePanel>
+          ) : null}
+
+          {enrichedHoldings.length > 0 ? (
+            <TargetMixPanel
+              checkup={checkup}
+              currency={currency}
+              rates={rates}
+              portfolioId={portfolioId}
+              storedTargets={activePortfolio.targetAllocation}
+              onSave={updateTargetAllocation}
+            />
+          ) : null}
 
           <AddTransactionDialog
             open={dialogOpen}
@@ -462,5 +428,90 @@ export function PortfolioContent() {
         </div>
       )}
     </FreeResourceOpenGuard>
+  );
+}
+
+function BookHero({
+  checkup,
+  dayChange,
+  leverageUtil,
+  currency,
+  rates,
+  isLoading,
+}: {
+  checkup: ReturnType<typeof buildInvestmentCheckup>;
+  dayChange: ReturnType<typeof getPortfolioDayChange>;
+  leverageUtil: ReturnType<typeof leverageUtilizationFromPortfolio>;
+  currency: Parameters<typeof formatDisplayMoney>[1];
+  rates: Parameters<typeof formatDisplayMoney>[2];
+  isLoading: boolean;
+}) {
+  const money = (value: number) => formatDisplayMoney(value, currency, rates);
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <InvestRiskChip chip={checkup.riskChip} />
+          <LeverageUtilChip
+            flag={leverageUtil.flag}
+            percent={leverageUtil.utilizationPercent}
+          />
+        </div>
+        <p className="budget-hero-value mt-3">
+          {isLoading ? "…" : money(checkup.totalValue)}
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Book value · {currency}
+        </p>
+      </section>
+
+      <RetirePanel className="grid grid-cols-1 divide-y divide-border/60">
+        <Metric
+          label="Day change"
+          value={
+            !dayChange
+              ? "—"
+              : `${dayChange.change >= 0 ? "+" : "−"}${money(Math.abs(dayChange.change))}`
+          }
+          hint={dayChange ? formatPercent(dayChange.changePercent) : undefined}
+          tone={!dayChange ? "neutral" : dayChange.change >= 0 ? "in" : "danger"}
+        />
+        <Metric
+          label="Cost-basis P/L"
+          value={
+            isLoading
+              ? "…"
+              : `${checkup.profitLoss >= 0 ? "+" : "−"}${money(Math.abs(checkup.profitLoss))}`
+          }
+          hint={formatPercent(checkup.profitLossPercent)}
+          tone={checkup.profitLoss >= 0 ? "in" : "danger"}
+        />
+      </RetirePanel>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "in" | "out" | "danger" | "neutral";
+}) {
+  return (
+    <div className="flex flex-col justify-center px-5 py-4">
+      <p className="budget-metric-label">{label}</p>
+      <p className="budget-metric-value mt-1.5">
+        <RetireMoney value={value} tone={tone} />
+      </p>
+      {hint ? (
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      ) : null}
+    </div>
   );
 }

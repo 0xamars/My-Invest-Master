@@ -1,4 +1,8 @@
 import type { DisplayCurrency } from "@/types/currency";
+import {
+  EMPTY_LEVERAGE,
+  type PortfolioLeverage,
+} from "@/lib/portfolio/leverage";
 
 export type AssetType = "stock" | "crypto" | "custom" | "cash";
 
@@ -123,6 +127,8 @@ export interface UserPortfolio {
   holdings: PortfolioHolding[];
   /** Optional target mix by asset type (percent). Unset → default 80/10/10/0. */
   targetAllocation?: TargetAllocation;
+  /** Manual margin figures. Nulls on old plans — never invented. */
+  leverage?: PortfolioLeverage;
   createdAt: string;
   updatedAt: string;
 }
@@ -145,6 +151,7 @@ export function createEmptyPortfolio(
     name,
     isPrimary: options?.isPrimary ?? false,
     holdings: [],
+    leverage: { ...EMPTY_LEVERAGE },
     createdAt: now,
     updatedAt: now,
   };

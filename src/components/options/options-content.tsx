@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, Layers, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -11,10 +12,16 @@ import {
 import { DeleteOptionsDialog } from "@/components/options/delete-options-dialog";
 import { OptionsTable } from "@/components/options/options-table";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
+import { RetirePageHeader, RetirePanel } from "@/components/retirement/retire-ui";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
+import { useEnrichedPortfolio } from "@/hooks/use-enriched-portfolio";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { useOptionsPrices } from "@/hooks/use-options-prices";
 import { useOptionsStorage } from "@/hooks/use-options-storage";
+import {
+  netPremiumPercentOfBook,
+  upcomingOptionExpiries,
+} from "@/lib/portfolio/options-risk";
 import {
   enrichOptionsPositions,
   finalizeOptionsSummary,
@@ -22,6 +29,7 @@ import {
 } from "@/lib/portfolio/options-calculations";
 import {
   formatDisplayMoney,
+  formatPercent,
   profitLossClass,
 } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
@@ -35,6 +43,7 @@ export function OptionsContent() {
 
   const { positions, addPosition, updatePosition, removePosition, isLoaded, syncError } =
     useOptionsStorage();
+  const primaryBook = useEnrichedPortfolio("primary");
   const { currency, setCurrency, isLoaded: isCurrencyLoaded } =
     useDisplayCurrency();
   const { rates, isLoading: isFxLoading, error: fxError } = useFxRate();
@@ -69,6 +78,16 @@ export function OptionsContent() {
     () => finalizeOptionsSummary(getOptionsSummary(enrichedPositions)),
     [enrichedPositions],
   );
+
+  const bookValue = primaryBook.totals.currentValue;
+  const premiumOfBook = netPremiumPercentOfBook(summary.netPremium, bookValue);
+  const nextExpiries = useMemo(
+    () => upcomingOptionExpiries(enrichedPositions),
+    [enrichedPositions],
+  );
+  const bookHref = primaryBook.portfolioId
+    ? `/portfolio/${primaryBook.portfolioId}`
+    : "/portfolio";
 
   const editingPosition = editingId
     ? (positions.find((position) => position.id === editingId) ?? null)
@@ -106,42 +125,83 @@ export function OptionsContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-10">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Options</h1>
-          <p className="page-description">
-            {isLoading
-              ? "Fetching live stock prices…"
-              : lastUpdated
-                ? `Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}`
-                : "Track calls, puts, premiums, and days to expiration."}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <CurrencyToggle
-            currency={currency}
-            onChange={setCurrency}
-            rates={rates}
-            isLoading={isFxLoading}
-            error={fxError}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-10 rounded-xl border-border/80 bg-card transition-colors hover:bg-muted/60"
-            onClick={() => refetch()}
-            disabled={isLoading || positions.length === 0}
-            title="Refresh prices"
-          >
-            <RefreshCw
-              className={cn("size-4", isRefreshing && "animate-spin")}
+    <div className="flex flex-1 flex-col gap-6">
+      <RetirePageHeader
+        title="Options"
+        description={
+          isLoading
+            ? "Fetching live stock prices…"
+            : lastUpdated
+              ? `Ledger of calls and puts. Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}.`
+              : "Premium ledger vs the primary book. No invented greeks."
+        }
+        action={
+          <div className="flex flex-wrap items-center gap-3">
+            <CurrencyToggle
+              currency={currency}
+              onChange={setCurrency}
+              rates={rates}
+              isLoading={isFxLoading}
+              error={fxError}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-10 rounded-xl border-border/80 bg-card transition-colors hover:bg-muted/60"
+              onClick={() => refetch()}
+              disabled={isLoading || positions.length === 0}
+              title="Refresh prices"
+            >
+              <RefreshCw
+                className={cn("size-4", isRefreshing && "animate-spin")}
+              />
+            </Button>
+            <AddOptionsTransactionButton onClick={openAddDialog} />
+          </div>
+        }
+      />
+
+      {enrichedPositions.length > 0 ? (
+        <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+          <div className="flex min-w-0 items-start gap-2">
+            <Layers className="mt-0.5 size-4 shrink-0 text-primary" />
+            <div>
+              <p className="text-sm">
+                <span className="font-medium">Vs primary book</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · net premium {summary.netPremium >= 0 ? "+" : "−"}
+                  {formatDisplayMoney(Math.abs(summary.netPremium), currency, rates)}
+                  {premiumOfBook != null
+                    ? ` (${formatPercent(premiumOfBook)} of book)`
+                    : primaryBook.portfolioId
+                      ? " (book has no priced value yet)"
+                      : " (no primary book yet)"}
+                </span>
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {nextExpiries.length > 0
+                  ? `Next expir${nextExpiries.length === 1 ? "y" : "ies"}: ${nextExpiries
+                      .map((item) =>
+                        item.dte != null
+                          ? `${item.ticker} ${item.expiryDate} (${item.dte}d)`
+                          : `${item.ticker} ${item.expiryDate}`,
+                      )
+                      .join(" · ")}`
+                  : "No upcoming expiry dates on active contracts."}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            render={<Link href={bookHref} />}
+          >
+            Open book
           </Button>
-          <AddOptionsTransactionButton onClick={openAddDialog} />
-        </div>
-      </div>
+        </RetirePanel>
+      ) : null}
 
       {(syncError || error || fxError) && (
         <div className="flex items-center gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">

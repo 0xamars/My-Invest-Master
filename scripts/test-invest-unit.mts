@@ -12,6 +12,19 @@ import {
   concentrationNoteForWeight,
   resolveRiskChip,
 } from "../src/lib/portfolio/checkup.ts";
+import {
+  computeLeverageUtilization,
+  EMPTY_LEVERAGE,
+  LEVERAGE_CAUTION_PCT,
+  LEVERAGE_HIGH_PCT,
+  leverageUtilizationFromPortfolio,
+  migrateLeverageFromPlanData,
+  parseStoredLeverage,
+} from "../src/lib/portfolio/leverage.ts";
+import {
+  netPremiumPercentOfBook,
+  upcomingOptionExpiries,
+} from "../src/lib/portfolio/options-risk.ts";
 import { computeModifiedDietzReturn } from "../src/lib/portfolio/modified-dietz.ts";
 import { mergeSessionCookieOptions } from "../src/lib/security/cookies.ts";
 import {
@@ -188,6 +201,114 @@ assert(balancedCheckup.targets.stock === 80, "default stock target 80");
 assert(balancedCheckup.targets.crypto === 10, "default crypto target 10");
 assert(balancedCheckup.targets.cash === 10, "default cash target 10");
 assert(balancedCheckup.targets.custom === 0, "default custom target 0");
+assert(
+  concentrationNoteForWeight(balancedCheckup.concentration.topHoldingPercent) ===
+    "note",
+  "table highlight: 20% of book is a note",
+);
+assert(
+  concentrationNoteForWeight(concentratedCheckup.concentration.topHoldingPercent) ===
+    "flag",
+  "table highlight: 60% of book is a flag",
+);
+
+// --- Leverage util + migrate nulls ---
+assert(LEVERAGE_CAUTION_PCT === 50, "caution at 50%");
+assert(LEVERAGE_HIGH_PCT === 70, "high at 70%");
+
+const missingLeverage = migrateLeverageFromPlanData({
+  id: "old",
+  name: "Old book",
+  holdings: [],
+});
+assert(missingLeverage.marginUsed === null, "old plan marginUsed stays null");
+assert(missingLeverage.equity === null, "old plan equity stays null");
+assert(missingLeverage.buyingPower === null, "old plan buyingPower stays null");
+assert(missingLeverage.broker === null, "old plan broker stays null");
+assert(
+  JSON.stringify(parseStoredLeverage(undefined)) === JSON.stringify(EMPTY_LEVERAGE),
+  "missing leverage object is all nulls",
+);
+assert(
+  parseStoredLeverage({ netLiquidation: 80_000 }).equity === 80_000,
+  "netLiquidation aliases equity",
+);
+assert(
+  parseStoredLeverage({ marginUsed: -5, equity: "x" }).marginUsed === null,
+  "negative / junk values are not invented",
+);
+
+const unsetUtil = computeLeverageUtilization({
+  marginUsed: null,
+  equity: 50_000,
+  cashValue: 10_000,
+});
+assert(unsetUtil.flag === "unset", "no margin used → unset");
+assert(unsetUtil.utilizationPercent === null, "unset util is null");
+
+const noCushion = computeLeverageUtilization({
+  marginUsed: 10_000,
+  equity: null,
+  cashValue: 0,
+});
+assert(noCushion.flag === "unset", "margin without equity or cash → unset");
+
+const fromCash = computeLeverageUtilization({
+  marginUsed: 10_000,
+  equity: null,
+  cashValue: 10_000,
+});
+assert(fromCash.cushionSource === "cash", "falls back to book cash");
+assert(fromCash.utilizationPercent === 50, "10k / (10k+10k) = 50%");
+assert(fromCash.flag === "caution", "50% is caution");
+
+const okUtil = computeLeverageUtilization({
+  marginUsed: 20_000,
+  equity: 80_000,
+  cashValue: 5_000,
+});
+assert(okUtil.cushionSource === "equity", "typed equity beats cash");
+assert(Math.abs((okUtil.utilizationPercent ?? 0) - 20) < 0.01, "20k / 100k = 20%");
+assert(okUtil.flag === "ok", "under 50% is ok");
+
+const highUtil = leverageUtilizationFromPortfolio(
+  { marginUsed: 70_000, equity: 30_000, buyingPower: null, broker: "IBKR" },
+  99_000,
+);
+assert(highUtil.utilizationPercent === 70, "70k / 100k = 70%");
+assert(highUtil.flag === "high", "70% is high");
+assert(highUtil.cushionSource === "equity", "does not use cash when equity is set");
+
+// --- Options risk vs book (no greeks) ---
+assert(netPremiumPercentOfBook(500, 10_000) === 5, "net premium is 5% of book");
+assert(netPremiumPercentOfBook(500, 0) === null, "no book value → no %");
+const expiries = upcomingOptionExpiries(
+  [
+    {
+      ticker: "AAPL",
+      expiryDate: "2026-09-18",
+      displayStatus: "active",
+      dte: 31,
+    },
+    {
+      ticker: "MSFT",
+      expiryDate: "2026-08-21",
+      displayStatus: "active",
+      dte: 3,
+    },
+    {
+      ticker: "OLD",
+      expiryDate: "2026-01-01",
+      displayStatus: "closed",
+      dte: null,
+    },
+  ],
+  3,
+  "2026-08-18",
+);
+assert(expiries.length === 2, "only active future expiries");
+assert(expiries[0]?.ticker === "MSFT", "soonest expiry first");
+assert(expiries[1]?.ticker === "AAPL", "later expiry second");
 
 // --- Allocation drift ---
 const drift = buildAllocationDrift(
