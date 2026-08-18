@@ -66,9 +66,8 @@ export function PricingContent() {
           Free to start. Premium when you need more.
         </h1>
         <p className="page-description mx-auto max-w-xl text-balance">
-          Track budgets, portfolios, and retirement plans on Free. Upgrade to
-          Premium for unlimited plans, create-from-portfolio, and deeper AI and
-          market tools as they ship.
+          Track one budget, one portfolio, and one retirement plan on Free.
+          Premium is unlimited plans plus retire-from-portfolio.
         </p>
         {user && planReady && (
           <p className="text-sm text-muted-foreground">
@@ -119,9 +118,9 @@ export function PricingContent() {
                 variant="outline"
                 className="w-full"
                 disabled={isAuthLoading}
-                render={<Link href="/?signin=1" />}
+                render={<Link href="/signup" />}
               >
-                Sign in to get started
+                Start Free
               </Button>
             )}
           </div>
@@ -139,8 +138,7 @@ export function PricingContent() {
               <h2 className="text-lg font-semibold tracking-tight">Premium</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Unlimited plans plus full AI, market depth, and upcoming bank
-              connections.
+              Unlimited plans and retire-from-portfolio. Billing is not live.
             </p>
             <p className="pt-3 text-3xl font-semibold tracking-tight">
               Coming soon
@@ -198,14 +196,10 @@ export function PricingContent() {
           </thead>
           <tbody>
             {[
+              ["Budget plans", "1", "Unlimited"],
               ["Portfolios", "1", "Unlimited"],
               ["Retirement plans", "1", "Unlimited"],
-              ["Budget plans", "1", "Unlimited"],
               ["Create retirement from portfolio", "—", "Included"],
-              ["AI assistant", "Basic", "Full"],
-              ["Market insights", "Limited", "Full"],
-              ["Plaid bank sync", "—", "Coming soon"],
-              ["Portfolio intelligence", "—", "Coming soon"],
             ].map(([feature, free, premium]) => (
               <tr
                 key={feature}

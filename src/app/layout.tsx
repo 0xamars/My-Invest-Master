@@ -16,8 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Invest Salsa",
-  description: "Market news, S&P 500 heatmap, and portfolio tracking with secure cloud sync",
+  title: "InvestSalsa — Budget, Invest, Retire",
+  description:
+    "YNAB-style budgeting, a portfolio book and checkup, and a retirement planner. Not investment advice.",
+  openGraph: {
+    title: "InvestSalsa — Budget, Invest, Retire",
+    description:
+      "Three live pillars: Budget leftover that carries, an Invest book, and a Retire plan you can refresh from the book.",
+  },
 };
 
 export default function RootLayout({

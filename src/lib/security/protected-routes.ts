@@ -1,5 +1,5 @@
 /**
- * Signed-in app surfaces. Marketing `/` and `/pricing` stay public.
+ * Signed-in app surfaces. Marketing, auth, and legal pages stay public.
  * Prefix match: `/retire` also covers `/retire/plans`.
  */
 export const PROTECTED_ROUTE_PREFIXES = [
@@ -21,7 +21,29 @@ export const PROTECTED_ROUTE_PREFIXES = [
 
 export const PUBLIC_MARKETING_PATHS = ["/", "/pricing"] as const;
 
+export const PUBLIC_ROUTE_PATHS = [
+  "/",
+  "/pricing",
+  "/signup",
+  "/login",
+  "/signin",
+  "/terms",
+  "/privacy",
+] as const;
+
+export const PUBLIC_ROUTE_PREFIXES = ["/auth"] as const;
+
+export function isPublicRoute(pathname: string): boolean {
+  if (PUBLIC_ROUTE_PATHS.some((route) => pathname === route)) {
+    return true;
+  }
+  return PUBLIC_ROUTE_PREFIXES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
 export function isProtectedRoute(pathname: string): boolean {
+  if (isPublicRoute(pathname)) return false;
   return PROTECTED_ROUTE_PREFIXES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );

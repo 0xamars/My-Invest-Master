@@ -592,3 +592,56 @@ export async function deleteWatchlistPlanFromCloud(
 
   if (error) throw error;
 }
+
+export async function loadAccountExportRows(userId: string): Promise<{
+  user_budget_plans: unknown[];
+  user_retirement_plans: unknown[];
+  user_portfolio_plans: unknown[];
+}> {
+  await waitForSupabaseSession();
+  const supabase = getClient();
+
+  const [budget, retirement, portfolio] = await Promise.all([
+    supabase
+      .from("user_budget_plans")
+      .select("id, data, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("user_retirement_plans")
+      .select("id, data, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("user_portfolio_plans")
+      .select("id, data, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false }),
+  ]);
+
+  if (budget.error) throw budget.error;
+  if (retirement.error) throw retirement.error;
+  if (portfolio.error) throw portfolio.error;
+
+  return {
+    user_budget_plans: budget.data ?? [],
+    user_retirement_plans: retirement.data ?? [],
+    user_portfolio_plans: portfolio.data ?? [],
+  };
+}
+
+/** Wipe the three JSONB plan tables the signed-in user can already delete. */
+export async function deleteOwnPlanRows(userId: string): Promise<void> {
+  await waitForSupabaseSession();
+  const supabase = getClient();
+
+  const [budget, retirement, portfolio] = await Promise.all([
+    supabase.from("user_budget_plans").delete().eq("user_id", userId),
+    supabase.from("user_retirement_plans").delete().eq("user_id", userId),
+    supabase.from("user_portfolio_plans").delete().eq("user_id", userId),
+  ]);
+
+  if (budget.error) throw budget.error;
+  if (retirement.error) throw retirement.error;
+  if (portfolio.error) throw portfolio.error;
+}

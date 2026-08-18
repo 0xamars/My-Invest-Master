@@ -1,5 +1,6 @@
 import { RequireAuth } from "@/components/auth/require-auth";
 import { AccountSettings } from "@/components/settings/account-settings";
+import { DataSettingsCard } from "@/components/settings/data-settings-card";
 import { PlanSettingsCard } from "@/components/settings/plan-settings-card";
 
 export default function SettingsPage() {
@@ -16,6 +17,7 @@ export default function SettingsPage() {
           </p>
         </div>
         <AccountSettings />
+        <DataSettingsCard />
         <PlanSettingsCard />
       </div>
     </RequireAuth>

@@ -18,11 +18,8 @@ import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useInvestSummary } from "@/hooks/use-invest-summary";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
-import {
-  computeMonthSummary,
-  getCurrentMonthKey,
-} from "@/lib/budget/calculations";
-import { formatBudgetMoney } from "@/lib/budget/format";
+import { leftoverFromBudgetPlans, pickOpenablePlan } from "@/lib/invest/leftover";
+import { LeftoverAction } from "@/components/invest/leftover-action";
 import {
   buildInvestmentCheckup,
   concentrationNoteForWeight,
@@ -30,25 +27,11 @@ import {
 } from "@/lib/portfolio/checkup";
 import { getPortfolioDayChange } from "@/lib/portfolio/day-change";
 import { formatDisplayMoney, formatPercent } from "@/lib/portfolio/format";
-import { pickFreeAllowedPlanId } from "@/lib/plans/free-access";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import { computeRetirementProjections } from "@/lib/retirement/projections";
 import { cn } from "@/lib/utils";
-import type { BudgetPlan } from "@/types/budget";
 import type { RetirementPlan } from "@/types/retirement";
-
-function latestPlan<T extends { updatedAt: string }>(plans: T[]): T | null {
-  if (plans.length === 0) return null;
-  return [...plans].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))[0];
-}
-
-function pickOpenablePlan<
-  T extends { id: string; createdAt: string; updatedAt: string },
->(plans: T[]): T | null {
-  const allowedId = pickFreeAllowedPlanId(plans);
-  return plans.find((plan) => plan.id === allowedId) ?? latestPlan(plans);
-}
 
 export function InvestHomeContent() {
   const {
@@ -69,22 +52,11 @@ export function InvestHomeContent() {
   const { enrichedHoldings, totals, portfolioId, portfolioName, isViewingPrimary } =
     portfolio;
   const bookHref = portfolioId ? `/portfolio/${portfolioId}` : "/portfolio";
-  const budgetPlan = pickOpenablePlan(budget.plans);
   const retirePlan = pickOpenablePlan(retirement.plans);
-
-  const budgetLeftover = useMemo(() => {
-    if (!budgetPlan) return null;
-    const ready = computeMonthSummary(
-      budgetPlan,
-      getCurrentMonthKey(),
-    ).readyToAssign;
-    if (ready <= 0) return null;
-    return {
-      amount: ready,
-      currency: budgetPlan.currency,
-      href: `/budget/plans/${budgetPlan.id}`,
-    };
-  }, [budgetPlan]);
+  const budgetLeftover = useMemo(
+    () => leftoverFromBudgetPlans(budget.plans),
+    [budget.plans],
+  );
 
   const retireOutlook = useMemo(() => {
     if (!retirePlan) return null;
@@ -103,7 +75,9 @@ export function InvestHomeContent() {
         netPremium: optionsCount > 0 ? optionsSummary.netPremium : null,
         hasOptions: optionsCount > 0,
         portfolioHref: bookHref,
-        budgetLeftoverHref: budgetLeftover?.href ?? null,
+        budgetLeftoverHref: budgetLeftover
+          ? `/budget/plans/${budgetLeftover.budgetPlanId}`
+          : null,
         retireRefreshHref: retireOutlook
           ? `/retire/plans/${retireOutlook.plan.id}`
           : null,
@@ -115,7 +89,7 @@ export function InvestHomeContent() {
       optionsCount,
       optionsSummary.netPremium,
       bookHref,
-      budgetLeftover?.href,
+      budgetLeftover,
       retireOutlook,
     ],
   );
@@ -149,6 +123,8 @@ export function InvestHomeContent() {
         title="Invest"
         description="Checkup for this book — concentration, mix, drift, and what to do next."
       />
+
+      <LeftoverAction />
 
       {!hasBook ? (
         <RetirePanel>
@@ -189,10 +165,7 @@ export function InvestHomeContent() {
             onSave={updateTargetAllocation}
           />
 
-          <JourneyStrip
-            budgetLeftover={budgetLeftover}
-            retireOutlook={retireOutlook}
-          />
+          <JourneyStrip retireOutlook={retireOutlook} />
 
           <RetirePanel>
             <div className="flex items-center gap-2 border-b border-border/60 px-5 py-4">
@@ -399,58 +372,32 @@ function CheckupPanel({
 }
 
 function JourneyStrip({
-  budgetLeftover,
   retireOutlook,
 }: {
-  budgetLeftover: {
-    amount: number;
-    currency: BudgetPlan["currency"];
-    href: string;
-  } | null;
   retireOutlook: {
     plan: RetirementPlan;
     dashboard: ReturnType<typeof computeRetirementDashboard>;
   } | null;
 }) {
-  if (!budgetLeftover && !retireOutlook) return null;
+  if (!retireOutlook) return null;
 
   return (
     <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-      {budgetLeftover ? (
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-[var(--brand-green)]">
-            {formatBudgetMoney(budgetLeftover.amount, budgetLeftover.currency)}
-          </span>{" "}
-          unassigned in Budget.
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-1 h-7 px-2 text-xs"
-            render={<Link href={budgetLeftover.href} />}
-          >
-            Assign leftover
-            <ArrowRight className="size-3.5" />
-          </Button>
-        </p>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Assign leftover → fund Invest → check Retire.
-        </p>
-      )}
-      {retireOutlook ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <RetireVerdictChip verdict={retireOutlook.dashboard.verdict} />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            render={<Link href={`/retire/plans/${retireOutlook.plan.id}`} />}
-          >
-            Refresh Retire from this book
-            <ArrowRight className="size-3.5" />
-          </Button>
-        </div>
-      ) : null}
+      <p className="text-sm text-muted-foreground">
+        Retire can refresh quantities from this book.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <RetireVerdictChip verdict={retireOutlook.dashboard.verdict} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          render={<Link href={`/retire/plans/${retireOutlook.plan.id}`} />}
+        >
+          Open Retire
+          <ArrowRight className="size-3.5" />
+        </Button>
+      </div>
     </RetirePanel>
   );
 }
