@@ -1,86 +1,118 @@
 "use client";
 
-import { RetirePanel, RetireVerdictChip } from "@/components/retirement/retire-ui";
+import { RetireVerdictChip } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
-import type { ScenarioComparison } from "@/lib/retirement/scenarios";
 import { formatProjectionMoney } from "@/lib/retirement/format";
+import type { ScenarioComparison } from "@/lib/retirement/scenarios";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
 import type { RetirementPlan } from "@/types/retirement";
+import { cn } from "@/lib/utils";
 
 export function RetirementWhatIf({
   comparisons,
+  selectedId,
   currency,
   rates,
+  dirty,
+  onSelect,
   onApply,
+  onReset,
 }: {
   comparisons: ScenarioComparison[];
+  selectedId: string | null;
   currency: DisplayCurrency;
   rates: FxRates;
+  dirty: boolean;
+  onSelect: (plan: RetirementPlan, id: string) => void;
   onApply: (plan: RetirementPlan) => void;
+  onReset: () => void;
 }) {
   const alts = comparisons.filter((item) => item.id !== "base");
+  const selected = alts.find((item) => item.id === selectedId);
 
   return (
-    <RetirePanel className="px-5 py-5">
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold tracking-tight">What-if compare</h2>
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold tracking-tight">Try a change</h3>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Same plan, one lever changed. Apply a row to make it the new base —
-          the document is not duplicated.
+          Retire earlier or later, spend more or less, save more or less. The
+          sentence and ages update right away. Apply when you want it as the
+          plan.
         </p>
       </div>
+
       <div className="grid gap-3 md:grid-cols-3">
         {alts.map((item) => (
-          <div
+          <button
             key={item.id}
-            className="flex flex-col rounded-xl border border-border/60 px-4 py-4"
+            type="button"
+            onClick={() => onSelect(item.plan, item.id)}
+            className={cn(
+              "flex flex-col rounded-xl border px-4 py-4 text-left transition-colors",
+              selectedId === item.id
+                ? "border-[var(--brand-green)]/50 bg-[var(--brand-green)]/6"
+                : "border-border/60 hover:bg-muted/30",
+            )}
           >
             <p className="text-sm font-semibold tracking-tight">{item.label}</p>
             <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
             <dl className="mt-3 space-y-1.5 text-sm">
               <Row
+                label="Typical market"
+                value={
+                  item.typicalAgeLabel == null
+                    ? "—"
+                    : item.typicalLastsToTarget
+                      ? `Lasts to ${item.plan.planEndAge}`
+                      : `Age ${item.typicalAgeLabel}`
+                }
+              />
+              <Row
                 label="Nest egg at retirement"
                 value={
                   item.nestEggAtRetirement == null
                     ? "—"
-                    : formatProjectionMoney(item.nestEggAtRetirement, currency, rates)
-                }
-              />
-              <Row
-                label="Success"
-                value={
-                  item.successRate == null
-                    ? "—"
-                    : `${Math.round(item.successRate * 100)}%`
-                }
-              />
-              <Row
-                label="Money lasts"
-                value={
-                  item.lastsPastPlanEnd || item.depletionAge == null
-                    ? `Past age ${item.plan.planEndAge}`
-                    : `Age ${item.depletionAge}`
+                    : formatProjectionMoney(
+                        item.nestEggAtRetirement,
+                        currency,
+                        rates,
+                      )
                 }
               />
             </dl>
-            <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="mt-3">
               <RetireVerdictChip
                 verdict={
                   item.nestEggAtRetirement == null
                     ? "empty"
-                    : item.lastsPastPlanEnd
+                    : item.typicalLastsToTarget || item.lastsPastPlanEnd
                       ? "on-track"
                       : "behind"
                 }
               />
-              <Button size="sm" variant="outline" onClick={() => onApply(item.plan)}>
-                Apply as base
-              </Button>
             </div>
-          </div>
+          </button>
         ))}
       </div>
-    </RetirePanel>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          disabled={!dirty || !selected}
+          onClick={() => selected && onApply(selected.plan)}
+        >
+          Apply as base
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={!dirty}
+          onClick={onReset}
+        >
+          Reset
+        </Button>
+      </div>
+    </div>
   );
 }
 

@@ -219,7 +219,7 @@ export function MarketingHomePage({
                 },
                 {
                   title: "Retire: target and on-track",
-                  body: "4% nest-egg target, income vs spend, depletion age, light Monte Carlo, and apply-as-base what-ifs.",
+                  body: "4% nest-egg target, income vs spend, and how long the plan lasts if markets are bad, typical, or good.",
                   accent: "text-primary",
                 },
               ].map((item) => (

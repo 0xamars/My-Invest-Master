@@ -46,8 +46,21 @@ export interface ProjectionChartRow {
   p50?: number;
   p90?: number;
   mcBand?: number;
+  bad?: number;
+  typical?: number;
+  good?: number;
+  spread?: number;
   [assetKey: string]: number | string | undefined;
 }
+
+/** Keys that must never appear as tooltip labels on the default surface. */
+export const PROJECTION_TOOLTIP_HIDDEN_KEYS = new Set([
+  "p10",
+  "p50",
+  "p90",
+  "mcBand",
+  "spread",
+]);
 
 /** Smallest asset value at bottom of stack, largest on top (uses current portfolio value). */
 export function sortAssetsForCompositionStack(
@@ -97,6 +110,10 @@ export function buildProjectionChartData(
       row.p50 = band.p50;
       row.p90 = band.p90;
       row.mcBand = Math.max(0, band.p90 - band.p10);
+      row.bad = Math.max(0, band.p10);
+      row.typical = Math.max(0, band.p50);
+      row.good = Math.max(0, band.p90);
+      row.spread = Math.max(0, band.p90 - band.p10);
     }
 
     for (const asset of assets) {
@@ -118,6 +135,18 @@ export function buildProjectionChartConfig(
         closingBalance: {
           label: "Closing balance",
           color: BRAND_GREEN,
+        },
+        bad: {
+          label: "Bad",
+          color: BRAND_ORANGE,
+        },
+        typical: {
+          label: "Typical",
+          color: BRAND_GREEN,
+        },
+        good: {
+          label: "Good",
+          color: BRAND_GREEN_DEEP,
         },
       };
     case "opening-vs-closing":
@@ -273,7 +302,15 @@ export function computeProjectionYDomain(
         min = Math.min(min, value);
       }
       if (view === "total-closing") {
-        max = Math.max(max, Number(row.p90 ?? 0), Number(row.p10 ?? 0));
+        max = Math.max(
+          max,
+          Number(row.p90 ?? 0),
+          Number(row.p50 ?? 0),
+          Number(row.p10 ?? 0),
+          Number(row.typical ?? 0),
+          Number(row.good ?? 0),
+          Number(row.bad ?? 0),
+        );
       }
     }
   }
