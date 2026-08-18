@@ -1,3 +1,4 @@
+import { isPremiumReceived, type OptionType } from "@/types/options";
 import type { AssetType, PortfolioHoldingWithPrices } from "@/types/portfolio";
 
 export type RevenuePathKind = "growing" | "flat" | "stall";
@@ -51,6 +52,16 @@ export type HoldingExpandFacts = {
   size: HoldingExpandSize;
   screens: HoldingExpandScreens | null;
   nextEarningsDate: string | null;
+};
+
+/** Book-risk overlay for options on the same underlying. No strategy labels. */
+export type HoldingExpandOption = {
+  dte: number | null;
+  strike: number;
+  spot: number | null;
+  strikeVsSpot: number | null;
+  contracts: number;
+  premium: number;
 };
 
 export const RATING_UI_FORBIDDEN =
@@ -253,6 +264,70 @@ export function buildHoldingExpandFacts(input: {
       ? extractEarningsDateFromUnknown(input.earningsRaw, input.now)
       : null,
   };
+}
+
+export function whyMovedFactLine(input: {
+  changePercent: number | null;
+  volumeVsTypical: number | null;
+  headlineTitle: string | null;
+}): string {
+  const parts: string[] = [];
+  if (input.changePercent != null && Number.isFinite(input.changePercent)) {
+    const sign = input.changePercent > 0 ? "+" : "";
+    parts.push(`${sign}${input.changePercent.toFixed(2)}%`);
+  }
+  if (
+    input.volumeVsTypical != null &&
+    Number.isFinite(input.volumeVsTypical)
+  ) {
+    parts.push(`${input.volumeVsTypical.toFixed(1)}× typical`);
+  }
+  const headline = input.headlineTitle?.trim() ?? "";
+  if (headline) parts.push(headline);
+  return parts.join(" · ");
+}
+
+export function optionsOnUnderlying(
+  positions: Array<{
+    ticker: string;
+    displayStatus: string;
+    optionType: OptionType | string;
+    dte: number | null;
+    strikePrice: number;
+    currentStockPrice: number | null;
+    contracts: number;
+    cost: number;
+  }>,
+  symbol: string,
+  spot?: number | null,
+): HoldingExpandOption[] {
+  const upper = symbol.trim().toUpperCase();
+  if (!upper) return [];
+  return positions
+    .filter(
+      (position) =>
+        position.displayStatus === "active" &&
+        position.ticker.trim().toUpperCase() === upper,
+    )
+    .map((position) => {
+      const spotPrice =
+        spot != null && Number.isFinite(spot)
+          ? spot
+          : position.currentStockPrice;
+      const received = isPremiumReceived(position.optionType as OptionType);
+      return {
+        dte: position.dte,
+        strike: position.strikePrice,
+        spot: spotPrice,
+        strikeVsSpot:
+          spotPrice != null && Number.isFinite(spotPrice)
+            ? position.strikePrice - spotPrice
+            : null,
+        contracts: position.contracts,
+        premium: received ? position.cost : -Math.abs(position.cost),
+      };
+    })
+    .sort((a, b) => (a.dte ?? 9_999) - (b.dte ?? 9_999));
 }
 
 export function sizeFromHolding(

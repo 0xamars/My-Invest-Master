@@ -21,7 +21,9 @@ import {
   classifyRevenuePath,
   holdingExpandHasRatingUi,
   holdingExpandShowsScreens,
+  optionsOnUnderlying,
   pickNextEarningsDate,
+  whyMovedFactLine,
 } from "../src/lib/portfolio/holding-expand.ts";
 import {
   buildAccountExportPayload,
@@ -671,6 +673,103 @@ assert(!("rating" in stockFacts), "expand payload has no rating");
 assert(
   !holdingExpandHasRatingUi(JSON.stringify(stockFacts)),
   "stock expand copy has no rating UI",
+);
+assert(!("peers" in stockFacts), "expand payload has no peers");
+assert(!("chart" in stockFacts), "expand payload has no chart dump");
+assert(!("tabs" in stockFacts), "expand payload has no tabs");
+assert(
+  whyMovedFactLine({
+    changePercent: 1.5,
+    volumeVsTypical: 2,
+    headlineTitle: "Apple lifts revenue",
+  }) === "+1.50% · 2.0× typical · Apple lifts revenue",
+  "why-it-moved is one fact line",
+);
+assert(
+  whyMovedFactLine({
+    changePercent: -3,
+    volumeVsTypical: null,
+    headlineTitle: null,
+  }) === "-3.00%",
+  "unexplained move shows the move and stops",
+);
+assert(
+  whyMovedFactLine({
+    changePercent: 1,
+    volumeVsTypical: null,
+    headlineTitle: "  ",
+  }) === "+1.00%",
+  "blank headline does not invent a thesis",
+);
+
+const aaplOptions = optionsOnUnderlying(
+  [
+    {
+      ticker: "AAPL",
+      displayStatus: "active",
+      optionType: "sell_call",
+      dte: 14,
+      strikePrice: 180,
+      currentStockPrice: 190,
+      contracts: 2,
+      cost: 400,
+    },
+    {
+      ticker: "AAPL",
+      displayStatus: "expired",
+      optionType: "sell_call",
+      dte: -2,
+      strikePrice: 170,
+      currentStockPrice: 190,
+      contracts: 1,
+      cost: 100,
+    },
+    {
+      ticker: "MSFT",
+      displayStatus: "active",
+      optionType: "buy_put",
+      dte: 7,
+      strikePrice: 400,
+      currentStockPrice: 390,
+      contracts: 1,
+      cost: 250,
+    },
+  ],
+  "AAPL",
+  190,
+);
+assert(aaplOptions.length === 1, "only active options on the same underlying");
+assert(aaplOptions[0]?.dte === 14, "overlay shows DTE");
+assert(aaplOptions[0]?.strike === 180, "overlay shows strike");
+assert(aaplOptions[0]?.spot === 190, "overlay shows spot");
+assert(aaplOptions[0]?.strikeVsSpot === -10, "strike vs spot is a number");
+assert(aaplOptions[0]?.contracts === 2, "overlay shows contracts");
+assert(aaplOptions[0]?.premium === 400, "sold premium is received");
+assert(!("optionType" in aaplOptions[0]!), "overlay has no strategy field");
+assert(!("strategy" in aaplOptions[0]!), "overlay has no strategy label");
+assert(
+  !/buy call|sell call|covered|protective|debit|credit spread/i.test(
+    JSON.stringify(aaplOptions),
+  ),
+  "overlay copy has no strategy labels",
+);
+assert(
+  optionsOnUnderlying(
+    [
+      {
+        ticker: "AAPL",
+        displayStatus: "active",
+        optionType: "buy_put",
+        dte: 21,
+        strikePrice: 170,
+        currentStockPrice: 190,
+        contracts: 1,
+        cost: 150,
+      },
+    ],
+    "AAPL",
+  )[0]?.premium === -150,
+  "paid premium is negative book risk",
 );
 
 const cryptoFacts = buildHoldingExpandFacts({
