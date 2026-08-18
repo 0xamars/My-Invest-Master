@@ -96,15 +96,18 @@ export function concentrationNoteForWeight(percent: number): ConcentrationNote {
 
 /**
  * Risk chip rules (tested):
- * 1. Top holding ≥ 25% → Concentrated
+ * 1. Largest non-cash name ≥ 25% → Concentrated
  * 2. Else cash ≥ 40% → Cash-heavy
  * 3. Else Balanced
+ *
+ * Cash is excluded from (1) so an 80% cash book is Cash-heavy, not
+ * "concentrated in USD".
  */
 export function resolveRiskChip(input: {
-  topHoldingPercent: number;
+  topNonCashPercent: number;
   cashPercent: number;
 }): CheckupRiskChip {
-  if (input.topHoldingPercent >= CONCENTRATION_FLAG_PCT) return "concentrated";
+  if (input.topNonCashPercent >= CONCENTRATION_FLAG_PCT) return "concentrated";
   if (input.cashPercent >= CASH_HEAVY_PCT) return "cash-heavy";
   return "balanced";
 }
@@ -220,9 +223,12 @@ export function buildInvestmentCheckup(
   const concentration = buildConcentration(priced);
   const breakdown = buildAssetTypeBreakdown(holdings);
   const cashPercent = breakdown.find((item) => item.id === "cash")?.percent ?? 0;
+  const topNonCashPercent = priced
+    .filter((holding) => holding.type !== "cash")
+    .reduce((max, holding) => Math.max(max, holding.portfolioPercent ?? 0), 0);
   const riskChip = hasData
     ? resolveRiskChip({
-        topHoldingPercent: concentration.topHoldingPercent,
+        topNonCashPercent,
         cashPercent,
       })
     : "balanced";

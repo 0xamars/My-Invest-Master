@@ -77,15 +77,15 @@ assert(concentrationNoteForWeight(24.9) === "note", "24.9% is a note");
 assert(concentrationNoteForWeight(10) === "note", "10% is a note");
 assert(concentrationNoteForWeight(9.9) === "none", "9.9% is none");
 assert(
-  resolveRiskChip({ topHoldingPercent: 25, cashPercent: 50 }) === "concentrated",
-  "25% name beats cash-heavy",
+  resolveRiskChip({ topNonCashPercent: 25, cashPercent: 50 }) === "concentrated",
+  "25% non-cash name beats cash-heavy",
 );
 assert(
-  resolveRiskChip({ topHoldingPercent: 24, cashPercent: 40 }) === "cash-heavy",
+  resolveRiskChip({ topNonCashPercent: 24, cashPercent: 40 }) === "cash-heavy",
   "40% cash without 25% name is cash-heavy",
 );
 assert(
-  resolveRiskChip({ topHoldingPercent: 9, cashPercent: 10 }) === "balanced",
+  resolveRiskChip({ topNonCashPercent: 9, cashPercent: 10 }) === "balanced",
   "low name + low cash is balanced",
 );
 
