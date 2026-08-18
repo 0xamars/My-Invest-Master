@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AGE_OF_MONEY_MIN_OUTFLOWS, type AgeOfMoneyResult } from "@/lib/budget/age-of-money";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { MonthBudgetSummary } from "@/lib/budget/calculations";
@@ -46,6 +47,15 @@ export function BudgetSummaryStats({
               ? "Assigned more than has come in through this month. Move money or record missing income."
               : "Every dollar through this month already has a job."}
         </p>
+        {ready > 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            After you assign leftover,{" "}
+            <Link href="/invest" className="underline underline-offset-2 hover:text-foreground">
+              check Invest
+            </Link>{" "}
+            for concentration and mix.
+          </p>
+        ) : null}
         <AgeOfMoneyBlock ageOfMoney={ageOfMoney} isLoading={isLoading} />
       </section>
 

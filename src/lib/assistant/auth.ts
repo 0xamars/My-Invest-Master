@@ -30,7 +30,7 @@ export async function requireAssistantAuth(): Promise<AssistantAuthResult> {
         ok: false,
         userId: null,
         authRequired: true,
-        error: "Sign in to use the InvestSalsa assistant.",
+        error: "Sign in to continue.",
       };
     }
 

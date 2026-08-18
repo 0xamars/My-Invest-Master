@@ -169,7 +169,7 @@ export function MarketingHomePage({
                 {
                   step: "02",
                   title: "Invest",
-                  body: "Track stocks, crypto, cash, and custom holdings. See value, allocation, options, and watchlists in one workspace.",
+                  body: "Track stocks, crypto, cash, and custom holdings. Check concentration, mix, and allocation drift — then options and watchlists. No broker trading.",
                   accent: "text-[oklch(0.78_0.19_55)]",
                 },
                 {
@@ -224,7 +224,7 @@ export function MarketingHomePage({
                 },
                 {
                   title: "Invest without a second app",
-                  body: "Holdings, live prices, allocation, options, and watchlists — plus refresh into Retire.",
+                  body: "Holdings, live prices, a risk/allocation checkup, options, and watchlists — plus refresh into Retire.",
                   accent: "text-[oklch(0.78_0.19_55)]",
                 },
                 {

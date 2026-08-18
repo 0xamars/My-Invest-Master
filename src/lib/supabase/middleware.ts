@@ -1,21 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { mergeSessionCookieOptions } from "@/lib/security/cookies";
+import { isProtectedRoute } from "@/lib/security/protected-routes";
 import type { Database } from "@/types/database";
-
-const PROTECTED_ROUTES = [
-  "/portfolio",
-  "/options",
-  "/holdings",
-  "/retire/plans",
-  "/budget",
-  "/market",
-];
-
-function isProtectedRoute(pathname: string): boolean {
-  return PROTECTED_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
-}
 
 function isSupabaseConfigured(): boolean {
   return Boolean(
@@ -26,6 +13,7 @@ function isSupabaseConfigured(): boolean {
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
+  const isHttps = request.nextUrl.protocol === "https:";
 
   if (!isSupabaseConfigured()) {
     return supabaseResponse;
@@ -45,7 +33,11 @@ export async function updateSession(request: NextRequest) {
           );
           supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
+            supabaseResponse.cookies.set(
+              name,
+              value,
+              mergeSessionCookieOptions(options, isHttps),
+            ),
           );
         },
       },
@@ -67,3 +59,5 @@ export async function updateSession(request: NextRequest) {
 
   return supabaseResponse;
 }
+
+export { isProtectedRoute };

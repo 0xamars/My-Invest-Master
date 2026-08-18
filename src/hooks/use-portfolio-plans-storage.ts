@@ -32,9 +32,11 @@ import {
   toPortfolioSummary,
   type AddTransactionInput,
   type PortfolioHolding,
+  type TargetAllocation,
   type UpdateHoldingInput,
   type UserPortfolio,
 } from "@/types/portfolio";
+import { normalizeTargetAllocation } from "@/lib/portfolio/allocation-targets";
 
 const SAVE_DEBOUNCE_MS = 500;
 const ACTIVE_PORTFOLIO_KEY = "investsalsa-active-portfolio-id";
@@ -454,6 +456,26 @@ export function usePortfolioPlansStorage() {
     [user, userPlan, isPlanLoaded, prefsLoadSucceeded, portfolios.length, queueSave, setActivePortfolioId],
   );
 
+  const updateTargetAllocation = useCallback(
+    (id: string, targets: TargetAllocation) => {
+      setPortfolios((prev) => {
+        const index = prev.findIndex((portfolio) => portfolio.id === id);
+        if (index === -1) return prev;
+
+        const updated: UserPortfolio = {
+          ...prev[index],
+          targetAllocation: normalizeTargetAllocation(targets),
+          updatedAt: new Date().toISOString(),
+        };
+        const next = [...prev];
+        next[index] = updated;
+        queueSave(updated);
+        return next;
+      });
+    },
+    [queueSave],
+  );
+
   const renamePortfolio = useCallback(
     (id: string, name: string) => {
       const trimmed = name.trim();
@@ -577,6 +599,7 @@ export function usePortfolioPlansStorage() {
     removeHolding,
     createPortfolio,
     renamePortfolio,
+    updateTargetAllocation,
     setPrimaryPortfolio,
     deletePortfolio,
     isLoaded,

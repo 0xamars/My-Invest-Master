@@ -67,9 +67,17 @@ export function RetireHomeContent() {
           planName={outlook.plan.name}
           href={`/retire/plans/${outlook.plan.id}`}
           emptyActions={
-            <Button render={<Link href={`/retire/plans/${outlook.plan.id}`} />}>
-              Add assets
-            </Button>
+            <>
+              <Button render={<Link href={`/retire/plans/${outlook.plan.id}`} />}>
+                Import from Invest
+              </Button>
+              <Button
+                variant="outline"
+                render={<Link href="/invest" />}
+              >
+                Open Invest checkup
+              </Button>
+            </>
           }
         />
       ) : (

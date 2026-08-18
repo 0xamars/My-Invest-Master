@@ -2,6 +2,9 @@ import type { DisplayCurrency } from "@/types/currency";
 
 export type AssetType = "stock" | "crypto" | "custom" | "cash";
 
+/** Target mix by asset type, stored as percents on the portfolio JSONB. */
+export type TargetAllocation = Record<AssetType, number>;
+
 export type TransactionType = "buy" | "sell";
 
 export interface PortfolioTransaction {
@@ -118,6 +121,8 @@ export interface UserPortfolio {
   name: string;
   isPrimary: boolean;
   holdings: PortfolioHolding[];
+  /** Optional target mix by asset type (percent). Unset → default 80/10/10/0. */
+  targetAllocation?: TargetAllocation;
   createdAt: string;
   updatedAt: string;
 }

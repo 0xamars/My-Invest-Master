@@ -3,6 +3,8 @@ import { getNarrativeTimeoutMs, resolveAiFeature } from "@/lib/ai/config";
 import { getNarrativeBundle } from "@/lib/analysis/narrative/generate";
 import { fallbackNarrativeBundle } from "@/lib/analysis/narrative/parse";
 import type { NarrativeContext } from "@/lib/analysis/narrative/types";
+import { requireAssistantAuth } from "@/lib/assistant/auth";
+import { checkAssistantRateLimit } from "@/lib/assistant/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -14,6 +16,27 @@ function isContext(value: unknown): value is NarrativeContext {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAssistantAuth();
+  if (!auth.ok) {
+    return NextResponse.json(
+      { error: auth.error ?? "Authentication required." },
+      { status: 401 },
+    );
+  }
+
+  const rate = checkAssistantRateLimit(
+    `analysis-narrative:${auth.userId ?? "anon"}`,
+  );
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${rate.retryAfterSec}s.` },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      },
+    );
+  }
+
   let body: { context?: unknown };
   try {
     body = (await request.json()) as { context?: unknown };

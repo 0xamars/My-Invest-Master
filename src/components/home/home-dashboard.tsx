@@ -254,8 +254,8 @@ function InvestPillar() {
           {enrichedHoldings.length} holding{enrichedHoldings.length === 1 ? "" : "s"}
           {totals.hasLoadingPrices ? " · prices updating" : ""}
         </p>
-        <Button size="sm" render={<Link href={href} />}>
-          Open portfolio
+        <Button size="sm" render={<Link href="/invest" />}>
+          Open checkup
         </Button>
       </div>
     </RetirePanel>

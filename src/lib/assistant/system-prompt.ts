@@ -61,8 +61,8 @@ export function buildAssistantFallbackReply(
     "",
     "I can help with product how-tos and questions about your data once AI is configured.",
     "",
-    "AI not configured.",
-    `Add \`${provider.apiKeyEnvVar}\` to enable **${provider.displayName}** replies.`,
+    "AI is not configured on this deployment.",
+    `An administrator needs to enable **${provider.displayName}** before I can reply.`,
     "",
     ASSISTANT_DISCLAIMER,
   ].join("\n");

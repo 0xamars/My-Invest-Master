@@ -21,6 +21,7 @@ import {
   getAnalysisPackage,
   packageNetworkSummary,
 } from "@/lib/market-data/warehouse";
+import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
 const RANGES = new Set(["1D", "1W", "1M", "3M", "1Y", "5Y"]);
 
@@ -41,6 +42,9 @@ function ratingCacheKey(
 }
 
 export async function GET(request: Request) {
+  const limited = rateLimitJsonResponse(request, "analysis-rating", { max: 40 });
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get("symbol")?.trim() ?? "";
