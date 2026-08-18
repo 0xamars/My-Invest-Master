@@ -226,17 +226,12 @@ export function AppSidebar() {
                   );
                 }
 
-                const isActive =
-                  item.href === APP_HOME_PATH
-                    ? pathname === APP_HOME_PATH
-                    : pathname.startsWith(item.href);
-
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      isActive={isActive}
+                      isActive={pathname === APP_HOME_PATH}
                       tooltip={item.title}
-                      className={navClass(isActive)}
+                      className={navClass(pathname === APP_HOME_PATH)}
                       render={<Link href={item.href} />}
                     >
                       <NavCategoryIcon category={item.category} />
