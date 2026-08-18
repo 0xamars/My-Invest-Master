@@ -50,6 +50,17 @@ import {
   PUBLIC_MARKETING_PATHS,
   PUBLIC_ROUTE_PATHS,
 } from "../src/lib/security/protected-routes.ts";
+import {
+  canAccess,
+  canCreateLimitedResource,
+  getPlanLimit,
+  PLAN_CAPS_ENFORCED,
+} from "../src/lib/plans/access.ts";
+import {
+  canCreateRetirementFromPortfolio,
+  canOpenBudgetPlanOnPlan,
+  canOpenPortfolioOnPlan,
+} from "../src/lib/plans/free-access.ts";
 import type { PortfolioHoldingWithPrices } from "../src/types/portfolio.ts";
 
 let failed = 0;
@@ -481,6 +492,32 @@ assert(destinationForLegacyInvestPath("/holdings") === "/portfolio", "/holdings 
 assert(destinationForLegacyInvestPath("/markets") === "/market", "/markets leftover goes to Market");
 assert(destinationForLegacyInvestPath("/analysis") === "/invest", "/analysis hub folds into Invest");
 assert(destinationForLegacyInvestPath("/signin") === "/login", "/signin aliases /login");
+assert(destinationForLegacyInvestPath("/pricing") === "/", "/pricing redirects home");
+assert(isPublicRoute("/pricing"), "/pricing stays public so the redirect is not gated");
+assert(!PLAN_CAPS_ENFORCED, "plan caps are not enforced");
+assert(getPlanLimit("free", "budget") === null, "free budget cap is unlocked");
+assert(getPlanLimit("free", "portfolio") === null, "free portfolio cap is unlocked");
+assert(getPlanLimit("free", "retirement") === null, "free retirement cap is unlocked");
+assert(canCreateLimitedResource("free", "budget", 99), "creating many budgets is allowed");
+assert(canCreateLimitedResource("free", "portfolio", 99), "creating many books is allowed");
+assert(canCreateLimitedResource("free", "retirement", 99), "creating many retire plans is allowed");
+assert(canAccess("free", "retirement_from_portfolio"), "retire-from-portfolio is unlocked");
+assert(canCreateRetirementFromPortfolio("free"), "import from portfolio is unlocked");
+assert(
+  canOpenPortfolioOnPlan("free", { id: "p2", isPrimary: false }),
+  "secondary books are openable",
+);
+assert(
+  canOpenBudgetPlanOnPlan(
+    "free",
+    [
+      { id: "a", createdAt: "2026-01-01T00:00:00.000Z" },
+      { id: "b", createdAt: "2026-02-01T00:00:00.000Z" },
+    ],
+    "b",
+  ),
+  "any budget plan is openable",
+);
 assert(destinationForLegacyInvestPath("/invest") === null, "/invest itself is not redirected");
 assert(destinationForLegacyInvestPath("/portfolio") === null, "the book stays");
 assert(destinationForLegacyInvestPath("/analysis/AAPL") === null, "ticker analysis stays");

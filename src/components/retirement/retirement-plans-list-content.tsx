@@ -6,19 +6,15 @@ import {
   AlertCircle,
   Calendar,
   Copy,
-  Crown,
   Loader2,
-  Lock,
   Pencil,
   Plus,
   Trash2,
   TrendingUp,
 } from "lucide-react";
-import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callout";
-import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
 import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
 import { DeleteRetirementPlanDialog } from "@/components/retirement/delete-retirement-plan-dialog";
-import { RetirePageHeader, RetirePanel, RetireVerdictChip } from "@/components/retirement/retire-ui";
+import { RetirePageHeader, RetireVerdictChip } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,18 +26,7 @@ import {
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
-import { usePremiumUpgradePrompt } from "@/hooks/use-premium-upgrade-prompt";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
-import { useUserPlan } from "@/hooks/use-user-preferences";
-import {
-  canCreateLimitedResource,
-  isPlanLimitError,
-} from "@/lib/plans/access";
-import {
-  canCreateRetirementFromPortfolio,
-  canOpenRetirementPlanOnPlan,
-  pickFreeAllowedPlanId,
-} from "@/lib/plans/free-access";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import { formatDisplayMoney } from "@/lib/portfolio/format";
@@ -67,7 +52,6 @@ export function RetirementPlansListContent() {
     syncError,
     isPlanReady,
   } = useRetirementPlansStorage();
-  const { plan: userPlan } = useUserPlan();
   const {
     portfolios,
     activePortfolioId,
@@ -76,18 +60,11 @@ export function RetirementPlansListContent() {
   } = usePortfolioPlans();
   const { currency } = useDisplayCurrency();
   const { rates } = useFxRate();
-  const upgrade = usePremiumUpgradePrompt();
 
   const [deletingPlan, setDeletingPlan] = useState<RetirementPlan | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isCreatingFromPortfolio, setIsCreatingFromPortfolio] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-
-  const atFreeLimit =
-    isPlanReady &&
-    !canCreateLimitedResource(userPlan, "retirement", plans.length);
-  const canImportFromPortfolio = canCreateRetirementFromPortfolio(userPlan);
-  const freeAllowedPlanId = pickFreeAllowedPlanId(plans);
 
   const portfoliosWithHoldings = portfolios.filter((portfolio) =>
     portfolio.holdings.some(isHoldingVisible),
@@ -96,21 +73,11 @@ export function RetirementPlansListContent() {
 
   async function handleCreateNew() {
     if (!isPlanReady) return;
-    if (atFreeLimit) {
-      upgrade.promptLimit("retirement");
-      return;
-    }
 
     setIsCreating(true);
     try {
       const plan = await createPlanAndSave({ name: "New Retirement Plan" });
       router.push(`/retire/plans/${plan.id}`);
-    } catch (error) {
-      if (isPlanLimitError(error)) {
-        upgrade.promptLimit(error.resource);
-      } else {
-        throw error;
-      }
     } finally {
       setIsCreating(false);
     }
@@ -118,20 +85,11 @@ export function RetirementPlansListContent() {
 
   function handleOpenImportFromPortfolio() {
     if (!isPlanReady) return;
-    if (!canImportFromPortfolio) {
-      upgrade.promptFeature("retirement_from_portfolio");
-      return;
-    }
-
     if (!hasImportablePortfolio) return;
     setImportDialogOpen(true);
   }
 
   function openPlan(planId: string) {
-    if (!canOpenRetirementPlanOnPlan(userPlan, plans, planId)) {
-      upgrade.promptOpen("retirement");
-      return;
-    }
     router.push(`/retire/plans/${planId}`);
   }
 
@@ -148,7 +106,7 @@ export function RetirementPlansListContent() {
     <div className="flex flex-1 flex-col gap-5">
       <RetirePageHeader
         title="Retirement plans"
-        description="One working plan on Free. Create from a blank model, or import holdings from Invest (Premium)."
+        description="Create from a blank model, or import holdings from Invest. Create as many plans as you need."
         action={
         <div className="flex flex-wrap gap-2">
           <Button
@@ -158,8 +116,6 @@ export function RetirementPlansListContent() {
           >
             {isCreating ? (
               <Loader2 className="size-4 animate-spin" />
-            ) : atFreeLimit ? (
-              <Crown className="size-4" />
             ) : (
               <Plus className="size-4" />
             )}
@@ -173,20 +129,16 @@ export function RetirementPlansListContent() {
               isCreatingFromPortfolio ||
               isCreating ||
               !isPlanReady ||
-              (canImportFromPortfolio && !hasImportablePortfolio)
+              !hasImportablePortfolio
             }
             title={
-              !canImportFromPortfolio
-                ? "Premium feature — create a retirement plan from a portfolio"
-                : !hasImportablePortfolio
-                  ? "Add holdings to a portfolio first"
-                  : undefined
+              !hasImportablePortfolio
+                ? "Add holdings to a portfolio first"
+                : undefined
             }
           >
             {isCreatingFromPortfolio ? (
               <Loader2 className="size-4 animate-spin" />
-            ) : !canImportFromPortfolio ? (
-              <Crown className="size-4" />
             ) : (
               <Copy className="size-4" />
             )}
@@ -195,8 +147,6 @@ export function RetirementPlansListContent() {
         </div>
         }
       />
-
-      {atFreeLimit && <PremiumUpgradeCallout resource="retirement" />}
 
       {syncError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -210,8 +160,7 @@ export function RetirementPlansListContent() {
           <CardHeader className="text-center">
             <CardTitle>No retirement plans yet</CardTitle>
             <CardDescription>
-              Free users can create one retirement plan manually.
-              Create-from-portfolio is a Premium feature.
+              Create a blank model, or import holdings from an Invest book.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap justify-center gap-3 pb-8">
@@ -234,14 +183,10 @@ export function RetirementPlansListContent() {
               disabled={
                 isCreatingFromPortfolio ||
                 !isPlanReady ||
-                (canImportFromPortfolio && !hasImportablePortfolio)
+                !hasImportablePortfolio
               }
             >
-              {!canImportFromPortfolio ? (
-                <Crown className="size-4" />
-              ) : (
-                <Copy className="size-4" />
-              )}
+              <Copy className="size-4" />
               Import from Portfolio
             </Button>
           </CardContent>
@@ -254,12 +199,6 @@ export function RetirementPlansListContent() {
             const dash = normalized
               ? computeRetirementDashboard(normalized)
               : null;
-            const canOpen = canOpenRetirementPlanOnPlan(
-              userPlan,
-              plans,
-              summary.id,
-            );
-            const isFreeAllowed = summary.id === freeAllowedPlanId;
 
             return (
               <Card
@@ -271,24 +210,6 @@ export function RetirementPlansListContent() {
                     <CardTitle className="truncate text-base font-semibold">
                       {summary.name}
                     </CardTitle>
-                    {userPlan === "free" && plans.length > 1 && (
-                      <span
-                        className={
-                          isFreeAllowed
-                            ? "inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[0.7rem] font-medium text-primary"
-                            : "inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[0.7rem] font-medium text-muted-foreground"
-                        }
-                      >
-                        {isFreeAllowed ? (
-                          "Included"
-                        ) : (
-                          <>
-                            <Lock className="size-3" />
-                            Premium
-                          </>
-                        )}
-                      </span>
-                    )}
                   </div>
                   <CardDescription className="flex flex-wrap items-center gap-1.5">
                     <Calendar className="size-3.5" />
@@ -324,11 +245,7 @@ export function RetirementPlansListContent() {
                       className="flex-1 gap-1.5"
                       onClick={() => openPlan(summary.id)}
                     >
-                      {canOpen ? (
-                        <Pencil className="size-3.5" />
-                      ) : (
-                        <Lock className="size-3.5" />
-                      )}
+                      <Pencil className="size-3.5" />
                       Edit
                     </Button>
                     <Button
@@ -363,13 +280,6 @@ export function RetirementPlansListContent() {
             });
             setImportDialogOpen(false);
             router.push(`/retire/plans/${plan.id}`);
-          } catch (error) {
-            if (isPlanLimitError(error)) {
-              setImportDialogOpen(false);
-              upgrade.promptLimit(error.resource);
-            } else {
-              throw error;
-            }
           } finally {
             setIsCreatingFromPortfolio(false);
           }
@@ -384,8 +294,6 @@ export function RetirementPlansListContent() {
         currency={currency}
         rates={rates}
       />
-
-      <PremiumUpgradeDialog {...upgrade.dialogProps} />
     </div>
   );
 }

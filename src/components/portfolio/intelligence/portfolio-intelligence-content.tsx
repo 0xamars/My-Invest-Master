@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Eye, Plus, Sparkles } from "lucide-react";
+import { Eye, Plus } from "lucide-react";
 import { AssetTypeChart } from "@/components/analytics/asset-type-chart";
 import { AllocationPercentTable } from "@/components/portfolio/intelligence/allocation-percent-table";
 import {
@@ -10,7 +10,6 @@ import {
 } from "@/components/portfolio/intelligence/concentration-risk-panel";
 import { IntelligencePerformance } from "@/components/portfolio/intelligence/intelligence-performance";
 import { SectorBreakdownChart } from "@/components/portfolio/intelligence/sector-breakdown-chart";
-import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callout";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -20,7 +19,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useUserPlan } from "@/hooks/use-user-preferences";
 import { buildPortfolioIntelligence } from "@/lib/portfolio/intelligence";
 import {
   formatDisplayMoney,
@@ -56,8 +54,6 @@ export function PortfolioIntelligenceContent({
   multiPortfolio,
   onAddHolding,
 }: PortfolioIntelligenceContentProps) {
-  const { plan } = useUserPlan();
-
   const intelligence = useMemo(
     () => buildPortfolioIntelligence(holdings, totals),
     [holdings, totals],
@@ -223,23 +219,6 @@ export function PortfolioIntelligenceContent({
         currency={currency}
         rates={rates}
       />
-
-      {plan === "free" && (
-        <PremiumUpgradeCallout feature="ai_portfolio_insights" />
-      )}
-
-      {plan === "premium" && (
-        <div className="rounded-lg border border-border/80 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-          <div className="flex gap-3">
-            <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
-            <p>
-              Deeper Premium insights (scenario stress, correlation, and AI
-              explanations) can plug into these same insight codes later. This
-              view stays fully rules-based today.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

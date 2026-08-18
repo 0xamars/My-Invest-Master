@@ -1,9 +1,9 @@
-/** Shared Free vs Premium pricing copy for Pricing page and Settings. */
+/** Shared plan copy tables. Caps are not shown or enforced. */
 
 export const PRICING_PATH = "/pricing";
 
 export const PRICING_DISCLAIMER =
-  "InvestSalsa is for personal finance tracking and education. Nothing on this site is financial, investment, tax, or legal advice. Billing for Premium is not live yet — early access may be available on request.";
+  "InvestSalsa is for personal finance tracking and education. Nothing on this site is financial, investment, tax, or legal advice.";
 
 export const FREE_PLAN_FEATURES = [
   "1 budget plan",

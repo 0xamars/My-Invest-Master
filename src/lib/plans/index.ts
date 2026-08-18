@@ -1,15 +1,13 @@
 /**
- * Free vs Premium plan access.
- *
- * Create limits are enforced for portfolios, retirement, and budget.
- * Feature flags are ready for product gating — always surface
- * PremiumUpgradeDialog / usePremiumUpgradePrompt when blocking Free users.
+ * Plan access tables stay so a cap can return later.
+ * Enforcement is off — see PLAN_CAPS_ENFORCED.
  */
 export {
   canAccess,
   canCreateLimitedResource,
   getPlanLimit,
   isPlanLimitError,
+  PLAN_CAPS_ENFORCED,
   planDisplayName,
   PlanLimitError,
   PREMIUM_OVERRIDE_EMAILS,

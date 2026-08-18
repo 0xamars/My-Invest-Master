@@ -289,7 +289,7 @@ export function BudgetTransactionsContent() {
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Register"
-        description="Income, spending, and transfers. Import a bank or YNAB-style CSV, then categorize later."
+        description="Income, spending, and transfers. Import a bank CSV, then categorize later."
         action={
           <>
             <Button

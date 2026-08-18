@@ -4,9 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Crown,
   Loader2,
-  Lock,
   Plus,
   Trash2,
   Wallet,
@@ -14,21 +12,9 @@ import {
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-dialog";
 import { BudgetEmptyState, BudgetPageHeader, BudgetPanel } from "@/components/budget/budget-ui";
-import { PremiumUpgradeCallout } from "@/components/plans/premium-upgrade-callout";
-import { PremiumUpgradeDialog } from "@/components/plans/premium-upgrade-dialog";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
-import { usePremiumUpgradePrompt } from "@/hooks/use-premium-upgrade-prompt";
-import { useUserPlan } from "@/hooks/use-user-preferences";
 import { formatBudgetMoney } from "@/lib/budget/format";
-import {
-  canCreateLimitedResource,
-  isPlanLimitError,
-} from "@/lib/plans/access";
-import {
-  canOpenBudgetPlanOnPlan,
-  pickFreeAllowedPlanId,
-} from "@/lib/plans/free-access";
 import { cn } from "@/lib/utils";
 import type { BudgetPlan } from "@/types/budget";
 
@@ -42,7 +28,6 @@ function formatUpdatedAt(iso: string): string {
 
 export function BudgetPlansListContent() {
   const router = useRouter();
-  const { plan: userPlan } = useUserPlan();
   const {
     summaries,
     plans,
@@ -52,16 +37,10 @@ export function BudgetPlansListContent() {
     syncError,
     isPlanReady,
   } = useBudgetPlans();
-  const upgrade = usePremiumUpgradePrompt();
 
   const [deletingPlan, setDeletingPlan] = useState<BudgetPlan | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-
-  const atFreeLimit =
-    isPlanReady &&
-    !canCreateLimitedResource(userPlan, "budget", plans.length);
-  const freeAllowedPlanId = pickFreeAllowedPlanId(plans);
 
   async function handleCreate(name: string) {
     setIsCreating(true);
@@ -69,13 +48,6 @@ export function BudgetPlansListContent() {
       const plan = await createPlanAndSave(name);
       setCreateOpen(false);
       router.push(`/budget/plans/${plan.id}`);
-    } catch (error) {
-      if (isPlanLimitError(error)) {
-        setCreateOpen(false);
-        upgrade.promptLimit(error.resource);
-      } else {
-        throw error;
-      }
     } finally {
       setIsCreating(false);
     }
@@ -83,18 +55,10 @@ export function BudgetPlansListContent() {
 
   function openCreate() {
     if (!isPlanReady) return;
-    if (atFreeLimit) {
-      upgrade.promptLimit("budget");
-      return;
-    }
     setCreateOpen(true);
   }
 
   function openPlan(planId: string) {
-    if (!canOpenBudgetPlanOnPlan(userPlan, plans, planId)) {
-      upgrade.promptOpen("budget");
-      return;
-    }
     router.push(`/budget/plans/${planId}`);
   }
 
@@ -111,23 +75,17 @@ export function BudgetPlansListContent() {
     <div className="flex flex-1 flex-col gap-6">
       <BudgetPageHeader
         title="Budget"
-        description="Household, side project, or a what-if. Free can open one plan; extras stay listed for cleanup."
+        description="Household, side project, or a what-if. Create as many plans as you need."
         action={
           <Button
             onClick={openCreate}
             disabled={isCreating || !isPlanReady}
           >
-            {atFreeLimit ? (
-              <Crown className="size-4" />
-            ) : (
-              <Plus className="size-4" />
-            )}
+            <Plus className="size-4" />
             New plan
           </Button>
         }
       />
-
-      {atFreeLimit && <PremiumUpgradeCallout resource="budget" />}
 
       {syncError && (
         <div className="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -154,12 +112,6 @@ export function BudgetPlansListContent() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {
             const plan = plans.find((item) => item.id === summary.id);
-            const canOpen = canOpenBudgetPlanOnPlan(
-              userPlan,
-              plans,
-              summary.id,
-            );
-            const isFreeAllowed = summary.id === freeAllowedPlanId;
 
             return (
               <div
@@ -176,25 +128,6 @@ export function BudgetPlansListContent() {
                     >
                       {summary.name}
                     </button>
-                    {userPlan === "free" && plans.length > 1 && (
-                      <span
-                        className={cn(
-                          "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide",
-                          isFreeAllowed
-                            ? "bg-[var(--brand-green)]/12 text-[var(--brand-green)]"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {isFreeAllowed ? (
-                          "Included"
-                        ) : (
-                          <>
-                            <Lock className="size-3" />
-                            Premium
-                          </>
-                        )}
-                      </span>
-                    )}
                   </div>
                   <button
                     type="button"
@@ -244,11 +177,6 @@ export function BudgetPlansListContent() {
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>
-                  {!canOpen && (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Premium to open this extra plan.
-                    </p>
-                  )}
                 </div>
               </div>
             );
@@ -272,8 +200,6 @@ export function BudgetPlansListContent() {
         onOpenChange={(open) => !open && setDeletingPlan(null)}
         onConfirm={deletePlan}
       />
-
-      <PremiumUpgradeDialog {...upgrade.dialogProps} />
     </div>
   );
 }

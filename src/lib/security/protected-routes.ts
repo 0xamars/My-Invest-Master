@@ -19,7 +19,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/market",
 ] as const;
 
-export const PUBLIC_MARKETING_PATHS = ["/", "/pricing"] as const;
+export const PUBLIC_MARKETING_PATHS = ["/"] as const;
 
 export const PUBLIC_ROUTE_PATHS = [
   "/",

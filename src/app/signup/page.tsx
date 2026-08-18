@@ -5,12 +5,12 @@ import { SignupForm } from "@/components/auth/signup-form";
 export const metadata: Metadata = {
   title: "Create account · InvestSalsa",
   description:
-    "Start free with one budget, one portfolio, and one retirement plan.",
+    "Create an InvestSalsa account for Budget, Invest, and Retire. Not investment advice.",
 };
 
 export default function SignupPage() {
   return (
-    <AuthPageShell eyebrow="Start free">
+    <AuthPageShell eyebrow="Start">
       <SignupForm />
     </AuthPageShell>
   );
