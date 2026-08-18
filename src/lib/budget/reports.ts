@@ -46,6 +46,7 @@ export function getSpendingByCategory(
   monthKey: string,
 ): CategorySpendingRow[] {
   return budget.categories
+    .filter((category) => !category.creditCardAccountId)
     .map((category) => ({
       categoryId: category.id,
       categoryName: category.name,
@@ -109,11 +110,21 @@ export function filterTransactions(
   }
 
   if (options.categoryId && options.categoryId !== "all") {
-    rows = rows.filter(
-      (tx) =>
+    const paymentAccountId = budget.categories.find(
+      (category) => category.id === options.categoryId,
+    )?.creditCardAccountId;
+    rows = rows.filter((tx) => {
+      if (paymentAccountId) {
+        return (
+          tx.accountId === paymentAccountId ||
+          tx.transferAccountId === paymentAccountId
+        );
+      }
+      return (
         tx.categoryId === options.categoryId ||
-        Boolean(tx.splits?.some((line) => line.categoryId === options.categoryId)),
-    );
+        Boolean(tx.splits?.some((line) => line.categoryId === options.categoryId))
+      );
+    });
   }
 
   if (options.type && options.type !== "all") {
@@ -136,6 +147,10 @@ export function getBudgetMonthOptions(budget: BudgetData): string[] {
   const keys = new Set<string>();
   for (const tx of budget.transactions) {
     keys.add(tx.date.slice(0, 7));
+  }
+  for (const schedule of budget.scheduledTransactions ?? []) {
+    if (schedule.active === false) continue;
+    keys.add(schedule.nextDate.slice(0, 7));
   }
   keys.add(getMonthKey(new Date()));
   return [...keys].sort((a, b) => b.localeCompare(a));

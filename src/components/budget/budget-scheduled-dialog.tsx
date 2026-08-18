@@ -24,27 +24,34 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ACCOUNT_TYPE_LABELS, sortedAccounts } from "@/lib/budget/accounts";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
-import { buildTransferPayee, isSplitTransaction } from "@/lib/budget/transactions";
+import {
+  FREQUENCY_LABELS,
+  RECURRING_FREQUENCIES,
+  isScheduledSplit,
+  todayDateKey,
+} from "@/lib/budget/scheduled";
+import { buildTransferPayee } from "@/lib/budget/transactions";
 import { cn } from "@/lib/utils";
-import type { AddBudgetTransactionInput } from "@/hooks/use-budget-plan-mutations";
+import type { AddBudgetScheduledTransactionInput } from "@/hooks/use-budget-plan-mutations";
 import type {
   BudgetAccount,
   BudgetCategory,
   BudgetCategoryGroup,
-  BudgetTransaction,
+  BudgetScheduledTransaction,
   BudgetTransactionType,
+  RecurringFrequency,
 } from "@/types/budget";
 
-interface BudgetTransactionDialogProps {
+interface BudgetScheduledDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (input: AddBudgetTransactionInput) => void;
+  onSave: (input: AddBudgetScheduledTransactionInput) => void;
+  onDelete?: () => void;
   accounts: BudgetAccount[];
   categories: BudgetCategory[];
   categoryGroups: BudgetCategoryGroup[];
-  defaultMonthKey?: string;
   defaultAccountId?: string;
-  transaction?: BudgetTransaction | null;
+  schedule?: BudgetScheduledTransaction | null;
 }
 
 interface SplitLineDraft {
@@ -53,42 +60,31 @@ interface SplitLineDraft {
   amount: string;
 }
 
-function todayInMonth(monthKey: string): string {
-  const now = new Date();
-  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  if (monthKey === currentKey) {
-    return now.toISOString().slice(0, 10);
-  }
-  return `${monthKey}-01`;
-}
-
-function getCurrentMonthKey(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
+type RepeatUntil = "forever" | "date" | "count";
 
 function newSplitLine(amount = ""): SplitLineDraft {
   return { key: crypto.randomUUID(), categoryId: "none", amount };
 }
 
-export function BudgetTransactionDialog({
+export function BudgetScheduledDialog({
   open,
   onOpenChange,
   onSave,
+  onDelete,
   accounts,
   categories,
   categoryGroups,
-  defaultMonthKey,
   defaultAccountId,
-  transaction,
-}: BudgetTransactionDialogProps) {
-  const isEdit = Boolean(transaction);
+  schedule,
+}: BudgetScheduledDialogProps) {
+  const isEdit = Boolean(schedule);
   const orderedAccounts = sortedAccounts(accounts);
   const fallbackAccountId = defaultAccountId ?? orderedAccounts[0]?.id ?? "";
   const canTransfer = orderedAccounts.length >= 2;
+  const assignable = userAssignableCategories(categories);
 
   const [type, setType] = useState<BudgetTransactionType>("outflow");
-  const [date, setDate] = useState("");
+  const [nextDate, setNextDate] = useState("");
   const [payee, setPayee] = useState("");
   const [amount, setAmount] = useState("");
   const [accountId, setAccountId] = useState(fallbackAccountId);
@@ -100,23 +96,41 @@ export function BudgetTransactionDialog({
     newSplitLine(),
   ]);
   const [memo, setMemo] = useState("");
+  const [frequency, setFrequency] = useState<RecurringFrequency>("monthly");
+  const [repeatUntil, setRepeatUntil] = useState<RepeatUntil>("forever");
+  const [endDate, setEndDate] = useState("");
+  const [remainingCount, setRemainingCount] = useState("12");
 
   useEffect(() => {
     if (!open) return;
 
-    if (transaction) {
-      setType(transaction.type);
-      setDate(transaction.date);
-      setPayee(transaction.payee);
-      setAmount(String(transaction.amount));
-      setAccountId(transaction.accountId);
-      setTransferAccountId(transaction.transferAccountId ?? "");
-      setCategoryId(transaction.categoryId ?? "none");
-      setMemo(transaction.memo ?? "");
-      if (isSplitTransaction(transaction) && transaction.splits) {
+    if (schedule) {
+      setType(schedule.type);
+      setNextDate(schedule.nextDate);
+      setPayee(schedule.payee);
+      setAmount(String(schedule.amount));
+      setAccountId(schedule.accountId);
+      setTransferAccountId(schedule.transferAccountId ?? "");
+      setCategoryId(schedule.categoryId ?? "none");
+      setMemo(schedule.memo ?? "");
+      setFrequency(schedule.frequency);
+      if (schedule.endDate) {
+        setRepeatUntil("date");
+        setEndDate(schedule.endDate);
+        setRemainingCount("12");
+      } else if (typeof schedule.remainingCount === "number") {
+        setRepeatUntil("count");
+        setRemainingCount(String(schedule.remainingCount));
+        setEndDate("");
+      } else {
+        setRepeatUntil("forever");
+        setEndDate("");
+        setRemainingCount("12");
+      }
+      if (isScheduledSplit(schedule) && schedule.splits) {
         setSplitEnabled(true);
         setSplitLines(
-          transaction.splits.map((line) => ({
+          schedule.splits.map((line) => ({
             key: line.id,
             categoryId: line.categoryId ?? "none",
             amount: String(line.amount),
@@ -125,9 +139,7 @@ export function BudgetTransactionDialog({
       } else {
         setSplitEnabled(false);
         setSplitLines([
-          newSplitLine(
-            transaction.type === "outflow" ? String(transaction.amount) : "",
-          ),
+          newSplitLine(schedule.type === "outflow" ? String(schedule.amount) : ""),
           newSplitLine(),
         ]);
       }
@@ -139,7 +151,7 @@ export function BudgetTransactionDialog({
       orderedAccounts.find((account) => account.id !== nextFrom)?.id ?? "";
 
     setType("outflow");
-    setDate(todayInMonth(defaultMonthKey ?? getCurrentMonthKey()));
+    setNextDate(todayDateKey());
     setPayee("");
     setAmount("");
     setAccountId(nextFrom);
@@ -148,15 +160,20 @@ export function BudgetTransactionDialog({
     setSplitEnabled(false);
     setSplitLines([newSplitLine(), newSplitLine()]);
     setMemo("");
-  }, [open, transaction, defaultMonthKey, fallbackAccountId, accounts]);
+    setFrequency("monthly");
+    setRepeatUntil("forever");
+    setEndDate("");
+    setRemainingCount("12");
+  }, [open, schedule, fallbackAccountId, accounts]);
 
-  const assignableCategories = userAssignableCategories(categories);
   const sortedGroups = [...categoryGroups].sort(
     (a, b) => a.sortOrder - b.sortOrder,
   );
 
   const parsedAmount = Number.parseFloat(amount);
   const hasValidAmount = !Number.isNaN(parsedAmount) && parsedAmount > 0;
+  const parsedCount = Number.parseInt(remainingCount, 10);
+  const hasValidCount = Number.isInteger(parsedCount) && parsedCount > 0;
 
   const splitSum = useMemo(
     () =>
@@ -182,9 +199,7 @@ export function BudgetTransactionDialog({
   function handleTypeChange(nextType: BudgetTransactionType) {
     if (nextType === "transfer" && !canTransfer) return;
     setType(nextType);
-    if (nextType !== "outflow") {
-      setSplitEnabled(false);
-    }
+    if (nextType !== "outflow") setSplitEnabled(false);
     if (nextType === "transfer" && !transferAccountId) {
       setTransferAccountId(
         orderedAccounts.find((account) => account.id !== accountId)?.id ?? "",
@@ -192,34 +207,28 @@ export function BudgetTransactionDialog({
     }
   }
 
-  function enableSplit() {
-    setSplitEnabled(true);
-    setSplitLines([
-      {
-        key: crypto.randomUUID(),
-        categoryId,
-        amount: amount || "",
-      },
-      newSplitLine(),
-    ]);
-  }
-
-  function disableSplit() {
-    const first = splitLines[0];
-    setSplitEnabled(false);
-    if (first) {
-      setCategoryId(first.categoryId);
-    }
-  }
-
-  function updateSplitLine(key: string, updates: Partial<SplitLineDraft>) {
-    setSplitLines((current) =>
-      current.map((line) => (line.key === key ? { ...line, ...updates } : line)),
-    );
+  function categoryOptions() {
+    return sortedGroups.flatMap((group) => {
+      const groupCategories = assignable
+        .filter((category) => category.groupId === group.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      return groupCategories.map((category) => (
+        <SelectItem key={category.id} value={category.id}>
+          {group.name} · {category.name}
+        </SelectItem>
+      ));
+    });
   }
 
   function handleSubmit() {
-    if (!accountId || !hasValidAmount) return;
+    if (!accountId || !hasValidAmount || !nextDate) return;
+
+    const end =
+      repeatUntil === "date" && endDate
+        ? { endDate }
+        : repeatUntil === "count" && hasValidCount
+          ? { remainingCount: parsedCount }
+          : {};
 
     if (type === "transfer") {
       if (!transferAccountId || transferAccountId === accountId) return;
@@ -227,7 +236,8 @@ export function BudgetTransactionDialog({
         orderedAccounts.find((account) => account.id === transferAccountId)
           ?.name ?? "account";
       onSave({
-        date,
+        nextDate,
+        frequency,
         payee: buildTransferPayee(toName),
         accountId,
         transferAccountId,
@@ -235,7 +245,7 @@ export function BudgetTransactionDialog({
         type: "transfer",
         categoryId: null,
         memo: memo.trim() || undefined,
-        cleared: transaction?.cleared ?? false,
+        ...end,
       });
       onOpenChange(false);
       return;
@@ -244,19 +254,20 @@ export function BudgetTransactionDialog({
     if (type === "outflow" && splitEnabled) {
       if (!payee.trim() || !splitsBalanced || !splitLinesValid) return;
       onSave({
-        date,
+        nextDate,
+        frequency,
         payee,
         accountId,
         amount: parsedAmount,
         type: "outflow",
         categoryId: null,
         memo: memo.trim() || undefined,
-        cleared: transaction?.cleared ?? false,
         splits: splitLines.map((line) => ({
           id: line.key,
           categoryId: line.categoryId === "none" ? null : line.categoryId,
           amount: Number.parseFloat(line.amount),
         })),
+        ...end,
       });
       onOpenChange(false);
       return;
@@ -265,7 +276,8 @@ export function BudgetTransactionDialog({
     if (!payee.trim()) return;
 
     onSave({
-      date,
+      nextDate,
+      frequency,
       payee,
       accountId,
       amount: parsedAmount,
@@ -273,13 +285,15 @@ export function BudgetTransactionDialog({
       categoryId:
         type === "inflow" ? null : categoryId === "none" ? null : categoryId,
       memo: memo.trim() || undefined,
-      cleared: transaction?.cleared ?? false,
+      ...end,
     });
     onOpenChange(false);
   }
 
   const canSubmit = (() => {
-    if (!accountId || !hasValidAmount) return false;
+    if (!accountId || !hasValidAmount || !nextDate) return false;
+    if (repeatUntil === "date" && !endDate) return false;
+    if (repeatUntil === "count" && !hasValidCount) return false;
     if (type === "transfer") {
       return Boolean(transferAccountId) && transferAccountId !== accountId;
     }
@@ -289,15 +303,6 @@ export function BudgetTransactionDialog({
     }
     return true;
   })();
-
-  const description =
-    type === "transfer"
-      ? "Move money between accounts. Transfers do not count as income or spending."
-      : type === "inflow"
-        ? "Record income. Inflows go to Ready to Assign."
-        : splitEnabled
-          ? "Split this outflow across categories. Lines must add up to the total."
-          : "Record spending, linked to an account and category.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -309,9 +314,13 @@ export function BudgetTransactionDialog({
       >
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Edit Transaction" : "Add Transaction"}
+            {isEdit ? "Edit scheduled transaction" : "Schedule a transaction"}
           </DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription>
+            {isEdit
+              ? "Updates apply to this and future dates. Posted copies on the register stay as they are."
+              : "Repeats on a schedule. When the plan is opened on or after the due date, a normal transaction is posted."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[65vh] space-y-4 overflow-y-auto py-1">
@@ -340,12 +349,6 @@ export function BudgetTransactionDialog({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-
-          {!canTransfer && type !== "transfer" && (
-            <p className="text-xs text-muted-foreground">
-              Add a second account to record transfers.
-            </p>
-          )}
 
           {type === "transfer" ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -418,18 +421,18 @@ export function BudgetTransactionDialog({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="budget-tx-date">Date</Label>
+              <Label htmlFor="budget-sched-date">Next date</Label>
               <Input
-                id="budget-tx-date"
+                id="budget-sched-date"
                 type="date"
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
+                value={nextDate}
+                onChange={(event) => setNextDate(event.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="budget-tx-amount">Amount</Label>
+              <Label htmlFor="budget-sched-amount">Amount</Label>
               <Input
-                id="budget-tx-amount"
+                id="budget-sched-amount"
                 type="number"
                 min={0}
                 step="0.01"
@@ -440,11 +443,78 @@ export function BudgetTransactionDialog({
             </div>
           </div>
 
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Frequency</Label>
+              <Select
+                value={frequency}
+                onValueChange={(value) =>
+                  setFrequency((value ?? "monthly") as RecurringFrequency)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RECURRING_FREQUENCIES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {FREQUENCY_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Ends</Label>
+              <Select
+                value={repeatUntil}
+                onValueChange={(value) =>
+                  setRepeatUntil((value ?? "forever") as RepeatUntil)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="forever">Does not end</SelectItem>
+                  <SelectItem value="date">On a date</SelectItem>
+                  <SelectItem value="count">After a number of times</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {repeatUntil === "date" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-sched-end">End date</Label>
+              <Input
+                id="budget-sched-end"
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+              />
+            </div>
+          )}
+
+          {repeatUntil === "count" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-sched-count">Remaining times</Label>
+              <Input
+                id="budget-sched-count"
+                type="number"
+                min={1}
+                step={1}
+                value={remainingCount}
+                onChange={(event) => setRemainingCount(event.target.value)}
+              />
+            </div>
+          )}
+
           {type !== "transfer" && (
             <div className="space-y-1.5">
-              <Label htmlFor="budget-tx-payee">Payee</Label>
+              <Label htmlFor="budget-sched-payee">Payee</Label>
               <Input
-                id="budget-tx-payee"
+                id="budget-sched-payee"
                 placeholder="Who was this paid to or from?"
                 value={payee}
                 onChange={(event) => setPayee(event.target.value)}
@@ -461,7 +531,17 @@ export function BudgetTransactionDialog({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  onClick={enableSplit}
+                  onClick={() => {
+                    setSplitEnabled(true);
+                    setSplitLines([
+                      {
+                        key: crypto.randomUUID(),
+                        categoryId,
+                        amount: amount || "",
+                      },
+                      newSplitLine(),
+                    ]);
+                  }}
                 >
                   Split
                 </Button>
@@ -475,17 +555,7 @@ export function BudgetTransactionDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Uncategorized</SelectItem>
-                  {sortedGroups.flatMap((group) => {
-                    const groupCategories = assignableCategories
-                      .filter((category) => category.groupId === group.id)
-                      .sort((a, b) => a.sortOrder - b.sortOrder);
-
-                    return groupCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {group.name} · {category.name}
-                      </SelectItem>
-                    ));
-                  })}
+                  {categoryOptions()}
                 </SelectContent>
               </Select>
             </div>
@@ -500,7 +570,11 @@ export function BudgetTransactionDialog({
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  onClick={disableSplit}
+                  onClick={() => {
+                    const first = splitLines[0];
+                    setSplitEnabled(false);
+                    if (first) setCategoryId(first.categoryId);
+                  }}
                 >
                   Single category
                 </Button>
@@ -535,9 +609,13 @@ export function BudgetTransactionDialog({
                       <Select
                         value={line.categoryId}
                         onValueChange={(value) =>
-                          updateSplitLine(line.key, {
-                            categoryId: value ?? "none",
-                          })
+                          setSplitLines((current) =>
+                            current.map((entry) =>
+                              entry.key === line.key
+                                ? { ...entry, categoryId: value ?? "none" }
+                                : entry,
+                            ),
+                          )
                         }
                       >
                         <SelectTrigger>
@@ -545,17 +623,7 @@ export function BudgetTransactionDialog({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Uncategorized</SelectItem>
-                          {sortedGroups.flatMap((group) => {
-                            const groupCategories = assignableCategories
-                              .filter((category) => category.groupId === group.id)
-                              .sort((a, b) => a.sortOrder - b.sortOrder);
-
-                            return groupCategories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {group.name} · {category.name}
-                              </SelectItem>
-                            ));
-                          })}
+                          {categoryOptions()}
                         </SelectContent>
                       </Select>
                     </div>
@@ -572,9 +640,13 @@ export function BudgetTransactionDialog({
                         placeholder="0.00"
                         value={line.amount}
                         onChange={(event) =>
-                          updateSplitLine(line.key, {
-                            amount: event.target.value,
-                          })
+                          setSplitLines((current) =>
+                            current.map((entry) =>
+                              entry.key === line.key
+                                ? { ...entry, amount: event.target.value }
+                                : entry,
+                            ),
+                          )
                         }
                       />
                     </div>
@@ -602,7 +674,9 @@ export function BudgetTransactionDialog({
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                onClick={() => setSplitLines((current) => [...current, newSplitLine()])}
+                onClick={() =>
+                  setSplitLines((current) => [...current, newSplitLine()])
+                }
               >
                 <Plus className="size-3.5" />
                 Add line
@@ -611,9 +685,9 @@ export function BudgetTransactionDialog({
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="budget-tx-memo">Notes (optional)</Label>
+            <Label htmlFor="budget-sched-memo">Notes (optional)</Label>
             <Input
-              id="budget-tx-memo"
+              id="budget-sched-memo"
               placeholder="Notes"
               value={memo}
               onChange={(event) => setMemo(event.target.value)}
@@ -621,13 +695,30 @@ export function BudgetTransactionDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
-            {isEdit ? "Save Changes" : "Add Transaction"}
-          </Button>
+        <DialogFooter className="sm:justify-between">
+          {isEdit && onDelete ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-[var(--brand-red)]"
+              onClick={() => {
+                onDelete();
+                onOpenChange(false);
+              }}
+            >
+              Delete schedule
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
+              {isEdit ? "Save schedule" : "Schedule"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

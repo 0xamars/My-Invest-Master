@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useUserPlan } from "@/hooks/use-user-preferences";
 import { computeMonthSummary } from "@/lib/budget/calculations";
 import { normalizeBudgetPlans } from "@/lib/budget/migrate-plan";
+import { materializeDueSchedules } from "@/lib/budget/scheduled";
 import {
   canCreateLimitedResource,
   PlanLimitError,
@@ -51,6 +52,10 @@ export function useBudgetPlansStorage() {
   const loadVersionRef = useRef(0);
   const pendingSaveRef = useRef<Map<string, BudgetPlan>>(new Map());
 
+  const queueSave = useCallback((plan: BudgetPlan) => {
+    pendingSaveRef.current.set(plan.id, plan);
+  }, []);
+
   const assertCanCreate = useCallback(() => {
     const effectivePlan = resolvePlanForCreateGate(userPlan, {
       isPlanLoaded,
@@ -87,7 +92,12 @@ export function useBudgetPlansStorage() {
       try {
         const remote = await loadBudgetPlansFromCloud(user.id);
         if (!cancelled && version === loadVersionRef.current) {
-          setPlans(normalizeBudgetPlans(remote));
+          const opened = normalizeBudgetPlans(remote).map((plan) => {
+            const next = materializeDueSchedules(plan);
+            if (next !== plan) queueSave(next);
+            return next;
+          });
+          setPlans(opened);
         }
       } catch (error) {
         if (!cancelled && version === loadVersionRef.current) {
@@ -108,7 +118,7 @@ export function useBudgetPlansStorage() {
     return () => {
       cancelled = true;
     };
-  }, [user, isAuthLoading]);
+  }, [user, isAuthLoading, queueSave]);
 
   useEffect(() => {
     if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) {
@@ -135,10 +145,6 @@ export function useBudgetPlansStorage() {
 
     return () => window.clearTimeout(timer);
   }, [plans, isLoaded, isAuthLoading, user]);
-
-  const queueSave = useCallback((plan: BudgetPlan) => {
-    pendingSaveRef.current.set(plan.id, plan);
-  }, []);
 
   const createPlan = useCallback(
     (name?: string): BudgetPlan => {
@@ -186,8 +192,10 @@ export function useBudgetPlansStorage() {
         const index = prev.findIndex((plan) => plan.id === id);
         if (index === -1) return prev;
 
+        const nextPlan = updater(prev[index]);
+        if (nextPlan === prev[index]) return prev;
         const updated = {
-          ...updater(prev[index]),
+          ...nextPlan,
           updatedAt: new Date().toISOString(),
         };
         const next = [...prev];

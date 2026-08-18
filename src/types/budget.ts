@@ -14,10 +14,14 @@ export interface BudgetAccount {
   lastReconciledAt?: string;
 }
 
+export type BudgetCategoryGroupKind = "user" | "credit-card-payments";
+
 export interface BudgetCategoryGroup {
   id: string;
   name: string;
   sortOrder: number;
+  /** System group that holds one payment category per credit-card / LOC account. */
+  kind?: BudgetCategoryGroupKind;
 }
 
 export interface BudgetCategory {
@@ -25,9 +29,36 @@ export interface BudgetCategory {
   groupId: string;
   name: string;
   sortOrder: number;
+  /** When set, this is the automatic payment category for that liability account. */
+  creditCardAccountId?: string;
 }
 
 export type BudgetTransactionType = "inflow" | "outflow" | "transfer";
+
+export type RecurringFrequency =
+  | "weekly"
+  | "every-2-weeks"
+  | "monthly"
+  | "yearly";
+
+export interface BudgetScheduledTransaction {
+  id: string;
+  nextDate: string;
+  frequency: RecurringFrequency;
+  payee: string;
+  accountId: string;
+  /** Null for inflows (Ready to Assign) and transfers. Unused when splits are present. */
+  categoryId: string | null;
+  amount: number;
+  type: BudgetTransactionType;
+  memo?: string;
+  transferAccountId?: string;
+  splits?: BudgetTransactionSplit[];
+  endDate?: string;
+  remainingCount?: number;
+  /** False once remaining count or end date is exhausted. Defaults to true. */
+  active?: boolean;
+}
 
 export interface BudgetTransactionSplit {
   id: string;
@@ -51,6 +82,8 @@ export interface BudgetTransaction {
   transferAccountId?: string;
   /** Category lines for split outflows. Activity uses these instead of categoryId. */
   splits?: BudgetTransactionSplit[];
+  /** Set when this row was posted from a recurring schedule. */
+  scheduledTransactionId?: string;
 }
 
 export interface MonthBudget {
@@ -72,6 +105,7 @@ export interface BudgetPlan {
   categoryGroups: BudgetCategoryGroup[];
   categories: BudgetCategory[];
   transactions: BudgetTransaction[];
+  scheduledTransactions: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
   createdAt: string;
@@ -84,6 +118,7 @@ export interface BudgetData {
   categoryGroups: BudgetCategoryGroup[];
   categories: BudgetCategory[];
   transactions: BudgetTransaction[];
+  scheduledTransactions?: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
   updatedAt: string;
@@ -138,6 +173,7 @@ export function createEmptyBudgetPlan(name = "New Budget Plan"): BudgetPlan {
     categoryGroups,
     categories,
     transactions: [],
+    scheduledTransactions: [],
     monthBudgets: {},
     goals: [],
     createdAt: now,

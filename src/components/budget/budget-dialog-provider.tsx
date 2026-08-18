@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { BudgetScheduledDialog } from "@/components/budget/budget-scheduled-dialog";
 import { BudgetTransactionDialog } from "@/components/budget/budget-transaction-dialog";
 import { useBudget } from "@/contexts/budget-context";
 import { getCurrentMonthKey } from "@/lib/budget/calculations";
@@ -15,14 +16,25 @@ import { getCurrentMonthKey } from "@/lib/budget/calculations";
 interface BudgetDialogContextValue {
   openAddTransaction: () => void;
   openEditTransaction: (transactionId: string) => void;
+  openAddScheduled: () => void;
+  openEditScheduled: (scheduleId: string) => void;
 }
 
 const BudgetDialogContext = createContext<BudgetDialogContextValue | null>(null);
 
 export function BudgetDialogProvider({ children }: { children: ReactNode }) {
-  const { budget, addTransaction, updateTransaction } = useBudget();
+  const {
+    budget,
+    addTransaction,
+    updateTransaction,
+    addScheduledTransaction,
+    updateScheduledTransaction,
+    deleteScheduledTransaction,
+  } = useBudget();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [scheduledOpen, setScheduledOpen] = useState(false);
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
   const editingTransaction = useMemo(
     () =>
@@ -30,6 +42,16 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
         ? budget.transactions.find((tx) => tx.id === editingId) ?? null
         : null,
     [budget.transactions, editingId],
+  );
+
+  const editingSchedule = useMemo(
+    () =>
+      editingScheduleId != null
+        ? (budget.scheduledTransactions ?? []).find(
+            (schedule) => schedule.id === editingScheduleId,
+          ) ?? null
+        : null,
+    [budget.scheduledTransactions, editingScheduleId],
   );
 
   const openAddTransaction = useCallback(() => {
@@ -42,9 +64,24 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
     setDialogOpen(true);
   }, []);
 
+  const openAddScheduled = useCallback(() => {
+    setEditingScheduleId(null);
+    setScheduledOpen(true);
+  }, []);
+
+  const openEditScheduled = useCallback((scheduleId: string) => {
+    setEditingScheduleId(scheduleId);
+    setScheduledOpen(true);
+  }, []);
+
   return (
     <BudgetDialogContext.Provider
-      value={{ openAddTransaction, openEditTransaction }}
+      value={{
+        openAddTransaction,
+        openEditTransaction,
+        openAddScheduled,
+        openEditScheduled,
+      }}
     >
       {children}
       <BudgetTransactionDialog
@@ -66,6 +103,30 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
         defaultMonthKey={getCurrentMonthKey()}
         defaultAccountId={budget.accounts[0]?.id}
         transaction={editingTransaction}
+      />
+      <BudgetScheduledDialog
+        open={scheduledOpen}
+        onOpenChange={(open) => {
+          setScheduledOpen(open);
+          if (!open) setEditingScheduleId(null);
+        }}
+        onSave={(input) => {
+          if (editingScheduleId) {
+            updateScheduledTransaction(editingScheduleId, input);
+          } else {
+            addScheduledTransaction(input);
+          }
+        }}
+        onDelete={
+          editingScheduleId
+            ? () => deleteScheduledTransaction(editingScheduleId)
+            : undefined
+        }
+        accounts={budget.accounts}
+        categories={budget.categories}
+        categoryGroups={budget.categoryGroups}
+        defaultAccountId={budget.accounts[0]?.id}
+        schedule={editingSchedule}
       />
     </BudgetDialogContext.Provider>
   );

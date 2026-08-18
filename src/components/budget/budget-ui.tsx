@@ -65,12 +65,12 @@ export function BudgetEmptyState({
 export function BudgetKindBadge({
   kind,
 }: {
-  kind: "transfer" | "split";
+  kind: "transfer" | "split" | "scheduled";
 }) {
+  const label =
+    kind === "transfer" ? "Transfer" : kind === "split" ? "Split" : "Scheduled";
   return (
-    <span className={cn("budget-kind", `budget-kind--${kind}`)}>
-      {kind === "transfer" ? "Transfer" : "Split"}
-    </span>
+    <span className={cn("budget-kind", `budget-kind--${kind}`)}>{label}</span>
   );
 }
 
