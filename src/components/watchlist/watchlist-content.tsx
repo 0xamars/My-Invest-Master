@@ -138,7 +138,7 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
             </Button>
             <RetirePageHeader
               title={watchlist?.name ?? "Watchlist"}
-              description="Research list — symbol, last price, and whether the name is already in the book. Not a ranking and not a recommendation."
+              description="Queue only — symbol, last price, and whether the name is already in the book. Adding here does not unlock research."
             />
           </div>
 
@@ -209,7 +209,7 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
             <RetireEmptyState
               icon={<Eye className="size-5" />}
               title="No tickers yet"
-              description="Add stocks or crypto you want to research. This list is not your portfolio."
+              description="Add stocks or crypto to the queue. This list is not the book and does not open research."
               actions={
                 <Button className="gap-2" onClick={() => setAddOpen(true)}>
                   <Plus className="size-4" />

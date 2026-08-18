@@ -64,12 +64,19 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       description: "Track calls, puts, premiums, and option metrics.",
     };
   }
-  if (pathname === "/market" || pathname.startsWith("/market/")) {
+  if (
+    pathname === "/market" ||
+    pathname.startsWith("/market/") ||
+    pathname === "/markets" ||
+    pathname === "/analysis" ||
+    pathname.startsWith("/analysis/")
+  ) {
     return {
-      id: "market",
+      id: "invest",
       path: pathname,
-      title: "Market",
-      description: "AI and sentiment-powered investment themes and stock ideas.",
+      title: "Invest",
+      description:
+        "Research routes fold into the Invest book — checkup, mix, leftover, and owned names.",
     };
   }
   if (pathname.startsWith("/retire/plans/") && pathname.split("/").length >= 4) {

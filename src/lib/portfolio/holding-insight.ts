@@ -24,12 +24,6 @@ export type HoldingInsightSnapshot = {
   contributionPercent: number | null;
   sectorWeight: number | null;
   assetTypeWeight: number | null;
-  /** Extension point for future InvestSalsa Rating engine. */
-  ratingPlaceholder: {
-    status: "coming_soon";
-    title: string;
-    description: string;
-  };
 };
 
 function formatWeight(percent: number): string {
@@ -211,12 +205,6 @@ export function buildHoldingInsight(
     contributionPercent,
     sectorWeight: sectorRow?.percent ?? null,
     assetTypeWeight: typeRow?.percent ?? null,
-    ratingPlaceholder: {
-      status: "coming_soon",
-      title: "InvestSalsa Rating",
-      description:
-        "Open Analysis for this ticker to see the live InvestSalsa Rating, radar breakdown, and technical confluence.",
-    },
   };
 }
 

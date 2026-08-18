@@ -8,7 +8,21 @@ import {
   leftoverFromBudgetPlans,
   pickOpenablePlan,
 } from "../src/lib/invest/leftover.ts";
+import {
+  INVEST_CHILD_NAV,
+  PRIMARY_NAV_TITLES,
+  SIGNED_IN_FOOTER_NAV,
+  SIGNED_IN_PRIMARY_NAV,
+} from "../src/lib/chrome/nav.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
+import { ownedNameMovers } from "../src/lib/portfolio/book-movers.ts";
+import {
+  buildHoldingExpandFacts,
+  classifyRevenuePath,
+  holdingExpandHasRatingUi,
+  holdingExpandShowsScreens,
+  pickNextEarningsDate,
+} from "../src/lib/portfolio/holding-expand.ts";
 import {
   buildAccountExportPayload,
   isAccountExportPayload,
@@ -173,16 +187,16 @@ assert(
   "checkup lists top names for the hub",
 );
 assert(
-  concentratedCheckup.concentration.topHolding?.analysisHref?.startsWith(
-    "/analysis/AAPL",
-  ) === true,
-  "concentrated stock deep-links to analysis",
+  concentratedCheckup.concentration.topHolding?.symbol === "AAPL",
+  "concentrated stock stays on the book",
 );
 assert(
-  concentratedCheckup.concentration.topHoldings[0]?.analysisHref?.includes(
-    "AAPL",
-  ) === true,
-  "top-name row is analysis-clickable",
+  concentratedCheckup.nextAction.href === "/portfolio",
+  "concentrated next action opens the book",
+);
+assert(
+  !concentratedCheckup.nextAction.label.toLowerCase().includes("analysis"),
+  "concentrated next action does not send users to analysis",
 );
 assert(concentratedCheckup.cashPercent === 40, "cash % of book is 40");
 
@@ -556,8 +570,10 @@ assert(isProtectedRoute("/market"), "/market is gated");
 assert(destinationForLegacyInvestPath("/analytics") === "/invest", "/analytics folds into checkup");
 assert(destinationForLegacyInvestPath("/performance") === "/invest", "/performance folds into checkup");
 assert(destinationForLegacyInvestPath("/holdings") === "/portfolio", "/holdings is leftover of the book");
-assert(destinationForLegacyInvestPath("/markets") === "/market", "/markets leftover goes to Market");
+assert(destinationForLegacyInvestPath("/markets") === "/invest", "/markets leftover goes to Invest");
+assert(destinationForLegacyInvestPath("/market") === "/invest", "/market leftover goes to Invest");
 assert(destinationForLegacyInvestPath("/analysis") === "/invest", "/analysis hub folds into Invest");
+assert(destinationForLegacyInvestPath("/analysis/AAPL") === "/invest", "/analysis/[symbol] folds into Invest");
 assert(destinationForLegacyInvestPath("/signin") === "/login", "/signin aliases /login");
 assert(destinationForLegacyInvestPath("/pricing") === "/", "/pricing redirects home");
 assert(isPublicRoute("/pricing"), "/pricing stays public so the redirect is not gated");
@@ -587,7 +603,132 @@ assert(
 );
 assert(destinationForLegacyInvestPath("/invest") === null, "/invest itself is not redirected");
 assert(destinationForLegacyInvestPath("/portfolio") === null, "the book stays");
-assert(destinationForLegacyInvestPath("/analysis/AAPL") === null, "ticker analysis stays");
+assert(destinationForLegacyInvestPath("/watchlist") === null, "watchlist queue stays");
+assert(destinationForLegacyInvestPath("/options") === null, "options stays");
+
+assert(
+  PRIMARY_NAV_TITLES.join(",") === "Home,Budget,Invest,Retire",
+  "signed-in chrome is four tabs",
+);
+assert(
+  SIGNED_IN_PRIMARY_NAV.every((item) => item.title !== "Settings"),
+  "Settings is not a top-level peer",
+);
+assert(
+  SIGNED_IN_FOOTER_NAV.some((item) => item.href === "/settings"),
+  "Settings stays in the footer",
+);
+assert(
+  INVEST_CHILD_NAV.map((item) => item.href).join(",") ===
+    "/portfolio,/watchlist,/options",
+  "Invest children are book, queue, and options",
+);
+assert(
+  !INVEST_CHILD_NAV.some((item) => item.href === "/market" || item.href === "/analysis"),
+  "Market and Analysis are not Invest children",
+);
+
+assert(holdingExpandShowsScreens("stock") === true, "stock expand shows screens");
+assert(holdingExpandShowsScreens("crypto") === false, "crypto expand skips screens");
+assert(holdingExpandShowsScreens("cash") === false, "cash expand skips screens");
+assert(holdingExpandShowsScreens("custom") === false, "custom expand skips screens");
+assert(classifyRevenuePath([80, 90, 110]) === "growing", "rising revenue is growing");
+assert(classifyRevenuePath([100, 101, 99]) === "flat", "sideways revenue is flat");
+assert(classifyRevenuePath([120, 90, 80]) === "stall", "falling revenue is stall");
+assert(classifyRevenuePath([50]) === null, "one year is not a path");
+assert(pickNextEarningsDate(null) === null, "missing earnings shows nothing");
+assert(pickNextEarningsDate("") === null, "blank earnings shows nothing");
+assert(pickNextEarningsDate("not-a-date") === null, "junk earnings shows nothing");
+assert(
+  pickNextEarningsDate("2020-01-15", new Date("2026-08-18")) === null,
+  "past earnings date is omitted",
+);
+assert(
+  pickNextEarningsDate("2026-10-20", new Date("2026-08-18")) === "2026-10-20",
+  "future warehouse earnings date is kept",
+);
+
+const stockFacts = buildHoldingExpandFacts({
+  type: "stock",
+  size: { value: 100, profitLoss: 10, portfolioPercent: 25 },
+  whyMoved: { change: 2, changePercent: 1.5, volume: 20, averageVolume: 10 },
+  incomeRows: [
+    { calendarYear: "2023", revenue: 80 },
+    { calendarYear: "2024", revenue: 100 },
+    { calendarYear: "2025", revenue: 120 },
+  ],
+  balanceRow: { cashAndShortTermInvestments: 40, totalDebt: 10 },
+  earningsRaw: { nextEarningsDate: "2026-11-01" },
+  now: new Date("2026-08-18"),
+});
+assert(stockFacts.showScreens === true, "stock facts include screens");
+assert(stockFacts.screens?.revenuePath?.kind === "growing", "stock revenue path is growing");
+assert(stockFacts.screens?.cashVsDebt?.netCash === true, "cash above debt is net cash");
+assert(stockFacts.nextEarningsDate === "2026-11-01", "stock shows warehouse earnings");
+assert(stockFacts.whyMoved.volumeVsTypical === 2, "volume vs typical is a ratio");
+assert(!("score" in stockFacts), "expand payload has no score");
+assert(!("rating" in stockFacts), "expand payload has no rating");
+assert(
+  !holdingExpandHasRatingUi(JSON.stringify(stockFacts)),
+  "stock expand copy has no rating UI",
+);
+
+const cryptoFacts = buildHoldingExpandFacts({
+  type: "crypto",
+  size: { value: 20, profitLoss: -2, portfolioPercent: 5 },
+  whyMoved: { change: -1, changePercent: -3 },
+  incomeRows: [{ calendarYear: "2025", revenue: 999 }],
+  balanceRow: { cashAndShortTermInvestments: 1, totalDebt: 0 },
+  earningsRaw: { nextEarningsDate: "2026-11-01" },
+  now: new Date("2026-08-18"),
+});
+assert(cryptoFacts.showScreens === false, "crypto skips the two screens");
+assert(cryptoFacts.screens === null, "crypto screens are omitted");
+assert(cryptoFacts.nextEarningsDate === null, "crypto does not invent earnings");
+
+const cashFacts = buildHoldingExpandFacts({
+  type: "cash",
+  earningsRaw: { nextEarningsDate: "2026-11-01" },
+  now: new Date("2026-08-18"),
+});
+assert(cashFacts.showScreens === false, "cash skips screens");
+assert(cashFacts.nextEarningsDate === null, "cash does not show earnings");
+
+const customFacts = buildHoldingExpandFacts({
+  type: "custom",
+  earningsRaw: { nextEarningsDate: "2026-11-01" },
+});
+assert(customFacts.nextEarningsDate === null, "custom does not show earnings");
+assert(
+  pickNextEarningsDate(undefined) === null,
+  "undefined earnings shows nothing",
+);
+assert(
+  !holdingExpandHasRatingUi("Price +2.1% · volume 1.2× typical"),
+  "plain move copy is not rating UI",
+);
+assert(
+  holdingExpandHasRatingUi("InvestSalsa Rating 72"),
+  "rating label is detected as rating UI",
+);
+assert(
+  holdingExpandHasRatingUi("Insight Score 0–100 belong"),
+  "score / belong copy is rating UI",
+);
+
+const movers = ownedNameMovers(
+  [
+    { id: "aapl", symbol: "AAPL", name: "Apple", type: "stock", quantity: 2 },
+    { id: "usd", symbol: "USD", name: "Cash", type: "cash", quantity: 100 },
+    { id: "watch", symbol: "NVDA", name: "Nvidia", type: "stock", quantity: 0 },
+  ],
+  {
+    AAPL: { change: 3, changePercent: 2.5 },
+    NVDA: { change: 10, changePercent: 8 },
+  },
+);
+assert(movers.length === 1, "movers stay on owned book names");
+assert(movers[0]?.symbol === "AAPL", "zero-qty and cash names are not movers");
 
 const leftoverPlan = createEmptyBudgetPlan("Leftover");
 leftoverPlan.id = "budget-1";

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
@@ -9,9 +8,9 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Search,
   Trash2,
 } from "lucide-react";
+import { HoldingExpandPanel } from "@/components/portfolio/holding-expand-panel";
 import { Badge } from "@/components/ui/badge";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { Button } from "@/components/ui/button";
@@ -46,7 +45,6 @@ import {
   type SortColumn,
   type SortState,
 } from "@/lib/portfolio/sort-holdings";
-import { buildAnalysisHref } from "@/lib/analysis/types";
 import { concentrationNoteForWeight } from "@/lib/portfolio/checkup";
 import { cn } from "@/lib/utils";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
@@ -61,15 +59,12 @@ interface PortfolioTableProps {
   isLoading?: boolean;
   currency: DisplayCurrency;
   rates: FxRates;
-  onRowClick: (holding: PortfolioHoldingWithPrices) => void;
+  expandedHoldingId?: string | null;
+  dayChanges?: Record<string, { change: number; changePercent: number }>;
+  onToggleExpand: (holding: PortfolioHoldingWithPrices) => void;
   onEdit: (holding: PortfolioHoldingWithPrices) => void;
   onDelete: (holding: PortfolioHoldingWithPrices) => void;
   onAdd?: () => void;
-}
-
-function analysisHrefFor(holding: PortfolioHoldingWithPrices): string | null {
-  if (holding.type !== "stock" && holding.type !== "crypto") return null;
-  return buildAnalysisHref(holding.symbol, holding.type, holding.priceId);
 }
 
 function rowToneClass(note: ReturnType<typeof concentrationNoteForWeight>) {
@@ -240,7 +235,9 @@ export function PortfolioTable({
   isLoading,
   currency,
   rates,
-  onRowClick,
+  expandedHoldingId,
+  dayChanges,
+  onToggleExpand,
   onEdit,
   onDelete,
   onAdd,
@@ -318,15 +315,17 @@ export function PortfolioTable({
               const note = concentrationNoteForWeight(
                 holding.portfolioPercent ?? 0,
               );
-              const analysisHref = analysisHrefFor(holding);
+              const expanded = expandedHoldingId === holding.id;
 
               return (
+                <>
                 <TableRow
                   key={holding.id}
-                  onClick={() => onRowClick(holding)}
+                  onClick={() => onToggleExpand(holding)}
                   className={cn(
                     "group cursor-pointer border-border/50 transition-colors duration-150",
                     rowToneClass(note),
+                    expanded && "bg-muted/20",
                   )}
                 >
                   <TableCell
@@ -346,19 +345,9 @@ export function PortfolioTable({
                         size="sm"
                       />
                       <div className="flex min-w-0 items-center gap-2">
-                        {analysisHref ? (
-                          <Link
-                            href={analysisHref}
-                            onClick={(event) => event.stopPropagation()}
-                            className="font-semibold tracking-tight hover:text-primary hover:underline"
-                          >
-                            {holding.symbol}
-                          </Link>
-                        ) : (
-                          <span className="font-semibold tracking-tight">
-                            {holding.symbol}
-                          </span>
-                        )}
+                        <span className="font-semibold tracking-tight">
+                          {holding.symbol}
+                        </span>
                         <Badge
                           variant="outline"
                           className="border-border/70 bg-muted/30 px-1.5 py-0 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"
@@ -484,15 +473,6 @@ export function PortfolioTable({
                         }
                       />
                       <DropdownMenuContent align="end" className="w-44">
-                        {analysisHref ? (
-                          <DropdownMenuItem
-                            className="gap-2"
-                            render={<Link href={analysisHref} />}
-                          >
-                            <Search className="size-4" />
-                            Analysis
-                          </DropdownMenuItem>
-                        ) : null}
                         <DropdownMenuItem
                           onClick={() => onEdit(holding)}
                           className="gap-2"
@@ -512,6 +492,19 @@ export function PortfolioTable({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
+                {expanded ? (
+                  <TableRow key={`${holding.id}-expand`} className="hover:bg-transparent">
+                    <TableCell colSpan={COLUMNS.length + 1} className="bg-muted/15 px-5 py-4">
+                      <HoldingExpandPanel
+                        holding={holding}
+                        currency={currency}
+                        rates={rates}
+                        dayChange={dayChanges?.[holding.symbol] ?? null}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+                </>
               );
             })}
           </TableBody>

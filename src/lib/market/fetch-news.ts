@@ -47,6 +47,53 @@ function dedupeNews(items: MarketNewsItem[]): MarketNewsItem[] {
   });
 }
 
+export function newsForBookSymbols(
+  items: MarketNewsItem[],
+  symbols: string[],
+  limit = 4,
+): MarketNewsItem[] {
+  const wanted = new Set(symbols.map((symbol) => symbol.toUpperCase()));
+  if (wanted.size === 0) return [];
+  return items
+    .filter((item) =>
+      (item.relatedTickers ?? []).some((ticker) =>
+        wanted.has(ticker.toUpperCase()),
+      ),
+    )
+    .slice(0, limit);
+}
+
+export async function fetchNewsForSymbols(
+  symbols: string[],
+): Promise<MarketNewsItem[]> {
+  const unique = [...new Set(symbols.map((symbol) => symbol.trim().toUpperCase()))]
+    .filter(Boolean)
+    .slice(0, 8);
+  if (unique.length === 0) return [];
+
+  const batches = await Promise.all(
+    unique.map(async (symbol) => {
+      try {
+        const result = await yahooFinance.search(symbol, { newsCount: 3 });
+        return (result.news ?? []).map((item) =>
+          mapNewsItem(item as YahooNewsItem),
+        );
+      } catch {
+        return [];
+      }
+    }),
+  );
+
+  return newsForBookSymbols(dedupeNews(batches.flat()), unique, 6);
+}
+
+export async function fetchHeadlineForSymbol(
+  symbol: string,
+): Promise<MarketNewsItem | null> {
+  const items = await fetchNewsForSymbols([symbol]);
+  return items[0] ?? null;
+}
+
 export async function fetchMarketNews(): Promise<{
   stockNews: MarketNewsItem[];
   cryptoNews: MarketNewsItem[];
