@@ -8,7 +8,21 @@ import {
   impliedPathSentence,
   whatIfLeverSentence,
 } from "../src/lib/retirement/path-copy.ts";
-import { isSuccessfulPath, runRetirementMonteCarlo } from "../src/lib/retirement/monte-carlo.ts";
+import {
+  isSuccessfulPath,
+  runRetirementMonteCarlo,
+  type MonteCarloPercentileBand,
+  type MonteCarloResult,
+} from "../src/lib/retirement/monte-carlo.ts";
+import {
+  formatOutlookAge,
+  nudgeAnnualSavings,
+  nudgeAnnualSpending,
+  nudgeRetirementAge,
+  outlookChartRows,
+  outlookLivesFromResult,
+  outlookSentence,
+} from "../src/lib/retirement/outlook.ts";
 import { normalizeRetirementPlan } from "../src/lib/retirement/normalize.ts";
 import { refreshAssetsFromPortfolio } from "../src/lib/retirement/portfolio-import.ts";
 import {
@@ -478,6 +492,105 @@ const lever = whatIfLeverSentence(
 assert(lever.includes("Retire 2 years later"), "lever uses existing retire-later copy");
 assert(lever.includes("Spend 10% less"), "lever uses existing spend-less copy");
 assert(lever.includes("Save $6,000 more / year"), "lever uses existing save-more copy");
+
+// --- Outlook copy from existing p10 / p50 / p90 ----------------------------
+
+function fakeBands(
+  rows: Array<{ age: number; p10: number; p50: number; p90: number }>,
+): MonteCarloPercentileBand[] {
+  return rows.map((row, index) => ({
+    year: CURRENT_YEAR + index,
+    ...row,
+  }));
+}
+
+function fakeResult(bands: MonteCarloPercentileBand[]): MonteCarloResult {
+  return {
+    paths: 750,
+    successCount: 0,
+    successRate: 0,
+    percentiles: bands,
+  };
+}
+
+assert(
+  outlookSentence(null, 90) === "Add holdings to see how long this plan lasts.",
+  "empty outlook does not invent a lasting age",
+);
+
+const depletes = outlookLivesFromResult(
+  fakeResult(
+    fakeBands([
+      { age: 65, p10: 80_000, p50: 90_000, p90: 110_000 },
+      { age: 72, p10: 0, p50: 40_000, p90: 90_000 },
+      { age: 81, p10: 0, p50: 0, p90: 20_000 },
+      { age: 90, p10: 0, p50: 0, p90: 0 },
+    ]),
+  ),
+  90,
+);
+assert(depletes?.bad.depletionAge === 72, "bad life maps to p10 depletion age");
+assert(depletes?.typical.depletionAge === 81, "typical life maps to p50 depletion age");
+assert(depletes?.good.depletionAge === 90, "good life maps to p90 depletion age");
+assert(
+  outlookSentence(depletes, 90) ===
+    "In a typical market this plan lasts to age 81. In a bad one it runs out at age 72. You need it to 90.",
+  "sentence uses typical and bad ages, not a score",
+);
+assert(!/monte carlo|percentile|sigma|p10|p50|p90|1,000 runs|simulation/i.test(outlookSentence(depletes, 90)), "default sentence stays in plain English");
+
+const typicalLasts = outlookLivesFromResult(
+  fakeResult(
+    fakeBands([
+      { age: 65, p10: 50_000, p50: 120_000, p90: 180_000 },
+      { age: 80, p10: 0, p50: 60_000, p90: 140_000 },
+      { age: 90, p10: 0, p50: 15_000, p90: 90_000 },
+    ]),
+  ),
+  90,
+);
+assert(typicalLasts?.typical.lastsToTarget === true, "p50 still positive at target lasts");
+assert(typicalLasts?.bad.lastsToTarget === false, "p10 hitting $0 before target does not last");
+assert(
+  outlookSentence(typicalLasts, 90) === "This plan lasts in a typical market.",
+  "typical-lasts sentence matches the product copy",
+);
+assert(formatOutlookAge(typicalLasts!.bad, 90) === "80", "bad age is the p10 run-out");
+assert(formatOutlookAge(typicalLasts!.typical, 90) === "Past 90", "typical life that lasts is Past target");
+
+const evenBadLasts = outlookLivesFromResult(
+  fakeResult(
+    fakeBands([
+      { age: 65, p10: 80_000, p50: 120_000, p90: 160_000 },
+      { age: 90, p10: 12_000, p50: 40_000, p90: 80_000 },
+    ]),
+  ),
+  90,
+);
+assert(
+  outlookSentence(evenBadLasts, 90) === "This plan lasts even when markets are bad.",
+  "p10 lasting to target uses the stronger sentence",
+);
+
+const chartRows = outlookChartRows(
+  fakeBands([{ age: 70, p10: 10, p50: 20, p90: 40 }]),
+);
+assert(chartRows[0]?.bad === 10 && chartRows[0]?.typical === 20 && chartRows[0]?.good === 40, "chart rows are the existing three lives");
+assert(chartRows[0]?.spread === 30, "band width is p90 minus p10");
+
+const nudged = nudgeRetirementAge(plan({ retirementAge: 65 }), 1, CURRENT_YEAR);
+assert(nudged.retirementAge === 66, "retire later is +1 year");
+assert(nudged.retirementYear === CURRENT_YEAR + 26, "retire later keeps the year in sync");
+const earlier = nudgeRetirementAge(plan({ currentAge: 40, retirementAge: 40 }), -1, CURRENT_YEAR);
+assert(earlier.retirementAge === 40, "cannot retire earlier than current age");
+assert(nudgeAnnualSpending(plan({ annualLifestyleSpending: 100_000 }), -1).annualLifestyleSpending === 90_000, "spend less is 10%");
+assert(nudgeAnnualSpending(plan({ annualLifestyleSpending: 100_000 }), 1).annualLifestyleSpending === 110_000, "spend more is 10%");
+assert(nudgeAnnualSavings(plan({ annualContribution: 0 }), 1).annualContribution === 6_000, "save more uses the existing extra step");
+assert(nudgeAnnualSavings(plan({ annualContribution: 1_000 }), -1, CURRENT_YEAR, 6_000).annualContribution === 0, "save less does not go negative");
+
+const winOutlook = outlookLivesFromResult(winMc, 68);
+assert(winOutlook?.typical.lastsPastEnd === true, "no-spend cash sim still lasts on the typical life");
+assert(outlookSentence(winOutlook, 68) === "This plan lasts even when markets are bad.", "same sim, human sentence when every life lasts");
 
 if (failed > 0) {
   console.error(`\n${failed} assertion(s) failed`);

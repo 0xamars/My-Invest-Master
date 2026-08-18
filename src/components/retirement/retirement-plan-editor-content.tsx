@@ -22,8 +22,6 @@ import { RetirementPlanLevers } from "@/components/retirement/retirement-plan-le
 import { RetirementPlanProjectionsChart } from "@/components/retirement/retirement-plan-projections-chart";
 import { RetirementPlanProjectionsTable } from "@/components/retirement/retirement-plan-projections-table";
 import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
-import { RetirementWhatIf } from "@/components/retirement/retirement-what-if";
-import { RetirePanel } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -45,7 +43,6 @@ import { runRetirementMonteCarlo } from "@/lib/retirement/monte-carlo";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import { computeRetirementProjections } from "@/lib/retirement/projections";
-import { compareRetirementScenarios } from "@/lib/retirement/scenarios";
 import { cn } from "@/lib/utils";
 import type { RetirementPlan, RetirementPlanAsset } from "@/types/retirement";
 import { isLivePricedAsset } from "@/types/portfolio";
@@ -116,18 +113,6 @@ export function RetirementPlanEditorContent({
           })
         : null,
     [workingPlan, projections, monteCarlo],
-  );
-
-  const whatIf = useMemo(
-    () =>
-      workingPlan
-        ? compareRetirementScenarios(workingPlan, {
-            includeBase: true,
-            paths: 400,
-            seed: 17,
-          })
-        : [],
-    [workingPlan],
   );
 
   const persistPlan = useCallback(
@@ -302,25 +287,9 @@ export function RetirementPlanEditorContent({
           }
         />
 
-        <div className="grid gap-3 lg:grid-cols-2">
-          <RetirementMonteCarloPanel result={monteCarlo} />
-          <RetirePanel className="flex flex-col justify-center px-5 py-5">
-            <p className="budget-metric-label">Expected path</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              The green line is still the deterministic CAGR path. Monte Carlo
-              only adds a success rate and a p10–p90 band on the total chart.
-            </p>
-            {dashboard.successRate != null ? (
-              <p className="mt-3 text-sm">
-                {Math.round(dashboard.successRate * 100)}% of paths still have
-                money at age {workingPlan.planEndAge}.
-              </p>
-            ) : null}
-          </RetirePanel>
-        </div>
-
-        <RetirementWhatIf
-          comparisons={whatIf}
+        <RetirementMonteCarloPanel
+          plan={workingPlan}
+          result={monteCarlo}
           currency={currency}
           rates={rates}
           onApply={persistPlan}
@@ -380,7 +349,6 @@ export function RetirementPlanEditorContent({
           currency={currency}
           rates={rates}
           retirementYear={workingPlan.retirementYear}
-          percentiles={monteCarlo?.percentiles}
         />
 
         <div className="space-y-4">
