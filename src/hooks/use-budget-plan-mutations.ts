@@ -474,7 +474,12 @@ export function useBudgetPlanMutations(planId: string) {
   );
 
   const setCategoryGoal = useCallback(
-    (goal: Omit<CategoryGoal, "id"> & { id?: string }) => {
+    (
+      goal: Omit<CategoryGoal, "id" | "type"> & {
+        id?: string;
+        type?: CategoryGoalType;
+      },
+    ) => {
       commitPlan((current) => {
         const existing = current.goals.find(
           (entry) => entry.categoryId === goal.categoryId,

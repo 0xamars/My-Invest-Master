@@ -286,6 +286,17 @@ export function BudgetTransactionDialog({
     onOpenChange(false);
   }
 
+  const selectedAccount = orderedAccounts.find((account) => account.id === accountId);
+  const transferAccount = orderedAccounts.find(
+    (account) => account.id === transferAccountId,
+  );
+  const selectedOnBudget = isOnBudgetAccount(selectedAccount);
+  const transferOnBudget = isOnBudgetAccount(transferAccount);
+  const transferCrossesBudget =
+    type === "transfer" &&
+    Boolean(transferAccountId) &&
+    selectedOnBudget !== transferOnBudget;
+
   const canSubmit = (() => {
     if (!accountId || !hasValidAmount) return false;
     if (type === "transfer") {
@@ -297,17 +308,6 @@ export function BudgetTransactionDialog({
     }
     return true;
   })();
-
-  const selectedAccount = orderedAccounts.find((account) => account.id === accountId);
-  const transferAccount = orderedAccounts.find(
-    (account) => account.id === transferAccountId,
-  );
-  const selectedOnBudget = isOnBudgetAccount(selectedAccount);
-  const transferOnBudget = isOnBudgetAccount(transferAccount);
-  const transferCrossesBudget =
-    type === "transfer" &&
-    Boolean(transferAccountId) &&
-    selectedOnBudget !== transferOnBudget;
 
   const description =
     type === "transfer"
