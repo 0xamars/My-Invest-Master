@@ -10,8 +10,6 @@ export function useHoldingExpand(
     type: AssetType;
     priceId?: string;
     name?: string;
-    boughtAt?: string | null;
-    returnPercent?: number | null;
   } | null,
 ) {
   const [facts, setFacts] = useState<HoldingExpandFacts | null>(null);
@@ -22,11 +20,6 @@ export function useHoldingExpand(
   const type = input?.type ?? "stock";
   const priceId = input?.priceId;
   const name = input?.name;
-  const boughtAt = input?.boughtAt ?? "";
-  const returnPercent =
-    input?.returnPercent != null && Number.isFinite(input.returnPercent)
-      ? String(input.returnPercent)
-      : "";
 
   useEffect(() => {
     if (!symbol) {
@@ -43,8 +36,6 @@ export function useHoldingExpand(
     const params = new URLSearchParams({ symbol, type });
     if (priceId) params.set("priceId", priceId);
     if (name) params.set("name", name);
-    if (boughtAt) params.set("boughtAt", boughtAt);
-    if (returnPercent) params.set("returnPercent", returnPercent);
 
     void fetch(`/api/holdings/expand?${params.toString()}`, {
       signal: controller.signal,
@@ -68,7 +59,7 @@ export function useHoldingExpand(
       });
 
     return () => controller.abort();
-  }, [symbol, type, priceId, name, boughtAt, returnPercent]);
+  }, [symbol, type, priceId, name]);
 
   return { facts, error, isLoading };
 }

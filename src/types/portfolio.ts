@@ -1,5 +1,4 @@
 import type { DisplayCurrency } from "@/types/currency";
-import type { RulesChangelogEntry } from "@/lib/invest/rules-changelog";
 import {
   EMPTY_LEVERAGE,
   type PortfolioLeverage,
@@ -20,10 +19,6 @@ export interface PortfolioTransaction {
   /** ISO date string (YYYY-MM-DD) */
   date: string;
   createdAt: string;
-  /** Closed-fill journal: why this exit happened. */
-  why?: string;
-  /** Closed-fill journal: what we skipped instead. */
-  skipped?: string;
 }
 
 export interface AssetCatalogItem {
@@ -134,8 +129,6 @@ export interface UserPortfolio {
   targetAllocation?: TargetAllocation;
   /** Manual margin figures. Nulls on old plans — never invented. */
   leverage?: PortfolioLeverage;
-  /** Live rules log (target mix, leftover, util). Seeded history stays in code. */
-  rulesChangelog?: RulesChangelogEntry[];
   createdAt: string;
   updatedAt: string;
 }

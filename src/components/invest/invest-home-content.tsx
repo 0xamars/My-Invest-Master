@@ -23,8 +23,6 @@ import { useInvestSummary } from "@/hooks/use-invest-summary";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { leftoverFromBudgetPlans, pickOpenablePlan } from "@/lib/invest/leftover";
 import { LeftoverAction } from "@/components/invest/leftover-action";
-import { ClosedJournalPanel } from "@/components/invest/closed-journal-panel";
-import { RulesChangelogPanel } from "@/components/invest/rules-changelog-panel";
 import { RefreshRetireAction } from "@/components/invest/refresh-retire-action";
 import {
   buildInvestmentCheckup,
@@ -152,7 +150,7 @@ export function InvestHomeContent() {
     <div className="flex flex-1 flex-col gap-5">
       <RetirePageHeader
         title="Invest"
-        description="The book — checkup, mix, leftover, and a desk on names you already own. Not a research terminal."
+        description="The book — checkup, mix, leftover, and options vs the names you own. Not a research terminal."
       />
 
       <LeftoverAction />
@@ -264,12 +262,6 @@ export function InvestHomeContent() {
           </div>
         </>
       )}
-
-      <ClosedJournalPanel
-        portfolioId={portfolioId}
-        holdings={portfolio.holdings}
-      />
-      <RulesChangelogPanel stored={portfolio.portfolio?.rulesChangelog} />
     </div>
   );
 }

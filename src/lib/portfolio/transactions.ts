@@ -79,10 +79,7 @@ export function createTransaction(
   quantity: number,
   pricePerUnit: number,
   date: string,
-  notes?: { why?: string; skipped?: string },
 ): PortfolioTransaction {
-  const why = notes?.why?.trim();
-  const skipped = notes?.skipped?.trim();
   return {
     id: crypto.randomUUID(),
     type,
@@ -90,23 +87,7 @@ export function createTransaction(
     pricePerUnit,
     date,
     createdAt: new Date().toISOString(),
-    ...(why ? { why: why.slice(0, 500) } : {}),
-    ...(skipped ? { skipped: skipped.slice(0, 500) } : {}),
   };
-}
-
-export function withTransactionNotes(
-  tx: PortfolioTransaction,
-  notes: { why?: string; skipped?: string },
-): PortfolioTransaction {
-  const why = notes.why?.trim() ?? "";
-  const skipped = notes.skipped?.trim() ?? "";
-  const next: PortfolioTransaction = { ...tx };
-  if (why) next.why = why.slice(0, 500);
-  else delete next.why;
-  if (skipped) next.skipped = skipped.slice(0, 500);
-  else delete next.skipped;
-  return next;
 }
 
 export function migrateHoldingToTransactions(
