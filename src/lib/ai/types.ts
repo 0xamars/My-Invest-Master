@@ -2,7 +2,6 @@ export type AiFeatureId =
   | "analysis.company_blurb"
   | "analysis.narrative_bundle"
   | "analysis.future_outlook"
-  | "invest.holding_thinking"
   | "chat.assistant";
 
 export type AiFeatureConfig = {

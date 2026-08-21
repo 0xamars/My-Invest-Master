@@ -9,8 +9,6 @@ import {
   formatPercent,
   profitLossClass,
 } from "@/lib/portfolio/format";
-import { firstBoughtDate } from "@/lib/invest/closed-fills";
-import { vsSpyFactLine } from "@/lib/invest/vs-spy";
 import {
   optionsOnUnderlying,
   whyMovedFactLine,
@@ -37,8 +35,6 @@ export function HoldingExpandPanel({
     type: holding.type,
     priceId: holding.priceId,
     name: holding.name,
-    boughtAt: firstBoughtDate(holding),
-    returnPercent: holding.profitLossPercent,
   });
   const { enrichedPositions } = useInvestSummary();
   const overlay = optionsOnUnderlying(
@@ -102,30 +98,13 @@ export function HoldingExpandPanel({
         ) : null}
       </p>
 
-      {facts?.vsSpy ? (
-        <p className="tabular-nums text-muted-foreground">
-          {vsSpyFactLine(facts.vsSpy)}
-        </p>
-      ) : null}
-
-      {holding.type !== "stock" && holding.type !== "crypto" ? null : isLoading &&
-        !facts ? (
+      {holding.type !== "stock" ? null : isLoading && !facts ? (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" />
           Loading facts…
         </p>
       ) : error && !facts ? null : facts ? (
-        <>
-          {holding.type === "stock" ? <StockFactLine facts={facts} /> : null}
-          {facts.thinking ? (
-            <p
-              className="text-sm leading-relaxed text-muted-foreground"
-              data-holding-thinking="1"
-            >
-              {facts.thinking}
-            </p>
-          ) : null}
-        </>
+        <StockFactLine facts={facts} />
       ) : null}
 
       {overlay.map((option, index) => (

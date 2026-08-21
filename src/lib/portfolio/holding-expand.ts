@@ -1,4 +1,3 @@
-import type { VsSpyWindow } from "@/lib/invest/vs-spy";
 import { isPremiumReceived, type OptionType } from "@/types/options";
 import type { AssetType, PortfolioHoldingWithPrices } from "@/types/portfolio";
 
@@ -53,10 +52,6 @@ export type HoldingExpandFacts = {
   size: HoldingExpandSize;
   screens: HoldingExpandScreens | null;
   nextEarningsDate: string | null;
-  /** Grok desk note from facts only. Null when skipped or rejected. */
-  thinking: string | null;
-  /** Since-bought vs SPY for this name. Null when dates or SPY are missing. */
-  vsSpy: VsSpyWindow | null;
 };
 
 /** Book-risk overlay for options on the same underlying. No strategy labels. */
@@ -230,8 +225,6 @@ export function buildHoldingExpandFacts(input: {
   balanceRow?: Record<string, unknown> | null;
   earningsRaw?: Record<string, unknown> | null;
   now?: Date;
-  thinking?: string | null;
-  vsSpy?: VsSpyWindow | null;
 }): HoldingExpandFacts {
   const showScreens = holdingExpandShowsScreens(input.type);
   const whyMoved: HoldingWhyMoved = {
@@ -270,8 +263,6 @@ export function buildHoldingExpandFacts(input: {
     nextEarningsDate: showScreens
       ? extractEarningsDateFromUnknown(input.earningsRaw, input.now)
       : null,
-    thinking: input.thinking ?? null,
-    vsSpy: input.vsSpy ?? null,
   };
 }
 

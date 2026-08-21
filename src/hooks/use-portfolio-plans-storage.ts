@@ -21,17 +21,10 @@ import {
 } from "@/lib/supabase/user-data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
-  appendRulesChangelog,
-  targetMixChangelogDetail,
-  utilChangelogDetail,
-  type RulesChangelogEntry,
-} from "@/lib/invest/rules-changelog";
-import {
   createTransaction,
   migrateHoldingToTransactions,
   syncHoldingFromTransactions,
   validateTransactionQuantity,
-  withTransactionNotes,
 } from "@/lib/portfolio/transactions";
 import {
   createEmptyPortfolio,
@@ -168,17 +161,6 @@ function withUpdatedHoldings(
   return {
     ...portfolio,
     holdings,
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function withChangelog(
-  portfolio: UserPortfolio,
-  entry: Omit<RulesChangelogEntry, "source">,
-): UserPortfolio {
-  return {
-    ...portfolio,
-    rulesChangelog: appendRulesChangelog(portfolio.rulesChangelog, entry),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -487,15 +469,15 @@ export function usePortfolioPlansStorage() {
     [user, userPlan, isPlanLoaded, prefsLoadSucceeded, portfolios.length, queueSave, setActivePortfolioId],
   );
 
-  const patchPortfolio = useCallback(
-    (id: string, updater: (portfolio: UserPortfolio) => UserPortfolio) => {
-      userMutatedRef.current = true;
+  const updateLeverage = useCallback(
+    (id: string, leverage: PortfolioLeverage) => {
       setPortfolios((prev) => {
         const index = prev.findIndex((portfolio) => portfolio.id === id);
         if (index === -1) return prev;
 
         const updated: UserPortfolio = {
-          ...updater(prev[index]),
+          ...prev[index],
+          leverage: parseStoredLeverage(leverage),
           updatedAt: new Date().toISOString(),
         };
         const next = [...prev];
@@ -507,69 +489,25 @@ export function usePortfolioPlansStorage() {
     [queueSave],
   );
 
-  const updateLeverage = useCallback(
-    (id: string, leverage: PortfolioLeverage) => {
-      const parsed = parseStoredLeverage(leverage);
-      patchPortfolio(id, (portfolio) =>
-        withChangelog(
-          { ...portfolio, leverage: parsed },
-          {
-            id: `util-${Date.now()}`,
-            at: new Date().toISOString().slice(0, 10),
-            area: "util",
-            title: "Util figures updated",
-            detail: utilChangelogDetail(parsed),
-            status: "active",
-          },
-        ),
-      );
-    },
-    [patchPortfolio],
-  );
-
   const updateTargetAllocation = useCallback(
     (id: string, targets: TargetAllocation) => {
-      const normalized = normalizeTargetAllocation(targets);
-      patchPortfolio(id, (portfolio) =>
-        withChangelog(
-          { ...portfolio, targetAllocation: normalized },
-          {
-            id: `target-mix-${Date.now()}`,
-            at: new Date().toISOString().slice(0, 10),
-            area: "target-mix",
-            title: "Target mix saved",
-            detail: targetMixChangelogDetail(normalized),
-            status: "active",
-          },
-        ),
-      );
-    },
-    [patchPortfolio],
-  );
+      setPortfolios((prev) => {
+        const index = prev.findIndex((portfolio) => portfolio.id === id);
+        if (index === -1) return prev;
 
-  const updateJournalNotes = useCallback(
-    (
-      portfolioId: string,
-      holdingId: string,
-      sellTxId: string,
-      notes: { why?: string; skipped?: string },
-    ) => {
-      patchPortfolio(portfolioId, (portfolio) => ({
-        ...portfolio,
-        holdings: portfolio.holdings.map((holding) => {
-          if (holding.id !== holdingId) return holding;
-          return {
-            ...holding,
-            transactions: holding.transactions.map((tx) =>
-              tx.id === sellTxId ? withTransactionNotes(tx, notes) : tx,
-            ),
-          };
-        }),
-      }));
+        const updated: UserPortfolio = {
+          ...prev[index],
+          targetAllocation: normalizeTargetAllocation(targets),
+          updatedAt: new Date().toISOString(),
+        };
+        const next = [...prev];
+        next[index] = updated;
+        queueSave(updated);
+        return next;
+      });
     },
-    [patchPortfolio],
+    [queueSave],
   );
-
 
   const renamePortfolio = useCallback(
     (id: string, name: string) => {
@@ -691,8 +629,6 @@ export function usePortfolioPlansStorage() {
     holdings,
     addTransaction,
     updatePortfolioHoldings,
-    patchPortfolio,
-    updateJournalNotes,
     updateHolding,
     removeHolding,
     createPortfolio,
