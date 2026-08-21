@@ -70,7 +70,7 @@ export function ResetPasswordForm() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Set a new password</h1>
         <p className="text-sm text-white/60">
-          Signed in as {user.email}. Choose a new password, then continue to Home.
+          Signed in as {user.email}. Choose a new password, then continue to Invest.
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">

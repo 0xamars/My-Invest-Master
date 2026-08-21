@@ -33,10 +33,10 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
   }
   if (pathname === "/home") {
     return {
-      id: "home",
+      id: "invest",
       path: pathname,
-      title: "Home",
-      description: "Signed-in account overview across Budget, Invest, and Freedom.",
+      title: "Invest",
+      description: "Invest checkup: concentration, mix, leftover, and the book.",
     };
   }
   if (pathname === "/invest") {

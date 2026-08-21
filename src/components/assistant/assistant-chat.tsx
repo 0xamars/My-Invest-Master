@@ -307,7 +307,7 @@ export function AssistantChat() {
                       variant="outline"
                       render={<Link href="/login" />}
                     >
-                      Go to Home
+                      Sign in
                     </Button>
                   </div>
                 </div>

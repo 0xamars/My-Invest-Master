@@ -49,7 +49,7 @@ export function RequireAuth({
         </CardHeader>
         <CardContent>
           <Button variant="outline" type="button" onClick={goToMarketingHome}>
-            Back to Home
+            Back to InvestSalsa
           </Button>
         </CardContent>
       </Card>

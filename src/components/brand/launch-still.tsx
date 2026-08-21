@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 const STILL_ALT: Record<LaunchStillId, string> = {
   hero: "",
+  heroLockup: "",
   freedom: "",
   home: "",
   budget: "",

@@ -3,8 +3,9 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Eye, Layers, PieChart, RefreshCw, TrendingUp } from "lucide-react";
+import { BookNewsSection } from "@/components/home/book-news-section";
 import { BookMovers } from "@/components/invest/book-movers";
-import { ownedNameMovers } from "@/lib/portfolio/book-movers";
+import { bookSymbols, ownedNameMovers } from "@/lib/portfolio/book-movers";
 import { HoldingExpandPanel } from "@/components/portfolio/holding-expand-panel";
 import { PortfolioAllocationChart } from "@/components/analytics/portfolio-allocation-chart";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
@@ -235,17 +236,23 @@ export function InvestHomeContent() {
             </div>
           </RetirePanel>
 
-          {ownedNameMovers(enrichedHoldings, changes, 1).length > 0 ? (
-            <RetirePanel className="px-5 py-4">
-              <BookMovers
-                holdings={enrichedHoldings}
-                changes={changes}
-                onSelect={(holdingId) =>
-                  setExpandedHoldingId((current) =>
-                    current === holdingId ? null : holdingId,
-                  )
-                }
-              />
+          {ownedNameMovers(enrichedHoldings, changes, 1).length > 0 ||
+          bookSymbols(enrichedHoldings).length > 0 ? (
+            <RetirePanel className="grid gap-5 px-5 py-4 lg:grid-cols-2">
+              {ownedNameMovers(enrichedHoldings, changes, 1).length > 0 ? (
+                <BookMovers
+                  holdings={enrichedHoldings}
+                  changes={changes}
+                  onSelect={(holdingId) =>
+                    setExpandedHoldingId((current) =>
+                      current === holdingId ? null : holdingId,
+                    )
+                  }
+                />
+              ) : (
+                <div />
+              )}
+              <BookNewsSection symbols={bookSymbols(enrichedHoldings)} />
             </RetirePanel>
           ) : null}
 

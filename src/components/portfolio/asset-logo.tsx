@@ -120,7 +120,7 @@ export function AssetLogo({
     return (
       <div
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,#E59570_18%,transparent)] font-semibold text-[#BD7A64] dark:text-[#E59570]",
+          "flex shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,#E47B31_18%,transparent)] font-semibold text-[#D85921] dark:text-[#E47B31]",
           SIZE_CLASSES[size],
           className,
         )}

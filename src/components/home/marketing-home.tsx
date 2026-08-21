@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, LogIn } from "lucide-react";
-import { BrandLogo } from "@/components/layout/brand-logo";
+import { BrandLogo, BrandTagline } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
 import { LAUNCH_STILLS } from "@/lib/brand/stills";
 import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
@@ -16,10 +16,10 @@ type MarketingHomePageProps = {
 
 export function MarketingHomePage({
   isSignedIn = false,
-  dashboardHref = "/home",
+  dashboardHref = "/invest",
 }: MarketingHomePageProps) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#07090C] text-white">
+    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#02030D] text-white">
       <header className="relative z-20 border-b border-white/8">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
           <BrandLogo variant="lockup" asLink priority className="!gap-2.5" />
@@ -30,7 +30,7 @@ export function MarketingHomePage({
                 className="premium-cta"
                 render={<Link href={dashboardHref} />}
               >
-                Go to Dashboard
+                Open Invest
                 <ArrowRight className="size-3.5" />
               </Button>
             ) : (
@@ -58,73 +58,68 @@ export function MarketingHomePage({
       </header>
 
       <main className="relative z-10">
-        {/* Hero — still on the left, wordmark on the dark right */}
         <section className="relative overflow-hidden border-b border-white/8">
           <div className="absolute inset-0" aria-hidden>
             <Image
-              src={LAUNCH_STILLS.hero}
+              src={LAUNCH_STILLS.heroLockup}
               alt=""
               fill
               priority
               sizes="100vw"
-              className="object-cover object-left"
+              className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#07090C]/20 via-[#07090C]/55 to-[#07090C]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#02030D] via-[#02030D]/35 to-[#02030D]/15" />
           </div>
-          <div className="relative mx-auto grid max-w-6xl gap-10 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-12">
-          <div className="hidden min-h-[22rem] lg:block" aria-hidden />
-          <div className="space-y-6">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-primary">
-              Home. Budget. Invest. Freedom.
-            </p>
-            <h1 className="max-w-xl text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
-              <span className="text-white">Freedom,</span>{" "}
-              <span className="text-primary">engineered.</span>
-            </h1>
-            <p className="max-w-lg text-pretty text-base leading-relaxed text-white/65 sm:text-lg">
-              Budget with Ready to Assign and leftover that carries, track a
-              real portfolio, and see whether Freedom is on track — target,
-              gap, and the lever to pull.
-            </p>
-            <div className="flex flex-wrap gap-3 pt-1">
-              {isSignedIn ? (
-                <Button
-                  className="premium-cta h-11 px-6"
-                  render={<Link href={dashboardHref} />}
-                >
-                  Go to Dashboard
-                  <ArrowRight className="size-4" />
-                </Button>
-              ) : (
-                <>
+          <div className="relative mx-auto flex min-h-[32rem] max-w-6xl flex-col justify-end px-5 pb-16 pt-20 sm:min-h-[36rem] sm:px-8 sm:pb-20 lg:min-h-[40rem]">
+            <div className="max-w-xl space-y-5">
+              <BrandTagline className="sr-only" />
+              <h1 className="max-w-xl text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
+                <span className="text-white">Freedom,</span>{" "}
+                <span className="text-primary">engineered.</span>
+              </h1>
+              <p className="max-w-lg text-pretty text-base leading-relaxed text-white/65 sm:text-lg">
+                Budget with Ready to Assign and leftover that carries, track a
+                real portfolio, and see whether Freedom is on track — target,
+                gap, and the lever to pull.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-1">
+                {isSignedIn ? (
                   <Button
                     className="premium-cta h-11 px-6"
-                    render={<Link href={SIGNUP_PATH} />}
+                    render={<Link href={dashboardHref} />}
                   >
-                    Start
+                    Open Invest
                     <ArrowRight className="size-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="h-11 border-white/15 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
-                    render={<Link href={LOGIN_PATH} />}
-                  >
-                    <LogIn className="size-4" />
-                    Sign in
-                  </Button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Button
+                      className="premium-cta h-11 px-6"
+                      render={<Link href={SIGNUP_PATH} />}
+                    >
+                      Start
+                      <ArrowRight className="size-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-11 border-white/15 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
+                      render={<Link href={LOGIN_PATH} />}
+                    >
+                      <LogIn className="size-4" />
+                      Sign in
+                    </Button>
+                  </>
+                )}
+              </div>
+              <p className="text-xs text-[#8B93A7]">
+                {isSignedIn
+                  ? "You're signed in — open Invest for the book, leftover, and Freedom at a glance."
+                  : "One product. Budget, Invest, and Freedom are included. Not investment advice."}
+              </p>
             </div>
-            <p className="text-xs text-[#6B7684]">
-              {isSignedIn
-                ? "You're signed in — open Home for Budget, Invest, and Freedom at a glance."
-                : "One product. Home, Budget, Invest, and Freedom are included. Not investment advice."}
-            </p>
-          </div>
           </div>
         </section>
 
-        {/* Journey */}
         <section className="border-y border-white/8 bg-white/[0.02] py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="mx-auto mb-10 max-w-2xl space-y-3 text-center">
@@ -132,39 +127,30 @@ export function MarketingHomePage({
                 Your journey
               </p>
               <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                Home. Budget. Invest. Freedom.
+                Budget. Invest. Freedom.
               </h2>
               <p className="text-pretty text-white/60">
-                Four products that are actually live: a morning scoreboard, a
-                working budget, a portfolio, and a Freedom plan that answers
-                the useful questions.
+                Three products that are actually live: a working budget, a
+                portfolio book, and a Freedom plan that answers the useful
+                questions.
               </p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-3">
               {[
                 {
                   step: "01",
-                  title: "Home",
-                  body: "Leftover, the book, and whether Freedom is on track — one glance.",
-                  accent: "text-primary",
+                  title: "Budget",
+                  body: "Ready to Assign, leftover that carries, a register inbox, and CSV import. Manual tracking — bank sync is not live.",
                 },
                 {
                   step: "02",
-                  title: "Budget",
-                  body: "Ready to Assign, leftover that carries, a register inbox, and CSV import. Manual tracking — bank sync is not live.",
-                  accent: "text-primary",
+                  title: "Invest",
+                  body: "Track stocks, crypto, cash, and custom holdings. Check concentration, mix, and allocation drift. No broker trading.",
                 },
                 {
                   step: "03",
-                  title: "Invest",
-                  body: "Track stocks, crypto, cash, and custom holdings. Check concentration, mix, and allocation drift. No broker trading.",
-                  accent: "text-primary",
-                },
-                {
-                  step: "04",
                   title: "Freedom",
                   body: "Know the target nest egg, whether you are on track, and how long the path lasts. What-ifs stay on the same plan.",
-                  accent: "text-primary",
                 },
               ].map((item) => (
                 <div
@@ -174,7 +160,7 @@ export function MarketingHomePage({
                   <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/40">
                     {item.step}
                   </p>
-                  <h3 className={cn("mt-2 text-lg font-semibold", item.accent)}>
+                  <h3 className="mt-2 text-lg font-semibold text-primary">
                     {item.title}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-white/55">
@@ -186,7 +172,6 @@ export function MarketingHomePage({
           </div>
         </section>
 
-        {/* Features */}
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -198,7 +183,7 @@ export function MarketingHomePage({
                   Tools that keep you ahead
                 </h2>
                 <p className="text-pretty text-white/60">
-                  The same four pillars as the product — not a wishlist.
+                  The same three products as the app — not a wishlist.
                 </p>
               </div>
             </div>
@@ -208,24 +193,21 @@ export function MarketingHomePage({
                 {
                   title: "Budget you can actually use",
                   body: "Ready to Assign, leftover that carries, cover overspend, a register, and CSV import.",
-                  accent: "text-primary",
                 },
                 {
                   title: "Invest without a second app",
                   body: "Holdings, live prices, a risk/allocation checkup, options, and watchlists — plus refresh into Freedom.",
-                  accent: "text-primary",
                 },
                 {
                   title: "Freedom: target and on-track",
                   body: "4% nest-egg target, income vs spend, and how long the plan lasts if markets are bad, typical, or good.",
-                  accent: "text-primary",
                 },
               ].map((item) => (
                 <div
                   key={item.title}
                   className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-5"
                 >
-                  <h3 className={cn("text-base font-semibold", item.accent)}>
+                  <h3 className={cn("text-base font-semibold text-primary")}>
                     {item.title}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-white/55">
@@ -234,37 +216,26 @@ export function MarketingHomePage({
                 </div>
               ))}
             </div>
-
-            <div className="marketing-visual overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_24px_70px_-28px_color-mix(in_srgb,#E59570_28%,transparent)]">
-              <Image
-                src="/marketing/features.png"
-                alt="Portfolio tracking, market insights, and Freedom planning feature cards"
-                width={1600}
-                height={700}
-                className="h-auto w-full object-contain"
-              />
-            </div>
           </div>
         </section>
 
-        {/* Final CTA */}
         <section className="pb-20 sm:pb-24">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#07090C] to-[#171D25] px-6 py-12 text-center sm:px-10 sm:py-14">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#02030D] to-[#0A1020] px-6 py-12 text-center sm:px-10 sm:py-14">
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,color-mix(in_srgb,#E59570_22%,transparent),transparent_45%)]"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,color-mix(in_srgb,#E47B31_22%,transparent),transparent_45%)]"
               />
               <div className="relative space-y-5">
                 <div className="mx-auto w-fit">
                   <BrandLogo variant="hero" />
                 </div>
                 <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                  {isSignedIn ? "Continue in your workspace" : "Start today"}
+                  {isSignedIn ? "Continue in the book" : "Start today"}
                 </h2>
                 <p className="mx-auto max-w-md text-pretty text-white/65">
                   {isSignedIn
-                    ? "Jump back into Budget, Invest, and Freedom from your account dashboard."
+                    ? "Jump back into Budget, Invest, and Freedom from the book."
                     : "Create an account and use Budget, Invest, and Freedom together. Not investment advice."}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
@@ -273,7 +244,7 @@ export function MarketingHomePage({
                       className="premium-cta h-11 px-7"
                       render={<Link href={dashboardHref} />}
                     >
-                      Go to Dashboard
+                      Open Invest
                       <ArrowRight className="size-4" />
                     </Button>
                   ) : (
@@ -313,7 +284,7 @@ export function MarketingHomePage({
             </Link>
             {isSignedIn ? (
               <Link href={dashboardHref} className="hover:text-white/70">
-                Go to Dashboard
+                Open Invest
               </Link>
             ) : (
               <Link href={LOGIN_PATH} className="hover:text-white/70">

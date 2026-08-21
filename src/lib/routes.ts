@@ -1,8 +1,8 @@
-/** Public marketing homepage (logo always returns here). */
+/** Public marketing homepage (signed-out logo always returns here). */
 export const MARKETING_HOME_PATH = "/";
 
-/** Logged-in account overview dashboard. */
-export const APP_HOME_PATH = "/home";
+/** Signed-in landing — the Invest book. Home is not a pillar. */
+export const APP_HOME_PATH = "/invest";
 
 export const LOGIN_PATH = "/login";
 export const SIGNUP_PATH = "/signup";
@@ -19,6 +19,9 @@ export function safeAuthNextPath(raw: string | null | undefined): string {
     return APP_HOME_PATH;
   }
   if (raw.includes("\\") || raw.includes("://")) {
+    return APP_HOME_PATH;
+  }
+  if (raw === "/home" || raw.startsWith("/home/")) {
     return APP_HOME_PATH;
   }
   return raw;

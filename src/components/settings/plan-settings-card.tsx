@@ -55,7 +55,7 @@ export function PlanSettingsCard() {
           Your account
         </CardTitle>
         <CardDescription>
-          InvestSalsa is one product. Home, Budget, Invest, and Freedom are
+          InvestSalsa is one product. Budget, Invest, and Freedom are
           included. Create as many budget, portfolio, and Freedom plans as you
           need.
           Not investment advice.

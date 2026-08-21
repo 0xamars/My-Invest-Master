@@ -54,7 +54,7 @@ function AppShellHeader() {
       <div className="flex items-center gap-3">
         <BrandHomeLink className="flex min-w-0 items-center gap-2.5 md:hidden">
           <BrandLogo variant="sidebar" priority />
-          <span className="sr-only">InvestSalsa Home</span>
+          <span className="sr-only">InvestSalsa</span>
         </BrandHomeLink>
         <div className="ml-0 flex min-w-0 flex-1 flex-col md:ml-0">
           <span className="hidden text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground md:block">
@@ -85,7 +85,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   if (isPublicChrome) {
     return (
-      <div className="min-h-svh w-full bg-[#07090C]">
+      <div className="min-h-svh w-full bg-[#02030D]">
         {isLoading ? (
           <div className="flex min-h-svh items-center justify-center">
             <div className="size-5 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
