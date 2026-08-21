@@ -45,7 +45,7 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       path: pathname,
       title: "Invest",
       description:
-        "Invest checkup: concentration, mix, allocation drift, and performance for the Primary book.",
+        "Invest checkup: concentration, mix, leftover, owned-name thinking, and the closed journal.",
     };
   }
   if (pathname === "/portfolio" || pathname.startsWith("/portfolio/")) {

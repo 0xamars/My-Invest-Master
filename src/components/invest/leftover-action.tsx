@@ -11,6 +11,10 @@ import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { applyLeftoverToBookCash } from "@/lib/invest/apply-leftover-to-cash";
 import {
+  appendRulesChangelog,
+  leftoverChangelogDetail,
+} from "@/lib/invest/rules-changelog";
+import {
   leftoverFromBudgetPlans,
   pickOpenablePlan,
 } from "@/lib/invest/leftover";
@@ -20,7 +24,7 @@ import { getTodayDateString, isHoldingVisible } from "@/lib/portfolio/transactio
 
 export function LeftoverAction() {
   const budget = useBudgetPlans();
-  const { primaryPortfolio, updatePortfolioHoldings } = usePortfolioPlans();
+  const { primaryPortfolio, patchPortfolio } = usePortfolioPlans();
   const retirement = useRetirementPlansStorage();
   const { prices } = usePortfolioPrices(primaryPortfolio?.holdings ?? []);
   const leftover = useMemo(
@@ -49,7 +53,19 @@ export function LeftoverAction() {
       currency: leftover.currency,
       date: getTodayDateString(),
     });
-    updatePortfolioHoldings(primaryPortfolio.id, () => result.holdings);
+    const amountLabel = formatBudgetMoney(leftover.amount, leftover.currency);
+    patchPortfolio(primaryPortfolio.id, (portfolio) => ({
+      ...portfolio,
+      holdings: result.holdings,
+      rulesChangelog: appendRulesChangelog(portfolio.rulesChangelog, {
+        id: `leftover-${Date.now()}`,
+        at: getTodayDateString(),
+        area: "leftover",
+        title: "Applied leftover to book cash",
+        detail: leftoverChangelogDetail(amountLabel),
+        status: "logged",
+      }),
+    }));
 
     if (retirePlan) {
       const visible = result.holdings.filter(isHoldingVisible);

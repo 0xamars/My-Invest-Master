@@ -9,6 +9,21 @@ import {
   pickOpenablePlan,
 } from "../src/lib/invest/leftover.ts";
 import {
+  closedFillsFromHolding,
+  firstBoughtDate,
+} from "../src/lib/invest/closed-fills.ts";
+import { sanitizeHoldingThinking } from "../src/lib/invest/holding-thinking.ts";
+import {
+  appendRulesChangelog,
+  mergeRulesChangelog,
+  seedRulesChangelog,
+} from "../src/lib/invest/rules-changelog.ts";
+import {
+  computeVsSpy,
+  returnPercent,
+  vsSpyFactLine,
+} from "../src/lib/invest/vs-spy.ts";
+import {
   INVEST_CHILD_NAV,
   PRIMARY_NAV_TITLES,
   SIGNED_IN_FOOTER_NAV,
@@ -668,6 +683,8 @@ assert(stockFacts.screens?.revenuePath?.kind === "growing", "stock revenue path 
 assert(stockFacts.screens?.cashVsDebt?.netCash === true, "cash above debt is net cash");
 assert(stockFacts.nextEarningsDate === "2026-11-01", "stock shows warehouse earnings");
 assert(stockFacts.whyMoved.volumeVsTypical === 2, "volume vs typical is a ratio");
+assert(stockFacts.thinking === null, "facts builder does not invent thinking");
+assert(stockFacts.vsSpy === null, "facts builder does not invent vs SPY");
 assert(!("score" in stockFacts), "expand payload has no score");
 assert(!("rating" in stockFacts), "expand payload has no rating");
 assert(
@@ -954,6 +971,151 @@ const localHeaders = buildSecurityHeaders({ production: false });
 assert(
   !localHeaders.some((h) => h.key === "Strict-Transport-Security"),
   "no HSTS outside production",
+);
+
+// --- Desk: vs SPY, closed fills, thinking, changelog ---
+assert(returnPercent(100, 120) === 20, "return percent is (end-start)/|start|");
+assert(returnPercent(0, 10) === null, "zero start is not a return");
+const vs = computeVsSpy({
+  from: "2024-01-02",
+  to: "2024-06-03",
+  holdingReturnPercent: 20,
+  spyStart: 100,
+  spyEnd: 110,
+});
+assert(vs.spyReturnPercent === 10, "SPY window return is 10%");
+assert(vs.vsSpyPercent === 10, "vs SPY is holding minus SPY");
+assert(
+  vsSpyFactLine(vs) === "Since 2024-01-02 · +20.0% vs SPY +10.0% (+10.0 pts)",
+  "vs SPY line is dates and percents",
+);
+assert(!/score|beat the market|0–100/i.test(vsSpyFactLine(vs)), "vs SPY is not a score");
+
+const closed = closedFillsFromHolding({
+  id: "h1",
+  symbol: "AAPL",
+  name: "Apple",
+  type: "stock",
+  transactions: [
+    {
+      id: "b1",
+      type: "buy",
+      quantity: 10,
+      pricePerUnit: 100,
+      date: "2024-01-02",
+      createdAt: "2024-01-02T12:00:00.000Z",
+    },
+    {
+      id: "s1",
+      type: "sell",
+      quantity: 4,
+      pricePerUnit: 130,
+      date: "2024-06-03",
+      createdAt: "2024-06-03T12:00:00.000Z",
+      why: "Size",
+      skipped: "Peer shopping",
+    },
+  ],
+});
+assert(closed.length === 1, "one sell is one journal fill");
+assert(closed[0]?.entryDate === "2024-01-02", "fill entry is the lot date");
+assert(closed[0]?.exitDate === "2024-06-03", "fill exit is the sell date");
+assert(closed[0]?.entryPrice === 100, "FIFO entry price");
+assert(closed[0]?.exitPrice === 130, "fill exit price");
+assert(closed[0]?.quantity === 4, "partial sell quantity");
+assert(closed[0]?.returnPercent === 30, "fill return is 30%");
+assert(closed[0]?.why === "Size", "sell why is kept");
+assert(closed[0]?.skipped === "Peer shopping", "skipped note is kept");
+assert(
+  closedFillsFromHolding({
+    id: "cash",
+    symbol: "USD",
+    name: "Cash",
+    type: "cash",
+    transactions: closed[0]
+      ? [
+          {
+            id: "c1",
+            type: "buy",
+            quantity: 50,
+            pricePerUnit: 1,
+            date: "2024-01-02",
+            createdAt: "2024-01-02T12:00:00.000Z",
+          },
+          {
+            id: "c2",
+            type: "sell",
+            quantity: 50,
+            pricePerUnit: 1,
+            date: "2024-02-01",
+            createdAt: "2024-02-01T12:00:00.000Z",
+          },
+        ]
+      : [],
+  }).length === 0,
+  "cash leftover is not a journal name",
+);
+assert(
+  firstBoughtDate({
+    addedAt: "2024-03-01T12:00:00.000Z",
+    transactions: [
+      {
+        id: "b1",
+        type: "buy",
+        quantity: 1,
+        pricePerUnit: 10,
+        date: "2024-01-15",
+        createdAt: "2024-01-15T12:00:00.000Z",
+      },
+    ],
+  }) === "2024-01-15",
+  "since-bought uses the first buy date",
+);
+
+assert(
+  sanitizeHoldingThinking("Revenue path is growing and the name is net cash.") !=
+    null,
+  "plain Grok prose is kept",
+);
+assert(
+  sanitizeHoldingThinking("Buy more AAPL here.") === null,
+  "thinking rejects buy more",
+);
+assert(
+  sanitizeHoldingThinking("InvestSalsa Rating 72 belong") === null,
+  "thinking rejects rating copy",
+);
+assert(sanitizeHoldingThinking("Move leftover in YNAB") === null, "thinking rejects YNAB");
+assert(
+  !seedRulesChangelog().some((entry) => /ynab/i.test(`${entry.title} ${entry.detail}`)),
+  "rules seed does not name YNAB",
+);
+const liveMix = appendRulesChangelog([], {
+  id: "live-mix",
+  at: "2026-08-20",
+  area: "target-mix",
+  title: "Target mix saved",
+  detail: "Stocks 70 · crypto 10 · cash 20 · custom 0. No auto-trades.",
+  status: "active",
+});
+const merged = mergeRulesChangelog(liveMix);
+const seedMix = merged.find((entry) => entry.id === "seed-target-mix-default");
+const live = merged.find((entry) => entry.id === "live-mix");
+assert(seedMix?.status === "retired", "older target mix stays visible as retired");
+assert(live?.status === "active", "newest target mix is active");
+assert(
+  merged.some((entry) => entry.id === "seed-util-bands"),
+  "util seed stays on the changelog",
+);
+assert(
+  !INVEST_CHILD_NAV.some((item) =>
+    /journal|changelog|desk|analysis|scoreboard/i.test(item.title + item.href),
+  ),
+  "desk is not a new Invest child tab",
+);
+assert(
+  PRIMARY_NAV_TITLES.join(",") === "Home,Budget,Invest,Retire",
+  "primary chrome stays four tabs",
 );
 
 if (failed > 0) {
