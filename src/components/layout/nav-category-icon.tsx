@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export type NavCategory = "home" | "budget" | "retire" | "invest";
 
 const iconClass = "size-3.5";
-const lime = "text-[#65a30d] dark:text-[#A3E635]";
+const exhaust = "text-[var(--brand-ember)] dark:text-[var(--brand-exhaust)]";
 
 function HomeIcon() {
   return (
@@ -15,7 +15,7 @@ function HomeIcon() {
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M6.5 9.5V18a1.5 1.5 0 0 0 1.5 1.5H10v-4.5h4V19.5h2a1.5 1.5 0 0 0 1.5-1.5V9.5"
@@ -23,7 +23,7 @@ function HomeIcon() {
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={lime}
+        className={exhaust}
       />
     </svg>
   );
@@ -40,20 +40,20 @@ function BudgetIcon() {
         rx="2.5"
         stroke="currentColor"
         strokeWidth="1.6"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M3.5 11h17"
         stroke="currentColor"
         strokeWidth="1.6"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M16 7V6.2A2.2 2.2 0 0 0 13.8 4h-3.6A2.2 2.2 0 0 0 8 6.2V7"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
-        className={lime}
+        className={exhaust}
       />
     </svg>
   );
@@ -67,7 +67,7 @@ function InvestIcon() {
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M8 8.5 13 6l3 2.5 4-4.5"
@@ -75,7 +75,7 @@ function InvestIcon() {
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M16.5 4H20v3.5"
@@ -83,7 +83,7 @@ function InvestIcon() {
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={lime}
+        className={exhaust}
       />
     </svg>
   );
@@ -96,21 +96,21 @@ function RetireIcon() {
         d="M12 4.5c3.2 0 5.8 1.6 5.8 3.6S15.2 11.7 12 11.7 6.2 10.1 6.2 8.1 8.8 4.5 12 4.5Z"
         stroke="currentColor"
         strokeWidth="1.5"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M12 4.5v7.2"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M7 14.5c2.2-1.4 7.8-1.4 10 0"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
-        className={lime}
+        className={exhaust}
       />
       <path
         d="M7 14.5 6 19.5M17 14.5l1 5M8.2 19.5h7.6"
@@ -118,7 +118,7 @@ function RetireIcon() {
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={lime}
+        className={exhaust}
       />
     </svg>
   );

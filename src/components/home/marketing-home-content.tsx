@@ -11,7 +11,7 @@ export function MarketingHomeContent() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-[#16181D]">
+      <div className="flex min-h-svh items-center justify-center bg-[#07090C]">
         <RefreshCw className="size-5 animate-spin text-white/50" />
       </div>
     );

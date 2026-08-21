@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { LaunchStillFrame } from "@/components/brand/launch-still";
 import { BookNewsSection } from "@/components/home/book-news-section";
 import { BookMovers } from "@/components/invest/book-movers";
 import { LeverageUtilChip } from "@/components/invest/risk-chip";
@@ -89,6 +90,33 @@ export function HomeDashboard() {
   const retireHref = retireOutlook
     ? `/freedom/plans/${retireOutlook.plan.id}`
     : "/freedom/plans";
+
+  const quietHome =
+    budget.isLoaded &&
+    investLoaded &&
+    retirement.isLoaded &&
+    !budgetPlan &&
+    !checkup.hasData &&
+    !retireOutlook;
+
+  if (quietHome) {
+    return (
+      <LaunchStillFrame still="home" scrim="right" minHeightClass="min-h-[20rem]">
+        <div className="flex flex-col items-start gap-4 px-6 py-12 sm:px-10">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-primary">
+            Home. Budget. Invest. Freedom.
+          </p>
+          <p className="max-w-md text-base font-semibold tracking-tight text-white">
+            Open the first pillar.
+          </p>
+          <Button render={<Link href="/budget" />}>
+            Start Budget
+            <ArrowRight className="size-3.5" />
+          </Button>
+        </div>
+      </LaunchStillFrame>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-4">

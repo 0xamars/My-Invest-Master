@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, LogIn, Sparkles } from "lucide-react";
+import { ArrowRight, LogIn } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
+import { LAUNCH_STILLS } from "@/lib/brand/stills";
 import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -18,15 +19,10 @@ export function MarketingHomePage({
   dashboardHref = "/home",
 }: MarketingHomePageProps) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#16181D] text-white">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[42rem] bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,#A3E635_18%,transparent),transparent_55%)]"
-      />
-
+    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#07090C] text-white">
       <header className="relative z-20 border-b border-white/8">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
-          <BrandLogo variant="sidebar" asLink priority className="!gap-2.5" />
+          <BrandLogo variant="lockup" asLink priority className="!gap-2.5" />
           <nav className="flex items-center gap-2 sm:gap-3">
             {isSignedIn ? (
               <Button
@@ -62,16 +58,28 @@ export function MarketingHomePage({
       </header>
 
       <main className="relative z-10">
-        {/* Hero */}
-        <section className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12">
+        {/* Hero — still on the left, wordmark on the dark right */}
+        <section className="relative overflow-hidden border-b border-white/8">
+          <div className="absolute inset-0" aria-hidden>
+            <Image
+              src={LAUNCH_STILLS.hero}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-left"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#07090C]/20 via-[#07090C]/55 to-[#07090C]" />
+          </div>
+          <div className="relative mx-auto grid max-w-6xl gap-10 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-12">
+          <div className="hidden min-h-[22rem] lg:block" aria-hidden />
           <div className="space-y-6">
-            <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Sparkles className="size-3.5" />
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-primary">
               Home. Budget. Invest. Freedom.
             </p>
             <h1 className="max-w-xl text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
-              <span className="brand-text-invest">Freedom,</span>{" "}
-              <span className="brand-text-salsa">engineered.</span>
+              <span className="text-white">Freedom,</span>{" "}
+              <span className="text-primary">engineered.</span>
             </h1>
             <p className="max-w-lg text-pretty text-base leading-relaxed text-white/65 sm:text-lg">
               Budget with Ready to Assign and leftover that carries, track a
@@ -107,28 +115,12 @@ export function MarketingHomePage({
                 </>
               )}
             </div>
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-[#6B7684]">
               {isSignedIn
                 ? "You're signed in — open Home for Budget, Invest, and Freedom at a glance."
                 : "One product. Home, Budget, Invest, and Freedom are included. Not investment advice."}
             </p>
           </div>
-
-          <div className="marketing-visual relative mx-auto w-full max-w-xl lg:max-w-none">
-            <div
-              aria-hidden
-              className="absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle_at_center,oklch(0.67_0.19_152/28%),transparent_65%)] blur-2xl"
-            />
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-[0_0_0_1px_oklch(0.67_0.19_152/20%),0_24px_80px_-20px_oklch(0_0_0/80%)]">
-              <Image
-                src="/marketing/hero-dashboard.png"
-                alt="InvestSalsa portfolio overview dashboard preview"
-                width={960}
-                height={720}
-                priority
-                className="h-auto w-full object-cover object-center"
-              />
-            </div>
           </div>
         </section>
 
@@ -243,7 +235,7 @@ export function MarketingHomePage({
               ))}
             </div>
 
-            <div className="marketing-visual overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_24px_70px_-28px_oklch(0.67_0.19_152/40%)]">
+            <div className="marketing-visual overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_24px_70px_-28px_color-mix(in_srgb,#E59570_28%,transparent)]">
               <Image
                 src="/marketing/features.png"
                 alt="Portfolio tracking, market insights, and Freedom planning feature cards"
@@ -258,10 +250,10 @@ export function MarketingHomePage({
         {/* Final CTA */}
         <section className="pb-20 sm:pb-24">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#16181D] to-[#12141a] px-6 py-12 text-center sm:px-10 sm:py-14">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#07090C] to-[#171D25] px-6 py-12 text-center sm:px-10 sm:py-14">
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,oklch(0.67_0.19_152/25%),transparent_45%)]"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,color-mix(in_srgb,#E59570_22%,transparent),transparent_45%)]"
               />
               <div className="relative space-y-5">
                 <div className="mx-auto w-fit">
