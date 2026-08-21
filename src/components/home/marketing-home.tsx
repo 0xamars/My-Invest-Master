@@ -75,7 +75,7 @@ export function MarketingHomePage({
             </h1>
             <p className="max-w-lg text-pretty text-base leading-relaxed text-white/65 sm:text-lg">
               Budget with Ready to Assign and leftover that carries, track a
-              real portfolio, and see whether retirement is on track — target,
+              real portfolio, and see whether Freedom is on track — target,
               gap, and the lever to pull.
             </p>
             <div className="flex flex-wrap gap-3 pt-1">
@@ -206,7 +206,7 @@ export function MarketingHomePage({
                   Tools that keep you ahead
                 </h2>
                 <p className="text-pretty text-white/60">
-                  The same three pillars as the product — not a wishlist.
+                  The same four pillars as the product — not a wishlist.
                 </p>
               </div>
             </div>
@@ -265,7 +265,7 @@ export function MarketingHomePage({
               />
               <div className="relative space-y-5">
                 <div className="mx-auto w-fit">
-                  <BrandLogo variant="icon" />
+                  <BrandLogo variant="hero" />
                 </div>
                 <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
                   {isSignedIn ? "Continue in your workspace" : "Start today"}

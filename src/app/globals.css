@@ -648,7 +648,7 @@
     color: color-mix(in oklch, var(--brand-green) 70%, var(--brand-orange));
   }
 
-  /* Budget product chrome — scoped so Invest/Retire stay untouched */
+  /* Budget product chrome — scoped so Invest/Freedom stay untouched */
   .budget-app {
     letter-spacing: -0.014em;
   }

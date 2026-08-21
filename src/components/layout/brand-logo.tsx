@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { cn } from "@/lib/utils";
 
@@ -9,40 +8,17 @@ interface BrandLogoProps {
   priority?: boolean;
 }
 
-const iconSizes = {
-  sidebar: { width: 40, height: 40, className: "size-10" },
-  sidebarCollapsed: { width: 32, height: 32, className: "size-8" },
-  hero: { width: 48, height: 48, className: "size-12" },
-  default: { width: 40, height: 40, className: "size-10" },
-} as const;
-
-function BrandMark({
-  className,
-  priority = false,
-  width,
-  height,
-}: {
-  className?: string;
-  priority?: boolean;
-  width: number;
-  height: number;
-}) {
+/** Compact letters for tight chrome only — not a product mark. */
+function BrandInitials({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "brand-logo-icon-wrap inline-flex shrink-0 overflow-hidden rounded-[0.7rem] ring-1 ring-black/10 dark:ring-white/10",
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#16181D] text-[0.7rem] font-semibold tracking-tight text-[#A3E635] ring-1 ring-white/10",
         className,
       )}
+      aria-hidden
     >
-      <Image
-        src="/brand/app-icon.png"
-        alt=""
-        width={width}
-        height={height}
-        priority={priority}
-        aria-hidden
-        className="brand-logo-icon h-full w-full object-cover"
-      />
+      IS
     </span>
   );
 }
@@ -65,33 +41,17 @@ export function BrandLogo({
   variant = "sidebar",
   className,
   asLink = false,
-  priority = false,
 }: BrandLogoProps) {
   let content: React.ReactNode;
 
   switch (variant) {
     case "icon":
-      content = (
-        <BrandMark
-          priority={priority}
-          width={iconSizes.default.width}
-          height={iconSizes.default.height}
-          className={iconSizes.default.className}
-        />
-      );
+      content = <BrandInitials className={className} />;
       break;
 
     case "hero":
       content = (
-        <div className={cn("flex items-center gap-4", className)}>
-          <BrandMark
-            priority={priority}
-            width={iconSizes.hero.width}
-            height={iconSizes.hero.height}
-            className={iconSizes.hero.className}
-          />
-          <BrandWordmark className="text-3xl leading-none" />
-        </div>
+        <BrandWordmark className={cn("text-3xl leading-none", className)} />
       );
       break;
 
@@ -103,15 +63,7 @@ export function BrandLogo({
             className,
           )}
         >
-          <BrandMark
-            priority={priority}
-            width={iconSizes.sidebar.width}
-            height={iconSizes.sidebar.height}
-            className={cn(
-              iconSizes.sidebar.className,
-              "group-data-[collapsible=icon]:size-8",
-            )}
-          />
+          <BrandInitials className="hidden group-data-[collapsible=icon]:inline-flex" />
           <BrandWordmark className="text-lg leading-none group-data-[collapsible=icon]:hidden" />
         </div>
       );

@@ -53,7 +53,7 @@ function AppShellHeader() {
     <header className="portal-header sticky top-0 z-20 flex min-h-16 shrink-0 flex-col gap-3 px-5 py-3 sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
         <BrandHomeLink className="flex min-w-0 items-center gap-2.5 md:hidden">
-          <BrandLogo variant="icon" priority />
+          <BrandLogo variant="sidebar" priority />
           <span className="sr-only">InvestSalsa Home</span>
         </BrandHomeLink>
         <div className="ml-0 flex min-w-0 flex-1 flex-col md:ml-0">
