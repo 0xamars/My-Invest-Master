@@ -222,19 +222,7 @@ export function AppSidebar() {
                   );
                 }
 
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      isActive={isNavItemActive(pathname, item.href, { exact: true })}
-                      tooltip={item.title}
-                      className={navClass(isNavItemActive(pathname, item.href))}
-                      render={<Link href={item.href} />}
-                    >
-                      <NavCategoryIcon category={item.category} />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
+                return null;
               })}
             </SidebarMenu>
           </SidebarGroupContent>
