@@ -495,8 +495,8 @@ assert(!/cagr/i.test(path), "path sentence does not invent a CAGR");
 const lever = whatIfLeverSentence(
   plan({ retirementAge: 65, annualLifestyleSpending: 100_000, annualContribution: 0 }),
 );
-assert(lever.includes("Retire 2 years later"), "lever uses existing retire-later copy");
-assert(lever.includes("Retire 2 years earlier"), "lever uses retire-earlier copy");
+assert(lever.includes("Go 2 years later"), "lever uses go-later copy");
+assert(lever.includes("Go 2 years earlier"), "lever uses go-earlier copy");
 assert(lever.includes("Spend 10% less"), "lever uses existing spend-less copy");
 assert(lever.includes("Save $6,000 more / year"), "lever uses existing save-more copy");
 

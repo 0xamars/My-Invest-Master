@@ -554,6 +554,9 @@ assert(safeAuthNextPath("/invest") === "/invest", "keeps a relative next");
 const mustProtect = [
   "/home",
   "/invest",
+  "/freedom",
+  "/freedom/plans",
+  "/freedom/plans/abc",
   "/retire",
   "/retire/plans",
   "/retire/plans/abc",
@@ -631,7 +634,7 @@ assert(
 assert(destinationForLegacyInvestPath("/options") === "/invest/options", "options folds under Invest");
 
 assert(
-  PRIMARY_NAV_TITLES.join(",") === "Home,Budget,Invest,Retire",
+  PRIMARY_NAV_TITLES.join(",") === "Home,Budget,Invest,Freedom",
   "signed-in chrome is four tabs",
 );
 assert(
@@ -655,10 +658,17 @@ assert(pillarForPath("/home") === "home", "home pillar");
 assert(pillarForPath("/budget/plans/abc") === "budget", "budget plan is Budget");
 assert(pillarForPath("/invest/portfolio/abc") === "invest", "nested book is Invest");
 assert(pillarForPath("/options") === "invest", "legacy options is still Invest");
-assert(pillarForPath("/retire/plans/abc") === "retire", "plan editor is Retire");
+assert(pillarForPath("/freedom/plans/abc") === "retire", "plan editor is Freedom");
+assert(pillarForPath("/retire/plans/abc") === "retire", "legacy /retire still maps to Freedom");
 assert(pillarHomePath("/invest/watchlist/abc") === "/invest", "up from watchlist is Invest");
 assert(pillarHomePath("/budget/plans/abc/transactions") === "/budget", "up from register is Budget");
-assert(pillarHomePath("/retire/plans/abc") === "/retire", "up from a plan is Retire");
+assert(pillarHomePath("/freedom/plans/abc") === "/freedom", "up from a plan is Freedom");
+assert(pillarHomePath("/retire/plans/abc") === "/freedom", "legacy up-link is Freedom");
+assert(destinationForLegacyInvestPath("/retire") === "/freedom", "/retire redirects to Freedom");
+assert(
+  destinationForLegacyInvestPath("/retire/plans/abc") === "/freedom/plans/abc",
+  "/retire/plans/:id redirects to Freedom",
+);
 assert(isInvestPath("/invest/options") === true, "options under Invest is Invest");
 assert(investPortfolioPath("abc") === "/invest/portfolio/abc", "book path is nested");
 assert(resolvePageTitle("/invest/options") === "Options", "options title");

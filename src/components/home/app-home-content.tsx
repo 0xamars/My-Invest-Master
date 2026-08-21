@@ -23,7 +23,7 @@ export function AppHomeContent() {
     <div className="flex flex-1 flex-col gap-5">
       <RetirePageHeader
         title="Home"
-        description="Morning scoreboard — leftover, the book, and whether Retire is on track. Not investment advice."
+        description="Morning scoreboard — leftover, the book, and whether Freedom is on track. Not investment advice."
         action={
           <Button variant="outline" onClick={() => void handleSignOut()}>
             <LogOut className="size-4" />

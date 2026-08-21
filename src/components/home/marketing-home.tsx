@@ -18,10 +18,10 @@ export function MarketingHomePage({
   dashboardHref = "/home",
 }: MarketingHomePageProps) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#050505] text-white">
+    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#16181D] text-white">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[42rem] bg-[radial-gradient(ellipse_at_top,oklch(0.67_0.19_152/18%),transparent_55%),radial-gradient(ellipse_at_80%_0%,oklch(0.72_0.18_55/12%),transparent_40%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[42rem] bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,#A3E635_18%,transparent),transparent_55%)]"
       />
 
       <header className="relative z-20 border-b border-white/8">
@@ -67,7 +67,7 @@ export function MarketingHomePage({
           <div className="space-y-6">
             <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <Sparkles className="size-3.5" />
-              Budget · Invest · Retire
+              Home. Budget. Invest. Freedom.
             </p>
             <h1 className="max-w-xl text-balance text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
               <span className="brand-text-invest">Freedom,</span>{" "}
@@ -109,8 +109,8 @@ export function MarketingHomePage({
             </div>
             <p className="text-xs text-white/45">
               {isSignedIn
-                ? "You're signed in — open Home for Budget, Invest, and Retire at a glance."
-                : "One product. Budget, Invest, and Retire are included. Not investment advice."}
+                ? "You're signed in — open Home for Budget, Invest, and Freedom at a glance."
+                : "One product. Home, Budget, Invest, and Freedom are included. Not investment advice."}
             </p>
           </div>
 
@@ -140,32 +140,38 @@ export function MarketingHomePage({
                 Your journey
               </p>
               <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-                Budget → Invest → Retire
+                Home. Budget. Invest. Freedom.
               </h2>
               <p className="text-pretty text-white/60">
-                Three products that are actually live: a working budget, a
-                portfolio, and a retirement planner that answers the useful
-                questions.
+                Four products that are actually live: a morning scoreboard, a
+                working budget, a portfolio, and a Freedom plan that answers
+                the useful questions.
               </p>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 {
                   step: "01",
+                  title: "Home",
+                  body: "Leftover, the book, and whether Freedom is on track — one glance.",
+                  accent: "text-primary",
+                },
+                {
+                  step: "02",
                   title: "Budget",
                   body: "Ready to Assign, leftover that carries, a register inbox, and CSV import. Manual tracking — bank sync is not live.",
                   accent: "text-primary",
                 },
                 {
-                  step: "02",
+                  step: "03",
                   title: "Invest",
-                  body: "Track stocks, crypto, cash, and custom holdings. Check concentration, mix, and allocation drift — then options and watchlists. No broker trading.",
-                  accent: "text-[oklch(0.78_0.19_55)]",
+                  body: "Track stocks, crypto, cash, and custom holdings. Check concentration, mix, and allocation drift. No broker trading.",
+                  accent: "text-primary",
                 },
                 {
-                  step: "03",
-                  title: "Retire",
-                  body: "Know the target nest egg, whether you are on track, and when money runs out. CPP, OAS, savings, and one-click what-ifs.",
+                  step: "04",
+                  title: "Freedom",
+                  body: "Know the target nest egg, whether you are on track, and how long the path lasts. What-ifs stay on the same plan.",
                   accent: "text-primary",
                 },
               ].map((item) => (
@@ -193,7 +199,7 @@ export function MarketingHomePage({
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-xl space-y-3">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[oklch(0.78_0.19_55)]">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-primary">
                   Features
                 </p>
                 <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -214,11 +220,11 @@ export function MarketingHomePage({
                 },
                 {
                   title: "Invest without a second app",
-                  body: "Holdings, live prices, a risk/allocation checkup, options, and watchlists — plus refresh into Retire.",
-                  accent: "text-[oklch(0.78_0.19_55)]",
+                  body: "Holdings, live prices, a risk/allocation checkup, options, and watchlists — plus refresh into Freedom.",
+                  accent: "text-primary",
                 },
                 {
-                  title: "Retire: target and on-track",
+                  title: "Freedom: target and on-track",
                   body: "4% nest-egg target, income vs spend, and how long the plan lasts if markets are bad, typical, or good.",
                   accent: "text-primary",
                 },
@@ -240,7 +246,7 @@ export function MarketingHomePage({
             <div className="marketing-visual overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_24px_70px_-28px_oklch(0.67_0.19_152/40%)]">
               <Image
                 src="/marketing/features.png"
-                alt="Portfolio tracking, market insights, and retirement planning feature cards"
+                alt="Portfolio tracking, market insights, and Freedom planning feature cards"
                 width={1600}
                 height={700}
                 className="h-auto w-full object-contain"
@@ -252,7 +258,7 @@ export function MarketingHomePage({
         {/* Final CTA */}
         <section className="pb-20 sm:pb-24">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#0a0a0a] to-[oklch(0.72_0.18_55/15%)] px-6 py-12 text-center sm:px-10 sm:py-14">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#16181D] to-[#12141a] px-6 py-12 text-center sm:px-10 sm:py-14">
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,oklch(0.67_0.19_152/25%),transparent_45%)]"
@@ -266,8 +272,8 @@ export function MarketingHomePage({
                 </h2>
                 <p className="mx-auto max-w-md text-pretty text-white/65">
                   {isSignedIn
-                    ? "Jump back into Budget, Invest, and Retire from your account dashboard."
-                    : "Create an account and use Budget, Invest, and Retire together. Not investment advice."}
+                    ? "Jump back into Budget, Invest, and Freedom from your account dashboard."
+                    : "Create an account and use Budget, Invest, and Freedom together. Not investment advice."}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
                   {isSignedIn ? (

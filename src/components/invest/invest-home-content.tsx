@@ -104,7 +104,7 @@ export function InvestHomeContent() {
           ? `/budget/plans/${budgetLeftover.budgetPlanId}`
           : null,
         retireRefreshHref: retireOutlook
-          ? `/retire/plans/${retireOutlook.plan.id}`
+          ? `/freedom/plans/${retireOutlook.plan.id}`
           : null,
       }),
     [
@@ -165,12 +165,12 @@ export function InvestHomeContent() {
         <RetirePanel>
           <RetireEmptyState
             icon={<TrendingUp className="size-5" />}
-            title={
+            title="Add the first name."
+            description={
               portfolioId
-                ? `No holdings in ${portfolioName ? `“${portfolioName}”` : "your Primary book"}`
-                : "No portfolio yet"
+                ? `Open ${portfolioName ? `“${portfolioName}”` : "your Primary book"} and add stocks, crypto, cash, or custom assets.`
+                : "Create or open a book, then add stocks, crypto, cash, or custom assets."
             }
-            description="Create or open a book, then add stocks, crypto, cash, or custom assets. The checkup starts once prices are in."
             actions={
               <Button render={<Link href={bookHref} />}>
                 {portfolioId ? "Open book" : "Create a portfolio"}
@@ -491,7 +491,7 @@ function JourneyStrip({
   return (
     <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
       <p className="text-sm text-muted-foreground">
-        Retire can refresh quantities from this book.
+        Freedom can refresh quantities from this book.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <RetireVerdictChip verdict={retireOutlook.dashboard.verdict} />
@@ -499,9 +499,9 @@ function JourneyStrip({
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-xs"
-          render={<Link href={`/retire/plans/${retireOutlook.plan.id}`} />}
+          render={<Link href={`/freedom/plans/${retireOutlook.plan.id}`} />}
         >
-          Open Retire
+          Open Freedom
           <ArrowRight className="size-3.5" />
         </Button>
       </div>

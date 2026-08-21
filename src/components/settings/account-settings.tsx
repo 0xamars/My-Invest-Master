@@ -55,7 +55,7 @@ export function AccountSettings() {
             Account
           </CardTitle>
           <CardDescription>
-            Signed in as {user.email}. Budget, Invest, and Retire plans are
+            Signed in as {user.email}. Budget, Invest, and Freedom plans are
             stored in Supabase and available on any browser or device.
           </CardDescription>
         </CardHeader>
@@ -85,7 +85,7 @@ export function AccountSettings() {
           Account
         </CardTitle>
         <CardDescription>
-          Sign in to access Budget, Invest, and Retire. Your plans are stored
+          Sign in to access Budget, Invest, and Freedom. Your plans are stored
           securely in Supabase, not in the browser.
         </CardDescription>
       </CardHeader>

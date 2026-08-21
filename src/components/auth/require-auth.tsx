@@ -24,7 +24,7 @@ interface RequireAuthProps {
 export function RequireAuth({
   children,
   title = "Sign in required",
-  description = "Budget, Invest, and Retire are available after you sign in. Your plans are stored in Supabase.",
+  description = "Budget, Invest, and Freedom are available after you sign in. Your plans are stored in Supabase.",
 }: RequireAuthProps) {
   const { user, isLoading } = useAuth();
   const goToMarketingHome = useGoToMarketingHome();

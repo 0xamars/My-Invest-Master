@@ -87,8 +87,8 @@ export function HomeDashboard() {
       ? investPortfolioPath(portfolio.portfolioId)
       : "/invest";
   const retireHref = retireOutlook
-    ? `/retire/plans/${retireOutlook.plan.id}`
-    : "/retire/plans";
+    ? `/freedom/plans/${retireOutlook.plan.id}`
+    : "/freedom/plans";
 
   return (
     <section className="flex flex-col gap-4">
@@ -132,7 +132,7 @@ export function HomeDashboard() {
           actionLabel={checkup.hasData ? "Open Invest" : "Open book"}
         />
         <ScoreCard
-          label="Retire"
+          label="Freedom"
           loaded={retirement.isLoaded}
           value={
             !retireOutlook
@@ -151,7 +151,7 @@ export function HomeDashboard() {
             ) : null
           }
           actionHref={retireHref}
-          actionLabel={retireOutlook ? "Open Retire" : "Start a plan"}
+          actionLabel={retireOutlook ? "Open Freedom" : "Start a plan"}
         />
       </div>
 

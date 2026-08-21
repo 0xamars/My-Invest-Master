@@ -40,13 +40,13 @@ export function RetireHomeContent() {
     <div className="flex flex-1 flex-col gap-5">
       <CategoryPageHeader
         category="retire"
-        title="Retire"
-        description="Know the target, whether the portfolio is on track, when money runs out, and which lever to pull."
+        title="Freedom"
+        description="Know the target, whether the path is on track, how long it lasts, and which lever to pull."
         action={
           <Button
             variant="outline"
             className="gap-2"
-            render={<Link href="/retire/plans" />}
+            render={<Link href="/freedom/plans" />}
           >
             All plans
             <ArrowRight className="size-4" />
@@ -57,7 +57,7 @@ export function RetireHomeContent() {
       {!isLoaded ? (
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
           <Loader2 className="mr-2 size-4 animate-spin" />
-          Loading retirement plan…
+          Loading Freedom plan…
         </div>
       ) : outlook ? (
         <RetirementVerdictHero
@@ -65,10 +65,10 @@ export function RetireHomeContent() {
           currency={outlook.plan.currency}
           rates={rates}
           planName={outlook.plan.name}
-          href={`/retire/plans/${outlook.plan.id}`}
+          href={`/freedom/plans/${outlook.plan.id}`}
           emptyActions={
             <>
-              <Button render={<Link href={`/retire/plans/${outlook.plan.id}`} />}>
+              <Button render={<Link href={`/freedom/plans/${outlook.plan.id}`} />}>
                 Import from Invest
               </Button>
               <Button
@@ -84,11 +84,11 @@ export function RetireHomeContent() {
         <RetirePanel>
           <RetireEmptyState
             icon={<Target className="size-5" />}
-            title="No retirement plan yet"
-            description="Start with ages, spending, and a 4% target — then import holdings from Invest. Not investment advice."
+            title="Map the path."
+            description="Set the target age and a 4% nest egg — then import holdings from Invest. Not investment advice."
             actions={
-              <Button className="gap-2" render={<Link href="/retire/plans" />}>
-                Open plans
+              <Button className="gap-2" render={<Link href="/freedom/plans" />}>
+                Start a plan
                 <ArrowRight className="size-4" />
               </Button>
             }

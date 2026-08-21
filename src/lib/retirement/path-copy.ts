@@ -3,7 +3,7 @@ import { buildWhatIfScenarios } from "@/lib/retirement/scenarios";
 import type { RetirementPlan } from "@/types/retirement";
 
 /**
- * Path sentence from numbers already on the Retire dashboard.
+ * Path sentence from numbers already on the Freedom dashboard.
  * Does not invent a CAGR or a spreadsheet target.
  */
 export function impliedPathSentence(
@@ -17,7 +17,7 @@ export function impliedPathSentence(
   const years = dashboard.yearsToRetirement;
   const yearsBit =
     years <= 0
-      ? "Retirement age is this year"
+      ? "Target age is this year"
       : years === 1
         ? "1 year left"
         : `${years} years left`;

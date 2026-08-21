@@ -5,7 +5,7 @@ import { PRIVACY_PATH } from "@/lib/routes";
 export const metadata: Metadata = {
   title: "Terms · InvestSalsa",
   description:
-    "InvestSalsa terms of use. Budget, Invest, and Retire are personal finance tools — not investment advice.",
+    "InvestSalsa terms of use. Home, Budget, Invest, and Freedom are personal finance tools — not investment advice.",
 };
 
 export default function TermsPage() {
@@ -23,10 +23,10 @@ export default function TermsPage() {
 
       <section className="space-y-3 text-sm leading-relaxed text-muted-foreground">
         <p>
-          InvestSalsa is a personal finance product with three live pillars:
-          Budget, Invest, and Retire. You use it to track money you already
-          have. We do not execute trades, give personalized recommendations, or
-          act as a broker, advisor, or fiduciary.
+          InvestSalsa is a personal finance product with four live pillars:
+          Home, Budget, Invest, and Freedom. You use it to track money you
+          already have. We do not execute trades, give personalized
+          recommendations, or act as a broker, advisor, or fiduciary.
         </p>
         <p className="font-medium text-foreground">
           Nothing on this site is investment, tax, or legal advice. Past
@@ -35,9 +35,10 @@ export default function TermsPage() {
         </p>
         <p>
           You are responsible for the numbers you enter. Plans are stored as
-          JSON in your account. InvestSalsa is one product: Budget, Invest, and
-          Retire are included. Create as many budget, portfolio, and retirement
-          plans as you need. Nothing here is a recommendation to buy or sell.
+          JSON in your account. InvestSalsa is one product: Home, Budget,
+          Invest, and Freedom are included. Create as many budget, portfolio,
+          and Freedom plans as you need. Nothing here is a recommendation to
+          buy or sell.
         </p>
         <p>
           Accounts use email and password through Supabase Auth. Do not share

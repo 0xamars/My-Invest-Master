@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 const PILLAR_LABEL: Record<string, string> = {
   "/budget": "Budget",
   "/invest": "Invest",
-  "/retire": "Retire",
+  "/freedom": "Freedom",
+  "/retire": "Freedom",
   "/home": "Home",
 };
 

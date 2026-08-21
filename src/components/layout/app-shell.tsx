@@ -85,7 +85,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   if (isPublicChrome) {
     return (
-      <div className="min-h-svh w-full bg-[#050505]">
+      <div className="min-h-svh w-full bg-[#16181D]">
         {isLoading ? (
           <div className="flex min-h-svh items-center justify-center">
             <div className="size-5 animate-spin rounded-full border-2 border-white/20 border-t-primary" />

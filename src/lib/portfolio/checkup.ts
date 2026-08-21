@@ -180,7 +180,7 @@ function resolveNextAction(input: {
   if (input.retireRefreshHref) {
     return {
       code: "refresh-retire",
-      label: "Refresh Retire from this portfolio",
+      label: "Refresh Freedom from this portfolio",
       href: input.retireRefreshHref,
     };
   }

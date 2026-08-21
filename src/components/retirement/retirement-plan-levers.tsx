@@ -23,7 +23,7 @@ export function RetirementPlanLevers({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Person and horizon</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Canada-first defaults: longevity 90. Retirement year stays in sync
+            Canada-first defaults: longevity 90. Target year stays in sync
             with your ages.
           </p>
         </div>
@@ -43,7 +43,7 @@ export function RetirementPlanLevers({
           </RetireField>
           <RetireField
             id="retirement-age"
-            label="Retirement age"
+            label="Target age"
             hint={`Year ${plan.retirementYear}`}
           >
             <Input
@@ -133,7 +133,7 @@ export function RetirementPlanLevers({
                 className="tabular-nums"
               />
             </RetireField>
-            <RetireField label="Spouse retirement age">
+            <RetireField label="Spouse target age">
               <Input
                 type="number"
                 min="30"
@@ -160,7 +160,7 @@ export function RetirementPlanLevers({
           <h2 className="text-sm font-semibold tracking-tight">Spend, save, withdraw</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Target nest egg is spending ÷ withdrawal rate. Savings are added
-            each year until retirement.
+            each year until the target age.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -179,7 +179,7 @@ export function RetirementPlanLevers({
               className="tabular-nums"
             />
           </RetireField>
-          <RetireField id="save" label="Annual savings until retirement">
+          <RetireField id="save" label="Annual savings until target age">
             <Input
               id="save"
               type="number"

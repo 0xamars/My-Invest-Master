@@ -245,7 +245,7 @@ export function RetirementPlanProjectionsChart({
       items.push({
         x: retirementLineX,
         year: retirementYear,
-        caption: "Retirement Year",
+        caption: "Target year",
         color: PROJECTION_RETIREMENT_LINE_COLOR,
       });
     }

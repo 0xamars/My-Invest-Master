@@ -95,7 +95,7 @@ export function useAssistantContext() {
       .slice(0, 12);
 
     const retirementSummaries = retirement.plans.map(summarizeRetirementPlan);
-    const retireMatch = pathname.match(/^\/retire\/plans\/([^/]+)/);
+    const retireMatch = pathname.match(/^\/(?:freedom|retire)\/plans\/([^/]+)/);
     const activeRetirementPlanId = retireMatch?.[1] ?? null;
 
     const budgetMatch = pathname.match(/^\/budget\/plans\/([^/]+)/);

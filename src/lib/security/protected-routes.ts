@@ -1,10 +1,12 @@
 /**
  * Signed-in app surfaces. Marketing, auth, and legal pages stay public.
- * Prefix match: `/retire` also covers `/retire/plans`.
+ * Prefix match: `/freedom` also covers `/freedom/plans`.
+ * `/retire` stays gated so the legacy redirect still requires a session.
  */
 export const PROTECTED_ROUTE_PREFIXES = [
   "/home",
   "/invest",
+  "/freedom",
   "/retire",
   "/watchlist",
   "/analysis",
