@@ -5,7 +5,7 @@ import { TERMS_PATH } from "@/lib/routes";
 export const metadata: Metadata = {
   title: "Privacy · InvestSalsa",
   description:
-    "How InvestSalsa stores Budget, Invest, and Retire plan data. Not investment advice.",
+    "How InvestSalsa stores Budget, Invest, and Freedom plan data. Not investment advice.",
 };
 
 export default function PrivacyPage() {
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         <p>
           When you create an account we store your email and auth credentials
           with Supabase. Signed-in plan data lives in three JSON documents you
-          can already read: budget plans, retirement plans, and portfolio
+          can already read: budget plans, Freedom plans, and portfolio
           plans. The browser talks to Supabase with the anon key and your
           session. Row-level security keeps other users out of your rows.
         </p>

@@ -10,10 +10,10 @@ export function AuthPageShell({
   eyebrow?: string;
 }) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#050505] text-white">
+    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#16181D] text-white">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_at_top,oklch(0.67_0.19_152/18%),transparent_55%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,#A3E635_18%,transparent),transparent_55%)]"
       />
       <header className="relative z-20 border-b border-white/8">
         <div className="mx-auto flex h-16 max-w-lg items-center justify-between px-5">

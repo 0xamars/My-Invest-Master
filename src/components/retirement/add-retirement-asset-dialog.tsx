@@ -187,7 +187,7 @@ export function AddRetirementAssetDialog({
         <DialogHeader>
           <DialogTitle>Add Asset to Plan</DialogTitle>
           <DialogDescription>
-            Add an investment to your retirement projection model.
+            Add an investment to your Freedom projection model.
           </DialogDescription>
         </DialogHeader>
 

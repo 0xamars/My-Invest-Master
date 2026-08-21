@@ -35,7 +35,7 @@ export function RetirementWhatIf({
       <div>
         <h3 className="text-sm font-semibold tracking-tight">Try a change</h3>
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Retire earlier or later, spend more or less, save more or less. The
+          Go earlier or later, spend more or less, save more or less. The
           sentence and ages update right away. Apply when you want it as the
           plan.
         </p>
@@ -68,7 +68,7 @@ export function RetirementWhatIf({
                 }
               />
               <Row
-                label="Nest egg at retirement"
+                label="Nest egg at target age"
                 value={
                   item.nestEggAtRetirement == null
                     ? "—"

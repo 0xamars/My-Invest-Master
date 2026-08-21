@@ -8,15 +8,15 @@ export const PRICING_DISCLAIMER =
 export const FREE_PLAN_FEATURES = [
   "1 budget plan",
   "1 portfolio",
-  "1 retirement plan",
+  "1 Freedom plan",
   "Manual budget tracking / CSV only",
 ] as const;
 
 export const PREMIUM_PLAN_FEATURES = [
   "Unlimited budget plans",
   "Unlimited portfolios",
-  "Unlimited retirement plans",
-  "Create a retirement plan from your portfolio",
+  "Unlimited Freedom plans",
+  "Create a Freedom plan from your portfolio",
 ] as const;
 
 export const PREMIUM_SUPPORT_EMAIL = "admin@investsalsa.com";

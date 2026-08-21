@@ -98,8 +98,8 @@ export function BudgetPlansListContent() {
         <BudgetPanel>
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
-            title="No plans yet"
-            description="Create a budget to track income, assign spending, and keep Ready to Assign honest."
+            title="Start a budget."
+            description="Track income, assign spending, and keep Ready to Assign honest."
             actions={
               <Button onClick={openCreate} disabled={isCreating || !isPlanReady}>
                 <Plus className="size-4" />

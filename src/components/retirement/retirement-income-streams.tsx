@@ -34,7 +34,7 @@ export function RetirementIncomeStreams({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Income streams</h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            CPP, OAS, pension, or other. After retirement, portfolio withdrawal
+            CPP, OAS, pension, or other. After the target age, portfolio withdrawal
             is spending minus income that year.
           </p>
         </div>

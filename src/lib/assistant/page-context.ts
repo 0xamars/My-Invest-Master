@@ -36,7 +36,7 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       id: "home",
       path: pathname,
       title: "Home",
-      description: "Signed-in account overview across Budget, Invest, and Retire.",
+      description: "Signed-in account overview across Budget, Invest, and Freedom.",
     };
   }
   if (pathname === "/invest") {
@@ -99,28 +99,32 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
         "Research routes fold into the Invest book — checkup, mix, leftover, and owned names.",
     };
   }
-  if (pathname.startsWith("/retire/plans/") && pathname.split("/").length >= 4) {
+  if (
+    (pathname.startsWith("/freedom/plans/") ||
+      pathname.startsWith("/retire/plans/")) &&
+    pathname.split("/").length >= 4
+  ) {
     return {
       id: "retire-plan",
       path: pathname,
-      title: "Retirement Plan",
-      description: "Edit a retirement model and view projections.",
+      title: "Freedom plan",
+      description: "Edit a Freedom model and view projections.",
     };
   }
-  if (pathname === "/retire/plans") {
+  if (pathname === "/freedom/plans" || pathname === "/retire/plans") {
     return {
       id: "retire-plans",
       path: pathname,
-      title: "Retirement Planning Models",
-      description: "List and create retirement planning scenarios.",
+      title: "Freedom plans",
+      description: "List and create Freedom plan scenarios.",
     };
   }
-  if (pathname.startsWith("/retire")) {
+  if (pathname.startsWith("/freedom") || pathname.startsWith("/retire")) {
     return {
       id: "retire",
       path: pathname,
-      title: "Retire",
-      description: "Retirement planning hub.",
+      title: "Freedom",
+      description: "Freedom planning hub.",
     };
   }
   if (pathname.startsWith("/budget/plans/")) {
@@ -215,7 +219,7 @@ export function getStarterQuestions(pageId: AssistantPageId): string[] {
     case "retire":
     case "retire-plans":
       return [
-        "How does retirement projection work?",
+        "How does a Freedom projection work?",
         "How do I create a plan from my portfolio?",
         "What is CAGR?",
       ];
@@ -223,7 +227,7 @@ export function getStarterQuestions(pageId: AssistantPageId): string[] {
       return [
         "When might this plan run out of money?",
         "Explain my projection assumptions",
-        "How does inflation affect retirement spending?",
+        "How does inflation affect later spending?",
       ];
     case "budget":
       return [

@@ -115,7 +115,7 @@ export function RetirementVerdictHero({
           value={money(dashboard.targetNestEgg)}
         />
         <Metric
-          label="At retirement"
+          label="At target age"
           value={
             dashboard.projectedNestEgg == null
               ? "—"

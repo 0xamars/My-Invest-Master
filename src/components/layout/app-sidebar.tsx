@@ -48,7 +48,7 @@ const investChildIcons = {
 const retireSubItems = [
   {
     title: "Plan",
-    href: "/retire/plans",
+    href: "/freedom/plans",
     icon: Target,
   },
 ];
@@ -182,7 +182,7 @@ export function AppSidebar() {
                           onClick={() => setRetireOpen((open) => !open)}
                           aria-expanded={retireOpen}
                           aria-label={
-                            retireOpen ? "Collapse Retire menu" : "Expand Retire menu"
+                            retireOpen ? "Collapse Freedom menu" : "Expand Freedom menu"
                           }
                         >
                           <ChevronDown

@@ -77,8 +77,8 @@ export function RetirementPlansListContent() {
 
     setIsCreating(true);
     try {
-      const plan = await createPlanAndSave({ name: "New Retirement Plan" });
-      router.push(`/retire/plans/${plan.id}`);
+      const plan = await createPlanAndSave({ name: "New Freedom plan" });
+      router.push(`/freedom/plans/${plan.id}`);
     } finally {
       setIsCreating(false);
     }
@@ -91,23 +91,23 @@ export function RetirementPlansListContent() {
   }
 
   function openPlan(planId: string) {
-    router.push(`/retire/plans/${planId}`);
+    router.push(`/freedom/plans/${planId}`);
   }
 
   if (!isLoaded || !portfoliosLoaded) {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading retirement plans…
+        Loading Freedom plans…
       </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <PillarBackLink href="/retire" label="Back to Retire" />
+      <PillarBackLink href="/freedom" label="Back to Freedom" />
       <RetirePageHeader
-        title="Retirement plans"
+        title="Freedom plans"
         description="Create from a blank model, or import holdings from Invest. Create as many plans as you need."
         action={
         <div className="flex flex-wrap gap-2">
@@ -160,9 +160,9 @@ export function RetirementPlansListContent() {
       {summaries.length === 0 ? (
         <Card className="surface-card border-dashed shadow-none">
           <CardHeader className="text-center">
-            <CardTitle>No retirement plans yet</CardTitle>
+            <CardTitle>Map the path.</CardTitle>
             <CardDescription>
-              Create a blank model, or import holdings from an Invest book.
+              Start a plan, or import holdings from an Invest book.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap justify-center gap-3 pb-8">
@@ -215,7 +215,7 @@ export function RetirementPlansListContent() {
                   </div>
                   <CardDescription className="flex flex-wrap items-center gap-1.5">
                     <Calendar className="size-3.5" />
-                    Retire {normalized?.retirementAge ?? summary.retirementYear}
+                    Target age {normalized?.retirementAge ?? summary.retirementYear}
                     {dash ? (
                       <RetireVerdictChip verdict={dash.verdict} />
                     ) : null}
@@ -277,11 +277,11 @@ export function RetirementPlansListContent() {
           setIsCreatingFromPortfolio(true);
           try {
             const plan = await createPlanAndSave({
-              name: `${portfolioName} Retirement Plan`,
+              name: `${portfolioName} Freedom plan`,
               assets,
             });
             setImportDialogOpen(false);
-            router.push(`/retire/plans/${plan.id}`);
+            router.push(`/freedom/plans/${plan.id}`);
           } finally {
             setIsCreatingFromPortfolio(false);
           }

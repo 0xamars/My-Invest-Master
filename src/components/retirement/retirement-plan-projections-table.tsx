@@ -152,7 +152,7 @@ export function RetirementPlanProjectionsTable({
                 </p>
                 {isRetirement ? (
                   <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                    Retire
+                    Target
                   </span>
                 ) : null}
               </div>
@@ -226,7 +226,7 @@ export function RetirementPlanProjectionsTable({
                         <span>{projection.year}</span>
                         {isRetirement && (
                           <span className="rounded-md bg-primary/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
-                            Retire
+                            Target
                           </span>
                         )}
                       </div>

@@ -204,13 +204,13 @@ export function RetirementPlanEditorContent({
         <CardHeader>
           <CardTitle>Plan not found</CardTitle>
           <CardDescription>
-            This retirement plan may have been deleted or you don&apos;t have
+            This Freedom plan may have been deleted or you don&apos;t have
             access to it.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" render={<Link href="/retire" />}>
-            Back to Retire
+          <Button variant="outline" render={<Link href="/freedom" />}>
+            Back to Freedom
           </Button>
         </CardContent>
       </Card>
@@ -222,8 +222,8 @@ export function RetirementPlanEditorContent({
       resource="retirement"
       isResourceLoaded={isLoaded && isPlanLoaded}
       canOpen={canOpen}
-      listHref="/retire"
-      listLabel="Back to Retire"
+      listHref="/freedom"
+      listLabel="Back to Freedom"
     >
       <div className="flex flex-1 flex-col gap-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -232,10 +232,10 @@ export function RetirementPlanEditorContent({
               variant="ghost"
               size="sm"
               className="-ml-2 gap-1.5 text-muted-foreground"
-              render={<Link href="/retire" />}
+              render={<Link href="/freedom" />}
             >
               <ArrowLeft className="size-4" />
-              Back to Retire
+              Back to Freedom
             </Button>
             <Input
               value={workingPlan.name}

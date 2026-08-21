@@ -28,7 +28,7 @@ export function RefreshRetireAction() {
 
   async function handleRefresh() {
     if (!retirePlan || !canRefresh) {
-      setStatus("Add holdings to the book, then refresh Retire.");
+      setStatus("Add holdings to the book, then refresh Freedom.");
       return;
     }
     setBusy(true);
@@ -40,13 +40,13 @@ export function RefreshRetireAction() {
     );
     retirement.updatePlan(retirePlan.id, (plan) => ({ ...plan, assets }));
     setBusy(false);
-    setStatus("Retire quantities and prices updated from this book.");
+    setStatus("Freedom quantities and prices updated from this book.");
   }
 
   return (
     <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
       <div className="min-w-0">
-        <p className="text-sm font-medium">Refresh Retire from this book</p>
+        <p className="text-sm font-medium">Refresh Freedom from this book</p>
         <p className="text-xs text-muted-foreground">
           Updates matched holdings on {retirePlan.name}. Does not change
           projection math or re-key the plan.
@@ -66,12 +66,12 @@ export function RefreshRetireAction() {
           ) : (
             <RefreshCw className="size-3.5" />
           )}
-          Refresh Retire from this book
+          Refresh Freedom from this book
         </Button>
         <Button
           size="sm"
           variant="outline"
-          render={<Link href={`/retire/plans/${retirePlan.id}`} />}
+          render={<Link href={`/freedom/plans/${retirePlan.id}`} />}
         >
           Open plan
           <ArrowRight className="size-3.5" />

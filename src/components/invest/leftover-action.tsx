@@ -64,7 +64,7 @@ export function LeftoverAction() {
     setBusy(false);
     setStatus(
       willRefreshRetire
-        ? "Added leftover to book cash and refreshed Retire from the book. Budget leftover is unchanged."
+        ? "Added leftover to book cash and refreshed Freedom from the book. Budget leftover is unchanged."
         : "Added leftover to book cash. Budget leftover is unchanged.",
     );
   }
@@ -81,7 +81,7 @@ export function LeftoverAction() {
         <p className="text-xs text-muted-foreground">
           Same Ready to Assign figure on Home and Invest. Applying adds cash to
           the primary book
-          {willRefreshRetire ? " and refreshes Retire from that book" : ""}.
+          {willRefreshRetire ? " and refreshes Freedom from that book" : ""}.
           Budget math does not change.
         </p>
         {status ? (
@@ -96,7 +96,7 @@ export function LeftoverAction() {
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
           Apply leftover to book cash
-          {willRefreshRetire ? " + refresh Retire" : ""}
+          {willRefreshRetire ? " + refresh Freedom" : ""}
         </Button>
         {!canApply ? (
           <Button

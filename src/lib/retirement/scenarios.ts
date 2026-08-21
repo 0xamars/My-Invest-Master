@@ -63,14 +63,14 @@ export function buildWhatIfScenarios(plan: RetirementPlan): RetirementScenario[]
   return [
     {
       id: "retire-earlier",
-      label: "Retire 2 years earlier",
-      description: `Work until ${earlierAge} instead of ${plan.retirementAge}.`,
+      label: "Go 2 years earlier",
+      description: `Target age ${earlierAge} instead of ${plan.retirementAge}.`,
       patch: { retirementAge: earlierAge },
     },
     {
       id: "retire-later",
-      label: "Retire 2 years later",
-      description: `Work until ${laterAge} instead of ${plan.retirementAge}.`,
+      label: "Go 2 years later",
+      description: `Target age ${laterAge} instead of ${plan.retirementAge}.`,
       patch: { retirementAge: laterAge },
     },
     {
@@ -88,13 +88,13 @@ export function buildWhatIfScenarios(plan: RetirementPlan): RetirementScenario[]
     {
       id: "save-less",
       label: `Save $${extra.toLocaleString("en-US")} less / year`,
-      description: "Reduce annual savings until retirement.",
+      description: "Reduce annual savings until the target age.",
       patch: { annualContribution: saveLess },
     },
     {
       id: "save-more",
       label: `Save $${extra.toLocaleString("en-US")} more / year`,
-      description: "Increase annual savings until retirement.",
+      description: "Increase annual savings until the target age.",
       patch: { annualContribution: saveMore },
     },
   ];

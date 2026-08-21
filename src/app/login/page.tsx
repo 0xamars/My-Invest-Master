@@ -5,7 +5,7 @@ import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
   title: "Sign in · InvestSalsa",
-  description: "Sign in to Budget, Invest, and Retire on InvestSalsa.",
+  description: "Sign in to Home, Budget, Invest, and Freedom on InvestSalsa.",
 };
 
 export default function LoginPage() {

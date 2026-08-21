@@ -79,7 +79,7 @@ function PriceTargetRange({
         />
         {current != null && current > 0 ? (
           <span
-            className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-sky-400 bg-background"
+            className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#A3E635] bg-background"
             style={{ left: pos(current) }}
             title={`Current ${formatUsdPrice(current)}`}
           />

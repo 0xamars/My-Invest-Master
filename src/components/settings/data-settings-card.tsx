@@ -147,7 +147,7 @@ export function DataSettingsCard() {
           <DialogHeader>
             <DialogTitle>Delete your account?</DialogTitle>
             <DialogDescription>
-              This deletes your budget, retirement, and portfolio plan rows,
+              This deletes your budget, Freedom, and portfolio plan rows,
               then signs you out. It cannot be undone from this app.
             </DialogDescription>
           </DialogHeader>

@@ -2,7 +2,10 @@ import { APP_HOME_PATH } from "@/lib/routes";
 
 export const BUDGET_PATH = "/budget";
 export const INVEST_PATH = "/invest";
-export const RETIRE_PATH = "/retire";
+/** User-facing pillar. Legacy `/retire` redirects here. */
+export const FREEDOM_PATH = "/freedom";
+export const RETIRE_PATH = FREEDOM_PATH;
+export const RETIRE_LEGACY_PATH = "/retire";
 export const SETTINGS_PATH = "/settings";
 
 /** Invest children live under the Invest pillar — never as peer products. */
@@ -15,7 +18,7 @@ export const SIGNED_IN_PRIMARY_NAV = [
   { title: "Home", href: APP_HOME_PATH, category: "home" as const },
   { title: "Budget", href: BUDGET_PATH, category: "budget" as const },
   { title: "Invest", href: INVEST_PATH, category: "invest" as const },
-  { title: "Retire", href: RETIRE_PATH, category: "retire" as const },
+  { title: "Freedom", href: FREEDOM_PATH, category: "retire" as const },
 ] as const;
 
 /** Invest children — submenu or in-page cards, never top-level peers. */
@@ -77,7 +80,12 @@ export function isInvestPath(pathname: string): boolean {
 }
 
 export function isRetirePath(pathname: string): boolean {
-  return pathname === RETIRE_PATH || pathname.startsWith(`${RETIRE_PATH}/`);
+  return (
+    pathname === FREEDOM_PATH ||
+    pathname.startsWith(`${FREEDOM_PATH}/`) ||
+    pathname === RETIRE_LEGACY_PATH ||
+    pathname.startsWith(`${RETIRE_LEGACY_PATH}/`)
+  );
 }
 
 export function isSettingsPath(pathname: string): boolean {
@@ -114,9 +122,18 @@ export function resolvePageTitle(
   pathname: string,
   planName?: string | null,
 ): string {
-  if (pathname === "/retire/plans") return "Retirement plans";
-  if (pathname.startsWith("/retire/plans/")) return planName ?? "Retirement plan";
-  if (pathname.startsWith("/retire")) return "Retire";
+  if (pathname === `${FREEDOM_PATH}/plans` || pathname === `${RETIRE_LEGACY_PATH}/plans`) {
+    return "Freedom plans";
+  }
+  if (
+    pathname.startsWith(`${FREEDOM_PATH}/plans/`) ||
+    pathname.startsWith(`${RETIRE_LEGACY_PATH}/plans/`)
+  ) {
+    return planName ?? "Freedom plan";
+  }
+  if (pathname.startsWith(FREEDOM_PATH) || pathname.startsWith(RETIRE_LEGACY_PATH)) {
+    return "Freedom";
+  }
 
   if (pathname === "/budget") return "Budget";
   if (pathname.startsWith("/budget/plans/")) {

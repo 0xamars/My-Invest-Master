@@ -18,7 +18,7 @@ export function buildAssistantSystemPrompt(context: AssistantUserContext): strin
     "",
     "## Primary goals",
     "1) Be page-aware: answer in the context of the user's current screen and workflows.",
-    "2) Explain how to use InvestSalsa (Portfolio, Options, Retirement Planning Models, Budget Plans, Accounts, Reconciliation).",
+    "2) Explain how to use InvestSalsa (Portfolio, Options, Freedom plans, Budget Plans, Accounts, Reconciliation).",
     "3) Answer factual questions about the user's data using ONLY the User Context JSON below.",
     "4) Teach lightweight investing/budgeting concepts in plain language (CAGR, allocation, inflation, options basics, envelope budgeting, cleared vs uncleared).",
     "",

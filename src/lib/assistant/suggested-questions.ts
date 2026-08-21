@@ -90,13 +90,13 @@ export function getDynamicSuggestedQuestions(
     case "retire-plans":
       return context.retirementPlans.length === 0
         ? [
-            "How do I create a retirement plan?",
-            "How does retirement projection work?",
+            "How do I create a Freedom plan?",
+            "How does a Freedom projection work?",
             "What is CAGR?",
           ]
         : [
-            "Summarize my retirement plans",
-            "How does retirement projection work?",
+            "Summarize my Freedom plans",
+            "How does a Freedom projection work?",
             "How do I create a plan from my portfolio?",
           ];
 
@@ -107,9 +107,9 @@ export function getDynamicSuggestedQuestions(
         ) ?? context.retirementPlans[0];
       if (!plan) {
         return [
-          "How does retirement projection work?",
+          "How does a Freedom projection work?",
           "What is CAGR?",
-          "How does inflation affect retirement spending?",
+          "How does inflation affect later spending?",
         ];
       }
       return [
@@ -117,7 +117,7 @@ export function getDynamicSuggestedQuestions(
           ? `When might ${plan.name} run out of money?`
           : `What is the projected end balance for ${plan.name}?`,
         `Explain the assumptions for ${plan.name}`,
-        "How does inflation affect retirement spending?",
+        "How does inflation affect later spending?",
       ];
     }
 

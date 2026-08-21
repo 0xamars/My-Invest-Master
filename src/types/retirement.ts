@@ -170,7 +170,7 @@ export function createEmptySpouse(): RetirementSpouse {
   };
 }
 
-export function createEmptyPlan(name = "New Retirement Plan"): RetirementPlan {
+export function createEmptyPlan(name = "New Freedom plan"): RetirementPlan {
   const now = new Date().toISOString();
   const currentYear = new Date().getFullYear();
 

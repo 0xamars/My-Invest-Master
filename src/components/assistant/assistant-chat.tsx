@@ -291,7 +291,7 @@ export function AssistantChat() {
                   </div>
                   <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
                     The assistant can answer questions about your portfolio,
-                    retirement plans, and budget only after you sign in.
+                    Freedom plans, and budget only after you sign in.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button

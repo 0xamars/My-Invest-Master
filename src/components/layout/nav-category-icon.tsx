@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export type NavCategory = "home" | "budget" | "retire" | "invest";
 
 const iconClass = "size-3.5";
-const lime = "text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]";
+const lime = "text-[#65a30d] dark:text-[#A3E635]";
 
 function HomeIcon() {
   return (
