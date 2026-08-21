@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BrandLogo } from "@/components/layout/brand-logo";
+import { BrandLogo, BrandTagline } from "@/components/layout/brand-logo";
 import { LAUNCH_STILLS } from "@/lib/brand/stills";
 import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 
@@ -12,27 +12,28 @@ export function AuthPageShell({
   eyebrow?: string;
 }) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#07090C] text-white">
+    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#02030D] text-white">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <Image
-          src={LAUNCH_STILLS.hero}
+          src={LAUNCH_STILLS.heroLockup}
           alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover object-left"
+          className="object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#07090C]/25 via-[#07090C]/70 to-[#07090C]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#02030D]/40 via-[#02030D]/75 to-[#02030D]" />
       </div>
       <header className="relative z-20 border-b border-white/8">
         <div className="mx-auto flex h-16 max-w-lg items-center justify-between px-5">
           <BrandLogo variant="lockup" asLink priority className="!gap-2.5" />
-          <Link href={LOGIN_PATH} className="text-sm text-[#6B7684] hover:text-white">
+          <Link href={LOGIN_PATH} className="text-sm text-[#8B93A7] hover:text-white">
             Sign in
           </Link>
         </div>
       </header>
       <main className="relative z-10 mx-auto flex w-full max-w-lg flex-col px-5 py-12">
+        <BrandTagline className="mb-3 text-sm" />
         {eyebrow ? (
           <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-primary">
             {eyebrow}
@@ -41,7 +42,7 @@ export function AuthPageShell({
         {children}
       </main>
       <footer className="relative z-10 border-t border-white/8 py-6">
-        <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-3 px-5 text-xs text-[#6B7684]">
+        <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-3 px-5 text-xs text-[#8B93A7]">
           <p>Not investment advice.</p>
           <div className="flex gap-4">
             <Link href={LOGIN_PATH} className="hover:text-white/70">

@@ -1,5 +1,3 @@
-import { APP_HOME_PATH } from "@/lib/routes";
-
 export const BUDGET_PATH = "/budget";
 export const INVEST_PATH = "/invest";
 /** User-facing pillar. Legacy `/retire` redirects here. */
@@ -13,9 +11,8 @@ export const INVEST_PORTFOLIO_PATH = "/invest/portfolio";
 export const INVEST_WATCHLIST_PATH = "/invest/watchlist";
 export const INVEST_OPTIONS_PATH = "/invest/options";
 
-/** Signed-in primary chrome — four products only. Settings is the account menu. */
+/** Signed-in primary chrome — three products. Home is not a pillar. Settings is the account menu. */
 export const SIGNED_IN_PRIMARY_NAV = [
-  { title: "Home", href: APP_HOME_PATH, category: "home" as const },
   { title: "Budget", href: BUDGET_PATH, category: "budget" as const },
   { title: "Invest", href: INVEST_PATH, category: "invest" as const },
   { title: "Freedom", href: FREEDOM_PATH, category: "retire" as const },
@@ -34,7 +31,7 @@ export const SIGNED_IN_FOOTER_NAV = [
 
 export const PRIMARY_NAV_TITLES = SIGNED_IN_PRIMARY_NAV.map((item) => item.title);
 
-export type ProductPillar = "home" | "budget" | "invest" | "retire";
+export type ProductPillar = "budget" | "invest" | "retire";
 
 export function budgetPlanPath(
   id: string,
@@ -57,7 +54,7 @@ export function retirePlansPath(id?: string): string {
 }
 
 export function isHomePath(pathname: string): boolean {
-  return pathname === APP_HOME_PATH;
+  return pathname === "/home" || pathname === "/";
 }
 
 export function isBudgetPath(pathname: string): boolean {
@@ -102,9 +99,8 @@ export function isNavItemActive(
 }
 
 export function pillarForPath(pathname: string): ProductPillar | null {
-  if (isHomePath(pathname)) return "home";
   if (isBudgetPath(pathname)) return "budget";
-  if (isInvestPath(pathname)) return "invest";
+  if (isInvestPath(pathname) || pathname === "/home") return "invest";
   if (isRetirePath(pathname)) return "retire";
   return null;
 }
@@ -115,7 +111,7 @@ export function pillarHomePath(pathname: string): string {
   if (pillar === "budget") return BUDGET_PATH;
   if (pillar === "invest") return INVEST_PATH;
   if (pillar === "retire") return RETIRE_PATH;
-  return APP_HOME_PATH;
+  return INVEST_PATH;
 }
 
 export function resolvePageTitle(
@@ -176,8 +172,8 @@ export function resolvePageTitle(
   }
 
   const pageTitles: Record<string, string> = {
-    "/": "Home",
-    "/home": "Home",
+    "/": "InvestSalsa",
+    "/home": "Invest",
     "/invest": "Invest",
     "/invest/options": "Options",
     "/options": "Options",

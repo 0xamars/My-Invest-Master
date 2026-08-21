@@ -3,6 +3,7 @@
  * `permanent: false` is a 307 in next.config — never 404.
  */
 export const INVEST_LEGACY_REDIRECTS = [
+  { source: "/home", destination: "/invest", permanent: false },
   { source: "/analytics", destination: "/invest", permanent: false },
   { source: "/performance", destination: "/invest", permanent: false },
   { source: "/markets", destination: "/invest", permanent: false },
@@ -37,6 +38,9 @@ export const INVEST_LEGACY_REDIRECTS = [
 export function destinationForLegacyInvestPath(
   pathname: string,
 ): string | null {
+  if (pathname === "/home" || pathname.startsWith("/home/")) {
+    return "/invest";
+  }
   if (pathname === "/analysis" || pathname.startsWith("/analysis/")) {
     return "/invest";
   }

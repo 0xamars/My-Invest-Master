@@ -1,6 +1,7 @@
-/** Launch stills — originals only. Never the Dogan Ural sampling photo. */
+/** Comet stills — long-streak hero for signed-out/OG; quiet textures for empties. */
 export const LAUNCH_STILLS = {
   hero: "/stills/hero.jpg",
+  heroLockup: "/stills/hero-lockup.jpg",
   freedom: "/stills/freedom.jpg",
   home: "/stills/home.jpg",
   budget: "/stills/budget.jpg",

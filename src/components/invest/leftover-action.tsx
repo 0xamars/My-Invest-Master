@@ -79,7 +79,7 @@ export function LeftoverAction() {
           leftover in Budget
         </p>
         <p className="text-xs text-muted-foreground">
-          Same Ready to Assign figure on Home and Invest. Applying adds cash to
+          Same Ready to Assign figure from Budget. Applying adds cash to
           the primary book
           {willRefreshRetire ? " and refreshes Freedom from that book" : ""}.
           Budget math does not change.

@@ -45,7 +45,7 @@ export function SignupForm() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Create your account</h1>
         <p className="text-sm text-white/60">
-          Home, Budget, Invest, and Freedom are included. Not investment advice.
+          Budget, Invest, and Freedom are included. Not investment advice.
         </p>
       </div>
 

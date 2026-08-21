@@ -15,7 +15,6 @@ import {
   INVEST_PORTFOLIO_PATH,
   INVEST_WATCHLIST_PATH,
   SIGNED_IN_PRIMARY_NAV,
-  isHomePath,
   isInvestPath,
   isNavItemActive,
   isRetirePath,
@@ -223,19 +222,7 @@ export function AppSidebar() {
                   );
                 }
 
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      isActive={isHomePath(pathname)}
-                      tooltip={item.title}
-                      className={navClass(isHomePath(pathname))}
-                      render={<Link href={item.href} />}
-                    >
-                      <NavCategoryIcon category={item.category} />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
+                return null;
               })}
             </SidebarMenu>
           </SidebarGroupContent>

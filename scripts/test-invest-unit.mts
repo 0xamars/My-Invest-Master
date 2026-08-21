@@ -547,8 +547,9 @@ assert(isPublicRoute("/auth/reset"), "/auth/reset is public");
 assert(!isProtectedRoute("/auth/callback"), "/auth/callback stays public");
 assert(!isProtectedRoute("/auth/reset"), "/auth/reset stays public");
 assert(!isProtectedRoute("/api/prices"), "/api/prices is not a page gate");
-assert(safeAuthNextPath("https://evil.test") === "/home", "rejects absolute next");
-assert(safeAuthNextPath("//evil.test") === "/home", "rejects protocol-relative next");
+assert(safeAuthNextPath("https://evil.test") === "/invest", "rejects absolute next");
+assert(safeAuthNextPath("//evil.test") === "/invest", "rejects protocol-relative next");
+assert(safeAuthNextPath("/home") === "/invest", "legacy /home next lands on Invest");
 assert(safeAuthNextPath("/invest") === "/invest", "keeps a relative next");
 
 const mustProtect = [
@@ -634,8 +635,12 @@ assert(
 assert(destinationForLegacyInvestPath("/options") === "/invest/options", "options folds under Invest");
 
 assert(
-  PRIMARY_NAV_TITLES.join(",") === "Home,Budget,Invest,Freedom",
-  "signed-in chrome is four tabs",
+  PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Freedom",
+  "signed-in chrome is three products — Home is not a pillar",
+);
+assert(
+  !PRIMARY_NAV_TITLES.includes("Home") && !PRIMARY_NAV_TITLES.includes("Register"),
+  "Home and Register are not top-level tabs",
 );
 assert(
   SIGNED_IN_PRIMARY_NAV.every((item) => item.title !== "Settings"),
@@ -654,7 +659,8 @@ assert(
   !INVEST_CHILD_NAV.some((item) => item.href === "/market" || item.href === "/analysis"),
   "Market and Analysis are not Invest children",
 );
-assert(pillarForPath("/home") === "home", "home pillar");
+assert(pillarForPath("/home") === "invest", "legacy /home maps to Invest");
+assert(destinationForLegacyInvestPath("/home") === "/invest", "/home redirects to Invest");
 assert(pillarForPath("/budget/plans/abc") === "budget", "budget plan is Budget");
 assert(pillarForPath("/invest/portfolio/abc") === "invest", "nested book is Invest");
 assert(pillarForPath("/options") === "invest", "legacy options is still Invest");
@@ -672,7 +678,7 @@ assert(
 assert(isInvestPath("/invest/options") === true, "options under Invest is Invest");
 assert(investPortfolioPath("abc") === "/invest/portfolio/abc", "book path is nested");
 assert(resolvePageTitle("/invest/options") === "Options", "options title");
-assert(resolvePageTitle("/") === "Home", "marketing title");
+assert(resolvePageTitle("/") === "InvestSalsa", "marketing title");
 assert(isPortfolioDetailPath("/invest/portfolio/abc") === true, "nested book is a detail path");
 assert(isPortfolioDetailPath("/invest/portfolio") === false, "book list is not a detail path");
 assert(resolvePortfolioViewScope("/invest") === "primary", "checkup uses primary book");

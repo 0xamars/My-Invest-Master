@@ -8,18 +8,31 @@ interface BrandLogoProps {
   priority?: boolean;
 }
 
-/** Compact letters for tight chrome only — not a product mark. Chili is not the mark. */
-function BrandInitials({ className }: { className?: string }) {
+const TAGLINE = "Freedom, engineered.";
+
+/** Compact shooting-star mark — favicon / header / collapsed chrome. */
+export function CometMark({
+  className,
+  size = 32,
+  priority: _priority = false,
+}: {
+  className?: string;
+  size?: number;
+  priority?: boolean;
+}) {
   return (
-    <span
+    // Compact two-stripe comet mark — not the long-streak hero.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brand/comet-mark.svg"
+      alt=""
+      width={size}
+      height={size}
       className={cn(
-        "inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[linear-gradient(160deg,#E59570,#BD7A64)] text-[0.7rem] font-semibold tracking-tight text-white shadow-[0_0_18px_color-mix(in_srgb,#E59570_35%,transparent)]",
+        "brand-logo-icon size-8 shrink-0 object-contain",
         className,
       )}
-      aria-hidden
-    >
-      IS
-    </span>
+    />
   );
 }
 
@@ -37,22 +50,31 @@ export function BrandWordmark({ className }: { className?: string }) {
   );
 }
 
+export function BrandTagline({ className }: { className?: string }) {
+  return (
+    <span className={cn("font-normal tracking-[0.04em] text-white/80", className)}>
+      {TAGLINE}
+    </span>
+  );
+}
+
 export function BrandLogo({
   variant = "sidebar",
   className,
   asLink = false,
+  priority = false,
 }: BrandLogoProps) {
   let content: React.ReactNode;
 
   switch (variant) {
     case "icon":
-      content = <BrandInitials className={className} />;
+      content = <CometMark className={className} priority={priority} />;
       break;
 
     case "lockup":
       content = (
-        <div className={cn("flex min-w-0 items-center gap-3", className)}>
-          <BrandInitials />
+        <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
+          <CometMark priority={priority} />
           <BrandWordmark className="text-lg leading-none" />
         </div>
       );
@@ -60,9 +82,12 @@ export function BrandLogo({
 
     case "hero":
       content = (
-        <div className={cn("flex items-center gap-3", className)}>
-          <BrandInitials className="size-12 rounded-2xl text-base" />
-          <BrandWordmark className="text-3xl leading-none" />
+        <div className={cn("flex flex-col items-start gap-2", className)}>
+          <div className="flex items-center gap-3">
+            <CometMark className="size-12" size={48} priority={priority} />
+            <BrandWordmark className="text-3xl leading-none" />
+          </div>
+          <BrandTagline className="pl-[3.75rem] text-sm" />
         </div>
       );
       break;
@@ -75,7 +100,10 @@ export function BrandLogo({
             className,
           )}
         >
-          <BrandInitials className="hidden group-data-[collapsible=icon]:inline-flex" />
+          <CometMark
+            className="size-8 group-data-[collapsible=icon]:size-8"
+            priority={priority}
+          />
           <BrandWordmark className="text-lg leading-none group-data-[collapsible=icon]:hidden" />
         </div>
       );

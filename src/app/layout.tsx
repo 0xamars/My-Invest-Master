@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://investsalsa.com"),
-  title: "InvestSalsa — Home. Budget. Invest. Freedom.",
+  title: "InvestSalsa — Freedom, engineered.",
   description:
-    "Home, Budget, Invest, and Freedom. Ready to Assign leftover that carries, a portfolio book and checkup, and a Freedom plan you can refresh from the book. Not investment advice.",
+    "Budget, Invest, and Freedom. Ready to Assign leftover that carries, a portfolio book and checkup, and a Freedom plan you can refresh from the book. Not investment advice.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -29,23 +29,23 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "InvestSalsa — Home. Budget. Invest. Freedom.",
+    title: "InvestSalsa — Freedom, engineered.",
     description:
-      "Four live pillars: Home, Budget leftover that carries, an Invest book, and a Freedom plan you can refresh from the book.",
+      "Budget leftover that carries, an Invest book, and a Freedom plan you can refresh from the book.",
     images: [
       {
         url: "/og.png",
         width: 1200,
         height: 630,
-        alt: "InvestSalsa — Home. Budget. Invest. Freedom.",
+        alt: "InvestSalsa — Freedom, engineered.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "InvestSalsa — Home. Budget. Invest. Freedom.",
+    title: "InvestSalsa — Freedom, engineered.",
     description:
-      "Four live pillars: Home, Budget leftover that carries, an Invest book, and a Freedom plan you can refresh from the book.",
+      "Budget leftover that carries, an Invest book, and a Freedom plan you can refresh from the book.",
     images: ["/og.png"],
   },
 };
