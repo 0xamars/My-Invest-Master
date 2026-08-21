@@ -12,7 +12,9 @@ import {
 import { DeleteOptionsDialog } from "@/components/options/delete-options-dialog";
 import { OptionsTable } from "@/components/options/options-table";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { RetirePageHeader, RetirePanel } from "@/components/retirement/retire-ui";
+import { INVEST_PATH, investPortfolioPath } from "@/lib/chrome/nav";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useEnrichedPortfolio } from "@/hooks/use-enriched-portfolio";
 import { useFxRate } from "@/hooks/use-fx-rate";
@@ -86,8 +88,8 @@ export function OptionsContent() {
     [enrichedPositions],
   );
   const bookHref = primaryBook.portfolioId
-    ? `/portfolio/${primaryBook.portfolioId}`
-    : "/portfolio";
+    ? investPortfolioPath(primaryBook.portfolioId)
+    : investPortfolioPath();
 
   const editingPosition = editingId
     ? (positions.find((position) => position.id === editingId) ?? null)
@@ -126,6 +128,7 @@ export function OptionsContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
+      <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
       <RetirePageHeader
         title="Options"
         description={

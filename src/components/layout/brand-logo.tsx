@@ -10,13 +10,13 @@ interface BrandLogoProps {
 }
 
 const iconSizes = {
-  sidebar: { width: 58, height: 68, className: "h-[4.25rem] w-[3.5rem]" },
-  sidebarCollapsed: { width: 46, height: 54, className: "h-[3.375rem] w-[2.875rem]" },
-  hero: { width: 68, height: 80, className: "h-20 w-[4.25rem]" },
-  default: { width: 58, height: 68, className: "h-[4.25rem] w-[3.5rem]" },
+  sidebar: { width: 40, height: 40, className: "size-10" },
+  sidebarCollapsed: { width: 32, height: 32, className: "size-8" },
+  hero: { width: 48, height: 48, className: "size-12" },
+  default: { width: 40, height: 40, className: "size-10" },
 } as const;
 
-function ThemeBrandIcon({
+function BrandMark({
   className,
   priority = false,
   width,
@@ -30,27 +30,18 @@ function ThemeBrandIcon({
   return (
     <span
       className={cn(
-        "brand-logo-icon-wrap inline-flex shrink-0 items-center justify-center overflow-visible",
+        "brand-logo-icon-wrap inline-flex shrink-0 overflow-hidden rounded-[0.7rem] ring-1 ring-black/10 dark:ring-white/10",
         className,
       )}
     >
       <Image
-        src="/brand/logo-icon-light.png"
+        src="/brand/app-icon.png"
         alt=""
         width={width}
         height={height}
         priority={priority}
         aria-hidden
-        className="brand-logo-icon h-full w-full object-contain object-center dark:hidden"
-      />
-      <Image
-        src="/brand/logo-icon-dark.png"
-        alt=""
-        width={width}
-        height={height}
-        priority={priority}
-        aria-hidden
-        className="brand-logo-icon hidden h-full w-full object-contain object-center dark:block"
+        className="brand-logo-icon h-full w-full object-cover"
       />
     </span>
   );
@@ -81,7 +72,7 @@ export function BrandLogo({
   switch (variant) {
     case "icon":
       content = (
-        <ThemeBrandIcon
+        <BrandMark
           priority={priority}
           width={iconSizes.default.width}
           height={iconSizes.default.height}
@@ -93,7 +84,7 @@ export function BrandLogo({
     case "hero":
       content = (
         <div className={cn("flex items-center gap-4", className)}>
-          <ThemeBrandIcon
+          <BrandMark
             priority={priority}
             width={iconSizes.hero.width}
             height={iconSizes.hero.height}
@@ -108,17 +99,17 @@ export function BrandLogo({
       content = (
         <div
           className={cn(
-            "flex min-w-0 items-center gap-3 group-data-[collapsible=icon]:justify-center",
+            "flex min-w-0 items-center gap-2.5 group-data-[collapsible=icon]:justify-center",
             className,
           )}
         >
-          <ThemeBrandIcon
+          <BrandMark
             priority={priority}
             width={iconSizes.sidebar.width}
             height={iconSizes.sidebar.height}
             className={cn(
               iconSizes.sidebar.className,
-              "group-data-[collapsible=icon]:h-[3.375rem] group-data-[collapsible=icon]:w-[2.875rem]",
+              "group-data-[collapsible=icon]:size-8",
             )}
           />
           <BrandWordmark className="text-lg leading-none group-data-[collapsible=icon]:hidden" />

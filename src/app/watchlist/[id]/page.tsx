@@ -1,18 +1,13 @@
-import { RequireAuth } from "@/components/auth/require-auth";
-import { WatchlistContent } from "@/components/watchlist/watchlist-content";
+import { redirect } from "next/navigation";
+import { investWatchlistPath } from "@/lib/chrome/nav";
 
-interface WatchlistDetailPageProps {
+interface WatchlistAliasPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function WatchlistDetailPage({
+export default async function WatchlistAliasPage({
   params,
-}: WatchlistDetailPageProps) {
+}: WatchlistAliasPageProps) {
   const { id } = await params;
-
-  return (
-    <RequireAuth>
-      <WatchlistContent listId={id} />
-    </RequireAuth>
-  );
+  redirect(investWatchlistPath(id));
 }

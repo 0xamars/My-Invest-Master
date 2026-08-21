@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AccountMenu } from "@/components/layout/account-menu";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { BrandHomeLink } from "@/components/layout/brand-home-link";
+import { BrandLogo } from "@/components/layout/brand-logo";
+import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { BudgetPlansProvider, useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { useAuth } from "@/hooks/use-auth";
+import { isInvestPath, resolvePageTitle } from "@/lib/chrome/nav";
 import {
   AUTH_RESET_PATH,
   LOGIN_PATH,
@@ -18,58 +24,18 @@ import {
   TERMS_PATH,
 } from "@/lib/routes";
 
-function resolvePageTitle(pathname: string, planName?: string | null): string {
-  if (pathname === "/retire/plans") return "Retirement Planning Models";
-  if (pathname.startsWith("/retire/plans/")) return "Retirement Plan";
-  if (pathname.startsWith("/retire")) return "Retire";
-
-  if (pathname === "/budget") return "Budget Plans";
-  if (pathname.startsWith("/budget/plans/")) {
-    if (pathname.endsWith("/transactions")) {
-      return planName ? `${planName} · Transactions` : "Transactions";
-    }
-    if (pathname.endsWith("/reports")) {
-      return planName ? `${planName} · Reports` : "Reports";
-    }
-    if (pathname.endsWith("/accounts")) {
-      return planName ? `${planName} · Accounts` : "Accounts";
-    }
-    return planName ?? "Budget Plan";
-  }
-
-  if (pathname === "/portfolio") return "Portfolios";
-  if (pathname.startsWith("/portfolio/")) {
-    return planName ?? "Portfolio";
-  }
-
-  if (pathname === "/watchlist") return "Watchlists";
-  if (pathname.startsWith("/watchlist/")) {
-    return planName ?? "Watchlist";
-  }
-
-  const pageTitles: Record<string, string> = {
-    "/": "Home",
-    "/home": "Home",
-    "/invest": "Invest",
-    "/options": "Options",
-    "/settings": "Settings",
-    "/terms": "Terms",
-    "/privacy": "Privacy",
-    "/login": "Sign in",
-    "/signup": "Create account",
-  };
-
-  return pageTitles[pathname] ?? "Invest Salsa";
-}
-
 function AppShellHeader() {
   const pathname = usePathname();
   const { getPlan } = useBudgetPlans();
   const { portfolios } = usePortfolioPlans();
   const { lists } = useWatchlistPlans();
   const planMatch = pathname.match(/^\/budget\/plans\/([^/]+)/);
-  const portfolioMatch = pathname.match(/^\/portfolio\/([^/]+)/);
-  const watchlistMatch = pathname.match(/^\/watchlist\/([^/]+)/);
+  const portfolioMatch = pathname.match(
+    /(?:^\/invest)?\/portfolio\/([^/]+)/,
+  );
+  const watchlistMatch = pathname.match(
+    /(?:^\/invest)?\/watchlist\/([^/]+)/,
+  );
   const planName = planMatch ? getPlan(planMatch[1])?.name : null;
   const portfolioName = portfolioMatch
     ? portfolios.find((portfolio) => portfolio.id === portfolioMatch[1])?.name
@@ -81,18 +47,26 @@ function AppShellHeader() {
     pathname,
     planName ?? portfolioName ?? watchlistName,
   );
+  const showInvestTools = isInvestPath(pathname);
 
   return (
-    <header className="portal-header sticky top-0 z-20 flex h-16 shrink-0 items-center px-6 lg:px-8">
-      <SidebarTrigger className="-ml-2 size-9 rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" />
-      <div className="ml-4 flex min-w-0 flex-col">
-        <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
-          Invest Salsa
-        </span>
-        <span className="truncate text-base font-semibold tracking-tight text-foreground">
-          {title}
-        </span>
+    <header className="portal-header sticky top-0 z-20 flex min-h-16 shrink-0 flex-col gap-3 px-5 py-3 sm:px-6 lg:px-8">
+      <div className="flex items-center gap-3">
+        <BrandHomeLink className="flex min-w-0 items-center gap-2.5 md:hidden">
+          <BrandLogo variant="icon" priority />
+          <span className="sr-only">InvestSalsa Home</span>
+        </BrandHomeLink>
+        <div className="ml-0 flex min-w-0 flex-1 flex-col md:ml-0">
+          <span className="hidden text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground md:block">
+            InvestSalsa
+          </span>
+          <span className="truncate text-base font-semibold tracking-tight text-foreground">
+            {title}
+          </span>
+        </div>
+        <AccountMenu />
       </div>
+      {showInvestTools ? <InvestToolsNav /> : null}
     </header>
   );
 }
@@ -128,10 +102,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset className="bg-background">
         <AppShellHeader />
-        <main className="flex flex-1 flex-col px-6 py-8 lg:px-8 lg:py-10">
+        <main className="flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-10 md:pb-10">
           <div className="page-shell">{children}</div>
         </main>
-        <footer className="border-t border-border/60 px-6 py-4 text-xs text-muted-foreground lg:px-8">
+        <footer className="hidden border-t border-border/60 px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
           <div className="page-shell flex flex-wrap items-center justify-between gap-3">
             <p>Not investment advice.</p>
             <div className="flex gap-4">
@@ -145,6 +119,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </footer>
         <AssistantChat />
+        <MobileTabBar />
       </SidebarInset>
     </SidebarProvider>
   );

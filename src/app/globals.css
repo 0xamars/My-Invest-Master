@@ -278,22 +278,21 @@
   }
 
   .brand-text-invest {
-    color: oklch(0.58 0.17 152);
+    color: oklch(0.22 0.014 155);
   }
 
-  .dark .brand-text-invest {
-    color: oklch(0.76 0.16 152);
+  .dark .brand-text-invest,
+  .marketing-home .brand-text-invest {
+    color: oklch(0.99 0.002 150);
   }
 
   .brand-text-salsa {
-    background: linear-gradient(
-      100deg,
-      oklch(0.78 0.19 55) 0%,
-      oklch(0.62 0.22 27) 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: oklch(0.67 0.19 152);
+  }
+
+  .dark .brand-text-salsa,
+  .marketing-home .brand-text-salsa {
+    color: oklch(0.82 0.19 152);
   }
 
   .nav-item {

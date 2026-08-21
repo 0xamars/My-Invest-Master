@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 export type NavCategory = "home" | "budget" | "retire" | "invest";
 
 const iconClass = "size-3.5";
+const lime = "text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]";
 
 function HomeIcon() {
   return (
@@ -14,7 +15,7 @@ function HomeIcon() {
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
+        className={lime}
       />
       <path
         d="M6.5 9.5V18a1.5 1.5 0 0 0 1.5 1.5H10v-4.5h4V19.5h2a1.5 1.5 0 0 0 1.5-1.5V9.5"
@@ -22,14 +23,7 @@ function HomeIcon() {
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
-      />
-      <path
-        d="M12 4.5v3"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        className="text-[oklch(0.62_0.22_27)]"
+        className={lime}
       />
     </svg>
   );
@@ -39,72 +33,27 @@ function BudgetIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={iconClass} aria-hidden>
       <rect
-        x="3"
-        y="6"
-        width="18"
-        height="13"
-        rx="3"
-        className="fill-[oklch(0.67_0.19_152)]"
-        opacity="0.18"
-      />
-      <rect
-        x="3"
-        y="6"
-        width="18"
-        height="13"
-        rx="3"
+        x="3.5"
+        y="7"
+        width="17"
+        height="12"
+        rx="2.5"
         stroke="currentColor"
         strokeWidth="1.6"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
+        className={lime}
       />
-      <circle
-        cx="12"
-        cy="12.5"
-        r="3.25"
+      <path
+        d="M3.5 11h17"
         stroke="currentColor"
         strokeWidth="1.6"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
+        className={lime}
       />
       <path
-        d="M12 10.5v4M10.75 12.5h2.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        className="text-[oklch(0.62_0.22_27)]"
-      />
-    </svg>
-  );
-}
-
-function RetireIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={iconClass} aria-hidden>
-      <path
-        d="M4 17.5h16"
+        d="M16 7V6.2A2.2 2.2 0 0 0 13.8 4h-3.6A2.2 2.2 0 0 0 8 6.2V7"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
-      />
-      <path
-        d="M6.5 17.5V11a5.5 5.5 0 0 1 11 0v6.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
-      />
-      <circle
-        cx="17.5"
-        cy="7"
-        r="2.75"
-        className="fill-[oklch(0.78_0.19_55)]"
-      />
-      <path
-        d="M8 14.5h8"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        className="text-[oklch(0.62_0.22_27)]"
+        className={lime}
       />
     </svg>
   );
@@ -114,31 +63,62 @@ function InvestIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={iconClass} aria-hidden>
       <path
-        d="M4 16.5 8.5 11l3 2.5L17 6.5"
+        d="M5 17.5V13M10 17.5V10M15 17.5V12"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        className={lime}
+      />
+      <path
+        d="M8 8.5 13 6l3 2.5 4-4.5"
         stroke="currentColor"
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
+        className={lime}
       />
       <path
-        d="M13.5 6.5H17V10"
+        d="M16.5 4H20v3.5"
         stroke="currentColor"
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-[oklch(0.58_0.17_152)] dark:text-[oklch(0.76_0.16_152)]"
+        className={lime}
       />
+    </svg>
+  );
+}
+
+function RetireIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={iconClass} aria-hidden>
       <path
-        d="M14.5 14.5c1.8-2.8 3.6-3.8 5.5-3.2.8.2 1.4.9 1.5 1.8.2 1.6-1.2 3.2-3.1 3.6-1.9.4-3.4-.4-3.9-2.2Z"
-        className="fill-[oklch(0.62_0.22_27)]"
-      />
-      <path
-        d="M17.5 11.5c.3-.8.9-1.2 1.6-1"
+        d="M12 4.5c3.2 0 5.8 1.6 5.8 3.6S15.2 11.7 12 11.7 6.2 10.1 6.2 8.1 8.8 4.5 12 4.5Z"
         stroke="currentColor"
-        strokeWidth="1.2"
+        strokeWidth="1.5"
+        className={lime}
+      />
+      <path
+        d="M12 4.5v7.2"
+        stroke="currentColor"
+        strokeWidth="1.5"
         strokeLinecap="round"
-        className="text-[oklch(0.78_0.19_55)]"
+        className={lime}
+      />
+      <path
+        d="M7 14.5c2.2-1.4 7.8-1.4 10 0"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        className={lime}
+      />
+      <path
+        d="M7 14.5 6 19.5M17 14.5l1 5M8.2 19.5h7.6"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={lime}
       />
     </svg>
   );

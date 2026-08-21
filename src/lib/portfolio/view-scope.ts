@@ -4,12 +4,15 @@
  */
 
 export function isPortfolioDetailPath(pathname: string): boolean {
-  return /^\/portfolio\/[^/]+\/?$/.test(pathname);
+  return (
+    /^\/invest\/portfolio\/[^/]+\/?$/.test(pathname) ||
+    /^\/portfolio\/[^/]+\/?$/.test(pathname)
+  );
 }
 
 export type PortfolioViewScope = "primary" | "active";
 
-/** Outside portfolio detail → Primary; on /portfolio/[id] → Active (viewing). */
+/** Outside portfolio detail → Primary; on a book page → Active (viewing). */
 export function resolvePortfolioViewScope(
   pathname: string,
 ): PortfolioViewScope {

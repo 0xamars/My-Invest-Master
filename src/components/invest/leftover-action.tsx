@@ -102,7 +102,7 @@ export function LeftoverAction() {
           <Button
             size="sm"
             variant="outline"
-            render={<Link href="/portfolio" />}
+            render={<Link href="/invest/portfolio" />}
           >
             Create a portfolio
             <ArrowRight className="size-3.5" />

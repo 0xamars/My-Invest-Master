@@ -1,5 +1,5 @@
 /**
- * Research and leftover dashboards fold into Invest or the book.
+ * Research leftovers and former top-level Invest tools fold into a pillar.
  * `permanent: false` is a 307 in next.config — never 404.
  */
 export const INVEST_LEGACY_REDIRECTS = [
@@ -7,11 +7,24 @@ export const INVEST_LEGACY_REDIRECTS = [
   { source: "/performance", destination: "/invest", permanent: false },
   { source: "/markets", destination: "/invest", permanent: false },
   { source: "/market", destination: "/invest", permanent: false },
-  { source: "/holdings", destination: "/portfolio", permanent: true },
+  { source: "/holdings", destination: "/invest/portfolio", permanent: true },
   { source: "/analysis", destination: "/invest", permanent: false },
   { source: "/analysis/:symbol", destination: "/invest", permanent: false },
   { source: "/signin", destination: "/login", permanent: false },
   { source: "/pricing", destination: "/", permanent: false },
+  { source: "/portfolio", destination: "/invest/portfolio", permanent: false },
+  {
+    source: "/portfolio/:id",
+    destination: "/invest/portfolio/:id",
+    permanent: false,
+  },
+  { source: "/watchlist", destination: "/invest/watchlist", permanent: false },
+  {
+    source: "/watchlist/:id",
+    destination: "/invest/watchlist/:id",
+    permanent: false,
+  },
+  { source: "/options", destination: "/invest/options", permanent: false },
 ] as const;
 
 export function destinationForLegacyInvestPath(
@@ -23,8 +36,32 @@ export function destinationForLegacyInvestPath(
   if (pathname === "/market" || pathname === "/markets") {
     return "/invest";
   }
-  const match = INVEST_LEGACY_REDIRECTS.find(
-    (entry) => entry.source === pathname,
-  );
-  return match?.destination ?? null;
+  if (pathname === "/analytics" || pathname === "/performance") {
+    return "/invest";
+  }
+  if (pathname === "/pricing") {
+    return "/";
+  }
+  if (pathname === "/signin") {
+    return "/login";
+  }
+  if (pathname === "/holdings") {
+    return "/invest/portfolio";
+  }
+  if (pathname === "/portfolio") {
+    return "/invest/portfolio";
+  }
+  if (pathname.startsWith("/portfolio/")) {
+    return `/invest${pathname}`;
+  }
+  if (pathname === "/watchlist") {
+    return "/invest/watchlist";
+  }
+  if (pathname.startsWith("/watchlist/")) {
+    return `/invest${pathname}`;
+  }
+  if (pathname === "/options" || pathname.startsWith("/options/")) {
+    return "/invest/options";
+  }
+  return null;
 }

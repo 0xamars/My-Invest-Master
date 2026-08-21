@@ -15,6 +15,7 @@ import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { useInvestSummary } from "@/hooks/use-invest-summary";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { formatBudgetMoney } from "@/lib/budget/format";
+import { investPortfolioPath } from "@/lib/chrome/nav";
 import {
   leftoverFromBudgetPlans,
   pickOpenablePlan,
@@ -50,7 +51,7 @@ export function HomeDashboard() {
     portfolio.totals,
     {
       portfolioHref: portfolio.portfolioId
-        ? `/portfolio/${portfolio.portfolioId}`
+        ? investPortfolioPath(portfolio.portfolioId)
         : "/invest",
     },
   );
@@ -83,7 +84,7 @@ export function HomeDashboard() {
   const bookHref = checkup.hasData
     ? "/invest"
     : portfolio.portfolioId
-      ? `/portfolio/${portfolio.portfolioId}`
+      ? investPortfolioPath(portfolio.portfolioId)
       : "/invest";
   const retireHref = retireOutlook
     ? `/retire/plans/${retireOutlook.plan.id}`

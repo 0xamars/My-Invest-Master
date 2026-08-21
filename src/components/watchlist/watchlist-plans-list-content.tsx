@@ -20,7 +20,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
+import { INVEST_PATH, investWatchlistPath } from "@/lib/chrome/nav";
 import type { UserWatchlist } from "@/types/watchlist";
 
 function formatUpdatedAt(iso: string): string {
@@ -53,7 +55,7 @@ export function WatchlistPlansListContent() {
     try {
       const list = await createWatchlistAndSave(name);
       setCreateOpen(false);
-      router.push(`/watchlist/${list.id}`);
+      router.push(investWatchlistPath(list.id));
     } finally {
       setIsCreating(false);
     }
@@ -65,7 +67,7 @@ export function WatchlistPlansListContent() {
   }
 
   function openWatchlist(list: UserWatchlist) {
-    router.push(`/watchlist/${list.id}`);
+    router.push(investWatchlistPath(list.id));
   }
 
   if (!isLoaded) {
@@ -79,6 +81,7 @@ export function WatchlistPlansListContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-8">
+      <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Watchlists</h1>

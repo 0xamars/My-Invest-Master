@@ -1,22 +1,13 @@
-import { Suspense } from "react";
-import { RefreshCw } from "lucide-react";
-import { PortfolioContent } from "@/components/portfolio/portfolio-content";
-import { RequireAuth } from "@/components/auth/require-auth";
+import { redirect } from "next/navigation";
+import { investPortfolioPath } from "@/lib/chrome/nav";
 
-function PortfolioLoading() {
-  return (
-    <div className="flex flex-1 items-center justify-center py-24">
-      <RefreshCw className="size-5 animate-spin text-muted-foreground" />
-    </div>
-  );
+interface PortfolioAliasPageProps {
+  params: Promise<{ id: string }>;
 }
 
-export default function PortfolioDetailPage() {
-  return (
-    <RequireAuth>
-      <Suspense fallback={<PortfolioLoading />}>
-        <PortfolioContent />
-      </Suspense>
-    </RequireAuth>
-  );
+export default async function PortfolioAliasPage({
+  params,
+}: PortfolioAliasPageProps) {
+  const { id } = await params;
+  redirect(investPortfolioPath(id));
 }

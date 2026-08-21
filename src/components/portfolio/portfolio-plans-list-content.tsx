@@ -18,7 +18,9 @@ import {
   BudgetPanel,
 } from "@/components/budget/budget-ui";
 import { Button } from "@/components/ui/button";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
+import { INVEST_PATH, investPortfolioPath } from "@/lib/chrome/nav";
 import { cn } from "@/lib/utils";
 import type { UserPortfolio } from "@/types/portfolio";
 
@@ -56,7 +58,7 @@ export function PortfolioPlansListContent() {
       const portfolio = await createPortfolio(name);
       setCreateOpen(false);
       setActivePortfolioId(portfolio.id);
-      router.push(`/portfolio/${portfolio.id}`);
+      router.push(investPortfolioPath(portfolio.id));
     } finally {
       setIsCreating(false);
     }
@@ -68,7 +70,7 @@ export function PortfolioPlansListContent() {
 
   function openPortfolio(portfolio: UserPortfolio) {
     setActivePortfolioId(portfolio.id);
-    router.push(`/portfolio/${portfolio.id}`);
+    router.push(investPortfolioPath(portfolio.id));
   }
 
   if (!isLoaded) {
@@ -82,6 +84,7 @@ export function PortfolioPlansListContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
+      <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
       <BudgetPageHeader
         title="Portfolios"
         description="Each book is a plan. Primary is the checkup default on Invest. Open a book to manage holdings, mix, and leverage."
