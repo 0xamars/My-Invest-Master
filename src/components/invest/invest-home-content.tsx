@@ -21,6 +21,11 @@ import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useInvestSummary } from "@/hooks/use-invest-summary";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
+import {
+  INVEST_OPTIONS_PATH,
+  INVEST_WATCHLIST_PATH,
+  investPortfolioPath,
+} from "@/lib/chrome/nav";
 import { leftoverFromBudgetPlans, pickOpenablePlan } from "@/lib/invest/leftover";
 import { LeftoverAction } from "@/components/invest/leftover-action";
 import { RefreshRetireAction } from "@/components/invest/refresh-retire-action";
@@ -71,7 +76,7 @@ export function InvestHomeContent() {
 
   const { enrichedHoldings, totals, portfolioId, portfolioName, isViewingPrimary } =
     portfolio;
-  const bookHref = portfolioId ? `/portfolio/${portfolioId}` : "/portfolio";
+  const bookHref = portfolioId ? investPortfolioPath(portfolioId) : investPortfolioPath();
   const retirePlan = pickOpenablePlan(retirement.plans);
   const budgetLeftover = useMemo(
     () => leftoverFromBudgetPlans(budget.plans),
@@ -178,8 +183,8 @@ export function InvestHomeContent() {
       {!hasBook ? (
         <div className="grid gap-3 sm:grid-cols-3">
           <ChildCard href={bookHref} label="Portfolio" hint="The book" icon={<PieChart className="size-4" />} />
-          <ChildCard href="/options" label="Options" hint="DTE and premium vs book" icon={<Layers className="size-4" />} />
-          <ChildCard href="/watchlist" label="Watchlist" hint="Queue only" icon={<Eye className="size-4" />} />
+          <ChildCard href={INVEST_OPTIONS_PATH} label="Options" hint="DTE and premium vs book" icon={<Layers className="size-4" />} />
+          <ChildCard href={INVEST_WATCHLIST_PATH} label="Watchlist" hint="Queue only" icon={<Eye className="size-4" />} />
         </div>
       ) : (
         <>
@@ -257,8 +262,8 @@ export function InvestHomeContent() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             <ChildCard href={bookHref} label="Portfolio" hint="The book" icon={<PieChart className="size-4" />} />
-            <ChildCard href="/options" label="Options" hint="DTE and premium vs book" icon={<Layers className="size-4" />} />
-            <ChildCard href="/watchlist" label="Watchlist" hint="Queue only" icon={<Eye className="size-4" />} />
+            <ChildCard href={INVEST_OPTIONS_PATH} label="Options" hint="DTE and premium vs book" icon={<Layers className="size-4" />} />
+            <ChildCard href={INVEST_WATCHLIST_PATH} label="Watchlist" hint="Queue only" icon={<Eye className="size-4" />} />
           </div>
         </>
       )}
@@ -550,7 +555,7 @@ function OptionsStrip({
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-xs"
-          render={<Link href="/options" />}
+          render={<Link href={INVEST_OPTIONS_PATH} />}
         >
           Open options
           <ArrowRight className="size-3.5" />

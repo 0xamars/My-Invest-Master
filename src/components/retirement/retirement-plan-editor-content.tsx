@@ -209,8 +209,8 @@ export function RetirementPlanEditorContent({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" render={<Link href="/retire/plans" />}>
-            Back to plans
+          <Button variant="outline" render={<Link href="/retire" />}>
+            Back to Retire
           </Button>
         </CardContent>
       </Card>
@@ -222,8 +222,8 @@ export function RetirementPlanEditorContent({
       resource="retirement"
       isResourceLoaded={isLoaded && isPlanLoaded}
       canOpen={canOpen}
-      listHref="/retire/plans"
-      listLabel="Back to Retirement Plans"
+      listHref="/retire"
+      listLabel="Back to Retire"
     >
       <div className="flex flex-1 flex-col gap-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -232,10 +232,10 @@ export function RetirementPlanEditorContent({
               variant="ghost"
               size="sm"
               className="-ml-2 gap-1.5 text-muted-foreground"
-              render={<Link href="/retire/plans" />}
+              render={<Link href="/retire" />}
             >
               <ArrowLeft className="size-4" />
-              All plans
+              Back to Retire
             </Button>
             <Input
               value={workingPlan.name}

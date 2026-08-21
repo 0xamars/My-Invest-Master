@@ -238,7 +238,7 @@ export function buildInvestmentCheckup(
           percent: topSleeve.percent,
         }
       : null;
-  const portfolioHref = options?.portfolioHref ?? "/portfolio";
+  const portfolioHref = options?.portfolioHref ?? "/invest/portfolio";
   const hasOptions = Boolean(options?.hasOptions);
   const netPremium = options?.netPremium ?? null;
   const optionsOverlay =

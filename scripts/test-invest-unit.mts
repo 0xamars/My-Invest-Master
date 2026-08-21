@@ -13,8 +13,17 @@ import {
   PRIMARY_NAV_TITLES,
   SIGNED_IN_FOOTER_NAV,
   SIGNED_IN_PRIMARY_NAV,
+  investPortfolioPath,
+  isInvestPath,
+  pillarForPath,
+  pillarHomePath,
+  resolvePageTitle,
 } from "../src/lib/chrome/nav.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
+import {
+  isPortfolioDetailPath,
+  resolvePortfolioViewScope,
+} from "../src/lib/portfolio/view-scope.ts";
 import { ownedNameMovers } from "../src/lib/portfolio/book-movers.ts";
 import {
   buildHoldingExpandFacts,
@@ -193,7 +202,7 @@ assert(
   "concentrated stock stays on the book",
 );
 assert(
-  concentratedCheckup.nextAction.href === "/portfolio",
+  concentratedCheckup.nextAction.href === "/invest/portfolio",
   "concentrated next action opens the book",
 );
 assert(
@@ -550,6 +559,8 @@ const mustProtect = [
   "/retire/plans/abc",
   "/watchlist",
   "/watchlist/abc",
+  "/invest/watchlist",
+  "/invest/watchlist/abc",
   "/analysis",
   "/analysis/AAPL",
   "/settings",
@@ -558,7 +569,10 @@ const mustProtect = [
   "/markets",
   "/portfolio",
   "/portfolio/abc",
+  "/invest/portfolio",
+  "/invest/portfolio/abc",
   "/options",
+  "/invest/options",
   "/holdings",
   "/budget",
   "/budget/plans/abc",
@@ -571,7 +585,7 @@ assert(isProtectedRoute("/markets"), "/markets is gated separately from /market"
 assert(isProtectedRoute("/market"), "/market is gated");
 assert(destinationForLegacyInvestPath("/analytics") === "/invest", "/analytics folds into checkup");
 assert(destinationForLegacyInvestPath("/performance") === "/invest", "/performance folds into checkup");
-assert(destinationForLegacyInvestPath("/holdings") === "/portfolio", "/holdings is leftover of the book");
+assert(destinationForLegacyInvestPath("/holdings") === "/invest/portfolio", "/holdings is leftover of the book");
 assert(destinationForLegacyInvestPath("/markets") === "/invest", "/markets leftover goes to Invest");
 assert(destinationForLegacyInvestPath("/market") === "/invest", "/market leftover goes to Invest");
 assert(destinationForLegacyInvestPath("/analysis") === "/invest", "/analysis hub folds into Invest");
@@ -604,9 +618,17 @@ assert(
   "any budget plan is openable",
 );
 assert(destinationForLegacyInvestPath("/invest") === null, "/invest itself is not redirected");
-assert(destinationForLegacyInvestPath("/portfolio") === null, "the book stays");
-assert(destinationForLegacyInvestPath("/watchlist") === null, "watchlist queue stays");
-assert(destinationForLegacyInvestPath("/options") === null, "options stays");
+assert(destinationForLegacyInvestPath("/portfolio") === "/invest/portfolio", "the book folds under Invest");
+assert(
+  destinationForLegacyInvestPath("/portfolio/abc") === "/invest/portfolio/abc",
+  "a book id folds under Invest",
+);
+assert(destinationForLegacyInvestPath("/watchlist") === "/invest/watchlist", "watchlist folds under Invest");
+assert(
+  destinationForLegacyInvestPath("/watchlist/abc") === "/invest/watchlist/abc",
+  "a watchlist id folds under Invest",
+);
+assert(destinationForLegacyInvestPath("/options") === "/invest/options", "options folds under Invest");
 
 assert(
   PRIMARY_NAV_TITLES.join(",") === "Home,Budget,Invest,Retire",
@@ -618,17 +640,33 @@ assert(
 );
 assert(
   SIGNED_IN_FOOTER_NAV.some((item) => item.href === "/settings"),
-  "Settings stays in the footer",
+  "Settings stays in the account menu, not as a product tab",
 );
 assert(
   INVEST_CHILD_NAV.map((item) => item.href).join(",") ===
-    "/portfolio,/watchlist,/options",
-  "Invest children are book, queue, and options",
+    "/invest/portfolio,/invest/watchlist,/invest/options",
+  "Invest children are book, queue, and options under /invest",
 );
 assert(
   !INVEST_CHILD_NAV.some((item) => item.href === "/market" || item.href === "/analysis"),
   "Market and Analysis are not Invest children",
 );
+assert(pillarForPath("/home") === "home", "home pillar");
+assert(pillarForPath("/budget/plans/abc") === "budget", "budget plan is Budget");
+assert(pillarForPath("/invest/portfolio/abc") === "invest", "nested book is Invest");
+assert(pillarForPath("/options") === "invest", "legacy options is still Invest");
+assert(pillarForPath("/retire/plans/abc") === "retire", "plan editor is Retire");
+assert(pillarHomePath("/invest/watchlist/abc") === "/invest", "up from watchlist is Invest");
+assert(pillarHomePath("/budget/plans/abc/transactions") === "/budget", "up from register is Budget");
+assert(pillarHomePath("/retire/plans/abc") === "/retire", "up from a plan is Retire");
+assert(isInvestPath("/invest/options") === true, "options under Invest is Invest");
+assert(investPortfolioPath("abc") === "/invest/portfolio/abc", "book path is nested");
+assert(resolvePageTitle("/invest/options") === "Options", "options title");
+assert(resolvePageTitle("/") === "Home", "marketing title");
+assert(isPortfolioDetailPath("/invest/portfolio/abc") === true, "nested book is a detail path");
+assert(isPortfolioDetailPath("/invest/portfolio") === false, "book list is not a detail path");
+assert(resolvePortfolioViewScope("/invest") === "primary", "checkup uses primary book");
+assert(resolvePortfolioViewScope("/invest/portfolio/abc") === "active", "open book uses active");
 
 assert(holdingExpandShowsScreens("stock") === true, "stock expand shows screens");
 assert(holdingExpandShowsScreens("crypto") === false, "crypto expand skips screens");

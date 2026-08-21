@@ -12,6 +12,7 @@ import {
   Trash2,
   TrendingUp,
 } from "lucide-react";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
 import { DeleteRetirementPlanDialog } from "@/components/retirement/delete-retirement-plan-dialog";
 import { RetirePageHeader, RetireVerdictChip } from "@/components/retirement/retire-ui";
@@ -104,6 +105,7 @@ export function RetirementPlansListContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-5">
+      <PillarBackLink href="/retire" label="Back to Retire" />
       <RetirePageHeader
         title="Retirement plans"
         description="Create from a blank model, or import holdings from Invest. Create as many plans as you need."

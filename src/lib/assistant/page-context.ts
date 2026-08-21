@@ -48,7 +48,12 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
         "Invest checkup: concentration, mix, allocation drift, and performance for the Primary book.",
     };
   }
-  if (pathname === "/portfolio" || pathname.startsWith("/portfolio/")) {
+  if (
+    pathname === "/invest/portfolio" ||
+    pathname.startsWith("/invest/portfolio/") ||
+    pathname === "/portfolio" ||
+    pathname.startsWith("/portfolio/")
+  ) {
     return {
       id: "portfolio",
       path: pathname,
@@ -56,7 +61,22 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       description: "Track holdings, cost basis, and live portfolio value.",
     };
   }
-  if (pathname === "/options" || pathname.startsWith("/options/")) {
+  if (
+    pathname === "/invest/watchlist" ||
+    pathname.startsWith("/invest/watchlist/")
+  ) {
+    return {
+      id: "invest",
+      path: pathname,
+      title: "Watchlist",
+      description: "Queue of names you are watching — not a second book.",
+    };
+  }
+  if (
+    pathname === "/invest/options" ||
+    pathname === "/options" ||
+    pathname.startsWith("/options/")
+  ) {
     return {
       id: "options",
       path: pathname,

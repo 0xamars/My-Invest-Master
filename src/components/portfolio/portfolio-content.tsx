@@ -41,6 +41,10 @@ import {
 import { canOpenPortfolioOnPlan } from "@/lib/plans/free-access";
 import { isArchivedHolding, isHoldingVisible } from "@/lib/portfolio/transactions";
 import { formatDisplayMoney, formatPercent } from "@/lib/portfolio/format";
+import {
+  INVEST_PATH,
+  INVEST_PORTFOLIO_PATH,
+} from "@/lib/chrome/nav";
 import { cn } from "@/lib/utils";
 import type { PortfolioHolding } from "@/types/portfolio";
 
@@ -102,7 +106,7 @@ export function PortfolioContent() {
 
     const portfolio = portfolios.find((item) => item.id === portfolioId);
     if (!portfolio) {
-      router.replace("/portfolio");
+      router.replace(INVEST_PORTFOLIO_PATH);
       return;
     }
 
@@ -149,7 +153,7 @@ export function PortfolioContent() {
     () =>
       buildInvestmentCheckup(enrichedHoldings, totals, {
         storedTargets: activePortfolio?.targetAllocation,
-        portfolioHref: `/portfolio/${portfolioId}`,
+        portfolioHref: `${INVEST_PORTFOLIO_PATH}/${portfolioId}`,
       }),
     [enrichedHoldings, totals, activePortfolio?.targetAllocation, portfolioId],
   );
@@ -193,8 +197,8 @@ export function PortfolioContent() {
       resource="portfolio"
       isResourceLoaded={isLoaded && isPlanLoaded}
       canOpen={canOpen}
-      listHref="/portfolio"
-      listLabel="Back to Portfolios"
+      listHref={INVEST_PORTFOLIO_PATH}
+      listLabel="Back to Invest"
     >
       {!isCurrencyLoaded || !isActiveReady || !activePortfolio ? (
         <div className="flex flex-1 items-center justify-center py-24">
@@ -217,10 +221,10 @@ export function PortfolioContent() {
                   variant="ghost"
                   size="sm"
                   className="text-muted-foreground"
-                  render={<Link href="/portfolio" />}
+                  render={<Link href={INVEST_PATH} />}
                 >
                   <ArrowLeft className="size-4" />
-                  All books
+                  Back to Invest
                 </Button>
                 <CurrencyToggle
                   currency={currency}

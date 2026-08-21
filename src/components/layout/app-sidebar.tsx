@@ -3,21 +3,26 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Eye, Layers, Lock, PieChart, Settings, Target } from "lucide-react";
+import { ChevronDown, Eye, Layers, Lock, PieChart, Target } from "lucide-react";
+import { BrandHomeLink } from "@/components/layout/brand-home-link";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { BudgetSidebarNav } from "@/components/layout/budget-sidebar-nav";
-import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { NavCategoryIcon } from "@/components/layout/nav-category-icon";
 import {
   INVEST_CHILD_NAV,
+  INVEST_OPTIONS_PATH,
+  INVEST_PATH,
+  INVEST_PORTFOLIO_PATH,
+  INVEST_WATCHLIST_PATH,
   SIGNED_IN_PRIMARY_NAV,
+  isHomePath,
   isInvestPath,
+  isNavItemActive,
   isRetirePath,
 } from "@/lib/chrome/nav";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -29,16 +34,15 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
-import { APP_HOME_PATH, LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
+import { LOGIN_PATH } from "@/lib/routes";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
 const investChildIcons = {
-  "/portfolio": PieChart,
-  "/watchlist": Eye,
-  "/options": Layers,
+  [INVEST_PORTFOLIO_PATH]: PieChart,
+  [INVEST_WATCHLIST_PATH]: Eye,
+  [INVEST_OPTIONS_PATH]: Layers,
 } as const;
 
 const retireSubItems = [
@@ -76,9 +80,9 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="portal-sidebar">
       <SidebarHeader className="brand-sidebar-header">
-        <MarketingHomeLink className="brand-sidebar-mark">
+        <BrandHomeLink className="brand-sidebar-mark">
           <BrandLogo variant="sidebar" priority />
-        </MarketingHomeLink>
+        </BrandHomeLink>
       </SidebarHeader>
 
       <SidebarContent className="px-2">
@@ -106,7 +110,7 @@ export function AppSidebar() {
                           isActive={investActive}
                           tooltip={item.title}
                           className={cn(navClass(investActive), "min-w-0 flex-1")}
-                          render={<Link href={item.href} />}
+                          render={<Link href={INVEST_PATH} />}
                         >
                           <NavCategoryIcon category="invest" />
                           <span>{item.title}</span>
@@ -133,18 +137,13 @@ export function AppSidebar() {
                             const Icon = investChildIcons[subItem.href];
                             const isLocked = !isLoading && !canAccessProtected;
                             const href = isLocked ? LOGIN_PATH : subItem.href;
+                            const isSubActive = isNavItemActive(pathname, subItem.href);
 
                             return (
                               <SidebarMenuSubItem key={subItem.href}>
                                 <SidebarMenuSubButton
-                                  isActive={
-                                    pathname === subItem.href ||
-                                    pathname.startsWith(`${subItem.href}/`)
-                                  }
-                                  className={navClass(
-                                    pathname === subItem.href ||
-                                      pathname.startsWith(`${subItem.href}/`),
-                                  )}
+                                  isActive={isSubActive}
+                                  className={navClass(isSubActive)}
                                   render={<Link href={href} />}
                                 >
                                   <Icon className="size-4 opacity-80" />
@@ -200,9 +199,7 @@ export function AppSidebar() {
                           {retireSubItems.map((subItem) => {
                             const isLocked = !isLoading && !canAccessProtected;
                             const href = isLocked ? LOGIN_PATH : subItem.href;
-                            const isSubActive =
-                              pathname === subItem.href ||
-                              pathname.startsWith(`${subItem.href}/`);
+                            const isSubActive = isNavItemActive(pathname, subItem.href);
 
                             return (
                               <SidebarMenuSubItem key={subItem.href}>
@@ -229,9 +226,9 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname === APP_HOME_PATH}
+                      isActive={isHomePath(pathname)}
                       tooltip={item.title}
-                      className={navClass(pathname === APP_HOME_PATH)}
+                      className={navClass(isHomePath(pathname))}
                       render={<Link href={item.href} />}
                     >
                       <NavCategoryIcon category={item.category} />
@@ -244,52 +241,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="gap-2 px-2 pb-4">
-        <SidebarMenu className="gap-1">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Settings"
-              isActive={pathname === "/settings" || pathname.startsWith("/settings/")}
-              className={navClass(
-                pathname === "/settings" || pathname.startsWith("/settings/"),
-              )}
-              render={<Link href="/settings" />}
-            >
-              <Settings className="size-[1.125rem] opacity-80" />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Terms"
-              isActive={pathname === TERMS_PATH}
-              className={navClass(pathname === TERMS_PATH)}
-              render={<Link href={TERMS_PATH} />}
-            >
-              <span>Terms</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Privacy"
-              isActive={pathname === PRIVACY_PATH}
-              className={navClass(pathname === PRIVACY_PATH)}
-              render={<Link href={PRIVACY_PATH} />}
-            >
-              <span>Privacy</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <div className="flex items-center justify-between rounded-xl px-2 py-1.5">
-              <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                Appearance
-              </span>
-              <ThemeToggle />
-            </div>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>

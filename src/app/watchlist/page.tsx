@@ -1,10 +1,6 @@
-import { RequireAuth } from "@/components/auth/require-auth";
-import { WatchlistPlansListContent } from "@/components/watchlist/watchlist-plans-list-content";
+import { redirect } from "next/navigation";
+import { INVEST_WATCHLIST_PATH } from "@/lib/chrome/nav";
 
 export default function WatchlistPage() {
-  return (
-    <RequireAuth>
-      <WatchlistPlansListContent />
-    </RequireAuth>
-  );
+  redirect(INVEST_WATCHLIST_PATH);
 }

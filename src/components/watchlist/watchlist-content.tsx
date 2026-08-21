@@ -31,6 +31,7 @@ import {
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { useUserPlan } from "@/hooks/use-user-preferences";
 import { useWatchlistPrices } from "@/hooks/use-watchlist-prices";
+import { INVEST_PATH, INVEST_WATCHLIST_PATH, investWatchlistPath } from "@/lib/chrome/nav";
 import { canOpenWatchlistOnPlan } from "@/lib/plans/free-access";
 import type { WatchlistItemWithPrices } from "@/types/watchlist";
 
@@ -108,9 +109,9 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
         <p className="text-sm text-muted-foreground">
           This watchlist could not be found.
         </p>
-        <Button variant="outline" render={<Link href="/watchlist" />}>
+        <Button variant="outline" render={<Link href={INVEST_PATH} />}>
           <ArrowLeft className="size-4" />
-          Back to watchlists
+          Back to Invest
         </Button>
       </div>
     );
@@ -121,8 +122,8 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
       resource="watchlist"
       isResourceLoaded={isLoaded}
       canOpen={canOpen}
-      listHref="/watchlist"
-      listLabel="Back to watchlists"
+      listHref={INVEST_PATH}
+      listLabel="Back to Invest"
     >
       <div className="flex flex-1 flex-col gap-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -131,10 +132,10 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
               variant="ghost"
               size="sm"
               className="-ml-2 w-fit gap-1.5 text-muted-foreground"
-              render={<Link href="/watchlist" />}
+              render={<Link href={INVEST_PATH} />}
             >
               <ArrowLeft className="size-3.5" />
-              All watchlists
+              Back to Invest
             </Button>
             <RetirePageHeader
               title={watchlist?.name ?? "Watchlist"}
@@ -148,7 +149,7 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
                 value={listId}
                 onValueChange={(value) => {
                   if (value && value !== listId) {
-                    router.push(`/watchlist/${value}`);
+                    router.push(investWatchlistPath(value));
                   }
                 }}
               >

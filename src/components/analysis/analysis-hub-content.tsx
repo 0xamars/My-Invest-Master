@@ -144,19 +144,19 @@ export function AnalysisHubContent() {
           {
             title: "From Market",
             body: "Spot themes and ideas, then open Analysis for due diligence.",
-            href: "/market",
-            label: "Browse Market",
+            href: "/invest",
+            label: "Open Invest",
           },
           {
             title: "From Watchlist",
             body: "Click a ticker on any watchlist to research it here.",
-            href: "/watchlist",
+            href: "/invest/watchlist",
             label: "Open Watchlist",
           },
           {
             title: "From Portfolio",
             body: "Open a holding’s insight panel and choose View analysis.",
-            href: "/portfolio",
+            href: "/invest/portfolio",
             label: "Open Portfolio",
           },
         ].map((item) => (

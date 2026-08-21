@@ -1,10 +1,6 @@
-import { PortfolioPlansListContent } from "@/components/portfolio/portfolio-plans-list-content";
-import { RequireAuth } from "@/components/auth/require-auth";
+import { redirect } from "next/navigation";
+import { INVEST_PORTFOLIO_PATH } from "@/lib/chrome/nav";
 
 export default function PortfolioPage() {
-  return (
-    <RequireAuth>
-      <PortfolioPlansListContent />
-    </RequireAuth>
-  );
+  redirect(INVEST_PORTFOLIO_PATH);
 }
