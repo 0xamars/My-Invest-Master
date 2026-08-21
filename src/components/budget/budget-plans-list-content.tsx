@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-dialog";
-import { BudgetEmptyState, BudgetPageHeader, BudgetPanel } from "@/components/budget/budget-ui";
+import { LaunchStillFrame } from "@/components/brand/launch-still";
+import { BudgetEmptyState, BudgetPageHeader } from "@/components/budget/budget-ui";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { formatBudgetMoney } from "@/lib/budget/format";
@@ -95,7 +96,7 @@ export function BudgetPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <BudgetPanel>
+        <LaunchStillFrame still="budget" scrim="center">
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
             title="Start a budget."
@@ -107,7 +108,7 @@ export function BudgetPlansListContent() {
               </Button>
             }
           />
-        </BudgetPanel>
+        </LaunchStillFrame>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {

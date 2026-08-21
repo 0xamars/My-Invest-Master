@@ -2,18 +2,18 @@ import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
-  variant?: "icon" | "sidebar" | "hero";
+  variant?: "icon" | "sidebar" | "hero" | "lockup";
   className?: string;
   asLink?: boolean;
   priority?: boolean;
 }
 
-/** Compact letters for tight chrome only — not a product mark. */
+/** Compact letters for tight chrome only — not a product mark. Chili is not the mark. */
 function BrandInitials({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#16181D] text-[0.7rem] font-semibold tracking-tight text-[#A3E635] ring-1 ring-white/10",
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[linear-gradient(160deg,#E59570,#BD7A64)] text-[0.7rem] font-semibold tracking-tight text-white shadow-[0_0_18px_color-mix(in_srgb,#E59570_35%,transparent)]",
         className,
       )}
       aria-hidden
@@ -49,9 +49,21 @@ export function BrandLogo({
       content = <BrandInitials className={className} />;
       break;
 
+    case "lockup":
+      content = (
+        <div className={cn("flex min-w-0 items-center gap-3", className)}>
+          <BrandInitials />
+          <BrandWordmark className="text-lg leading-none" />
+        </div>
+      );
+      break;
+
     case "hero":
       content = (
-        <BrandWordmark className={cn("text-3xl leading-none", className)} />
+        <div className={cn("flex items-center gap-3", className)}>
+          <BrandInitials className="size-12 rounded-2xl text-base" />
+          <BrandWordmark className="text-3xl leading-none" />
+        </div>
       );
       break;
 

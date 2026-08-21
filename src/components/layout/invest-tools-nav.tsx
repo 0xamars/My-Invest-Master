@@ -17,7 +17,7 @@ export function InvestToolsNav() {
         href={INVEST_PATH}
         className={cn(
           "rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground",
-          pathname === INVEST_PATH && "bg-background text-foreground shadow-sm",
+          pathname === INVEST_PATH && "bg-background text-primary shadow-sm",
         )}
       >
         Checkup
@@ -30,7 +30,7 @@ export function InvestToolsNav() {
             href={item.href}
             className={cn(
               "rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground",
-              active && "bg-background text-foreground shadow-sm",
+              active && "bg-background text-primary shadow-sm",
             )}
           >
             {item.title}

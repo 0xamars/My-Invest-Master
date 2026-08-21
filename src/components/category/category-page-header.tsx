@@ -45,8 +45,8 @@ export function ComingSoonPanel({
         <svg viewBox="0 0 320 120" className="h-full w-full">
           <defs>
             <linearGradient id="soon-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="oklch(0.67 0.19 152 / 18%)" />
-              <stop offset="100%" stopColor="oklch(0.67 0.19 152 / 2%)" />
+              <stop offset="0%" stopColor="color-mix(in srgb, var(--brand-exhaust) 22%, transparent)" />
+              <stop offset="100%" stopColor="color-mix(in srgb, var(--brand-exhaust) 2%, transparent)" />
             </linearGradient>
           </defs>
           <path
@@ -56,7 +56,7 @@ export function ComingSoonPanel({
           <path
             d="M0 92 C40 88, 60 72, 90 76 S150 48, 190 58 S260 28, 320 34"
             fill="none"
-            stroke="oklch(0.67 0.19 152 / 45%)"
+            stroke="color-mix(in srgb, var(--brand-exhaust) 55%, transparent)"
             strokeWidth="2"
             strokeLinecap="round"
           />

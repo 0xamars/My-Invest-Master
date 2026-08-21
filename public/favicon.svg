@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#16181D"/>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E59570"/>
+      <stop offset="100%" stop-color="#BD7A64"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" fill="#07090C"/>
+  <rect x="0" y="0" width="32" height="32" rx="7" fill="url(#tile)"/>
   <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle"
     font-family="Inter, ui-sans-serif, system-ui, sans-serif"
-    font-size="12" font-weight="700" fill="#A3E635">IS</text>
+    font-size="12" font-weight="700" fill="#FFFFFF">IS</text>
 </svg>

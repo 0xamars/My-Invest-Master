@@ -49,130 +49,137 @@
 }
 
 :root {
-  --brand-lime: #a3e635;
-  --brand-charcoal: #16181d;
-  --brand-green: #a3e635;
-  --brand-green-deep: #84cc16;
-  --brand-orange: oklch(0.72 0.18 55);
+  /* Launch palette — sampled from launch-source.jpeg only. No lime. */
+  --brand-space: #07090c;
+  --brand-surface: #171d25;
+  --brand-smoke: #6b7684;
+  --brand-exhaust: #e59570;
+  --brand-ember: #bd7a64;
+  --brand-core: #f0b294;
+  --brand-lime: var(--brand-exhaust);
+  --brand-charcoal: var(--brand-space);
+  --brand-green: var(--brand-exhaust);
+  --brand-green-deep: var(--brand-core);
+  --brand-orange: var(--brand-ember);
   --brand-red: oklch(0.58 0.22 27);
   --background: #f4f4f5;
-  --foreground: #16181d;
+  --foreground: #07090c;
   --card: #ffffff;
-  --card-foreground: #16181d;
+  --card-foreground: #07090c;
   --popover: #ffffff;
-  --popover-foreground: #16181d;
-  --primary: #a3e635;
-  --primary-foreground: #16181d;
+  --popover-foreground: #07090c;
+  --primary: #e59570;
+  --primary-foreground: #07090c;
   --secondary: #ececee;
-  --secondary-foreground: #16181d;
+  --secondary-foreground: #07090c;
   --muted: #ececee;
-  --muted-foreground: #71717a;
-  --accent: color-mix(in srgb, #a3e635 16%, #ffffff);
-  --accent-foreground: #16181d;
+  --muted-foreground: #6b7684;
+  --accent: color-mix(in srgb, #e59570 16%, #ffffff);
+  --accent-foreground: #07090c;
   --destructive: oklch(0.55 0.2 25);
   --border: #e4e4e7;
   --input: #e4e4e7;
-  --ring: color-mix(in srgb, #a3e635 55%, transparent);
-  --chart-1: #84cc16;
-  --chart-2: #a3e635;
-  --chart-3: #65a30d;
-  --chart-4: #4d7c0f;
-  --chart-5: #3f6212;
+  --ring: color-mix(in srgb, #e59570 55%, transparent);
+  --chart-1: #e59570;
+  --chart-2: #bd7a64;
+  --chart-3: #f0b294;
+  --chart-4: #6b7684;
+  --chart-5: #9a7a72;
   --radius: 0.875rem;
   --sidebar: #f4f4f5;
-  --sidebar-foreground: #3f3f46;
-  --sidebar-primary: #a3e635;
-  --sidebar-primary-foreground: #16181d;
-  --sidebar-accent: color-mix(in srgb, #a3e635 12%, #f4f4f5);
-  --sidebar-accent-foreground: #16181d;
+  --sidebar-foreground: #6b7684;
+  --sidebar-primary: #e59570;
+  --sidebar-primary-foreground: #07090c;
+  --sidebar-accent: color-mix(in srgb, #e59570 12%, #f4f4f5);
+  --sidebar-accent-foreground: #07090c;
   --sidebar-border: #e4e4e7;
-  --sidebar-ring: color-mix(in srgb, #a3e635 55%, transparent);
-  --chart-label: #16181d;
-  --chart-label-muted: #71717a;
-  --chart-label-line: color-mix(in srgb, #71717a 65%, transparent);
-  --chart-axis: #71717a;
-  --chart-grid: color-mix(in srgb, #16181d 8%, transparent);
+  --sidebar-ring: color-mix(in srgb, #e59570 55%, transparent);
+  --chart-label: #07090c;
+  --chart-label-muted: #6b7684;
+  --chart-label-line: color-mix(in srgb, #6b7684 65%, transparent);
+  --chart-axis: #6b7684;
+  --chart-grid: color-mix(in srgb, #07090c 8%, transparent);
   --chart-slice-stroke: #ffffff;
-  --chart-positive: #65a30d;
+  --chart-positive: #e59570;
   --chart-negative: oklch(0.55 0.18 25);
-  --chart-cost: #71717a;
-  --chart-current: #84cc16;
-  --chart-type-stock: #84cc16;
-  --chart-type-crypto: #65a30d;
-  --chart-type-cash: #71717a;
-  --chart-type-custom: #4d7c0f;
-  --chart-series-1: #a3e635;
+  --chart-cost: #6b7684;
+  --chart-current: #e59570;
+  --chart-type-stock: #e59570;
+  --chart-type-crypto: #bd7a64;
+  --chart-type-cash: #6b7684;
+  --chart-type-custom: #f0b294;
+  --chart-series-1: #e59570;
   --chart-series-2: oklch(0.54 0.16 25);
-  --chart-series-3: #84cc16;
-  --chart-series-4: #4d7c0f;
-  --chart-series-5: oklch(0.52 0.13 85);
-  --chart-series-6: #65a30d;
-  --chart-series-7: #3f6212;
-  --chart-series-8: oklch(0.52 0.14 55);
-  --chart-series-9: #a3e635;
-  --chart-series-10: #84cc16;
-  --chart-series-11: #4d7c0f;
-  --chart-series-12: #65a30d;
+  --chart-series-3: #f0b294;
+  --chart-series-4: #6b7684;
+  --chart-series-5: #bd7a64;
+  --chart-series-6: #c8886e;
+  --chart-series-7: #8a6e68;
+  --chart-series-8: #d4a08a;
+  --chart-series-9: #e59570;
+  --chart-series-10: #f0b294;
+  --chart-series-11: #6b7684;
+  --chart-series-12: #bd7a64;
 }
 
 .dark {
-  --background: #16181d;
-  --foreground: #f4f4f5;
-  --card: #1c1e24;
-  --card-foreground: #f4f4f5;
-  --popover: #1c1e24;
-  --popover-foreground: #f4f4f5;
-  --primary: #a3e635;
-  --primary-foreground: #16181d;
-  --secondary: #22242b;
-  --secondary-foreground: #f4f4f5;
-  --muted: #22242b;
-  --muted-foreground: #a1a1aa;
-  --accent: color-mix(in srgb, #a3e635 16%, #16181d);
-  --accent-foreground: #e8f5b8;
+  --background: #07090c;
+  --foreground: #ffffff;
+  --card: #171d25;
+  --card-foreground: #ffffff;
+  --popover: #171d25;
+  --popover-foreground: #ffffff;
+  --primary: #e59570;
+  --primary-foreground: #07090c;
+  --secondary: #1c2430;
+  --secondary-foreground: #ffffff;
+  --muted: #1c2430;
+  --muted-foreground: #6b7684;
+  --accent: color-mix(in srgb, #e59570 16%, #07090c);
+  --accent-foreground: #f0b294;
   --destructive: oklch(0.65 0.18 25);
   --border: oklch(1 0 0 / 7%);
   --input: oklch(1 0 0 / 9%);
-  --ring: color-mix(in srgb, #a3e635 45%, transparent);
-  --chart-1: #a3e635;
-  --chart-2: #84cc16;
-  --chart-3: #bef264;
-  --chart-4: #65a30d;
-  --chart-5: #4d7c0f;
-  --sidebar: #12141a;
-  --sidebar-foreground: #a1a1aa;
-  --sidebar-primary: #a3e635;
-  --sidebar-primary-foreground: #16181d;
-  --sidebar-accent: color-mix(in srgb, #a3e635 12%, #12141a);
-  --sidebar-accent-foreground: #f4f4f5;
+  --ring: color-mix(in srgb, #e59570 45%, transparent);
+  --chart-1: #e59570;
+  --chart-2: #bd7a64;
+  --chart-3: #f0b294;
+  --chart-4: #6b7684;
+  --chart-5: #c8886e;
+  --sidebar: #07090c;
+  --sidebar-foreground: #6b7684;
+  --sidebar-primary: #e59570;
+  --sidebar-primary-foreground: #07090c;
+  --sidebar-accent: color-mix(in srgb, #e59570 12%, #07090c);
+  --sidebar-accent-foreground: #ffffff;
   --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: color-mix(in srgb, #a3e635 45%, transparent);
-  --chart-label: #f4f4f5;
-  --chart-label-muted: #a1a1aa;
-  --chart-label-line: color-mix(in srgb, #a1a1aa 70%, transparent);
-  --chart-axis: #a1a1aa;
+  --sidebar-ring: color-mix(in srgb, #e59570 45%, transparent);
+  --chart-label: #ffffff;
+  --chart-label-muted: #6b7684;
+  --chart-label-line: color-mix(in srgb, #6b7684 70%, transparent);
+  --chart-axis: #6b7684;
   --chart-grid: oklch(1 0 0 / 8%);
-  --chart-slice-stroke: #16181d;
-  --chart-positive: #a3e635;
+  --chart-slice-stroke: #07090c;
+  --chart-positive: #e59570;
   --chart-negative: oklch(0.68 0.16 25);
-  --chart-cost: #a1a1aa;
-  --chart-current: #a3e635;
-  --chart-type-stock: #a3e635;
-  --chart-type-crypto: #84cc16;
-  --chart-type-cash: #a1a1aa;
-  --chart-type-custom: #65a30d;
-  --chart-series-1: #a3e635;
+  --chart-cost: #6b7684;
+  --chart-current: #e59570;
+  --chart-type-stock: #e59570;
+  --chart-type-crypto: #bd7a64;
+  --chart-type-cash: #6b7684;
+  --chart-type-custom: #f0b294;
+  --chart-series-1: #e59570;
   --chart-series-2: oklch(0.68 0.14 25);
-  --chart-series-3: #84cc16;
-  --chart-series-4: #65a30d;
-  --chart-series-5: oklch(0.68 0.11 85);
-  --chart-series-6: #bef264;
-  --chart-series-7: #4d7c0f;
-  --chart-series-8: oklch(0.68 0.12 55);
-  --chart-series-9: #a3e635;
-  --chart-series-10: #84cc16;
-  --chart-series-11: #65a30d;
-  --chart-series-12: #4d7c0f;
+  --chart-series-3: #f0b294;
+  --chart-series-4: #6b7684;
+  --chart-series-5: #bd7a64;
+  --chart-series-6: #c8886e;
+  --chart-series-7: #8a6e68;
+  --chart-series-8: #d4a08a;
+  --chart-series-9: #e59570;
+  --chart-series-10: #f0b294;
+  --chart-series-11: #6b7684;
+  --chart-series-12: #bd7a64;
 }
 
 @layer base {
@@ -239,11 +246,11 @@
   }
 
   .premium-cta {
-    @apply h-10 gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground shadow-[0_1px_2px_oklch(0_0_0/20%),0_6px_20px_-4px_oklch(0.67_0.19_152/45%)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_2px_4px_oklch(0_0_0/20%),0_10px_28px_-4px_oklch(0.67_0.19_152/50%)] active:scale-[0.98];
+    @apply h-10 gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground shadow-[0_1px_2px_oklch(0_0_0/20%),0_6px_20px_-4px_color-mix(in_srgb,#E59570_45%,transparent)] transition-all duration-200 hover:bg-[var(--brand-ember)] hover:shadow-[0_2px_4px_oklch(0_0_0/20%),0_10px_28px_-4px_color-mix(in_srgb,#BD7A64_50%,transparent)] active:scale-[0.98];
   }
 
   .dark .premium-cta {
-    @apply shadow-[0_1px_2px_oklch(0_0_0/30%),0_8px_24px_-6px_oklch(0.67_0.19_152/35%)];
+    @apply shadow-[0_1px_2px_oklch(0_0_0/30%),0_8px_24px_-6px_color-mix(in_srgb,#E59570_35%,transparent)];
   }
 
   .brand-sidebar-header {
@@ -269,32 +276,26 @@
   .brand-hero {
     @apply relative overflow-hidden rounded-3xl border border-border/70 bg-card px-6 py-10 sm:px-10 sm:py-12;
     background-image:
-      radial-gradient(circle at 15% 20%, oklch(0.67 0.19 152 / 12%), transparent 42%),
-      radial-gradient(circle at 85% 10%, oklch(0.72 0.18 55 / 10%), transparent 38%);
+      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand-exhaust) 16%, transparent), transparent 42%),
+      radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-ember) 10%, transparent), transparent 38%);
   }
 
   .dark .brand-hero {
     background-image:
-      radial-gradient(circle at 15% 20%, oklch(0.67 0.19 152 / 16%), transparent 42%),
-      radial-gradient(circle at 85% 10%, oklch(0.58 0.22 27 / 12%), transparent 38%);
+      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand-exhaust) 18%, transparent), transparent 42%),
+      radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-ember) 12%, transparent), transparent 38%);
   }
 
-  .brand-text-invest {
-    color: oklch(0.22 0.014 155);
+  .brand-text-invest,
+  .brand-text-salsa {
+    color: var(--foreground);
   }
 
   .dark .brand-text-invest,
-  .marketing-home .brand-text-invest {
-    color: oklch(0.99 0.002 150);
-  }
-
-  .brand-text-salsa {
-    color: #a3e635;
-  }
-
   .dark .brand-text-salsa,
+  .marketing-home .brand-text-invest,
   .marketing-home .brand-text-salsa {
-    color: #a3e635;
+    color: #ffffff;
   }
 
   .nav-item {
@@ -302,7 +303,8 @@
   }
 
   .nav-item-active {
-    @apply bg-sidebar-accent text-foreground shadow-[0_1px_2px_oklch(0_0_0/6%)] ring-1 ring-primary/35;
+    @apply bg-transparent text-primary shadow-none ring-0;
+    box-shadow: inset 0 -2px 0 var(--brand-exhaust);
   }
 
   .nav-category-header {
@@ -321,8 +323,8 @@
   .nav-category-icon--retire,
   .nav-category-icon--invest,
   .nav-category-icon--home {
-    background: color-mix(in srgb, #a3e635 14%, transparent);
-    color: #65a30d;
+    background: color-mix(in srgb, var(--brand-exhaust) 14%, transparent);
+    color: var(--brand-ember);
   }
 
   .nav-category-icon--page {
@@ -333,8 +335,8 @@
   .dark .nav-category-icon--retire,
   .dark .nav-category-icon--invest,
   .dark .nav-category-icon--home {
-    background: color-mix(in srgb, #a3e635 18%, transparent);
-    color: #a3e635;
+    background: color-mix(in srgb, var(--brand-exhaust) 18%, transparent);
+    color: var(--brand-exhaust);
   }
 
   .nav-invest-toggle {
@@ -458,7 +460,7 @@
   }
 
   .heatmap-industry-label {
-    @apply absolute left-1 top-0.5 z-10 max-w-[calc(100%-0.5rem)] truncate text-[9px] font-medium uppercase tracking-wide text-[#a3e635]/55;
+    @apply absolute left-1 top-0.5 z-10 max-w-[calc(100%-0.5rem)] truncate text-[9px] font-medium uppercase tracking-wide text-[var(--brand-exhaust)]/55;
   }
 
   .heatmap-tile {
@@ -659,19 +661,19 @@
     border-radius: 1.35rem;
     border: 1px solid color-mix(in oklch, var(--brand-green) 22%, var(--border));
     background:
-      radial-gradient(ellipse 80% 90% at 0% 0%, oklch(0.67 0.19 152 / 16%), transparent 55%),
-      radial-gradient(ellipse 50% 70% at 100% 100%, oklch(0.72 0.18 55 / 8%), transparent 50%),
+      radial-gradient(ellipse 80% 90% at 0% 0%, color-mix(in srgb, var(--brand-exhaust) 16%, transparent), transparent 55%),
+      radial-gradient(ellipse 50% 70% at 100% 100%, color-mix(in srgb, var(--brand-ember) 8%, transparent), transparent 50%),
       var(--card);
     box-shadow:
       0 1px 0 oklch(1 0 0 / 55%) inset,
-      0 18px 40px -28px oklch(0.52 0.16 152 / 35%);
+      0 18px 40px -28px color-mix(in srgb, var(--brand-exhaust) 28%, transparent);
   }
 
   .dark .budget-hero {
     border-color: color-mix(in oklch, var(--brand-green) 28%, var(--border));
     background:
-      radial-gradient(ellipse 80% 90% at 0% 0%, oklch(0.67 0.19 152 / 18%), transparent 55%),
-      radial-gradient(ellipse 50% 70% at 100% 100%, oklch(0.72 0.18 55 / 8%), transparent 50%),
+      radial-gradient(ellipse 80% 90% at 0% 0%, color-mix(in srgb, var(--brand-exhaust) 18%, transparent), transparent 55%),
+      radial-gradient(ellipse 50% 70% at 100% 100%, color-mix(in srgb, var(--brand-ember) 8%, transparent), transparent 50%),
       var(--card);
     box-shadow:
       0 1px 0 oklch(1 0 0 / 5%) inset,
@@ -1012,6 +1014,79 @@
   .budget-register-row:hover .budget-row-actions,
   .budget-register-row:focus-within .budget-row-actions {
     opacity: 1;
+  }
+
+  .launch-still-frame {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.15rem;
+    border: 1px solid color-mix(in srgb, var(--brand-exhaust) 16%, var(--border));
+    background: var(--brand-space);
+  }
+
+  .launch-still-media {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+
+  .launch-still-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--brand-space) 18%, transparent) 0%,
+        color-mix(in srgb, var(--brand-space) 72%, transparent) 46%,
+        var(--brand-space) 100%
+      );
+  }
+
+  .launch-still-scrim--center {
+    background:
+      radial-gradient(
+        ellipse 70% 80% at 50% 45%,
+        color-mix(in srgb, var(--brand-space) 28%, transparent) 0%,
+        var(--brand-space) 78%
+      );
+  }
+
+  .launch-still-scrim--left {
+    background:
+      linear-gradient(
+        90deg,
+        var(--brand-space) 0%,
+        color-mix(in srgb, var(--brand-space) 70%, transparent) 42%,
+        color-mix(in srgb, var(--brand-space) 22%, transparent) 100%
+      );
+  }
+
+  .launch-atmosphere {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0.14;
+  }
+
+  .launch-atmosphere img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+
+  .launch-atmosphere::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand-space) 35%, transparent) 0%,
+      var(--background) 72%
+    );
   }
 
   @media (hover: none) {

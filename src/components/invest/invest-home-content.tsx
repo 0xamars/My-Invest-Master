@@ -9,6 +9,7 @@ import { HoldingExpandPanel } from "@/components/portfolio/holding-expand-panel"
 import { PortfolioAllocationChart } from "@/components/analytics/portfolio-allocation-chart";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
 import { TargetMixPanel } from "@/components/invest/target-mix-panel";
+import { LaunchStillFrame } from "@/components/brand/launch-still";
 import {
   RetireEmptyState,
   RetireMoney,
@@ -162,7 +163,7 @@ export function InvestHomeContent() {
       <RefreshRetireAction />
 
       {!hasBook ? (
-        <RetirePanel>
+        <LaunchStillFrame still="invest" scrim="right">
           <RetireEmptyState
             icon={<TrendingUp className="size-5" />}
             title="Add the first name."
@@ -177,7 +178,7 @@ export function InvestHomeContent() {
               </Button>
             }
           />
-        </RetirePanel>
+        </LaunchStillFrame>
       ) : null}
 
       {!hasBook ? (

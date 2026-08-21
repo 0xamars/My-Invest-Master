@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { LAUNCH_STILLS } from "@/lib/brand/stills";
 import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 
 export function AuthPageShell({
@@ -10,15 +12,22 @@ export function AuthPageShell({
   eyebrow?: string;
 }) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#16181D] text-white">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,#A3E635_18%,transparent),transparent_55%)]"
-      />
+    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#07090C] text-white">
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <Image
+          src={LAUNCH_STILLS.hero}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-left"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#07090C]/25 via-[#07090C]/70 to-[#07090C]" />
+      </div>
       <header className="relative z-20 border-b border-white/8">
         <div className="mx-auto flex h-16 max-w-lg items-center justify-between px-5">
-          <BrandLogo variant="sidebar" asLink priority className="!gap-2.5" />
-          <Link href={LOGIN_PATH} className="text-sm text-white/60 hover:text-white">
+          <BrandLogo variant="lockup" asLink priority className="!gap-2.5" />
+          <Link href={LOGIN_PATH} className="text-sm text-[#6B7684] hover:text-white">
             Sign in
           </Link>
         </div>
@@ -32,7 +41,7 @@ export function AuthPageShell({
         {children}
       </main>
       <footer className="relative z-10 border-t border-white/8 py-6">
-        <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-3 px-5 text-xs text-white/40">
+        <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-3 px-5 text-xs text-[#6B7684]">
           <p>Not investment advice.</p>
           <div className="flex gap-4">
             <Link href={LOGIN_PATH} className="hover:text-white/70">
