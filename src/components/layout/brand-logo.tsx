@@ -12,7 +12,6 @@ interface BrandLogoProps {
 const TAGLINE = "Freedom, engineered.";
 
 const ICON = "/brand/logo-icon.png";
-const STACKED = "/brand/logo-lockup.png";
 
 /** Growth line + salsa swooshes — the locked InvestSalsa mark. */
 export function SalsaMark({
@@ -63,7 +62,7 @@ export function BrandWordmark({ className }: { className?: string }) {
 
 export function BrandTagline({ className }: { className?: string }) {
   return (
-    <span className={cn("font-normal tracking-[0.04em] text-white/80", className)}>
+    <span className={cn("font-normal text-white/55", className)}>
       {TAGLINE}
     </span>
   );
@@ -86,23 +85,19 @@ export function BrandLogo({
       content = (
         <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
           <SalsaMark priority={priority} />
-          <BrandWordmark className="text-lg leading-none" />
+          <BrandWordmark className="text-[1.05rem] leading-none" />
         </div>
       );
       break;
 
     case "hero":
       content = (
-        <div className={cn("flex flex-col items-center gap-2", className)}>
-          <Image
-            src={STACKED}
-            alt="InvestSalsa"
-            width={450}
-            height={338}
-            priority={priority}
-            className="h-auto w-[min(16rem,70vw)] object-contain"
-          />
-          <BrandTagline className="text-sm" />
+        <div className={cn("flex items-center gap-3", className)}>
+          <SalsaMark className="size-11" size={44} priority={priority} />
+          <div className="flex flex-col items-start gap-1">
+            <BrandWordmark className="text-2xl leading-none" />
+            <BrandTagline className="text-sm" />
+          </div>
         </div>
       );
       break;
@@ -119,7 +114,7 @@ export function BrandLogo({
             className="size-8 group-data-[collapsible=icon]:size-8"
             priority={priority}
           />
-          <BrandWordmark className="text-lg leading-none group-data-[collapsible=icon]:hidden" />
+          <BrandWordmark className="text-[1.05rem] leading-none group-data-[collapsible=icon]:hidden" />
         </div>
       );
       break;
@@ -127,7 +122,7 @@ export function BrandLogo({
 
   if (asLink) {
     return (
-      <MarketingHomeLink className="inline-flex transition-opacity hover:opacity-90">
+      <MarketingHomeLink className="inline-flex transition-opacity duration-200 hover:opacity-80">
         {content}
       </MarketingHomeLink>
     );

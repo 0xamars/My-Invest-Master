@@ -21,7 +21,10 @@ export function CategoryPageHeader({
   return (
     <div className="page-header">
       <div className="flex items-start gap-4">
-        <NavCategoryIcon category={category} className="nav-category-icon--page" />
+        <NavCategoryIcon
+          category={category}
+          className="mt-1 size-11 rounded-2xl border border-white/8 bg-white/[0.04] text-primary"
+        />
         <div className="min-w-0 space-y-1">
           <h1 className="page-title">{title}</h1>
           <p className="page-description">{description}</p>

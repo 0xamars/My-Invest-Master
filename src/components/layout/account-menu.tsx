@@ -42,7 +42,6 @@ export function AccountMenu() {
     return (
       <Button
         variant="outline"
-        size="sm"
         render={<Link href={LOGIN_PATH} />}
       >
         Sign in

@@ -85,7 +85,7 @@ export function SignupForm() {
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
           {message ? <p className="text-sm text-white/70">{message}</p> : null}
 
-          <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
+          <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
             Create account
           </Button>
