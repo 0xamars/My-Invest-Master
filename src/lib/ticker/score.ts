@@ -818,14 +818,22 @@ function buildFutureChecks(print: TickerFuturePrint): {
   const earningsGrowth = print.earningsGrowth;
   const revenueGrowth = print.revenueGrowth;
   const lossToProfit = print.lossToProfit;
-
+  const printedIsLoss =
+    print.printedNetIncome != null
+      ? print.printedNetIncome < 0
+      : print.printedEps != null
+        ? print.printedEps < 0
+        : null;
+  // Missing street growth skips. A GAAP loss that stays a loss still fails.
   const earningsPass =
     earningsGrowth != null && earningsGrowth > 0.2
       ? true
       : lossToProfit === true
         ? true
-        : earningsGrowth == null && lossToProfit == null
-          ? null
+        : earningsGrowth == null
+          ? printedIsLoss === true && lossToProfit === false
+            ? false
+            : null
           : false;
 
   return {
