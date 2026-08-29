@@ -16,6 +16,7 @@ import {
   buildTickerScore,
   formatScoreMark,
   isRegulatedHealthVehicle,
+  nextYearBurnAtThreeYearTrend,
   scoreAxis,
 } from "../src/lib/ticker/score.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
@@ -224,8 +225,94 @@ assert(
 );
 const runway1 = burnHealth.checks.find((item) => item.id === "cash-runway-1y");
 assert(runway1?.passed === true, "40 cash covers 10 of one-year burn");
+const trendBurn = nextYearBurnAtThreeYearTrend(-10, -8, -6);
+assert(trendBurn != null, "three FCF years produce a next-year trend burn");
+assert(
+  Math.abs((trendBurn as number) - 10 * (1 + (0.25 + 1 / 3) / 2)) < 1e-9,
+  "next-year burn is latest |FCF| grown at the 3y |FCF| rate",
+);
 const runway3 = burnHealth.checks.find((item) => item.id === "cash-runway-3y");
-assert(runway3?.passed === true, "40 cash covers 24 of three-year burn");
+assert(
+  runway3?.passed === true,
+  "40 cash covers one year of burn at the 3y FCF trend",
+);
+assert(
+  runway3?.inputs.some((item) => item.label === "Next-year burn (3y FCF trend)"),
+  "3y runway shows the trend burn, not a three-year FCF sum",
+);
+
+const mixedSumBurner: TickerBundle = {
+  ...burner,
+  cashflowAnnual: [
+    { calendarYear: "2025", operatingCashFlow: 1, freeCashFlow: -10 },
+    { calendarYear: "2024", freeCashFlow: 20 },
+    { calendarYear: "2023", freeCashFlow: -5 },
+  ],
+  balanceAnnual: [
+    { ...burner.balanceAnnual[0], cashAndShortTermInvestments: 1 },
+    {},
+    {},
+    {},
+    {},
+    burner.balanceAnnual[5]!,
+  ],
+};
+const mixedRunway3 = scoreAxis(buildTickerScore(mixedSumBurner).score, "health")!
+  .checks.find((item) => item.id === "cash-runway-3y");
+assert(
+  mixedRunway3?.passed === false,
+  "mixed three-year FCF sum does not auto-pass the 3y runway",
+);
+
+const twoYearBurner: TickerBundle = {
+  ...burner,
+  cashflowAnnual: [
+    { calendarYear: "2025", operatingCashFlow: 1, freeCashFlow: -10 },
+    { calendarYear: "2024", freeCashFlow: -8 },
+  ],
+};
+const skipRunway3 = scoreAxis(buildTickerScore(twoYearBurner).score, "health")!
+  .checks.find((item) => item.id === "cash-runway-3y");
+assert(skipRunway3?.passed === null, "missing third FCF year skips 3y runway");
+assert(
+  nextYearBurnAtThreeYearTrend(-10, -8, null) == null,
+  "trend burn is null when a FCF year is missing",
+);
+
+const ebitdaOnly: TickerBundle = {
+  ...sixYears,
+  ratiosTtm: { debtToEquityRatioTTM: 0.1 },
+  incomeAnnual: sixYears.incomeAnnual.map((row) => ({
+    calendarYear: row.calendarYear,
+    revenue: row.revenue,
+    netIncome: row.netIncome,
+    epsdiluted: row.epsdiluted,
+    weightedAverageShsOutDil: row.weightedAverageShsOutDil,
+    ebitda: 9,
+    interestExpense: 0.2,
+  })),
+};
+const ebitdaOnlyBuilt = buildTickerScore(ebitdaOnly);
+assert(ebitdaOnlyBuilt.health.ebit == null, "EBIT does not fall back to EBITDA");
+const ebitdaInterest = scoreAxis(ebitdaOnlyBuilt.score, "health")!.checks.find(
+  (item) => item.id === "interest-cover",
+);
+assert(ebitdaInterest?.passed === null, "empty EBIT skips the interest cover check");
+
+const roicOnly: TickerBundle = {
+  ...sixYears,
+  keyMetricsTtm: { returnOnEquity: 0.25, returnOnInvestedCapital: 0.22, returnOnAssets: 0.12 },
+  keyMetricsAnnual: [
+    { returnOnInvestedCapital: 0.22 },
+    { returnOnInvestedCapital: 0.2 },
+    { returnOnInvestedCapital: 0.18 },
+    { returnOnInvestedCapital: 0.1 },
+  ],
+};
+const roicOnlyPast = scoreAxis(buildTickerScore(roicOnly).score, "past")!;
+const roceCheck = roicOnlyPast.checks.find((item) => item.id === "roce-vs-three-years");
+assert(roceCheck?.passed === null, "ROCE does not fall back to ROIC");
+assert(buildTickerScore(roicOnly).past.roce == null, "ROIC is not used as ROCE");
 
 const assembled = assembleTickerSnapshot("EX", sixYears, cacheMeta);
 assert(assembled.score.axes.length === 5, "snapshot carries five Score axes");
