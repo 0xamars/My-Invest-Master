@@ -95,7 +95,7 @@ export function MoveMoneyDialog({
           <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm">
             From{" "}
             <span className="font-semibold text-foreground">
-              {fromCategory?.name ?? "Category"}
+              {fromCategory?.name ?? "Envelope"}
             </span>
             {available != null ? (
               <span className="mt-0.5 block text-xs text-muted-foreground">
@@ -114,7 +114,7 @@ export function MoveMoneyDialog({
                 <SelectValue placeholder="Select destination" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={READY_TO_ASSIGN_ID}>Ready to Assign</SelectItem>
+                <SelectItem value={READY_TO_ASSIGN_ID}>Leftover</SelectItem>
                 {destinationOptions.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -226,7 +226,7 @@ export function CoverOverspendDialog({
           <BudgetEmptyState
             icon={<ShieldAlert className="size-5" />}
             title="Nothing to cover with"
-            description="Assign leftover to another category, or add income to Ready to Assign, then cover this overspend."
+            description="Assign leftover to another envelope, or add income, then cover this overspend."
           />
         ) : (
           <div className="space-y-4 py-1">
@@ -248,7 +248,7 @@ export function CoverOverspendDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rta">
-                    Ready to Assign ({formatBudgetMoney(Math.max(0, readyToAssign), currency)})
+                    Leftover ({formatBudgetMoney(Math.max(0, readyToAssign), currency)})
                   </SelectItem>
                   {sources.map((source) => (
                     <SelectItem key={source.id} value={source.id}>
@@ -324,8 +324,8 @@ export function AutoAssignUnderfundedDialog({
         <DialogHeader>
           <DialogTitle>Auto-Assign Underfunded</DialogTitle>
           <DialogDescription>
-            Put leftover Ready to Assign on underfunded categories. Payment
-            categories first, then the rest of the list.
+            Put leftover on underfunded envelopes. Payment envelopes first,
+            then the rest of the list.
           </DialogDescription>
         </DialogHeader>
 
@@ -333,7 +333,7 @@ export function AutoAssignUnderfundedDialog({
           <BudgetEmptyState
             icon={<Sparkles className="size-5" />}
             title="Nothing underfunded"
-            description="When Ready to Assign is leftover and a goal or card payment still needs money, Auto-Assign will fill it here."
+            description="When leftover is waiting and a goal or card payment still needs money, Auto-Assign will fill it here."
           />
         ) : (
           <div className="space-y-3 py-1">
@@ -344,7 +344,7 @@ export function AutoAssignUnderfundedDialog({
                   className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm"
                 >
                   <span className="truncate font-medium">
-                    {names.get(line.categoryId) ?? "Category"}
+                    {names.get(line.categoryId) ?? "Envelope"}
                   </span>
                   <span className="shrink-0 tabular-nums text-[var(--brand-green)]">
                     {formatBudgetMoney(line.amount, currency)}
@@ -354,8 +354,7 @@ export function AutoAssignUnderfundedDialog({
             </ul>
             {preview.leftover > 0 ? (
               <p className="text-xs text-muted-foreground">
-                {formatBudgetMoney(preview.leftover, currency)} stays in Ready to
-                Assign.
+                {formatBudgetMoney(preview.leftover, currency)} stays as leftover.
               </p>
             ) : null}
           </div>
@@ -425,8 +424,8 @@ export function ResetAvailableDialog({
         <DialogHeader>
           <DialogTitle>Reset Available</DialogTitle>
           <DialogDescription>
-            Move leftover Available back to Ready to Assign so this month starts
-            clean. Payment categories stay put.
+            Move leftover Available back to leftover so this month starts
+            clean. Payment envelopes stay put.
           </DialogDescription>
         </DialogHeader>
 
@@ -477,7 +476,7 @@ export function ResetAvailableDialog({
                   onChange={(event) => setCoverOverspend(event.target.checked)}
                 />
                 <span>
-                  Also cover overspend from Ready to Assign
+                  Also cover overspend from leftover
                   <span className="mt-0.5 block text-xs text-muted-foreground">
                     Overspent rows stay negative unless this is on.
                   </span>
@@ -577,7 +576,7 @@ export function SetCategoryGoalDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Set Category Goal</DialogTitle>
+          <DialogTitle>Set Envelope Goal</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
@@ -654,6 +653,218 @@ export function SetCategoryGoalDialog({
               Save Goal
             </Button>
           </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface AssignLeftoverDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  leftover: number;
+  envelopes: Array<{ id: string; name: string }>;
+  currency?: string;
+  onAssign: (allocations: Array<{ categoryId: string; amount: number }>) => void;
+}
+
+export function AssignLeftoverDialog({
+  open,
+  onOpenChange,
+  leftover,
+  envelopes,
+  currency,
+  onAssign,
+}: AssignLeftoverDialogProps) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (open) setDrafts({});
+  }, [open]);
+
+  const allocations = envelopes.map((envelope) => {
+    const parsed = Number.parseFloat(drafts[envelope.id] ?? "");
+    return {
+      categoryId: envelope.id,
+      amount: Number.isNaN(parsed) ? 0 : Math.max(0, parsed),
+    };
+  });
+  const used = allocations.reduce((sum, line) => sum + line.amount, 0);
+  const remaining = leftover - used;
+  const canSubmit = used > 0 && remaining >= -0.0001;
+
+  function handleSubmit() {
+    if (!canSubmit) return;
+    onAssign(allocations.filter((line) => line.amount > 0));
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="budget-dialog sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Assign leftover</DialogTitle>
+          <DialogDescription>
+            Put unassigned money into envelopes. Leftover you leave here stays
+            unassigned until you close the month.
+          </DialogDescription>
+        </DialogHeader>
+
+        {leftover <= 0 ? (
+          <BudgetEmptyState
+            icon={<Sparkles className="size-5" />}
+            title="No leftover"
+            description="Income that is not assigned yet will show up here."
+          />
+        ) : (
+          <div className="space-y-3 py-1">
+            <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm">
+              Leftover{" "}
+              <span className="font-semibold tabular-nums">
+                {formatBudgetMoney(leftover, currency)}
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Remaining {formatBudgetMoney(Math.max(0, remaining), currency)}
+                {remaining < 0 ? " · over leftover" : ""}
+              </span>
+            </div>
+            <ul className="max-h-64 space-y-2 overflow-y-auto">
+              {envelopes.map((envelope) => (
+                <li
+                  key={envelope.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <Label
+                    htmlFor={`assign-${envelope.id}`}
+                    className="min-w-0 truncate text-sm font-medium"
+                  >
+                    {envelope.name}
+                  </Label>
+                  <Input
+                    id={`assign-${envelope.id}`}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="0.00"
+                    value={drafts[envelope.id] ?? ""}
+                    onChange={(event) =>
+                      setDrafts((current) => ({
+                        ...current,
+                        [envelope.id]: event.target.value,
+                      }))
+                    }
+                    className="h-8 w-24 text-right tabular-nums"
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          {leftover <= 0 ? null : (
+            <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
+              Assign {formatBudgetMoney(used, currency)}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface CloseMonthDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  monthLabel: string;
+  leftover: number;
+  cashOverspend: number;
+  envelopes: Array<{ id: string; name: string; available: number }>;
+  canClose: boolean;
+  reason?: string;
+  currency?: string;
+  onClose: () => void;
+}
+
+export function CloseMonthDialog({
+  open,
+  onOpenChange,
+  monthLabel,
+  leftover,
+  cashOverspend,
+  envelopes,
+  canClose,
+  reason,
+  currency,
+  onClose,
+}: CloseMonthDialogProps) {
+  const carrying = envelopes.filter((line) => line.available !== 0);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="budget-dialog sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Close {monthLabel}</DialogTitle>
+          <DialogDescription>
+            Lock this month. Leftover and envelope balances become the opening
+            of the next month.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-1">
+          <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm">
+            Leftover that carries{" "}
+            <span className="font-semibold tabular-nums">
+              {formatBudgetMoney(leftover, currency)}
+            </span>
+            {cashOverspend > 0 ? (
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                {formatBudgetMoney(cashOverspend, currency)} cash overspend
+                will be absorbed from leftover.
+              </span>
+            ) : null}
+          </div>
+          {carrying.length > 0 ? (
+            <ul className="max-h-48 space-y-1.5 overflow-y-auto">
+              {carrying.map((line) => (
+                <li
+                  key={line.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <span className="truncate">{line.name}</span>
+                  <span className="shrink-0 tabular-nums">
+                    {formatBudgetMoney(line.available, currency)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Envelope balances are zero. Next month starts clean except leftover.
+            </p>
+          )}
+          {reason ? (
+            <p className="text-sm text-[var(--brand-red)]">{reason}</p>
+          ) : null}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenChange(false);
+            }}
+            disabled={!canClose}
+          >
+            Close month
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

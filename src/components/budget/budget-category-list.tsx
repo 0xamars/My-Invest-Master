@@ -32,6 +32,7 @@ interface BudgetCategoryListProps {
   groups: Array<{ group: BudgetCategoryGroup; categories: CategoryBudgetRow[] }>;
   currency?: string;
   readyToAssign?: number;
+  monthClosed?: boolean;
   onAssign: (categoryId: string, amount: number) => void;
   onMoveMoney: (fromCategoryId: string) => void;
   onCoverOverspend: (categoryId: string) => void;
@@ -51,6 +52,7 @@ export function BudgetCategoryList({
   groups,
   currency,
   readyToAssign = 0,
+  monthClosed = false,
   onAssign,
   onMoveMoney,
   onCoverOverspend,
@@ -111,19 +113,21 @@ export function BudgetCategoryList({
     <BudgetPanel>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
         <div>
-          <h2 className="text-sm font-semibold tracking-tight">Categories</h2>
+          <h2 className="text-sm font-semibold tracking-tight">Envelopes</h2>
           <p className="text-xs text-muted-foreground">
-            Assign this month. Cover red cash overspend before the month rolls.
+            {monthClosed
+              ? "This month is closed. Envelope balances already carried forward."
+              : "Fund envelopes this month. Cover red cash overspend before you close."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canResetAvailable ? (
+          {!monthClosed && canResetAvailable ? (
             <Button type="button" variant="outline" size="sm" onClick={onResetAvailable}>
               <RotateCcw className="size-3.5" />
               Reset Available
             </Button>
           ) : null}
-          {canAutoAssign ? (
+          {!monthClosed && canAutoAssign ? (
             <Button type="button" size="sm" onClick={onAutoAssignUnderfunded}>
               <Sparkles className="size-3.5" />
               Auto-Assign Underfunded
@@ -137,7 +141,7 @@ export function BudgetCategoryList({
       </div>
 
       <div className="hidden grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(4.25rem,1fr))_5.5rem] gap-3 border-y border-border/50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5">
-        <span>Category</span>
+        <span>Envelope</span>
         <span className="text-right">Assigned</span>
         <span className="text-right">Activity</span>
         <span className="text-right">Available</span>
@@ -148,7 +152,7 @@ export function BudgetCategoryList({
         <BudgetEmptyState
           icon={<FolderPlus className="size-5" />}
           title="Start with a group"
-          description="Add a category group, then give every dollar a job."
+          description="Add an envelope group, then give every dollar a job."
           actions={
             <Button type="button" onClick={onAddGroup}>
               <FolderPlus className="size-4" />
@@ -221,7 +225,7 @@ export function BudgetCategoryList({
                     onClick={() => onAddCategory(group.id)}
                   >
                     <Plus className="size-3.5" />
-                    Category
+                    Envelope
                   </Button>
                 </div>
                 )}
@@ -230,10 +234,10 @@ export function BudgetCategoryList({
               {categories.length === 0 ? (
                 <div className="px-4 py-3 text-xs text-muted-foreground sm:px-5">
                   {paymentGroup ? (
-                    "Payment categories appear automatically for credit cards and lines of credit."
+                    "Payment envelopes appear automatically for credit cards and lines of credit."
                   ) : (
                     <>
-                      No categories yet.{" "}
+                      No envelopes yet.{" "}
                       <button
                         type="button"
                         className="font-medium text-[var(--brand-green)] hover:underline"
@@ -300,7 +304,7 @@ export function BudgetCategoryList({
                       <span className="text-[11px] text-muted-foreground md:hidden">
                         Assigned
                       </span>
-                      {editingId === row.category.id ? (
+                      {editingId === row.category.id && !monthClosed ? (
                         <Input
                           type="number"
                           min={0}
@@ -318,8 +322,12 @@ export function BudgetCategoryList({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => startEdit(row)}
-                          className="rounded-md px-1.5 py-0.5 text-sm tabular-nums hover:bg-muted"
+                          onClick={() => {
+                            if (monthClosed) return;
+                            startEdit(row);
+                          }}
+                          disabled={monthClosed}
+                          className="rounded-md px-1.5 py-0.5 text-sm tabular-nums hover:bg-muted disabled:cursor-default disabled:hover:bg-transparent"
                         >
                           {formatBudgetMoney(row.assigned, currency)}
                         </button>
@@ -348,7 +356,7 @@ export function BudgetCategoryList({
                           {row.available < 0 ? "−" : ""}
                           {formatBudgetMoney(row.available, currency)}
                         </BudgetAvailableChip>
-                        {overspent ? (
+                        {overspent && !monthClosed ? (
                           <Button
                             type="button"
                             size="xs"
@@ -366,6 +374,7 @@ export function BudgetCategoryList({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        disabled={monthClosed}
                         onClick={() => onMoveMoney(row.category.id)}
                         aria-label={`Move money from ${row.category.name}`}
                       >

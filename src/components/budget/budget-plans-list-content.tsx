@@ -76,7 +76,7 @@ export function BudgetPlansListContent() {
     <div className="flex flex-1 flex-col gap-6">
       <BudgetPageHeader
         title="Budget"
-        description="Household, side project, or a what-if. Create as many plans as you need."
+        description="One spending account, envelopes, leftover, and a real month close."
         action={
           <Button
             onClick={openCreate}
@@ -100,7 +100,7 @@ export function BudgetPlansListContent() {
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
             title="Start a budget."
-            description="Track income, assign spending, and keep Ready to Assign honest."
+            description="Track income on one spending account, fund envelopes, and close the month."
             actions={
               <Button onClick={openCreate} disabled={isCreating || !isPlanReady}>
                 <Plus className="size-4" />
@@ -135,7 +135,7 @@ export function BudgetPlansListContent() {
                     onClick={() => openPlan(summary.id)}
                     className="mt-4 block w-full text-left"
                   >
-                    <p className="budget-metric-label">Ready to Assign</p>
+                    <p className="budget-metric-label">Leftover</p>
                     <p
                       className={cn(
                         "mt-1 text-[1.65rem] font-semibold tracking-tight tabular-nums",

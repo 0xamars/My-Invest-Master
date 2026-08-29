@@ -1,7 +1,7 @@
 import { isOnBudgetAccount, accountById } from "@/lib/budget/accounts";
 import type { BudgetAccount, BudgetTransaction } from "@/types/budget";
 
-/** YNAB-style: Age of Money uses the last 10 spending transactions. */
+/** Age of Money uses the last 10 spending transactions. */
 export const AGE_OF_MONEY_MIN_OUTFLOWS = 10;
 
 export type AgeOfMoneyStatus = "empty" | "insufficient" | "ready";

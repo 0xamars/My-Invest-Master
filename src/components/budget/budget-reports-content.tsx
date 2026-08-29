@@ -115,7 +115,7 @@ export function BudgetReportsContent() {
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Reports"
-        description="Spending, payees, and cash flow for a date range. Click a category or payee bar to open matching register rows."
+        description="Spending, payees, and cash flow for a date range. Click an envelope or payee bar to open matching register rows."
       />
 
       <BudgetPanel>
@@ -168,7 +168,7 @@ export function BudgetReportsContent() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <SpendingByCategoryChart
-          title={`Spending by Category — ${rangeLabel}`}
+          title={`Spending by envelope — ${rangeLabel}`}
           data={spending}
           hrefForRow={(row) =>
             registerHref({
@@ -238,11 +238,11 @@ export function BudgetReportsContent() {
       </ChartFrame>
 
       <ChartFrame
-        title="Ready to Assign"
+        title="Leftover"
         description="Balance over the last 6 months"
       >
         {availableSeries.every((row) => row.available === 0) ? (
-          <ChartEmpty message="Assign income to categories to track Ready to Assign." />
+          <ChartEmpty message="Assign income to envelopes to track leftover." />
         ) : (
           <ChartContainer config={availableConfig} className="aspect-[16/7] h-[280px] w-full">
             <ComposedChart data={availableSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -509,7 +509,7 @@ function SpendingByCategoryChart({
   return (
     <HorizontalSpendChart
       title={title}
-      description="Top categories by spending. Click a bar to open the register."
+      description="Top envelopes by spending. Click a bar to open the register."
       empty="No spending recorded for this range."
       rows={data.slice(0, 8).map((row) => ({
         key: row.categoryId,

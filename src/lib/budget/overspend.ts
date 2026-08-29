@@ -1,4 +1,5 @@
 import { isCreditCardPaymentAccount } from "@/lib/budget/accounts";
+import { shouldAbsorbCashOverspend } from "@/lib/budget/closed-months";
 import { isPaymentCategory } from "@/lib/budget/credit-card-payments";
 import { isOnBudgetOutflow } from "@/lib/budget/on-budget";
 import { getOutflowActivityForCategory } from "@/lib/budget/transactions";
@@ -148,14 +149,13 @@ function emptyOverspend(assigned: number, activity: number): CategoryMonthOversp
 
 /**
  * Walk leftover + this-month assigned − activity, splitting cash vs credit
- * overspend the way YNAB does:
+ * overspend:
  *
  * - Assigned leftover funds cash spending first, then credit.
- * - Uncovered cash overspend in a *closed* month (before `monthKey`) is
- *   absorbed: Available resets by that amount and Ready to Assign in later
- *   months is reduced.
- * - Credit overspend stays in the category and underfunds the card payment
- *   category. It does not steal Ready to Assign.
+ * - Uncovered cash overspend in a closed month is absorbed: Available resets
+ *   by that amount and leftover in later months is reduced.
+ * - Credit overspend stays in the envelope and underfunds the card payment
+ *   envelope. It does not steal leftover.
  */
 export function getCategoryOverspendState(
   budget: BudgetData,
@@ -227,7 +227,7 @@ export function getCategoryOverspendState(
       addAmount(newHoleByAccount, "unknown", newCreditOverspend);
     }
 
-    if (cursor < monthKey && cashOverspend > 0) {
+    if (shouldAbsorbCashOverspend(budget, cursor, monthKey) && cashOverspend > 0) {
       available += cashOverspend;
       absorbedCash += cashOverspend;
     }
@@ -239,7 +239,9 @@ export function getCategoryOverspendState(
       activity,
       cashActivity,
       creditActivity,
-      cashOverspend: cursor < monthKey ? 0 : cashOverspend,
+      cashOverspend: shouldAbsorbCashOverspend(budget, cursor, monthKey)
+        ? 0
+        : cashOverspend,
       creditOverspend,
       absorbedCash,
       creditOverspendByAccount: newHoleByAccount,

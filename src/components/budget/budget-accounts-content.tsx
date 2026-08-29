@@ -83,7 +83,7 @@ export function BudgetAccountsContent() {
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Accounts"
-        description="On-budget and tracking (off-budget) balances. Reconcile against the statement when you are ready."
+        description="One spending account is enough. Add income and spend against envelopes. Not a bank link."
         action={
           <Button type="button" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" />
@@ -96,8 +96,8 @@ export function BudgetAccountsContent() {
         <BudgetPanel>
           <BudgetEmptyState
             icon={<Landmark className="size-5" />}
-            title="No accounts yet"
-            description="Add chequing, savings, a card, or a tracking account such as a brokerage or mortgage."
+            title="No spending account yet"
+            description="Add a spending account, then record income and spend against envelopes."
             actions={
               <Button onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" />

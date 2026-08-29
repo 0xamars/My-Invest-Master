@@ -341,18 +341,18 @@ export function BudgetTransactionDialog({
     type === "transfer"
       ? transferCrossesBudget
         ? selectedOnBudget
-          ? "This leaves the budget. Ready to Assign goes down by the transfer amount."
-          : "This enters the budget. Ready to Assign goes up by the transfer amount."
-        : "Move money between accounts. Transfers between the same budget side do not change Ready to Assign."
+          ? "This leaves the budget. Leftover goes down by the transfer amount."
+          : "This enters the budget. Leftover goes up by the transfer amount."
+        : "Move money between accounts. Transfers between the same budget side do not change leftover."
       : type === "inflow"
         ? selectedOnBudget
-          ? "Record income. Inflows go to Ready to Assign."
-          : "Tracking inflow. This changes the account balance only — not Ready to Assign."
+          ? "Record income. Inflows go to leftover."
+          : "Tracking inflow. This changes the account balance only — not leftover."
         : !selectedOnBudget
-          ? "Tracking outflow. This changes the account balance only — not Ready to Assign or category Activity."
+          ? "Tracking outflow. This changes the account balance only — not leftover or envelope Activity."
           : splitEnabled
-            ? "Split this outflow across categories. Lines must add up to the total."
-            : "Record spending, linked to an account and category.";
+            ? "Split this outflow across envelopes. Lines must add up to the total."
+            : "Record spending, linked to an account and envelope.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -568,7 +568,7 @@ export function BudgetTransactionDialog({
           {type === "outflow" && selectedOnBudget && !splitEnabled && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <Label>Category</Label>
+                <Label>Envelope</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -587,10 +587,10 @@ export function BudgetTransactionDialog({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select envelope" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Uncategorized</SelectItem>
+                  <SelectItem value="none">Unassigned</SelectItem>
                   {sortedGroups.flatMap((group) => {
                     const groupCategories = assignableCategories
                       .filter((category) => category.groupId === group.id)
@@ -610,7 +610,7 @@ export function BudgetTransactionDialog({
           {type === "outflow" && selectedOnBudget && splitEnabled && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
-                <Label>Split categories</Label>
+                <Label>Split envelopes</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -618,7 +618,7 @@ export function BudgetTransactionDialog({
                   className="h-7 px-2 text-xs"
                   onClick={disableSplit}
                 >
-                  Single category
+                  Single envelope
                 </Button>
               </div>
 
@@ -645,7 +645,7 @@ export function BudgetTransactionDialog({
                     <div className="min-w-0 flex-1 space-y-1.5">
                       {index === 0 && (
                         <Label className="text-xs text-muted-foreground">
-                          Category
+                          Envelope
                         </Label>
                       )}
                       <Select
@@ -657,10 +657,10 @@ export function BudgetTransactionDialog({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Category" />
+                          <SelectValue placeholder="Envelope" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Uncategorized</SelectItem>
+                          <SelectItem value="none">Unassigned</SelectItem>
                           {sortedGroups.flatMap((group) => {
                             const groupCategories = assignableCategories
                               .filter((category) => category.groupId === group.id)

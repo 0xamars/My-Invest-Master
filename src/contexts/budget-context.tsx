@@ -58,6 +58,11 @@ interface BudgetContextValue {
     categoryId: string,
     delta: number,
   ) => void;
+  assignLeftover: (
+    monthKey: string,
+    allocations: Array<{ categoryId: string; amount: number }>,
+  ) => void;
+  closeMonth: (monthKey: string) => void;
   moveMoney: (
     monthKey: string,
     fromCategoryId: string,

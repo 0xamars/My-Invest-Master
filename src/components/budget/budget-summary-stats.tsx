@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { AGE_OF_MONEY_MIN_OUTFLOWS, type AgeOfMoneyResult } from "@/lib/budget/age-of-money";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { MonthBudgetSummary } from "@/lib/budget/calculations";
@@ -11,6 +10,9 @@ interface BudgetSummaryStatsProps {
   ageOfMoney: AgeOfMoneyResult;
   currency?: string;
   isLoading?: boolean;
+  monthClosed?: boolean;
+  openingLeftover?: number;
+  onAssignLeftover?: () => void;
 }
 
 export function BudgetSummaryStats({
@@ -18,6 +20,9 @@ export function BudgetSummaryStats({
   ageOfMoney,
   currency,
   isLoading,
+  monthClosed,
+  openingLeftover,
+  onAssignLeftover,
 }: BudgetSummaryStatsProps) {
   const ready = summary.readyToAssign;
   const readyTone =
@@ -30,7 +35,7 @@ export function BudgetSummaryStats({
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
-        <p className="budget-metric-label">Ready to Assign</p>
+        <p className="budget-metric-label">Leftover</p>
         <p
           className={cn(
             "budget-hero-value mt-2",
@@ -41,20 +46,28 @@ export function BudgetSummaryStats({
           {formatBudgetMoney(ready, currency)}
         </p>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-          {ready > 0
-            ? "Income waiting for a job. Assign it to categories — leftovers carry into later months."
-            : ready < 0
-              ? "Assigned more than has come in through this month. Move money or record missing income."
-              : "Every dollar through this month already has a job."}
+          {monthClosed
+            ? "This month is closed. Leftover already carried into the next month."
+            : ready > 0
+              ? "Unassigned money. Put it into envelopes, or leave it to carry when you close the month."
+              : ready < 0
+                ? "Assigned more than has come in through this month. Move money or record missing income."
+                : "Every dollar through this month already has a job."}
         </p>
-        {ready > 0 ? (
+        {openingLeftover != null && openingLeftover > 0 ? (
           <p className="mt-2 text-xs text-muted-foreground">
-            After you assign leftover,{" "}
-            <Link href="/invest" className="underline underline-offset-2 hover:text-foreground">
-              check Invest
-            </Link>{" "}
-            for concentration and mix.
+            Opened with {formatBudgetMoney(openingLeftover, currency)} leftover
+            from the closed month.
           </p>
+        ) : null}
+        {onAssignLeftover ? (
+          <button
+            type="button"
+            onClick={onAssignLeftover}
+            className="mt-3 text-sm font-medium text-[var(--brand-green)] underline-offset-2 hover:underline"
+          >
+            Assign leftover
+          </button>
         ) : null}
         <AgeOfMoneyBlock ageOfMoney={ageOfMoney} isLoading={isLoading} />
       </section>
