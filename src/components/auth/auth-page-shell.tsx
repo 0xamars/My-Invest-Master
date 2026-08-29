@@ -49,6 +49,7 @@ export function AuthPageShell({
             alt=""
             width={BRAND_SIZE.authPanel.width}
             height={BRAND_SIZE.authPanel.height}
+            priority
             sizes="100vw"
             className="h-full w-full object-cover"
           />
