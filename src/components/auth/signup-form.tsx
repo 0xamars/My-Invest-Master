@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { APP_HOME_PATH, LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
+import { signedInLandingPath } from "@/lib/journey/landing";
+import { LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
 
 export function SignupForm() {
   const { isConfigured, signUp } = useAuth();
@@ -35,7 +36,7 @@ export function SignupForm() {
         "Account created. If email confirmation is on, check your inbox, then sign in.",
       );
       window.setTimeout(() => {
-        router.push(APP_HOME_PATH);
+        router.push(signedInLandingPath(false));
       }, 400);
     }
   }

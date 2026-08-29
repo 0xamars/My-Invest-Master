@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Plus, RefreshCw, TrendingUp } from "lucide-react";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
@@ -17,6 +18,7 @@ import { useBookTickerQuotes } from "@/hooks/use-book-ticker-quotes";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { explainAddHoldingFields } from "@/lib/journey/density";
+import { INVEST_EMPTY_BOOK } from "@/lib/journey/empty-states";
 import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
 import { buildBookRows } from "@/lib/ticker/book";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
@@ -111,11 +113,28 @@ export function InvestHomeContent() {
           isSubmitting={creating}
         />
       ) : rows.length === 0 ? (
-        <div className="glass-card">
+        <div className="glass-card" data-empty-state="invest">
           <RetireEmptyState
             icon={<TrendingUp className="size-5" />}
-            title="The book is empty."
-            description="Search still works. Add a public stock when you want a weight on the page. Missing cache prints Unknown."
+            title={INVEST_EMPTY_BOOK.title}
+            description={INVEST_EMPTY_BOOK.description}
+            actions={
+              <>
+                <Button
+                  onClick={() => void onAddClick()}
+                  disabled={creating}
+                >
+                  <Plus className="size-4" />
+                  {INVEST_EMPTY_BOOK.addLabel}
+                </Button>
+                <Button
+                  variant="outline"
+                  render={<Link href={INVEST_EMPTY_BOOK.learnHref} />}
+                >
+                  {INVEST_EMPTY_BOOK.learnLabel}
+                </Button>
+              </>
+            }
           />
         </div>
       ) : (

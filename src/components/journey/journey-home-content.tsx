@@ -12,6 +12,10 @@ import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { useSyncWorkingFlags } from "@/hooks/use-sync-working-flags";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
+import {
+  JOURNEY_EDUCATIONAL_FOOTER,
+  JOURNEY_HOME_EMPTY,
+} from "@/lib/journey/empty-states";
 import { journeyFreedomDate } from "@/lib/journey/freedom-date";
 import { STATION_STATUS_LABELS, profileSummaryLine } from "@/lib/journey/labels";
 import { journeyStations, primaryNextAction } from "@/lib/journey/stations";
@@ -73,12 +77,21 @@ export function JourneyHomeContent() {
     : profile;
   const stations = journeyStations(liveProfile, { hasBook });
   const next = primaryNextAction(liveProfile, { hasBook });
+  const nothingWorking =
+    !liveProfile.working.budget &&
+    !liveProfile.working.invest &&
+    !liveProfile.working.freedom;
 
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div>
         <h1 className="page-title">Journey</h1>
         <p className="page-description">{profileSummaryLine(profile)}</p>
+        {nothingWorking ? (
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            {JOURNEY_HOME_EMPTY.hint}
+          </p>
+        ) : null}
       </div>
 
       <div className="glass-card flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -120,7 +133,12 @@ export function JourneyHomeContent() {
         ))}
       </div>
 
-      <div className="glass-card px-5 py-5">
+      <div
+        className="glass-card px-5 py-5"
+        data-empty-state={
+          freedomDate.status === "needs-inputs" ? "journey-home-freedom" : undefined
+        }
+      >
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Freedom date
         </p>
@@ -128,12 +146,32 @@ export function JourneyHomeContent() {
           {ready ? freedomDate.label : "…"}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          From leftover and the book only. Leftover is one-time cash, not × 12.
+          {freedomDate.status === "needs-inputs"
+            ? JOURNEY_HOME_EMPTY.freedomHint
+            : "From leftover and the book only. Leftover is one-time cash, not × 12."}
         </p>
+        {ready && freedomDate.status === "needs-inputs" ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href={JOURNEY_HOME_EMPTY.leftoverHref} />}
+            >
+              {JOURNEY_HOME_EMPTY.leftoverLabel}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              render={<Link href={JOURNEY_HOME_EMPTY.bookHref} />}
+            >
+              {JOURNEY_HOME_EMPTY.bookLabel}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Educational. Not financial advice. You can lose money.
+        {JOURNEY_EDUCATIONAL_FOOTER}
       </p>
     </div>
   );

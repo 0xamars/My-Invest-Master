@@ -62,7 +62,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
         <p className="text-sm text-white/60">
-          Email and password. After you sign in you land on your Journey.
+          Email and password. First login opens the Money Profile. After that you land on Journey Home.
         </p>
       </div>
 

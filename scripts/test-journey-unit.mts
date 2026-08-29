@@ -3,6 +3,26 @@
  *   npx tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts
  */
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
+import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
+import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
+import {
+  BUDGET_EMPTY,
+  FREEDOM_EMPTY,
+  INVEST_EMPTY_BOOK,
+  INVEST_EMPTY_NO_BOOK,
+  JOURNEY_EDUCATIONAL_FOOTER,
+  JOURNEY_HOME_EMPTY,
+  emptyStateCopyText,
+} from "../src/lib/journey/empty-states.ts";
+import {
+  MIDDLEWARE_HARD_BLOCKS_INVEST_DO,
+  isMissingMoneyProfileTable,
+  middlewareShouldHardBlockInvestDo,
+  moneyProfilePresenceFromQuery,
+  shouldRedirectToMoneyProfile,
+  signedInAuthRedirectPath,
+  signedInLandingPath,
+} from "../src/lib/journey/landing.ts";
 import {
   allChecksAnswered,
   knowledgeFromChecks,
@@ -715,6 +735,199 @@ assert(
   !investDoIsLocked({ profile: tools, hasBook: false }),
   "Slice C lock stays: toolsOnly Invest Do is unlocked",
 );
+
+assert(signedInLandingPath(true) === "/home", "signed-in landing with a profile is Journey Home");
+assert(
+  signedInLandingPath(false) === "/money-profile",
+  "signed-in landing with no profile is the wizard",
+);
+assert(
+  signedInAuthRedirectPath(true) === "/home",
+  "returning signed-in login bounce is Journey Home",
+);
+assert(
+  signedInAuthRedirectPath(false) === "/money-profile",
+  "first-login bounce is the Money Profile wizard",
+);
+
+assert(
+  !shouldRedirectToMoneyProfile({
+    signedIn: false,
+    hasProfile: false,
+    pathname: "/",
+  }),
+  "signed-out public marketing is not redirected",
+);
+assert(
+  !shouldRedirectToMoneyProfile({
+    signedIn: true,
+    hasProfile: false,
+    pathname: "/",
+  }),
+  "signed-in visitors may still open public marketing",
+);
+assert(
+  !shouldRedirectToMoneyProfile({
+    signedIn: true,
+    hasProfile: false,
+    pathname: "/money-profile",
+  }),
+  "the wizard itself is not redirected",
+);
+assert(
+  shouldRedirectToMoneyProfile({
+    signedIn: true,
+    hasProfile: false,
+    pathname: "/home",
+  }),
+  "no-profile Journey Home redirects to the wizard",
+);
+assert(
+  shouldRedirectToMoneyProfile({
+    signedIn: true,
+    hasProfile: false,
+    pathname: "/budget",
+  }),
+  "no-profile Budget redirects to the wizard",
+);
+assert(
+  shouldRedirectToMoneyProfile({
+    signedIn: true,
+    hasProfile: false,
+    pathname: "/invest",
+  }),
+  "no-profile Invest redirects to the wizard",
+);
+assert(
+  !shouldRedirectToMoneyProfile({
+    signedIn: true,
+    hasProfile: true,
+    pathname: "/home",
+  }),
+  "a profile lands on Journey Home",
+);
+assert(
+  !shouldRedirectToMoneyProfile({
+    signedIn: true,
+    hasProfile: true,
+    pathname: "/invest",
+  }),
+  "a profile may open Invest Do — middleware does not soft-lock",
+);
+
+assert(
+  moneyProfilePresenceFromQuery({ data: null, error: null }) === false,
+  "no row is no profile",
+);
+assert(
+  moneyProfilePresenceFromQuery({
+    data: { user_id: "user-1" },
+    error: null,
+  }) === true,
+  "a real row is a profile",
+);
+assert(
+  moneyProfilePresenceFromQuery({
+    data: null,
+    error: { message: "relation user_money_profiles does not exist", code: "42P01" },
+  }) === false,
+  "a missing table is no profile",
+);
+assert(
+  isMissingMoneyProfileTable({
+    message: "Could not find the table 'public.user_money_profiles'",
+    code: "PGRST205",
+  }),
+  "PGRST205 is a missing table",
+);
+assert(
+  moneyProfilePresenceFromQuery({
+    data: { user_id: "user-1" },
+    error: { message: "user_money_profiles schema cache", code: "PGRST205" },
+  }) === false,
+  "do not invent a profile when the table is missing",
+);
+
+assert(
+  MIDDLEWARE_HARD_BLOCKS_INVEST_DO === false,
+  "middleware does not hard-block Invest Do",
+);
+assert(
+  middlewareShouldHardBlockInvestDo({
+    pathname: "/invest",
+    search: "?tab=do",
+    hasBook: true,
+    budgetElsewhere: true,
+    budgetWorking: false,
+  }) === false,
+  "a book or budgetElsewhere is not a middleware Invest Do gate",
+);
+assert(
+  middlewareShouldHardBlockInvestDo({
+    pathname: "/invest",
+    search: "?tab=do",
+    hasBook: false,
+    budgetElsewhere: false,
+    budgetWorking: false,
+  }) === false,
+  "Beginner Invest Do stays a client soft lock",
+);
+
+assert(
+  PRIMARY_NAV_TITLES.join("|") === "Budget|Invest|Freedom",
+  "chrome stays Budget | Invest | Freedom",
+);
+assert(
+  destinationForLegacyInvestPath("/chat") === "/invest",
+  "chat stays unshipped",
+);
+assert(
+  destinationForLegacyInvestPath("/assistant") === "/invest",
+  "assistant stays unshipped",
+);
+
+assert(
+  JOURNEY_EDUCATIONAL_FOOTER === LEARN_DISCLAIMER,
+  "Journey footer stays educational",
+);
+assert(
+  JOURNEY_HOME_EMPTY.freedomLabel === FREEDOM_DATE_NEEDS_INPUTS,
+  "Journey Home empty Freedom date is labeled, not guessed",
+);
+assert(
+  BUDGET_EMPTY.learnHref === "/budget?tab=learn",
+  "empty Budget points to Learn",
+);
+assert(
+  BUDGET_EMPTY.description.includes("Leftover") &&
+    BUDGET_EMPTY.description.includes("empty"),
+  "empty Budget does not invent leftover",
+);
+assert(
+  INVEST_EMPTY_NO_BOOK.description.includes(FIRST_BOOK_FREEDOM_LINE),
+  "empty Invest with no book points at the first-book wizard",
+);
+assert(
+  INVEST_EMPTY_BOOK.description.includes("invented") &&
+    INVEST_EMPTY_BOOK.learnHref === "/invest?tab=learn",
+  "empty book points to Learn and does not invent holdings",
+);
+assert(
+  FREEDOM_EMPTY.leftoverHref === "/budget?tab=do" &&
+    FREEDOM_EMPTY.bookHref === "/invest?tab=do" &&
+    FREEDOM_EMPTY.learnHref === "/freedom?tab=learn",
+  "empty Freedom points to leftover, the book, and Learn",
+);
+assert(
+  JOURNEY_HOME_EMPTY.leftoverHref === "/budget?tab=do" &&
+    JOURNEY_HOME_EMPTY.bookHref === "/invest?tab=do",
+  "Journey Home empty date points to leftover and the book",
+);
+
+const emptyCopy = emptyStateCopyText();
+for (const word of forbidden) {
+  assert(!emptyCopy.includes(word), `empty-state copy does not name ${word}`);
+}
 
 if (failed > 0) {
   console.error(`\n${failed} journey assertion(s) failed`);
