@@ -72,7 +72,6 @@ export function MarketingHomePage({
 
       <main className="relative z-10">
         <section className="mx-auto flex max-w-5xl flex-col items-start px-6 pb-20 pt-16 sm:px-8 sm:pb-24 sm:pt-24">
-          <BrandLogo variant="hero" className="mb-10" />
           <h1 className="max-w-xl text-balance text-[2.75rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             Freedom, engineered.
           </h1>
