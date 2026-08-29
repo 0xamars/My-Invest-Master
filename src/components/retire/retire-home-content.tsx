@@ -155,6 +155,13 @@ export function RetireHomeContent() {
             }
           />
 
+          {!basePath.assumptions && basePath.path.assets.length > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Spending is an assumption until you save a plan. Freedom does
+              not invent leftover or book cash.
+            </p>
+          ) : null}
+
           {whatIfs.length > 0 ? (
             <RetirePanel className="px-5 py-5 sm:px-6">
               <RetirementWhatIf
