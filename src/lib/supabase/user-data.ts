@@ -4,6 +4,7 @@ import { createDefaultAccount } from "@/types/budget";
 import { normalizeBudgetPlan } from "@/lib/budget/migrate-plan";
 import type { DisplayCurrency } from "@/types/currency";
 import type { MoneyProfile } from "@/types/money-profile";
+import { isMissingMoneyProfileTable } from "@/lib/journey/landing";
 import { normalizeMoneyProfile } from "@/lib/journey/profile";
 import type { OptionsPosition } from "@/types/options";
 import { isUserPlan, type UserPlan } from "@/types/plan";
@@ -327,15 +328,6 @@ export async function savePreferencesToCloud(
   );
 
   if (error) throw error;
-}
-
-function isMissingMoneyProfileTable(error: { message: string; code?: string }): boolean {
-  const message = error.message.toLowerCase();
-  return (
-    error.code === "42P01" ||
-    error.code === "PGRST205" ||
-    message.includes("user_money_profiles")
-  );
 }
 
 export async function loadMoneyProfileFromCloud(

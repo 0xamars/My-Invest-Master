@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,10 +15,8 @@ import {
 } from "@/components/ui/select";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
-import {
-  displayCurrencyOrDefault,
-  FIRST_BOOK_FREEDOM_LINE,
-} from "@/lib/journey/first-run";
+import { INVEST_EMPTY_NO_BOOK } from "@/lib/journey/empty-states";
+import { displayCurrencyOrDefault } from "@/lib/journey/first-run";
 import {
   FEATURED_DISPLAY_CURRENCIES,
   getCurrencyMeta,
@@ -66,16 +65,20 @@ export function FirstBookWizard({
   }
 
   return (
-    <div className="glass-card flex flex-1 flex-col gap-4 px-5 py-6" data-first-book-wizard="1">
+    <div
+      className="glass-card flex flex-1 flex-col gap-4 px-5 py-6"
+      data-first-book-wizard="1"
+      data-empty-state="invest-no-book"
+    >
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           First book
         </p>
         <h2 className="mt-1 text-lg font-semibold tracking-tight">
-          Name the book
+          {INVEST_EMPTY_NO_BOOK.title}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {FIRST_BOOK_FREEDOM_LINE} No holdings are added until you say so.
+          {INVEST_EMPTY_NO_BOOK.description}
         </p>
       </div>
 
@@ -128,7 +131,7 @@ export function FirstBookWizard({
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <div>
+      <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           disabled={isSubmitting}
@@ -136,6 +139,13 @@ export function FirstBookWizard({
         >
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           Create the book
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          render={<Link href={INVEST_EMPTY_NO_BOOK.learnHref} />}
+        >
+          {INVEST_EMPTY_NO_BOOK.learnLabel}
         </Button>
       </div>
     </div>

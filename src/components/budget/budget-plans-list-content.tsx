@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -16,11 +17,11 @@ import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { formatBudgetMoney } from "@/lib/budget/format";
+import { BUDGET_EMPTY } from "@/lib/journey/empty-states";
 import {
   budgetCurrencyFromProfile,
   shouldOfferBudgetFirstRunKit,
   STARTER_ENVELOPE_NAMES,
-  STARTER_SPENDING_ACCOUNT_NAME,
 } from "@/lib/journey/first-run";
 import { cn } from "@/lib/utils";
 import type { BudgetPlan } from "@/types/budget";
@@ -119,19 +120,27 @@ export function BudgetPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <div className="glass-card" data-budget-first-run-kit="1">
+        <div className="glass-card" data-budget-first-run-kit="1" data-empty-state="budget">
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
-            title="Start with starter envelopes"
-            description={`Housing, Food, Transport, Debt, Fun, and Buffer on one ${STARTER_SPENDING_ACCOUNT_NAME.toLowerCase()} account. Leftover and month close stay empty until you enter them.`}
+            title={BUDGET_EMPTY.title}
+            description={BUDGET_EMPTY.description}
             actions={
-              <Button
-                onClick={() => void handleStartKit()}
-                disabled={isCreating || !isPlanReady}
-              >
-                <Plus className="size-4" />
-                Use these envelopes
-              </Button>
+              <>
+                <Button
+                  onClick={() => void handleStartKit()}
+                  disabled={isCreating || !isPlanReady}
+                >
+                  <Plus className="size-4" />
+                  {BUDGET_EMPTY.kitLabel}
+                </Button>
+                <Button
+                  variant="outline"
+                  render={<Link href={BUDGET_EMPTY.learnHref} />}
+                >
+                  {BUDGET_EMPTY.learnLabel}
+                </Button>
+              </>
             }
           />
           <ul className="mx-auto mb-8 grid max-w-md grid-cols-2 gap-2 px-6 text-sm text-muted-foreground sm:grid-cols-3">

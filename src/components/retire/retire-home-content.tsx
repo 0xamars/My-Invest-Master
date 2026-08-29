@@ -14,6 +14,7 @@ import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
+import { FREEDOM_EMPTY } from "@/lib/journey/empty-states";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import {
   bindFreedomPathPlan,
@@ -111,16 +112,27 @@ export function RetireHomeContent() {
           Loading Freedom…
         </div>
       ) : inputsMissing && !latest ? (
-        <div className="glass-card">
+        <div className="glass-card" data-empty-state="freedom">
           <RetireEmptyState
             icon={<Target className="size-5" />}
-            title="Leftover and the book are missing"
-            description="Freedom will not invent cash. Assign leftover in Budget, or add holdings in Invest."
+            title={FREEDOM_EMPTY.title}
+            description={FREEDOM_EMPTY.description}
             actions={
               <>
-                <Button render={<Link href="/budget" />}>Open Budget</Button>
-                <Button variant="outline" render={<Link href="/invest" />}>
-                  Open Invest
+                <Button render={<Link href={FREEDOM_EMPTY.leftoverHref} />}>
+                  {FREEDOM_EMPTY.leftoverLabel}
+                </Button>
+                <Button
+                  variant="outline"
+                  render={<Link href={FREEDOM_EMPTY.bookHref} />}
+                >
+                  {FREEDOM_EMPTY.bookLabel}
+                </Button>
+                <Button
+                  variant="outline"
+                  render={<Link href={FREEDOM_EMPTY.learnHref} />}
+                >
+                  {FREEDOM_EMPTY.learnLabel}
                 </Button>
               </>
             }
@@ -143,9 +155,20 @@ export function RetireHomeContent() {
             }
             emptyActions={
               <>
-                <Button render={<Link href="/budget" />}>Open Budget</Button>
-                <Button variant="outline" render={<Link href="/invest" />}>
-                  Open Invest
+                <Button render={<Link href={FREEDOM_EMPTY.leftoverHref} />}>
+                  {FREEDOM_EMPTY.leftoverLabel}
+                </Button>
+                <Button
+                  variant="outline"
+                  render={<Link href={FREEDOM_EMPTY.bookHref} />}
+                >
+                  {FREEDOM_EMPTY.bookLabel}
+                </Button>
+                <Button
+                  variant="outline"
+                  render={<Link href={FREEDOM_EMPTY.learnHref} />}
+                >
+                  {FREEDOM_EMPTY.learnLabel}
                 </Button>
               </>
             }

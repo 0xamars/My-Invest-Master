@@ -1,10 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import {
+  moneyProfilePresenceFromQuery,
+  shouldRedirectToMoneyProfile,
+  signedInAuthRedirectPath,
+} from "@/lib/journey/landing";
 import { mergeSessionCookieOptions } from "@/lib/security/cookies";
 import { isProtectedRoute } from "@/lib/security/protected-routes";
 import {
-  APP_HOME_PATH,
   LOGIN_PATH,
+  MONEY_PROFILE_PATH,
   SIGNIN_PATH,
   SIGNUP_PATH,
   safeAuthNextPath,
@@ -16,6 +21,35 @@ function isSupabaseConfigured(): boolean {
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
+}
+
+function redirectWithSession(
+  request: NextRequest,
+  sessionResponse: NextResponse,
+  pathname: string,
+  search = "",
+): NextResponse {
+  const redirectUrl = request.nextUrl.clone();
+  redirectUrl.pathname = pathname;
+  redirectUrl.search = search;
+  const redirect = NextResponse.redirect(redirectUrl);
+  sessionResponse.cookies.getAll().forEach((cookie) => {
+    redirect.cookies.set(cookie.name, cookie.value);
+  });
+  return redirect;
+}
+
+async function userHasMoneyProfile(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("user_money_profiles")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return moneyProfilePresenceFromQuery({ data, error });
 }
 
 export async function updateSession(request: NextRequest) {
@@ -66,17 +100,24 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (pathname === SIGNIN_PATH) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = user ? APP_HOME_PATH : LOGIN_PATH;
-    redirectUrl.search = "";
-    return NextResponse.redirect(redirectUrl);
+    if (!user) {
+      return redirectWithSession(request, supabaseResponse, LOGIN_PATH);
+    }
+    const hasProfile = await userHasMoneyProfile(supabase, user.id);
+    return redirectWithSession(
+      request,
+      supabaseResponse,
+      signedInAuthRedirectPath(hasProfile),
+    );
   }
 
   if (user && (pathname === LOGIN_PATH || pathname === SIGNUP_PATH)) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = APP_HOME_PATH;
-    redirectUrl.search = "";
-    return NextResponse.redirect(redirectUrl);
+    const hasProfile = await userHasMoneyProfile(supabase, user.id);
+    return redirectWithSession(
+      request,
+      supabaseResponse,
+      signedInAuthRedirectPath(hasProfile),
+    );
   }
 
   if (isProtectedRoute(pathname) && !user) {
@@ -84,7 +125,35 @@ export async function updateSession(request: NextRequest) {
     redirectUrl.pathname = LOGIN_PATH;
     redirectUrl.search = "";
     redirectUrl.searchParams.set("next", safeAuthNextPath(pathname));
-    return NextResponse.redirect(redirectUrl);
+    const redirect = NextResponse.redirect(redirectUrl);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie.name, cookie.value);
+    });
+    return redirect;
+  }
+
+  if (
+    user &&
+    shouldRedirectToMoneyProfile({
+      signedIn: true,
+      hasProfile: false,
+      pathname,
+    })
+  ) {
+    const hasProfile = await userHasMoneyProfile(supabase, user.id);
+    if (
+      shouldRedirectToMoneyProfile({
+        signedIn: true,
+        hasProfile,
+        pathname,
+      })
+    ) {
+      return redirectWithSession(
+        request,
+        supabaseResponse,
+        MONEY_PROFILE_PATH,
+      );
+    }
   }
 
   return supabaseResponse;
