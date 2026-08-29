@@ -2,17 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
-  Check,
-  Eye,
   Loader2,
   PieChart,
   RefreshCw,
 } from "lucide-react";
-import { AnalysisCompanyBlurb } from "@/components/analysis/analysis-company-blurb";
 import { AnalysisPriceChart } from "@/components/analysis/analysis-price-chart";
 import { AnalysisRatingSection } from "@/components/analysis/analysis-rating-section";
 import { AnalysisTickerSearch } from "@/components/analysis/analysis-ticker-search";
@@ -22,18 +18,10 @@ import {
 } from "@/components/analytics/analytics-chart-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
-import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { buildAnalysisQuoteStats } from "@/lib/analysis/format-stats";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
 import type { AnalysisForecast } from "@/lib/analysis/forecast";
@@ -145,10 +133,8 @@ export function AnalysisTickerContent({
   priceId,
   nameHint,
 }: AnalysisTickerContentProps) {
-  const router = useRouter();
   const { currency } = useDisplayCurrency();
   const { rates, isLoading: isFxLoading, error: fxError } = useFxRate();
-  const { lists, addTicker, isLoaded: watchlistsLoaded } = useWatchlistPlans();
   const { primaryPortfolio, portfolios } = usePortfolioPlans();
 
   const [quote, setQuote] = useState<AnalysisQuote | null>(null);
@@ -160,9 +146,6 @@ export function AnalysisTickerContent({
   const [isChartLoading, setIsChartLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState<AnalysisChartRange>("1M");
-  const [watchlistId, setWatchlistId] = useState("");
-  const [watchlistMessage, setWatchlistMessage] = useState<string | null>(null);
-  const [watchlistAdded, setWatchlistAdded] = useState(false);
   const hasLoadedRef = useRef(false);
 
   const upper = symbol.toUpperCase();
@@ -227,31 +210,6 @@ export function AnalysisTickerContent({
     void load(range, { soft: hasLoadedRef.current });
   }, [load, range]);
 
-  useEffect(() => {
-    setWatchlistMessage(null);
-    setWatchlistAdded(false);
-  }, [upper, type]);
-
-  useEffect(() => {
-    if (!watchlistsLoaded) return;
-    if (lists.length === 0) {
-      setWatchlistId("");
-      return;
-    }
-    if (!watchlistId || !lists.some((list) => list.id === watchlistId)) {
-      setWatchlistId(lists[0].id);
-    }
-  }, [watchlistsLoaded, lists, watchlistId]);
-
-  const alreadyOnWatchlist = useMemo(() => {
-    if (!watchlistId) return false;
-    const list = lists.find((item) => item.id === watchlistId);
-    if (!list) return false;
-    return list.items.some(
-      (item) => item.symbol === upper && item.type === type,
-    );
-  }, [lists, watchlistId, upper, type]);
-
   const stats = useMemo(() => {
     if (!quote) return [];
     return buildAnalysisQuoteStats(quote, currency, rates);
@@ -262,32 +220,6 @@ export function AnalysisTickerContent({
     : portfolios[0]
       ? `/portfolio/${portfolios[0].id}`
       : "/portfolio";
-
-  function handleAddToWatchlist() {
-    if (lists.length === 0) {
-      setWatchlistMessage("Create a watchlist first under Invest → Watchlist.");
-      return;
-    }
-    if (!watchlistId) {
-      setWatchlistMessage("Select a watchlist to continue.");
-      return;
-    }
-    if (alreadyOnWatchlist) {
-      setWatchlistAdded(true);
-      setWatchlistMessage("Already on this watchlist.");
-      return;
-    }
-
-    addTicker(watchlistId, {
-      symbol: upper,
-      name: quote?.name ?? nameHint ?? upper,
-      type,
-      priceId: quote?.priceId ?? priceId,
-      logoUrl: quote?.logoUrl,
-    });
-    setWatchlistAdded(true);
-    setWatchlistMessage("Added to watchlist.");
-  }
 
   if (isLoading && !quote) {
     return (
@@ -363,7 +295,6 @@ export function AnalysisTickerContent({
   }
 
   const changeLabel = type === "crypto" ? "24h change" : "Day change";
-  const classification = rating?.fundamental.classification;
 
   return (
     <div className="flex flex-1 flex-col gap-8">
@@ -449,43 +380,6 @@ export function AnalysisTickerContent({
                     className={cn("size-4", isLoading && "animate-spin")}
                   />
                 </Button>
-                {lists.length > 1 && (
-                  <Select
-                    value={watchlistId || undefined}
-                    onValueChange={(value) => {
-                      if (value) {
-                        setWatchlistId(value);
-                        setWatchlistMessage(null);
-                        setWatchlistAdded(false);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Watchlist" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {lists.map((list) => (
-                        <SelectItem key={list.id} value={list.id}>
-                          {list.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={handleAddToWatchlist}
-                >
-                  {watchlistAdded || alreadyOnWatchlist ? (
-                    <Check className="size-4 text-primary" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
-                  {alreadyOnWatchlist || watchlistAdded
-                    ? "On watchlist"
-                    : "Add to Watchlist"}
-                </Button>
                 <Button
                   className="gap-2"
                   render={<Link href={portfolioHref} />}
@@ -494,28 +388,8 @@ export function AnalysisTickerContent({
                   Add in Portfolio
                 </Button>
               </div>
-              {watchlistMessage && (
-                <p
-                  className={cn(
-                    "text-xs",
-                    watchlistAdded || alreadyOnWatchlist
-                      ? "text-primary"
-                      : "text-amber-700 dark:text-amber-400",
-                  )}
-                >
-                  {watchlistMessage}
-                </p>
-              )}
             </div>
           </div>
-
-          <AnalysisCompanyBlurb
-            symbol={quote.symbol}
-            name={quote.name}
-            sector={classification?.sector ?? null}
-            industry={classification?.industry ?? null}
-            description={quote.description ?? null}
-          />
         </div>
       </div>
 
@@ -588,14 +462,6 @@ export function AnalysisTickerContent({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => router.push("/market")}>
-          Browse Market
-        </Button>
-        <Button variant="outline" onClick={() => router.push("/watchlist")}>
-          Open Watchlist
-        </Button>
-      </div>
     </div>
   );
 }
