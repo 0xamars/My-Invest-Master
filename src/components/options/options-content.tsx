@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, Layers, RefreshCw } from "lucide-react";
+import { OptionsConfirmGate } from "@/components/journey/options-confirm-gate";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -16,6 +17,8 @@ import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { RetirePageHeader, RetirePanel } from "@/components/retirement/retire-ui";
 import { INVEST_PATH, investPortfolioPath } from "@/lib/chrome/nav";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
+import { useMoneyProfile } from "@/hooks/use-money-profile";
+import { confirmOptionsUse, optionsIsGated } from "@/lib/journey/locks";
 import { useEnrichedPortfolio } from "@/hooks/use-enriched-portfolio";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { useOptionsPrices } from "@/hooks/use-options-prices";
@@ -38,6 +41,8 @@ import { cn } from "@/lib/utils";
 import type { OptionStatus, OptionsPositionWithMetrics } from "@/types/options";
 
 export function OptionsContent() {
+  const { profile, saveProfile, isSaving } = useMoneyProfile();
+  const [sessionConfirmed, setSessionConfirmed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingPosition, setDeletingPosition] =
@@ -122,6 +127,25 @@ export function OptionsContent() {
     return (
       <div className="flex flex-1 items-center justify-center py-24">
         <RefreshCw className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const gated = optionsIsGated(profile) && !sessionConfirmed;
+
+  if (gated) {
+    return (
+      <div className="flex flex-1 flex-col gap-6">
+        <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
+        <OptionsConfirmGate
+          isSaving={isSaving}
+          onConfirm={async () => {
+            if (profile) {
+              await saveProfile(confirmOptionsUse(profile));
+            }
+            setSessionConfirmed(true);
+          }}
+        />
       </div>
     );
   }

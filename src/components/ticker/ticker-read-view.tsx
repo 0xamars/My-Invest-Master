@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -18,19 +20,33 @@ import {
   formatTickerPrice,
   TICKER_UNKNOWN,
 } from "@/lib/ticker/format";
+import { SHOW_THE_DETAILS_LABEL } from "@/lib/journey/first-run";
 import { SCORE_NOT_A_BUY } from "@/lib/ticker/score";
 import type { TickerField, TickerSnapshot } from "@/lib/ticker/types";
 import { INVEST_PATH } from "@/lib/chrome/nav";
 import { profitLossClass } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
 
-export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
+export function TickerReadView({
+  snapshot,
+  density = "full",
+  onShowDetails,
+}: {
+  snapshot: TickerSnapshot;
+  density?: "summary" | "full";
+  onShowDetails?: () => void;
+}) {
   const { profile, quote } = snapshot;
   const change = quote.changePercent;
   const name = profile.name ?? TICKER_UNKNOWN;
+  const collapsed = density === "summary";
 
   return (
-    <div className="flex flex-1 flex-col gap-5" data-ticker-read="1">
+    <div
+      className="flex flex-1 flex-col gap-5"
+      data-ticker-read="1"
+      data-ticker-density={density}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button
           variant="ghost"
@@ -75,7 +91,29 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
         <CacheLine snapshot={snapshot} />
       </section>
 
-      {!snapshot.found ? (
+      {collapsed ? (
+        <RetirePanel className="px-5 py-5">
+          <p className="text-sm font-medium">Plain summary</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {profile.description ?? TICKER_UNKNOWN}
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Missing figures stay {TICKER_UNKNOWN}. Score, Past, Health, and
+            Future stay behind the details until you ask.
+          </p>
+          {onShowDetails ? (
+            <Button
+              type="button"
+              className="mt-4"
+              onClick={onShowDetails}
+            >
+              {SHOW_THE_DETAILS_LABEL}
+            </Button>
+          ) : null}
+        </RetirePanel>
+      ) : null}
+
+      {collapsed ? null : !snapshot.found ? (
         <RetirePanel className="px-5 py-5">
           <p className="text-sm font-medium">Ticker unavailable</p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -85,6 +123,7 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
         </RetirePanel>
       ) : null}
 
+      {collapsed ? null : (
       <RetirePanel className="px-5 py-4">
         <h2 className="text-sm font-semibold">Score</h2>
         <p className="mt-1 text-sm text-muted-foreground">{SCORE_NOT_A_BUY}</p>
@@ -92,11 +131,14 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
           <TickerScoreGraphic score={snapshot.score} />
         </div>
       </RetirePanel>
+      )}
 
-      <TickerPastSection snapshot={snapshot} />
-      <TickerHealthSection snapshot={snapshot} />
-      <TickerFutureSection snapshot={snapshot} />
+      {collapsed ? null : <TickerPastSection snapshot={snapshot} />}
+      {collapsed ? null : <TickerHealthSection snapshot={snapshot} />}
+      {collapsed ? null : <TickerFutureSection snapshot={snapshot} />}
 
+      {collapsed ? null : (
+        <>
       <Section title="Profile">
         <p className="text-sm leading-relaxed text-muted-foreground">
           {profile.description ?? TICKER_UNKNOWN}
@@ -170,6 +212,8 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
         Figures from Financial Modeling Prep only. If FMP does not have a number,
         it is {TICKER_UNKNOWN}. Not investment advice.
       </p>
+        </>
+      )}
     </div>
   );
 }

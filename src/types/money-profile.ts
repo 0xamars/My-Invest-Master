@@ -72,6 +72,8 @@ export interface MoneyProfileFlags {
   budgetElsewhere: boolean;
   investNoHoldingsYet: boolean;
   toolsOnly: boolean;
+  /** Slice D: beginner confirmed the Options gate. Fast / tools skip. */
+  optionsConfirmed: boolean;
 }
 
 export interface MoneyProfileWorking {

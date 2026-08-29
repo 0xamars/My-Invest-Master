@@ -5,6 +5,8 @@ import { TickerReadView } from "@/components/ticker/ticker-read-view";
 import { TickerSkeleton } from "@/components/ticker/ticker-skeleton";
 import { TickerLookup } from "@/components/ticker/ticker-lookup";
 import { INVEST_PATH } from "@/lib/chrome/nav";
+import { useMoneyProfile } from "@/hooks/use-money-profile";
+import { tickerDensity } from "@/lib/journey/density";
 import type { TickerSnapshot } from "@/lib/ticker/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,14 +19,19 @@ export function TickerReadScreen({
   symbol: string;
   initial: TickerSnapshot | null;
 }) {
+  const { profile } = useMoneyProfile();
   const [snapshot, setSnapshot] = useState<TickerSnapshot | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initial);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const startCollapsed = tickerDensity(profile) === "summary";
+  const density = startCollapsed && !detailsOpen ? "summary" : "full";
 
   useEffect(() => {
     setSnapshot(initial);
     setError(null);
     setLoading(!initial);
+    setDetailsOpen(false);
   }, [symbol, initial]);
 
   useEffect(() => {
@@ -58,7 +65,13 @@ export function TickerReadScreen({
   }, [symbol, initial]);
 
   if (snapshot) {
-    return <TickerReadView snapshot={snapshot} />;
+    return (
+      <TickerReadView
+        snapshot={snapshot}
+        density={density}
+        onShowDetails={() => setDetailsOpen(true)}
+      />
+    );
   }
 
   if (loading) {

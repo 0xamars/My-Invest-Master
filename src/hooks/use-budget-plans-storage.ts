@@ -17,9 +17,11 @@ import {
   saveBudgetPlanToCloud,
 } from "@/lib/supabase/user-data";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createFirstRunBudgetKit } from "@/lib/journey/first-run";
 import {
   createEmptyBudgetPlan,
   getMonthKey,
+  type BudgetCurrency,
   type BudgetPlan,
   type BudgetPlanSummary,
 } from "@/types/budget";
@@ -159,16 +161,8 @@ export function useBudgetPlansStorage() {
     [queueSave, assertCanCreate],
   );
 
-  const createPlanAndSave = useCallback(
-    async (name: string): Promise<BudgetPlan> => {
-      const trimmed = name.trim();
-      if (!trimmed) {
-        throw new Error("Plan name is required.");
-      }
-
-      assertCanCreate();
-
-      const plan = createEmptyBudgetPlan(trimmed);
+  const persistNewPlan = useCallback(
+    async (plan: BudgetPlan): Promise<BudgetPlan> => {
       setPlans((prev) => [plan, ...prev]);
 
       if (user && isSupabaseConfigured()) {
@@ -184,7 +178,36 @@ export function useBudgetPlansStorage() {
 
       return plan;
     },
-    [user, assertCanCreate],
+    [user],
+  );
+
+  const createPlanAndSave = useCallback(
+    async (name: string): Promise<BudgetPlan> => {
+      const trimmed = name.trim();
+      if (!trimmed) {
+        throw new Error("Plan name is required.");
+      }
+
+      assertCanCreate();
+      return persistNewPlan(createEmptyBudgetPlan(trimmed));
+    },
+    [assertCanCreate, persistNewPlan],
+  );
+
+  const createStarterKitAndSave = useCallback(
+    async (
+      name = "Budget",
+      currency?: BudgetCurrency,
+    ): Promise<BudgetPlan> => {
+      const trimmed = name.trim();
+      if (!trimmed) {
+        throw new Error("Plan name is required.");
+      }
+
+      assertCanCreate();
+      return persistNewPlan(createFirstRunBudgetKit(trimmed, { currency }));
+    },
+    [assertCanCreate, persistNewPlan],
   );
 
   const updatePlan = useCallback(
@@ -248,6 +271,7 @@ export function useBudgetPlansStorage() {
     summaries,
     createPlan,
     createPlanAndSave,
+    createStarterKitAndSave,
     updatePlan,
     renamePlan,
     deletePlan,
