@@ -1,4 +1,5 @@
 import { buildCategoryRows, getReadyToAssign } from "@/lib/budget/calculations";
+import { isMonthClosed } from "@/lib/budget/closed-months";
 import { isPaymentCategory } from "@/lib/budget/credit-card-payments";
 import { applyCoverOverspend, applyMoveMoney } from "@/lib/budget/move-money";
 import { READY_TO_ASSIGN_ID, type BudgetData } from "@/types/budget";
@@ -28,10 +29,10 @@ function spendingRows(budget: BudgetData, monthKey: string) {
 }
 
 /**
- * Preview Reset Available (YNAB “Reset Available Amounts”).
+ * Preview Reset Available.
  *
- * Positive leftover Available moves back to Ready to Assign. Payment
- * categories are skipped. Overspent / negative rows stay unless Cover is on.
+ * Positive leftover Available moves back to leftover (unassigned). Payment
+ * envelopes are skipped. Overspent / negative rows stay unless Cover is on.
  */
 export function previewResetAvailable(
   budget: BudgetData,
@@ -90,6 +91,7 @@ export function applyResetAvailable<T extends BudgetData>(
   monthKey: string,
   options: ResetAvailableOptions = {},
 ): T {
+  if (isMonthClosed(budget, monthKey)) return budget;
   const preview = previewResetAvailable(budget, monthKey, options);
   let next: T = budget;
 

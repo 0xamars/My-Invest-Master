@@ -40,9 +40,9 @@ export function AddCategoryGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Category Group</DialogTitle>
+          <DialogTitle>Add Envelope Group</DialogTitle>
           <DialogDescription>
-            Group related categories together (e.g. Living Expenses).
+            Group related envelopes together (e.g. Living Expenses).
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5 py-1">
@@ -99,15 +99,15 @@ export function AddCategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Category</DialogTitle>
+          <DialogTitle>Add Envelope</DialogTitle>
           <DialogDescription>
             {groupName
-              ? `Add a category under ${groupName}.`
-              : "Create a new spending category."}
+              ? `Add an envelope under ${groupName}.`
+              : "Create a new spending envelope."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5 py-1">
-          <Label htmlFor="category-name">Category name</Label>
+          <Label htmlFor="category-name">Envelope name</Label>
           <Input
             id="category-name"
             placeholder="Groceries"
@@ -123,7 +123,7 @@ export function AddCategoryDialog({
             Cancel
           </Button>
           <Button type="button" onClick={handleSubmit}>
-            Add Category
+            Add Envelope
           </Button>
         </DialogFooter>
       </DialogContent>

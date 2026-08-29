@@ -536,7 +536,7 @@ export function BudgetScheduledDialog({
           {type === "outflow" && selectedOnBudget && !splitEnabled && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <Label>Category</Label>
+                <Label>Envelope</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -562,10 +562,10 @@ export function BudgetScheduledDialog({
                 onValueChange={(value) => setCategoryId(value ?? "none")}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select envelope" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Uncategorized</SelectItem>
+                  <SelectItem value="none">Unassigned</SelectItem>
                   {categoryOptions()}
                 </SelectContent>
               </Select>
@@ -575,7 +575,7 @@ export function BudgetScheduledDialog({
           {type === "outflow" && selectedOnBudget && splitEnabled && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
-                <Label>Split categories</Label>
+                <Label>Split envelopes</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -587,7 +587,7 @@ export function BudgetScheduledDialog({
                     if (first) setCategoryId(first.categoryId);
                   }}
                 >
-                  Single category
+                  Single envelope
                 </Button>
               </div>
 
@@ -614,7 +614,7 @@ export function BudgetScheduledDialog({
                     <div className="min-w-0 flex-1 space-y-1.5">
                       {index === 0 && (
                         <Label className="text-xs text-muted-foreground">
-                          Category
+                          Envelope
                         </Label>
                       )}
                       <Select
@@ -630,10 +630,10 @@ export function BudgetScheduledDialog({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Category" />
+                          <SelectValue placeholder="Envelope" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Uncategorized</SelectItem>
+                          <SelectItem value="none">Unassigned</SelectItem>
                           {categoryOptions()}
                         </SelectContent>
                       </Select>

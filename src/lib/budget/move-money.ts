@@ -1,4 +1,5 @@
 import { getCategoryAvailable, getReadyToAssign } from "@/lib/budget/calculations";
+import { isMonthClosed } from "@/lib/budget/closed-months";
 import { READY_TO_ASSIGN_ID, type BudgetData } from "@/types/budget";
 
 export { READY_TO_ASSIGN_ID };
@@ -21,6 +22,7 @@ function withAssignmentDelta<T extends BudgetData>(
     monthBudgets: {
       ...budget.monthBudgets,
       [monthKey]: {
+        ...monthBudget,
         assignments: {
           ...monthBudget.assignments,
           [categoryId]: current + delta,
@@ -45,6 +47,7 @@ export function applyMoveMoney<T extends BudgetData>(
   const transfer = Math.max(0, amount);
   if (transfer === 0) return budget;
   if (fromCategoryId === toCategoryId) return budget;
+  if (isMonthClosed(budget, monthKey)) return budget;
 
   const available = Math.max(0, getCategoryAvailable(budget, fromCategoryId, monthKey));
   const moved = Math.min(transfer, available);
@@ -66,6 +69,7 @@ export function applyCoverOverspend<T extends BudgetData>(
     | { type: "category"; categoryId: string },
   amount: number,
 ): T {
+  if (isMonthClosed(budget, monthKey)) return budget;
   const available = getCategoryAvailable(budget, categoryId, monthKey);
   const overspend = Math.max(0, -available);
   const requested = Math.min(Math.max(0, amount), overspend);
@@ -87,5 +91,6 @@ export function applyAssignmentDelta<T extends BudgetData>(
   categoryId: string,
   delta: number,
 ): T {
+  if (isMonthClosed(budget, monthKey)) return budget;
   return withAssignmentDelta(budget, monthKey, categoryId, delta);
 }

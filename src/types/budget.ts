@@ -43,7 +43,7 @@ export interface BudgetCategory {
 
 export type BudgetTransactionType = "inflow" | "outflow" | "transfer";
 
-/** YNAB-style register cleared triad. Legacy boolean migrates in normalizeBudgetPlan. */
+/** Register cleared triad. Legacy boolean migrates in normalizeBudgetPlan. */
 export type BudgetClearedState = "uncleared" | "cleared" | "reconciled";
 
 export type BudgetCurrency = "USD" | "CAD";
@@ -112,8 +112,17 @@ export interface BudgetTransaction {
   matchedTransactionId?: string;
 }
 
+export interface MonthOpening {
+  leftover: number;
+  envelopes: Record<string, number>;
+}
+
 export interface MonthBudget {
   assignments: Record<string, number>;
+  /** Set when the user closes this month. */
+  closedAt?: string;
+  /** Opening leftover and envelope available after the previous month close. */
+  opening?: MonthOpening;
 }
 
 export type CategoryGoalType =
@@ -140,6 +149,12 @@ export interface BudgetPlan {
   scheduledTransactions: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
+  /**
+   * Last month the user closed.
+   * `null` = explicit close mode, nothing closed yet.
+   * Missing = legacy implicit close (months before the viewed month).
+   */
+  closedThrough?: string | null;
   /** Display currency only — no FX conversion. Defaults to USD on normalize. */
   currency?: BudgetCurrency;
   createdAt: string;
@@ -155,6 +170,7 @@ export interface BudgetData {
   scheduledTransactions?: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
+  closedThrough?: string | null;
   currency?: BudgetCurrency;
   updatedAt: string;
 }
@@ -169,7 +185,7 @@ export interface BudgetPlanSummary {
   updatedAt: string;
 }
 
-export function createDefaultAccount(name = "Chequing"): BudgetAccount {
+export function createDefaultAccount(name = "Spending"): BudgetAccount {
   return {
     id: crypto.randomUUID(),
     name,
@@ -213,6 +229,7 @@ export function createEmptyBudgetPlan(name = "New Budget Plan"): BudgetPlan {
     scheduledTransactions: [],
     monthBudgets: {},
     goals: [],
+    closedThrough: null,
     currency: "USD",
     createdAt: now,
     updatedAt: now,

@@ -76,7 +76,7 @@ export function categoryNameById(
   categories: BudgetCategory[],
   categoryId: string | null,
 ): string {
-  if (!categoryId) return "Uncategorized";
+  if (!categoryId) return "Unassigned";
   return (
     categories.find((category) => category.id === categoryId)?.name ?? "Unknown"
   );
@@ -113,7 +113,7 @@ export function getTransactionDisplay(
     const crossesBudget = fromOnBudget !== toOnBudget;
     return {
       payee: incoming ? `Transfer from ${fromName}` : `Transfer to ${toName}`,
-      categoryLabel: crossesBudget ? "Ready to Assign" : "Transfer",
+      categoryLabel: crossesBudget ? "Leftover" : "Transfer",
       isInflowLike: incoming || (!viewingAccountId && !fromOnBudget && toOnBudget),
       isTransfer: true,
       isSplit: false,
@@ -139,7 +139,7 @@ export function getTransactionDisplay(
     payee: tx.payee,
     categoryLabel:
       tx.type === "inflow"
-        ? "Ready to Assign"
+        ? "Leftover"
         : categoryNameById(categories, tx.categoryId),
     isInflowLike: tx.type === "inflow",
     isTransfer: false,

@@ -50,8 +50,8 @@ export function EditCategoryGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Category Group</DialogTitle>
-          <DialogDescription>Rename this category group.</DialogDescription>
+          <DialogTitle>Edit Envelope Group</DialogTitle>
+          <DialogDescription>Rename this envelope group.</DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5 py-1">
           <Label htmlFor="edit-group-name">Group name</Label>
@@ -113,10 +113,10 @@ export function DeleteCategoryGroupDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete Category Group</DialogTitle>
+          <DialogTitle>Delete Envelope Group</DialogTitle>
           <DialogDescription>
             {hasCategories
-              ? `"${group?.name}" contains ${categoryCount} categor${categoryCount === 1 ? "y" : "ies"}. Choose what to do with them.`
+              ? `"${group?.name}" contains ${categoryCount} envelope${categoryCount === 1 ? "" : "s"}. Choose what to do with them.`
               : `Delete "${group?.name}"? This cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
@@ -126,7 +126,7 @@ export function DeleteCategoryGroupDialog({
             {canMove && (
               <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
                 <p className="text-sm font-medium text-foreground">
-                  Move categories to another group
+                  Move envelopes to another group
                 </p>
                 <Select
                   value={targetGroupId}
@@ -160,11 +160,11 @@ export function DeleteCategoryGroupDialog({
 
             <div className="space-y-2 rounded-lg border border-[var(--brand-red)]/30 bg-[var(--brand-red)]/8 p-3">
               <p className="text-sm font-medium text-foreground">
-                Delete group and all categories
+                Delete group and all envelopes
               </p>
               <p className="text-xs text-muted-foreground">
-                Categories, goals, and assignments will be removed. Transactions
-                will become uncategorized.
+                Envelopes, goals, and assignments will be removed. Transactions
+                will become unassigned.
               </p>
               <Button
                 type="button"
@@ -249,14 +249,14 @@ export function EditCategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Category</DialogTitle>
+          <DialogTitle>Edit Envelope</DialogTitle>
           <DialogDescription>
-            Rename this category or move it to a different group.
+            Rename this envelope or move it to a different group.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-1">
           <div className="space-y-1.5">
-            <Label htmlFor="edit-category-name">Category name</Label>
+            <Label htmlFor="edit-category-name">Envelope name</Label>
             <Input
               id="edit-category-name"
               value={name}
@@ -264,7 +264,7 @@ export function EditCategoryDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Category group</Label>
+            <Label>Envelope group</Label>
             <Select value={groupId} onValueChange={(value) => setGroupId(value ?? "")}>
               <SelectTrigger>
                 <SelectValue placeholder="Select group" />
@@ -309,11 +309,11 @@ export function DeleteCategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete Category</DialogTitle>
+          <DialogTitle>Delete Envelope</DialogTitle>
           <DialogDescription>
             Delete &ldquo;{category?.name}&rdquo;? Goals and assignments for this
-            category will be removed. Linked transactions will become
-            uncategorized.
+            envelope will be removed. Linked transactions will become
+            unassigned.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -328,7 +328,7 @@ export function DeleteCategoryDialog({
               onOpenChange(false);
             }}
           >
-            Delete Category
+            Delete Envelope
           </Button>
         </DialogFooter>
       </DialogContent>

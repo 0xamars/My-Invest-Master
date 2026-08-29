@@ -183,13 +183,13 @@ export function getIncomeThroughMonth(
 }
 
 /**
- * Ready to Assign for `monthKey`.
+ * Leftover (Ready to Assign) for `monthKey`.
  *
- *   RTA = inflows through this month − assignments through this month
- *         − uncovered cash overspend from closed months
+ *   leftover = inflows through this month − assignments through this month
+ *              − uncovered cash overspend from closed months
  *
- * Credit overspend does not reduce Ready to Assign; it underfunds the card
- * payment category instead (YNAB cash vs credit rollover).
+ * Credit overspend does not reduce leftover; it underfunds the card payment
+ * envelope instead.
  */
 export function getReadyToAssign(
   budget: BudgetData,

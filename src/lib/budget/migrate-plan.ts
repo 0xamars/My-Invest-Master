@@ -14,6 +14,8 @@ import {
   type BudgetTransactionSplit,
   type BudgetTransactionType,
   type CategoryGoal,
+  type MonthBudget,
+  type MonthOpening,
   type RecurringFrequency,
 } from "@/types/budget";
 
@@ -57,6 +59,8 @@ type LegacyPlan = BudgetPlan & {
   scheduledTransactions?: BudgetScheduledTransaction[];
   goals?: CategoryGoal[];
   currency?: BudgetCurrency | string;
+  closedThrough?: string | null;
+  monthBudgets?: Record<string, MonthBudget>;
 };
 
 const FREQUENCIES = new Set<RecurringFrequency>([
@@ -186,6 +190,59 @@ function normalizeAccount(account: LegacyAccount, index: number): BudgetAccount 
   };
 }
 
+function normalizeClosedThrough(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value === "string" && /^\d{4}-\d{2}$/.test(value)) return value;
+  return null;
+}
+
+function normalizeOpening(value: unknown): MonthOpening | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const raw = value as { leftover?: unknown; envelopes?: unknown };
+  const leftover =
+    typeof raw.leftover === "number" && Number.isFinite(raw.leftover)
+      ? raw.leftover
+      : 0;
+  const envelopes: Record<string, number> = {};
+  if (raw.envelopes && typeof raw.envelopes === "object") {
+    for (const [id, amount] of Object.entries(
+      raw.envelopes as Record<string, unknown>,
+    )) {
+      if (typeof amount === "number" && Number.isFinite(amount)) {
+        envelopes[id] = amount;
+      }
+    }
+  }
+  return { leftover, envelopes };
+}
+
+function normalizeMonthBudgets(
+  monthBudgets: Record<string, MonthBudget> | undefined,
+): Record<string, MonthBudget> {
+  if (!monthBudgets || typeof monthBudgets !== "object") return {};
+
+  const next: Record<string, MonthBudget> = {};
+  for (const [monthKey, month] of Object.entries(monthBudgets)) {
+    if (!month || typeof month !== "object") continue;
+    const assignments: Record<string, number> = {};
+    for (const [categoryId, amount] of Object.entries(month.assignments ?? {})) {
+      if (typeof amount === "number" && Number.isFinite(amount)) {
+        assignments[categoryId] = amount;
+      }
+    }
+    next[monthKey] = {
+      assignments,
+      closedAt:
+        typeof month.closedAt === "string" && month.closedAt.length > 0
+          ? month.closedAt
+          : undefined,
+      opening: normalizeOpening(month.opening),
+    };
+  }
+  return next;
+}
+
 function normalizeGoals(goals: LegacyGoal[] | undefined): CategoryGoal[] {
   if (!Array.isArray(goals) || goals.length === 0) return [];
 
@@ -281,13 +338,17 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
     fallbackAccountId,
   );
 
+  const closedThrough = normalizeClosedThrough(legacy.closedThrough);
+
   return ensureCreditCardPaymentCategories({
     ...plan,
     accounts,
     transactions,
     scheduledTransactions,
+    monthBudgets: normalizeMonthBudgets(plan.monthBudgets),
     goals: normalizeGoals(legacy.goals),
     currency: resolveBudgetCurrency(legacy.currency),
+    ...(closedThrough !== undefined ? { closedThrough } : {}),
   });
 }
 

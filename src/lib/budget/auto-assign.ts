@@ -2,6 +2,7 @@ import {
   buildCategoryRows,
   getReadyToAssign,
 } from "@/lib/budget/calculations";
+import { isMonthClosed } from "@/lib/budget/closed-months";
 import { applyAssignmentDelta } from "@/lib/budget/move-money";
 import type { BudgetData } from "@/types/budget";
 
@@ -84,6 +85,7 @@ export function applyAutoAssignUnderfunded<T extends BudgetData>(
   budget: T,
   monthKey: string,
 ): T {
+  if (isMonthClosed(budget, monthKey)) return budget;
   const preview = previewAutoAssignUnderfunded(budget, monthKey);
   let next = budget;
 

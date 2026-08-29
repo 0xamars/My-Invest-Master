@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { removeAccountFromBudget } from "@/lib/budget/account-mutations";
+import { applyAssignLeftover } from "@/lib/budget/assign-leftover";
 import { applyAutoAssignUnderfunded } from "@/lib/budget/auto-assign";
 import {
   applyBulkApprove,
@@ -24,7 +25,9 @@ import {
   isCreditCardPaymentsGroup,
   isPaymentCategory,
 } from "@/lib/budget/credit-card-payments";
+import { isMonthClosed } from "@/lib/budget/closed-months";
 import { applyCoverOverspend, applyMoveMoney } from "@/lib/budget/move-money";
+import { applyMonthClose } from "@/lib/budget/month-close";
 import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
@@ -518,12 +521,14 @@ export function useBudgetPlanMutations(planId: string) {
     (monthKey: string, categoryId: string, amount: number) => {
       commitPlan(
         (current) => {
+          if (isMonthClosed(current, monthKey)) return current;
           const monthBudget = current.monthBudgets[monthKey] ?? { assignments: {} };
           return {
             ...current,
             monthBudgets: {
               ...current.monthBudgets,
               [monthKey]: {
+                ...monthBudget,
                 assignments: {
                   ...monthBudget.assignments,
                   [categoryId]: Math.max(0, amount),
@@ -541,6 +546,7 @@ export function useBudgetPlanMutations(planId: string) {
   const adjustCategoryAssignment = useCallback(
     (monthKey: string, categoryId: string, delta: number) => {
       commitPlan((current) => {
+        if (isMonthClosed(current, monthKey)) return current;
         const monthBudget = current.monthBudgets[monthKey] ?? { assignments: {} };
         const currentAmount = monthBudget.assignments[categoryId] ?? 0;
         return {
@@ -548,6 +554,7 @@ export function useBudgetPlanMutations(planId: string) {
           monthBudgets: {
             ...current.monthBudgets,
             [monthKey]: {
+              ...monthBudget,
               assignments: {
                 ...monthBudget.assignments,
                 [categoryId]: Math.max(0, currentAmount + delta),
@@ -556,6 +563,26 @@ export function useBudgetPlanMutations(planId: string) {
           },
         };
       });
+    },
+    [commitPlan],
+  );
+
+  const assignLeftover = useCallback(
+    (monthKey: string, allocations: Array<{ categoryId: string; amount: number }>) => {
+      commitPlan(
+        (current) => applyAssignLeftover(current, monthKey, allocations),
+        { label: "Undo assign leftover" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const closeMonth = useCallback(
+    (monthKey: string) => {
+      commitPlan(
+        (current) => applyMonthClose(current, monthKey),
+        { label: "Undo close month" },
+      );
     },
     [commitPlan],
   );
@@ -905,6 +932,8 @@ export function useBudgetPlanMutations(planId: string) {
       deleteCategory,
       assignToCategory,
       adjustCategoryAssignment,
+      assignLeftover,
+      closeMonth,
       moveMoney,
       coverOverspend,
       autoAssignUnderfunded,
@@ -951,6 +980,8 @@ export function useBudgetPlanMutations(planId: string) {
       deleteCategory,
       assignToCategory,
       adjustCategoryAssignment,
+      assignLeftover,
+      closeMonth,
       moveMoney,
       coverOverspend,
       autoAssignUnderfunded,

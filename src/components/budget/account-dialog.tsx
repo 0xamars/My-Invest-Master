@@ -78,7 +78,7 @@ export function AccountDialog({
           <DialogDescription>
             {isEdit
               ? "Update the name, type, or convert between on-budget and tracking."
-              : "On-budget accounts fund the plan. Tracking accounts (brokerage, mortgage) stay off-budget."}
+              : "A spending account is enough. Tracking accounts stay off-budget."}
           </DialogDescription>
         </DialogHeader>
 
@@ -87,7 +87,7 @@ export function AccountDialog({
             <Label htmlFor="account-name">Account name</Label>
             <Input
               id="account-name"
-              placeholder="Main Chequing"
+              placeholder="Spending"
               value={name}
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => {
@@ -114,8 +114,8 @@ export function AccountDialog({
             </Tabs>
             <p className="text-xs text-muted-foreground">
               {onBudget
-                ? "Inflows go to Ready to Assign. Spending hits category Activity."
-                : "Off-budget. Activity does not change Ready to Assign or category Activity. Transfers in or out of the budget do."}
+                ? "Inflows go to leftover. Spending hits envelope Activity."
+                : "Off-budget. Activity does not change leftover or envelope Activity. Transfers in or out of the budget do."}
             </p>
           </div>
 

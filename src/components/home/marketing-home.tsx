@@ -78,7 +78,7 @@ export function MarketingHomePage({
                 <span className="text-primary">engineered.</span>
               </h1>
               <p className="max-w-lg text-pretty text-base leading-relaxed text-white/65 sm:text-lg">
-                Budget with Ready to Assign and leftover that carries, track a
+                Budget with envelopes and leftover that carries, track a
                 real portfolio, and see whether Freedom is on track — target,
                 gap, and the lever to pull.
               </p>
@@ -140,7 +140,7 @@ export function MarketingHomePage({
                 {
                   step: "01",
                   title: "Budget",
-                  body: "Ready to Assign, leftover that carries, a register inbox, and CSV import. Manual tracking — bank sync is not live.",
+                  body: "One spending account, envelopes, leftover you can assign, and a real month close. Manual tracking — bank sync is not live.",
                 },
                 {
                   step: "02",
@@ -192,7 +192,7 @@ export function MarketingHomePage({
               {[
                 {
                   title: "Budget you can actually use",
-                  body: "Ready to Assign, leftover that carries, cover overspend, a register, and CSV import.",
+                  body: "Envelopes, leftover you can assign, cover overspend, a register, and a real month close.",
                 },
                 {
                   title: "Invest without a second app",

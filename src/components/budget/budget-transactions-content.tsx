@@ -332,7 +332,7 @@ export function BudgetTransactionsContent() {
             <div>
               <p className="text-sm font-semibold">{inboxCount} to approve</p>
               <p className="text-xs text-muted-foreground">
-                Imported rows waiting for a category and a check.
+                Imported rows waiting for an envelope and a check.
               </p>
             </div>
             <Button
@@ -504,10 +504,10 @@ export function BudgetTransactionsContent() {
             onValueChange={(value) => setCategoryFilter(value ?? "all")}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="Envelope" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
+              <SelectItem value="all">All envelopes</SelectItem>
               {budget.categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -623,7 +623,7 @@ export function BudgetTransactionsContent() {
                     Account
                   </TableHead>
                   <TableHead className="bg-transparent text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                    Category
+                    Envelope
                   </TableHead>
                   <TableHead className="bg-transparent text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                     Notes
