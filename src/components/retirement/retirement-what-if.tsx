@@ -58,13 +58,11 @@ export function RetirementWhatIf({
             <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
             <dl className="mt-3 space-y-1.5 text-sm">
               <Row
-                label="Typical market"
+                label="Free"
                 value={
-                  item.typicalAgeLabel == null
-                    ? "—"
-                    : item.typicalLastsToTarget
-                      ? `Lasts to ${item.plan.planEndAge}`
-                      : `Age ${item.typicalAgeLabel}`
+                  item.freedomYear == null
+                    ? "Not on this path"
+                    : String(item.freedomYear)
                 }
               />
               <Row

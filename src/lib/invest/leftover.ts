@@ -30,14 +30,14 @@ export function leftoverFromBudgetPlan(
   plan: BudgetPlan | null | undefined,
   monthKey: string = getCurrentMonthKey(),
 ): LeftoverSnapshot | null {
-  if (!plan) return null;
-  const ready = computeMonthSummary(plan, monthKey).readyToAssign;
-  if (!(ready > 0)) return null;
-  return {
-    amount: ready,
-    currency: plan.currency ?? "USD",
-    budgetPlanId: plan.id,
-  };
+  const presence = leftoverPresenceFromBudgetPlan(plan, monthKey);
+  return presence.status === "present"
+    ? {
+        amount: presence.amount,
+        currency: presence.currency,
+        budgetPlanId: presence.budgetPlanId,
+      }
+    : null;
 }
 
 export function leftoverFromBudgetPlans(
@@ -45,4 +45,47 @@ export function leftoverFromBudgetPlans(
   monthKey?: string,
 ): LeftoverSnapshot | null {
   return leftoverFromBudgetPlan(pickOpenablePlan(plans), monthKey);
+}
+
+export type LeftoverPresence =
+  | { status: "missing-budget" }
+  | {
+      status: "none";
+      budgetPlanId: string;
+      currency: BudgetCurrency;
+    }
+  | {
+      status: "present";
+      amount: number;
+      currency: BudgetCurrency;
+      budgetPlanId: string;
+    };
+
+/**
+ * Ready to Assign for the viewed month, including an honest missing label.
+ * Does not invent a leftover amount.
+ */
+export function leftoverPresenceFromBudgetPlan(
+  plan: BudgetPlan | null | undefined,
+  monthKey: string = getCurrentMonthKey(),
+): LeftoverPresence {
+  if (!plan) return { status: "missing-budget" };
+  const currency = plan.currency ?? "USD";
+  const ready = computeMonthSummary(plan, monthKey).readyToAssign;
+  if (!(ready > 0)) {
+    return { status: "none", budgetPlanId: plan.id, currency };
+  }
+  return {
+    status: "present",
+    amount: ready,
+    currency,
+    budgetPlanId: plan.id,
+  };
+}
+
+export function leftoverPresenceFromBudgetPlans(
+  plans: BudgetPlan[],
+  monthKey?: string,
+): LeftoverPresence {
+  return leftoverPresenceFromBudgetPlan(pickOpenablePlan(plans), monthKey);
 }

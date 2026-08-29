@@ -78,7 +78,7 @@ export function RetireVerdictChip({
       : verdict === "behind"
         ? "Behind"
         : verdict === "empty"
-          ? "Add assets"
+          ? "Inputs missing"
           : "On track";
 
   return (

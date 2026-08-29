@@ -6,6 +6,8 @@ import { applyLeftoverToBookCash } from "../src/lib/invest/apply-leftover-to-cas
 import {
   leftoverFromBudgetPlan,
   leftoverFromBudgetPlans,
+  leftoverPresenceFromBudgetPlan,
+  leftoverPresenceFromBudgetPlans,
   pickOpenablePlan,
 } from "../src/lib/invest/leftover.ts";
 import {
@@ -954,6 +956,18 @@ assert(appliedNew.holdings[0]?.type === "cash", "new holding is cash");
 assert(appliedNew.holdings[0]?.quantity === 250, "cash qty equals leftover");
 assert(appliedNew.holdings[0]?.cashCurrency === "CAD", "cash currency matches leftover");
 assert(leftoverFromBudgetPlan(leftoverPlan, "2026-08")?.amount === 250, "budget leftover is unchanged after apply");
+assert(
+  leftoverPresenceFromBudgetPlan(null).status === "missing-budget",
+  "no budget plan is leftover missing",
+);
+assert(
+  leftoverPresenceFromBudgetPlan(leftoverPlan, "2025-01").status === "none",
+  "zero RTA is leftover none, not invented cash",
+);
+assert(
+  leftoverPresenceFromBudgetPlans([leftoverPlan], "2026-08").status === "present",
+  "positive RTA is leftover present",
+);
 
 const appliedAgain = applyLeftoverToBookCash(appliedNew.holdings, {
   amount: 50,

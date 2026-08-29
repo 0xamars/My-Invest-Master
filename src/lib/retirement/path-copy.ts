@@ -3,34 +3,25 @@ import { buildWhatIfScenarios } from "@/lib/retirement/scenarios";
 import type { RetirementPlan } from "@/types/retirement";
 
 /**
- * Path sentence from numbers already on the Freedom dashboard.
- * Does not invent a CAGR or a spreadsheet target.
+ * Path sentence from leftover + book. One date, no invented CAGR.
  */
 export function impliedPathSentence(
   dashboard: RetirementDashboard,
   formatMoney: (value: number) => string,
 ): string {
   if (dashboard.verdict === "empty") {
-    return "Refresh from the book or add assets to see whether you are on track.";
+    return "Leftover or the book is missing. Freedom will not invent cash.";
   }
 
-  const years = dashboard.yearsToRetirement;
-  const yearsBit =
-    years <= 0
-      ? "Target age is this year"
-      : years === 1
-        ? "1 year left"
-        : `${years} years left`;
+  const target = `Target ${formatMoney(dashboard.targetNestEgg)}.`;
 
-  if (dashboard.gapToday == null || dashboard.targetNestEgg <= 0) {
-    return `${yearsBit}. Target ${formatMoney(dashboard.targetNestEgg)}.`;
+  if (dashboard.yearsToFreedom === 0) {
+    return `Free this year. ${target}`;
   }
-
-  const gapAbs = formatMoney(Math.abs(dashboard.gapToday));
-  if (dashboard.gapToday >= 0) {
-    return `${yearsBit}. ${gapAbs} surplus today versus the spending target.`;
+  if (dashboard.freedomYear == null || dashboard.yearsToFreedom == null) {
+    return `Not on this path by age ${dashboard.planEndAge}. ${target}`;
   }
-  return `${yearsBit}. ${gapAbs} short today versus the spending target.`;
+  return `Free in ${dashboard.freedomYear} · age ${dashboard.freedomAge}. ${target}`;
 }
 
 /** Existing what-if labels only — not advice. */
