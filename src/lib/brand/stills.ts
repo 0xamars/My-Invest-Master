@@ -1,4 +1,4 @@
-/** Comet stills — long-streak hero for signed-out/OG; quiet textures for empties. */
+/** Charcoal stills — salsa lockup for signed-out/OG; quiet vignettes for empties. */
 export const LAUNCH_STILLS = {
   hero: "/stills/hero.jpg",
   heroLockup: "/stills/hero-lockup.jpg",
