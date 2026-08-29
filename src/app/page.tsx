@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RefreshCw } from "lucide-react";
-import { MarketingHomeContent } from "@/components/home/marketing-home-content";
+import { RootHomeContent } from "@/components/home/root-home-content";
 
 export const metadata: Metadata = {
   title: "InvestSalsa — Freedom, engineered.",
@@ -20,7 +20,7 @@ function HomeLoading() {
 export default function PublicHomePage() {
   return (
     <Suspense fallback={<HomeLoading />}>
-      <MarketingHomeContent />
+      <RootHomeContent />
     </Suspense>
   );
 }

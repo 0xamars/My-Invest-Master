@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings } from "lucide-react";
+import { CircleUser, LogOut, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
+import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { SETTINGS_PATH } from "@/lib/chrome/nav";
 import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
-import { LOGIN_PATH } from "@/lib/routes";
+import { LOGIN_PATH, MONEY_PROFILE_PATH } from "@/lib/routes";
 
 function initialsFromEmail(email: string | undefined): string {
   if (!email) return "?";
@@ -26,6 +27,7 @@ function initialsFromEmail(email: string | undefined): string {
 
 export function AccountMenu() {
   const { user, isLoading, signOut } = useAuth();
+  const { profile } = useMoneyProfile();
   const router = useRouter();
   const goToMarketingHome = useGoToMarketingHome();
 
@@ -76,6 +78,16 @@ export function AccountMenu() {
           <Settings className="size-4" />
           Settings
         </DropdownMenuItem>
+        {profile ? (
+          <DropdownMenuItem
+            onClick={() => {
+              router.push(MONEY_PROFILE_PATH);
+            }}
+          >
+            <CircleUser className="size-4" />
+            Money Profile
+          </DropdownMenuItem>
+        ) : null}
         <div className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1">
           <span className="text-xs text-muted-foreground">Appearance</span>
           <ThemeToggle />
