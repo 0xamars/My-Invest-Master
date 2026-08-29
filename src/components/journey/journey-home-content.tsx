@@ -11,7 +11,9 @@ import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { useSyncWorkingFlags } from "@/hooks/use-sync-working-flags";
+import { BrandStill } from "@/components/brand/brand-still";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
+import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import {
   JOURNEY_EDUCATIONAL_FOOTER,
   JOURNEY_HOME_EMPTY,
@@ -88,9 +90,20 @@ export function JourneyHomeContent() {
         <h1 className="page-title">Journey</h1>
         <p className="page-description">{profileSummaryLine(profile)}</p>
         {nothingWorking ? (
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            {JOURNEY_HOME_EMPTY.hint}
-          </p>
+          <>
+            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+              {JOURNEY_HOME_EMPTY.hint}
+            </p>
+            <BrandStill
+              src={BRAND.journeyStations}
+              alt=""
+              width={BRAND_SIZE.journeyStations.width}
+              height={BRAND_SIZE.journeyStations.height}
+              className="mt-4"
+              imageClassName="h-44 object-cover object-center sm:h-52"
+              sizes="(min-width: 1024px) 48rem, 100vw"
+            />
+          </>
         ) : null}
       </div>
 

@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
+import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 
 type MarketingHomePageProps = {
@@ -71,7 +73,8 @@ export function MarketingHomePage({
       </header>
 
       <main className="relative z-10">
-        <section className="mx-auto flex max-w-5xl flex-col items-start px-6 pb-20 pt-16 sm:px-8 sm:pb-24 sm:pt-24">
+        <section className="mx-auto grid max-w-5xl items-center gap-10 px-6 pb-20 pt-16 sm:px-8 sm:pb-24 sm:pt-24 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
+          <div className="flex flex-col items-start">
           <h1 className="max-w-xl text-balance text-[2.75rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             Freedom, engineered.
           </h1>
@@ -109,6 +112,18 @@ export function MarketingHomePage({
                 </Button>
               </>
             )}
+          </div>
+          </div>
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[var(--radius)] border border-border bg-card lg:aspect-[16/10]">
+            <Image
+              src={BRAND.heroMark}
+              alt=""
+              width={BRAND_SIZE.heroMark.width}
+              height={BRAND_SIZE.heroMark.height}
+              priority
+              sizes="(min-width: 1024px) 22rem, 100vw"
+              className="h-full w-full object-cover"
+            />
           </div>
         </section>
 

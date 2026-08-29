@@ -7,6 +7,7 @@ import { CategoryPageHeader } from "@/components/category/category-page-header";
 import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
 import { RetirementWhatIf } from "@/components/retirement/retirement-what-if";
 import { RetireEmptyState, RetirePanel } from "@/components/retirement/retire-ui";
+import { BrandStill } from "@/components/brand/brand-still";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -14,6 +15,7 @@ import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
+import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { FREEDOM_EMPTY } from "@/lib/journey/empty-states";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import {
@@ -113,6 +115,15 @@ export function RetireHomeContent() {
         </div>
       ) : inputsMissing && !latest ? (
         <div className="surface-card" data-empty-state="freedom">
+          <BrandStill
+            src={BRAND.emptyFreedom}
+            alt=""
+            width={BRAND_SIZE.emptyFreedom.width}
+            height={BRAND_SIZE.emptyFreedom.height}
+            className="rounded-b-none border-0 border-b"
+            imageClassName="h-44 object-cover object-center sm:h-52"
+            sizes="(min-width: 640px) 40rem, 100vw"
+          />
           <RetireEmptyState
             icon={<Target className="size-5" />}
             title={FREEDOM_EMPTY.title}

@@ -13,9 +13,11 @@ import {
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-dialog";
 import { BudgetEmptyState, BudgetPageHeader } from "@/components/budget/budget-ui";
+import { BrandStill } from "@/components/brand/brand-still";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
+import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { BUDGET_EMPTY } from "@/lib/journey/empty-states";
 import {
@@ -121,6 +123,15 @@ export function BudgetPlansListContent() {
 
       {summaries.length === 0 ? (
         <div className="surface-card" data-budget-first-run-kit="1" data-empty-state="budget">
+          <BrandStill
+            src={BRAND.emptyBudget}
+            alt=""
+            width={BRAND_SIZE.emptyBudget.width}
+            height={BRAND_SIZE.emptyBudget.height}
+            className="rounded-b-none border-0 border-b"
+            imageClassName="h-44 object-cover object-center sm:h-52"
+            sizes="(min-width: 640px) 40rem, 100vw"
+          />
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
             title={BUDGET_EMPTY.title}

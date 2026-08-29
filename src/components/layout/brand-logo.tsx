@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
+import { BRAND } from "@/lib/brand/assets";
 import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
@@ -11,7 +12,7 @@ interface BrandLogoProps {
 
 const TAGLINE = "Freedom, engineered.";
 
-const ICON = "/brand/logo-icon.png";
+const ICON = BRAND.logoMark;
 
 /** Growth line + salsa swooshes — the locked InvestSalsa mark. */
 export function SalsaMark({
