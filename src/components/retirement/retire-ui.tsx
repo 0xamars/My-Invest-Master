@@ -51,7 +51,7 @@ export function RetireEmptyState({
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
-      <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-[var(--brand-green)]/10 text-[var(--brand-green)]">
+      <div className="glass mb-4 flex size-12 items-center justify-center rounded-2xl text-[var(--brand-green)]">
         {icon}
       </div>
       <p className="text-base font-semibold tracking-tight">{title}</p>

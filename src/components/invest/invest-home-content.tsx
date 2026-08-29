@@ -641,7 +641,7 @@ function ChildCard({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-border/70 px-4 py-3 hover:bg-muted/30"
+      className="glass flex min-h-11 items-center gap-3 rounded-xl px-4 py-3 transition-[background-color] duration-200 hover:bg-white/[0.08]"
     >
       {icon}
       <span>

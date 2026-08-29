@@ -11,9 +11,9 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-[0_0_0_1px_color-mix(in_srgb,#64B860_35%,transparent),0_8px_24px_-10px_color-mix(in_srgb,#64B860_55%,transparent)] hover:bg-[var(--brand-green-deep)]",
         outline:
-          "border-white/12 bg-white/[0.04] text-foreground backdrop-blur-md hover:bg-white/[0.08] hover:text-foreground aria-expanded:bg-white/[0.08] dark:border-white/12 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]",
+          "glass-button border-[color:var(--glass-hairline)] hover:text-foreground aria-expanded:bg-white/[0.1]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "glass-button border-[color:var(--glass-hairline)] hover:text-foreground aria-expanded:bg-white/[0.1]",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
