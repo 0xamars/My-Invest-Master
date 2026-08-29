@@ -12,7 +12,6 @@ export function AuthPageShell({
   return (
     <div className="marketing-home relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
       <div className="pointer-events-none absolute inset-0 field-grain" aria-hidden />
-      <div className="field-orbs" aria-hidden />
 
       <header className="portal-header sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-6 sm:h-16">
