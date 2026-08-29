@@ -246,8 +246,7 @@
 
   .field-grain {
     background:
-      radial-gradient(ellipse 80% 55% at 20% 0%, color-mix(in srgb, #64b860 10%, transparent), transparent 52%),
-      radial-gradient(ellipse 70% 45% at 90% 10%, color-mix(in srgb, #f28c33 7%, transparent), transparent 48%),
+      radial-gradient(ellipse 90% 50% at 50% -10%, color-mix(in srgb, #ffffff 4%, transparent), transparent 58%),
       #121212;
   }
 
