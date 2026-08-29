@@ -105,6 +105,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider className="relative bg-background">
       <div className="field-grain pointer-events-none absolute inset-0" aria-hidden />
+      <div className="field-orbs" aria-hidden />
       <AppSidebar />
       <SidebarInset className="relative bg-transparent">
         <AppShellHeader />
