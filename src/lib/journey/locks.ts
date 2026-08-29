@@ -35,6 +35,25 @@ export function confirmBudgetElsewhere(profile: MoneyProfile): MoneyProfile {
   };
 }
 
+/**
+ * Beginner Track must confirm before using Options. Fast / tools skip.
+ * Does not delete Options.
+ */
+export function optionsIsGated(
+  profile: MoneyProfile | null | undefined,
+): boolean {
+  if (!profile) return false;
+  if (trackUnlocksAllDo(profile)) return false;
+  return profile.flags.optionsConfirmed !== true;
+}
+
+export function confirmOptionsUse(profile: MoneyProfile): MoneyProfile {
+  return {
+    ...profile,
+    flags: { ...profile.flags, optionsConfirmed: true },
+  };
+}
+
 export function pillarHasCompletedLesson(
   profile: Pick<MoneyProfile, "completedLessons">,
   pillar: JourneyPillar,

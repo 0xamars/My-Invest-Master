@@ -203,6 +203,7 @@ function parseFlags(raw: unknown): MoneyProfileFlags {
     budgetElsewhere: record.budgetElsewhere === true,
     investNoHoldingsYet: record.investNoHoldingsYet === true,
     toolsOnly: record.toolsOnly === true,
+    optionsConfirmed: record.optionsConfirmed === true,
   };
 }
 
@@ -276,6 +277,7 @@ export function defaultMoneyProfileDraft(): MoneyProfile {
       budgetElsewhere: false,
       investNoHoldingsYet: false,
       toolsOnly: false,
+      optionsConfirmed: false,
     },
     working: {
       budget: false,

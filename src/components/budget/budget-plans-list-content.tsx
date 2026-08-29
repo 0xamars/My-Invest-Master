@@ -14,7 +14,14 @@ import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-d
 import { BudgetEmptyState, BudgetPageHeader } from "@/components/budget/budget-ui";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
+import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { formatBudgetMoney } from "@/lib/budget/format";
+import {
+  budgetCurrencyFromProfile,
+  shouldOfferBudgetFirstRunKit,
+  STARTER_ENVELOPE_NAMES,
+  STARTER_SPENDING_ACCOUNT_NAME,
+} from "@/lib/journey/first-run";
 import { cn } from "@/lib/utils";
 import type { BudgetPlan } from "@/types/budget";
 
@@ -32,21 +39,38 @@ export function BudgetPlansListContent() {
     summaries,
     plans,
     createPlanAndSave,
+    createStarterKitAndSave,
     deletePlan,
     isLoaded,
     syncError,
     isPlanReady,
   } = useBudgetPlans();
 
+  const { profile } = useMoneyProfile();
   const [deletingPlan, setDeletingPlan] = useState<BudgetPlan | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const offerKit = shouldOfferBudgetFirstRunKit(summaries);
+  const kitCurrency = budgetCurrencyFromProfile(profile?.currency);
 
   async function handleCreate(name: string) {
     setIsCreating(true);
     try {
-      const plan = await createPlanAndSave(name);
+      const plan = offerKit
+        ? await createStarterKitAndSave(name, kitCurrency)
+        : await createPlanAndSave(name);
       setCreateOpen(false);
+      router.push(`/budget/plans/${plan.id}`);
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  async function handleStartKit() {
+    if (!isPlanReady) return;
+    setIsCreating(true);
+    try {
+      const plan = await createStarterKitAndSave("Budget", kitCurrency);
       router.push(`/budget/plans/${plan.id}`);
     } finally {
       setIsCreating(false);
@@ -95,18 +119,31 @@ export function BudgetPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <div className="glass-card">
+        <div className="glass-card" data-budget-first-run-kit="1">
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
-            title="Start a budget."
-            description="Track income on one spending account, fund envelopes, and close the month."
+            title="Start with starter envelopes"
+            description={`Housing, Food, Transport, Debt, Fun, and Buffer on one ${STARTER_SPENDING_ACCOUNT_NAME.toLowerCase()} account. Leftover and month close stay empty until you enter them.`}
             actions={
-              <Button onClick={openCreate} disabled={isCreating || !isPlanReady}>
+              <Button
+                onClick={() => void handleStartKit()}
+                disabled={isCreating || !isPlanReady}
+              >
                 <Plus className="size-4" />
-                Create a plan
+                Use these envelopes
               </Button>
             }
           />
+          <ul className="mx-auto mb-8 grid max-w-md grid-cols-2 gap-2 px-6 text-sm text-muted-foreground sm:grid-cols-3">
+            {STARTER_ENVELOPE_NAMES.map((envelope) => (
+              <li
+                key={envelope}
+                className="rounded-xl border border-border/60 bg-background/40 px-3 py-2 text-center font-medium text-foreground"
+              >
+                {envelope}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

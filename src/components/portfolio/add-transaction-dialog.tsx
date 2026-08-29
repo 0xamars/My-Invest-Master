@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -61,6 +61,7 @@ import type {
   TransactionType,
 } from "@/types/portfolio";
 import { getCashCurrency } from "@/types/portfolio";
+import { ADD_HOLDING_FIELD_HELP } from "@/lib/journey/first-run";
 
 type DialogMode = AssetType;
 
@@ -69,6 +70,8 @@ interface AddTransactionDialogProps {
   onOpenChange: (open: boolean) => void;
   onAdd: (input: AddTransactionInput) => void;
   holdings: PortfolioHolding[];
+  /** Beginner add-holding: explain each field. Fast / tools skip. */
+  explainFields?: boolean;
 }
 
 export function AddTransactionDialog({
@@ -76,6 +79,7 @@ export function AddTransactionDialog({
   onOpenChange,
   onAdd,
   holdings,
+  explainFields = false,
 }: AddTransactionDialogProps) {
   const [mode, setMode] = useState<DialogMode>("stock");
   const [query, setQuery] = useState("");
@@ -354,11 +358,13 @@ export function AddTransactionDialog({
           <TransactionTypeToggle
             value={transactionType}
             onChange={setTransactionType}
+            help={explainFields ? ADD_HOLDING_FIELD_HELP.type : undefined}
           />
 
           {isSearchMode && (
             <>
               {isNewAsset && (
+                <div className="space-y-1.5">
                 <SectorSelect
                   assetType={mode}
                   sectorChoice={sectorChoice}
@@ -367,18 +373,22 @@ export function AddTransactionDialog({
                   onCustomSectorChange={setCustomSector}
                   idPrefix="tx-search"
                 />
+                {explainFields ? (
+                  <FieldHelp>{ADD_HOLDING_FIELD_HELP.sector}</FieldHelp>
+                ) : null}
+                </div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="asset-search">Asset</Label>
+                <Label htmlFor="asset-search">Name or ticker</Label>
                 <div className="relative">
                   <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="asset-search"
                     placeholder={
                       mode === "stock"
-                        ? "Search ticker, e.g. AAPL, TSLA"
-                        : "Search symbol, e.g. BTC, ETH"
+                        ? "Search a name or ticker"
+                        : "Search a name or ticker"
                     }
                     value={query}
                     onChange={(e) => {
@@ -443,6 +453,9 @@ export function AddTransactionDialog({
                     </div>
                   )}
                 </div>
+                {explainFields ? (
+                  <FieldHelp>{ADD_HOLDING_FIELD_HELP.asset}</FieldHelp>
+                ) : null}
               </div>
 
               {selectedAsset && (
@@ -457,6 +470,7 @@ export function AddTransactionDialog({
                   priceError={priceError}
                   livePrice={livePrice}
                   hidePrice={false}
+                  explainFields={explainFields}
                   onQuantityChange={setQuantity}
                   onPricePerUnitChange={(value) => {
                     setPricePerUnit(value);
@@ -525,6 +539,7 @@ export function AddTransactionDialog({
                 date={date}
                 existingHolding={existingHolding}
                 hidePrice={false}
+                explainFields={explainFields}
                 onQuantityChange={setQuantity}
                 onPricePerUnitChange={setPricePerUnit}
                 onDateChange={setDate}
@@ -569,6 +584,7 @@ export function AddTransactionDialog({
                 date={date}
                 existingHolding={existingHolding}
                 hidePrice
+                explainFields={explainFields}
                 onQuantityChange={setQuantity}
                 onPricePerUnitChange={() => {}}
                 onDateChange={setDate}
@@ -599,16 +615,32 @@ export function AddTransactionDialog({
   );
 }
 
+function FieldHelp({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={cn("text-xs leading-relaxed text-muted-foreground", className)}>
+      {children}
+    </p>
+  );
+}
+
 function TransactionTypeToggle({
   value,
   onChange,
+  help,
 }: {
   value: TransactionType;
   onChange: (value: TransactionType) => void;
+  help?: string;
 }) {
   return (
     <div className="space-y-2">
-      <Label>Transaction Type</Label>
+      <Label>Buy or sell</Label>
       <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-1">
         <button
           type="button"
@@ -637,6 +669,7 @@ function TransactionTypeToggle({
           Sell
         </button>
       </div>
+      {help ? <FieldHelp>{help}</FieldHelp> : null}
     </div>
   );
 }
@@ -652,6 +685,7 @@ function TransactionFormFields({
   priceError,
   livePrice,
   hidePrice,
+  explainFields,
   onQuantityChange,
   onPricePerUnitChange,
   onDateChange,
@@ -666,6 +700,7 @@ function TransactionFormFields({
   priceError?: string | null;
   livePrice?: number | null;
   hidePrice?: boolean;
+  explainFields?: boolean;
   onQuantityChange: (value: string) => void;
   onPricePerUnitChange: (value: string) => void;
   onDateChange: (value: string) => void;
@@ -739,6 +774,9 @@ function TransactionFormFields({
             value={quantity}
             onChange={(e) => onQuantityChange(e.target.value)}
           />
+          {explainFields ? (
+            <FieldHelp>{ADD_HOLDING_FIELD_HELP.quantity}</FieldHelp>
+          ) : null}
         </div>
         {!hidePrice && (
           <div className="space-y-2">
@@ -755,6 +793,9 @@ function TransactionFormFields({
               onChange={(e) => onPricePerUnitChange(e.target.value)}
               disabled={isPriceLoading}
             />
+            {explainFields ? (
+              <FieldHelp>{ADD_HOLDING_FIELD_HELP.price}</FieldHelp>
+            ) : null}
           </div>
         )}
       </div>
@@ -767,6 +808,9 @@ function TransactionFormFields({
           value={date}
           onChange={(e) => onDateChange(e.target.value)}
         />
+        {explainFields ? (
+          <FieldHelp>{ADD_HOLDING_FIELD_HELP.date}</FieldHelp>
+        ) : null}
       </div>
     </div>
   );

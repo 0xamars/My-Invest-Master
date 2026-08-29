@@ -27,7 +27,9 @@ import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
+import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { useUserPlan } from "@/hooks/use-user-preferences";
+import { explainAddHoldingFields } from "@/lib/journey/density";
 import {
   enrichHoldings,
   getPortfolioTotals,
@@ -79,6 +81,8 @@ export function PortfolioContent() {
     setActivePortfolioId,
   } = usePortfolioPlans();
   const { plan, isLoaded: isPlanLoaded } = useUserPlan();
+  const { profile } = useMoneyProfile();
+  const explainFields = explainAddHoldingFields(profile);
 
   const { currency, setCurrency, isLoaded: isCurrencyLoaded } =
     useDisplayCurrency();
@@ -398,6 +402,7 @@ export function PortfolioContent() {
             onOpenChange={setDialogOpen}
             onAdd={addTransaction}
             holdings={holdings}
+            explainFields={explainFields}
           />
 
           <EditHoldingDialog

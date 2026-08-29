@@ -22,7 +22,9 @@ import {
 import {
   INVEST_DO_SKIP_WARNING,
   confirmBudgetElsewhere,
+  confirmOptionsUse,
   investDoIsLocked,
+  optionsIsGated,
 } from "../src/lib/journey/locks.ts";
 import {
   computeTrack,
@@ -33,6 +35,20 @@ import {
   markLessonComplete,
   normalizeMoneyProfile,
 } from "../src/lib/journey/profile.ts";
+import { tickerStartsCollapsed } from "../src/lib/journey/density.ts";
+import {
+  ADD_HOLDING_FIELD_HELP,
+  applyBudgetFirstRunKit,
+  applyFirstBookIfMissing,
+  FIRST_BOOK_FREEDOM_LINE,
+  firstBookWizardCopy,
+  firstRunKitEnvelopeNames,
+  shouldOfferBudgetFirstRunKit,
+  shouldOfferFirstBookWizard,
+  SHOW_THE_DETAILS_LABEL,
+  STARTER_ENVELOPE_NAMES,
+  STARTER_SPENDING_ACCOUNT_NAME,
+} from "../src/lib/journey/first-run.ts";
 import { journeyStations, primaryNextAction } from "../src/lib/journey/stations.ts";
 import {
   defaultPillarTab,
@@ -50,6 +66,7 @@ import { createEmptyBudgetPlan } from "../src/types/budget.ts";
 import type { BudgetPlan, BudgetTransaction } from "../src/types/budget.ts";
 import type { MoneyProfile } from "../src/types/money-profile.ts";
 import type { PortfolioHolding } from "../src/types/portfolio.ts";
+import { createEmptyPortfolio } from "../src/types/portfolio.ts";
 import { createEmptyPlan } from "../src/types/retirement.ts";
 
 let failed = 0;
@@ -129,7 +146,12 @@ assert(fast.track === "fast", "all-confident effective knowledge is Fast Track")
 
 const tools = normalizeMoneyProfile({
   ...fast,
-  flags: { toolsOnly: true, budgetElsewhere: false, investNoHoldingsYet: false },
+  flags: {
+    toolsOnly: true,
+    budgetElsewhere: false,
+    investNoHoldingsYet: false,
+    optionsConfirmed: false,
+  },
 });
 assert(tools.track === "tools", "toolsOnly wins the track");
 
@@ -145,7 +167,12 @@ assert(
 assert(
   computeTrack(
     { budget: "confident", invest: "confident", freedom: "confident" },
-    { budgetElsewhere: false, investNoHoldingsYet: false, toolsOnly: false },
+    {
+      budgetElsewhere: false,
+      investNoHoldingsYet: false,
+      toolsOnly: false,
+      optionsConfirmed: false,
+    },
   ) === "fast",
   "computeTrack fast",
 );
@@ -569,6 +596,124 @@ assert(
   journeyStations(markLessonComplete(draft, "budget-envelopes-leftover"))[0]
     .status === "in_progress",
   "a completed Budget lesson is In progress",
+);
+
+const emptyKitOffer = applyBudgetFirstRunKit([]);
+assert(shouldOfferBudgetFirstRunKit([]), "empty Budget offers the first-run kit");
+assert(emptyKitOffer.length === 1, "empty Budget creates one starter plan");
+assert(
+  firstRunKitEnvelopeNames(emptyKitOffer[0]!).join(",") ===
+    STARTER_ENVELOPE_NAMES.join(","),
+  "empty Budget offers Housing, Food, Transport, Debt, Fun, Buffer",
+);
+assert(
+  emptyKitOffer[0]!.accounts.length === 1 &&
+    emptyKitOffer[0]!.accounts[0]!.name === STARTER_SPENDING_ACCOUNT_NAME,
+  "empty Budget offers one Spending account",
+);
+assert(
+  emptyKitOffer[0]!.transactions.length === 0 &&
+    Object.keys(emptyKitOffer[0]!.monthBudgets).length === 0 &&
+    emptyKitOffer[0]!.closedThrough === null,
+  "starter kit does not invent leftover or a closed month",
+);
+
+const existingPlan = createEmptyBudgetPlan("Mine");
+existingPlan.transactions = [inflowOn(existingPlan, 400)];
+const keptPlans = applyBudgetFirstRunKit([existingPlan]);
+assert(!shouldOfferBudgetFirstRunKit(keptPlans), "existing plan is not offered a kit");
+assert(keptPlans.length === 1, "existing plan is not wiped");
+assert(keptPlans[0]!.id === existingPlan.id, "existing plan id stays");
+assert(
+  keptPlans[0]!.transactions[0]!.amount === 400,
+  "existing leftover stays honest",
+);
+assert(
+  firstRunKitEnvelopeNames(keptPlans[0]!).join(",") !==
+    STARTER_ENVELOPE_NAMES.join(","),
+  "existing plan envelopes are left alone",
+);
+
+assert(
+  firstBookWizardCopy().freedomLine === FIRST_BOOK_FREEDOM_LINE,
+  "first book copy includes the Freedom line",
+);
+assert(
+  FIRST_BOOK_FREEDOM_LINE === "this is the book Freedom will use.",
+  "Freedom line is the required sentence",
+);
+assert(shouldOfferFirstBookWizard([]), "no book offers the first-book wizard");
+const existingBook = createEmptyPortfolio("Keep me", { isPrimary: true });
+existingBook.id = "p-keep";
+existingBook.holdings = bookOnly.holdings;
+const keptBooks = applyFirstBookIfMissing(
+  [existingBook],
+  "Should not replace",
+);
+assert(!shouldOfferFirstBookWizard(keptBooks), "existing book is not hidden");
+assert(keptBooks.length === 1, "existing book is not deleted");
+assert(keptBooks[0]!.id === "p-keep", "existing book id stays");
+assert(keptBooks[0]!.name === "Keep me", "existing book name stays");
+assert(keptBooks[0]!.holdings.length === 1, "existing holdings stay");
+const newBook = applyFirstBookIfMissing([], "My book");
+assert(newBook.length === 1, "missing book creates one empty book");
+assert(newBook[0]!.holdings.length === 0, "first book does not invent holdings");
+assert(newBook[0]!.name === "My book", "first book uses the given name");
+
+assert(tickerStartsCollapsed(draft), "beginner ticker starts collapsed");
+assert(
+  SHOW_THE_DETAILS_LABEL === "Show the details",
+  "ticker details control is labeled Show the details",
+);
+assert(!tickerStartsCollapsed(finalized), "Fast Track ticker stays full density");
+assert(!tickerStartsCollapsed(tools), "toolsOnly ticker stays full density");
+assert(!tickerStartsCollapsed(null), "no profile does not collapse the ticker");
+assert(
+  tickerStartsCollapsed(beginner),
+  "Beginner Track + beginner invest knowledge collapses the ticker",
+);
+
+assert(optionsIsGated(draft), "beginner Options is gated");
+assert(!optionsIsGated(finalized), "Fast Track skips the Options gate");
+assert(!optionsIsGated(tools), "toolsOnly skips the Options gate");
+assert(!optionsIsGated(null), "no profile does not gate Options");
+assert(
+  confirmOptionsUse(draft).flags.optionsConfirmed,
+  "confirm sets optionsConfirmed",
+);
+assert(
+  !optionsIsGated(confirmOptionsUse(draft)),
+  "after confirm, beginner Options is open",
+);
+assert(
+  ADD_HOLDING_FIELD_HELP.quantity.includes("Do not invent"),
+  "beginner add-holding explains quantity honestly",
+);
+
+const sliceDCopy = [
+  FIRST_BOOK_FREEDOM_LINE,
+  SHOW_THE_DETAILS_LABEL,
+  STARTER_ENVELOPE_NAMES.join(" "),
+  STARTER_SPENDING_ACCOUNT_NAME,
+  ADD_HOLDING_FIELD_HELP.type,
+  ADD_HOLDING_FIELD_HELP.asset,
+  ADD_HOLDING_FIELD_HELP.sector,
+  ADD_HOLDING_FIELD_HELP.quantity,
+  ADD_HOLDING_FIELD_HELP.price,
+  ADD_HOLDING_FIELD_HELP.date,
+].join(" ");
+for (const word of forbidden) {
+  assert(!sliceDCopy.includes(word), `Slice D copy does not name ${word}`);
+}
+
+assert(investDoIsLocked({ profile: draft, hasBook: false }), "Slice C lock stays: Beginner Invest Do is locked");
+assert(
+  !investDoIsLocked({ profile: finalized, hasBook: false }),
+  "Slice C lock stays: Fast Track Invest Do is unlocked",
+);
+assert(
+  !investDoIsLocked({ profile: tools, hasBook: false }),
+  "Slice C lock stays: toolsOnly Invest Do is unlocked",
 );
 
 if (failed > 0) {

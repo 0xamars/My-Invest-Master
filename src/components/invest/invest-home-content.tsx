@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus, RefreshCw, TrendingUp } from "lucide-react";
+import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
 import {
@@ -13,8 +14,13 @@ import { TickerLookup } from "@/components/ticker/ticker-lookup";
 import { Button } from "@/components/ui/button";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useBookTickerQuotes } from "@/hooks/use-book-ticker-quotes";
+import { useDisplayCurrency } from "@/hooks/use-display-currency";
+import { useMoneyProfile } from "@/hooks/use-money-profile";
+import { explainAddHoldingFields } from "@/lib/journey/density";
+import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
 import { buildBookRows } from "@/lib/ticker/book";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
+import type { DisplayCurrency } from "@/types/currency";
 import type { AddTransactionInput } from "@/types/portfolio";
 
 export function InvestHomeContent() {
@@ -22,11 +28,16 @@ export function InvestHomeContent() {
     primaryPortfolio,
     activePortfolio,
     isLoaded,
+    portfolios,
     addTransaction,
     createPortfolio,
     setActivePortfolioId,
   } = usePortfolioPlans();
-  const book = primaryPortfolio ?? activePortfolio;
+  const { profile } = useMoneyProfile();
+  const { setCurrency } = useDisplayCurrency();
+  const book = primaryPortfolio ?? activePortfolio ?? portfolios[0] ?? null;
+  const offerFirstBook = shouldOfferFirstBookWizard(portfolios);
+  const explainFields = explainAddHoldingFields(profile);
   const holdings = useMemo(
     () => (book?.holdings ?? []).filter(isHoldingVisible),
     [book],
@@ -40,23 +51,23 @@ export function InvestHomeContent() {
   const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  async function ensureBook() {
-    if (book) {
-      setActivePortfolioId(book.id);
-      return book;
-    }
+  async function onCreateFirstBook(input: {
+    name: string;
+    currency: DisplayCurrency;
+  }) {
     setCreating(true);
     try {
-      const created = await createPortfolio("Book");
-      return created;
+      setCurrency(input.currency);
+      await createPortfolio(input.name);
     } finally {
       setCreating(false);
     }
   }
 
   async function onAddClick() {
-    const next = await ensureBook();
-    if (next) setAddOpen(true);
+    if (offerFirstBook || !book) return;
+    setActivePortfolioId(book.id);
+    setAddOpen(true);
   }
 
   function onAdd(input: AddTransactionInput) {
@@ -78,21 +89,28 @@ export function InvestHomeContent() {
         title="Invest"
         description="The public-stock book. Search a name or ticker."
         action={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void onAddClick()}
-            disabled={creating}
-          >
-            <Plus className="size-4" />
-            Add a name
-          </Button>
+          offerFirstBook ? null : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void onAddClick()}
+              disabled={creating}
+            >
+              <Plus className="size-4" />
+              Add a name
+            </Button>
+          )
         }
       />
 
       <TickerLookup />
 
-      {rows.length === 0 ? (
+      {offerFirstBook ? (
+        <FirstBookWizard
+          onCreate={onCreateFirstBook}
+          isSubmitting={creating}
+        />
+      ) : rows.length === 0 ? (
         <div className="glass-card">
           <RetireEmptyState
             icon={<TrendingUp className="size-5" />}
@@ -117,6 +135,7 @@ export function InvestHomeContent() {
         onOpenChange={setAddOpen}
         onAdd={onAdd}
         holdings={book?.holdings ?? []}
+        explainFields={explainFields}
       />
     </div>
   );
