@@ -128,10 +128,10 @@
   --chart-series-10: #d6452a;
   --chart-series-11: #a3a3a8;
   --chart-series-12: #f28c33;
-  --glass-blur: 40px;
-  --glass-blur-chrome: 52px;
-  --glass-blur-control: 22px;
-  --glass-saturate: 185%;
+  --glass-blur: 48px;
+  --glass-blur-chrome: 60px;
+  --glass-blur-control: 24px;
+  --glass-saturate: 200%;
   --glass-fill: color-mix(in srgb, #ffffff 6%, transparent);
   --glass-fill-raised: color-mix(in srgb, #ffffff 10%, transparent);
   --glass-fill-chrome: color-mix(in srgb, #ffffff 8%, color-mix(in srgb, #121212 22%, transparent));
@@ -423,6 +423,10 @@
     position: absolute;
     inset: 0;
     overflow: hidden;
+    background:
+      radial-gradient(ellipse 42% 30% at 50% 48%, color-mix(in srgb, #64b860 24%, transparent), transparent 70%),
+      radial-gradient(ellipse 38% 26% at 72% 64%, color-mix(in srgb, #f28c33 18%, transparent), transparent 70%),
+      radial-gradient(ellipse 34% 22% at 22% 70%, color-mix(in srgb, #d6452a 12%, transparent), transparent 70%);
   }
 
   .field-orbs::before,
