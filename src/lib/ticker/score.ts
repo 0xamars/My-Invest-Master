@@ -177,20 +177,29 @@ function pickRoa(metrics: Row | null, ratios: Row | null): number | null {
 
 function pickRoce(metrics: Row | null, ratios: Row | null): number | null {
   return asReturnRatio(
-    pick(
-      metrics,
-      "returnOnCapitalEmployed",
-      "roce",
-      "roceTTM",
-      "returnOnCapitalEmployedTTM",
-    ) ??
-      pick(
-        ratios,
-        "returnOnCapitalEmployed",
-        "returnOnCapitalEmployedTTM",
-        "returnOnInvestedCapital",
-      ),
+    pick(metrics, "returnOnCapitalEmployed") ??
+      pick(ratios, "returnOnCapitalEmployed"),
   );
+}
+
+/**
+ * Next-year burn from the last three FCF years: latest |FCF| grown or
+ * shrunk at the average of the two year-over-year |FCF| rates.
+ * Missing any year, or a zero |FCF| that blocks a rate, returns null (skip).
+ */
+export function nextYearBurnAtThreeYearTrend(
+  latest: number | null,
+  mid: number | null,
+  oldest: number | null,
+): number | null {
+  if (latest == null || mid == null || oldest == null) return null;
+  const latestBurn = Math.abs(latest);
+  const newerRate = yoyChange(latestBurn, Math.abs(mid));
+  const olderRate = yoyChange(Math.abs(mid), Math.abs(oldest));
+  if (newerRate == null || olderRate == null) return null;
+  const nextYearBurn = latestBurn * (1 + (newerRate + olderRate) / 2);
+  if (!Number.isFinite(nextYearBurn)) return null;
+  return Math.max(0, nextYearBurn);
 }
 
 function pickEpsGrowth(row: Row | null): number | null {
@@ -338,7 +347,7 @@ export function buildHealthPrint(bundle: TickerBundle): TickerHealthPrint {
       "interestCoverageRatio",
       "interestCoverage",
     ),
-    ebit: pick(income0, "operatingIncome", "ebit", "ebitda"),
+    ebit: pick(income0, "operatingIncome", "ebit"),
     interestExpense: pick(income0, "interestExpense", "interestExpenseNet"),
     altmanZ: pick(bundle.financialScores, "altmanZScore", "altmanZ"),
     piotroski: pick(bundle.financialScores, "piotroskiScore", "piotroski"),
@@ -479,12 +488,11 @@ function buildHealthChecks(
   ];
 
   const burn1 = trailingFcf != null ? Math.abs(trailingFcf) : null;
-  const threeYearSum =
-    fcfYears.length === 3 && fcfYears.every((value) => value != null)
-      ? (fcfYears[0] as number) + (fcfYears[1] as number) + (fcfYears[2] as number)
-      : null;
-  const burn3 =
-    threeYearSum != null && threeYearSum < 0 ? Math.abs(threeYearSum) : null;
+  const burn3 = nextYearBurnAtThreeYearTrend(
+    fcfYears[0] ?? null,
+    fcfYears[1] ?? null,
+    fcfYears[2] ?? null,
+  );
   const runwayFiveSix: ScoreCheck[] = [
     check(
       "cash-runway-1y",
@@ -497,15 +505,13 @@ function buildHealthChecks(
     ),
     check(
       "cash-runway-3y",
-      "Cash + STI covers three-year burn",
-      threeYearSum != null && threeYearSum >= 0
-        ? true
-        : print.cashAndSti != null && burn3 != null
-          ? print.cashAndSti >= burn3
-          : null,
+      "Cash + STI covers one year of burn at the three-year FCF trend",
+      print.cashAndSti != null && burn3 != null
+        ? print.cashAndSti >= burn3
+        : null,
       [
         input("Cash + short-term investments", money(print.cashAndSti)),
-        input("Three-year FCF sum", money(threeYearSum)),
+        input("Next-year burn (3y FCF trend)", money(burn3)),
       ],
     ),
   ];
