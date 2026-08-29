@@ -7,13 +7,13 @@ Slice E check. Use a real signed-in account. Apply `supabase/migrations/012_user
 1. Sign in as a user with **no** Money Profile (or delete the `user_money_profiles` row).
 2. You should land on the **3-step wizard**, not Journey Home and not a guessed profile.
 3. Leave pay / income / age blank (skip money amounts). Finish as beginner knowledge.
-4. You land on **Journey Home** (`/home`). Next should be **Learn Budget**. Freedom date should read **Needs leftover and a book**.
+4. You land on **Journey Home** (`/home`). Next should be **Create a budget** (not Continue). Budget metric **No budget yet**. Freedom metric **Needs leftover and a book**. Invest metric **No holdings**.
 5. Open Budget **Learn**, then **Do**. Empty Do offers the first-run kit. Accepting the kit must not invent leftover.
 
 ## 2. Same user cannot open Invest Do until leftover / month close OR “I budget elsewhere.”
 
 1. Stay beginner. Do not assign leftover, close a month, or add a book.
-2. Journey Home Invest station is **Locked**. `/invest?tab=do` shows the skip warning, not an invented book.
+2. Journey Home Invest station is **Not started**. `/invest?tab=do` shows the skip warning, not an invented book.
 3. Confirm **I budget elsewhere** **or** assign leftover / close a month. Invest Do then opens.
 4. Soft lock is client-side. Middleware must not 404 or bounce `/invest?tab=do` after they have a book or `budgetElsewhere`.
 
@@ -38,9 +38,9 @@ Slice E check. Use a real signed-in account. Apply `supabase/migrations/012_user
 
 ## 6. Signed-out public page still works. Chat still gone.
 
-1. Sign out. `/` is the public marketing page (Freedom, engineered). Sign in / Start still work.
+1. Sign out. `/` is the public marketing page (Freedom, engineered). One **Sign in** button — no Continue, no hero still, no Start today section.
 2. `/chat` and `/assistant` redirect (chat stays unshipped). Do not remount chat.
-3. Signed-in logo goes to `/home`. Chrome is still only Budget | Invest | Freedom.
+3. Signed-in `/` is Journey Home, not marketing. Header is Logo, Budget | Invest | Freedom, and the account menu. Sign out returns to marketing `/`.
 
 ## 7. Typecheck passes
 

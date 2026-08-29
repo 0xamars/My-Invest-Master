@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { BrandHomeLink } from "@/components/layout/brand-home-link";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
+import { SignedInHeaderNav } from "@/components/layout/signed-in-header-nav";
 import { BudgetPlansProvider } from "@/contexts/budget-plans-context";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -22,10 +23,11 @@ import {
 function AppShellHeader() {
   return (
     <header className="portal-header sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 px-5 sm:px-6 lg:px-8">
-      <BrandHomeLink className="flex min-w-0 items-center gap-2.5 md:hidden">
+      <BrandHomeLink className="flex min-w-0 items-center gap-2.5">
         <BrandLogo variant="sidebar" priority />
         <span className="sr-only">InvestSalsa</span>
       </BrandHomeLink>
+      <SignedInHeaderNav />
       <div className="ml-auto">
         <AccountMenu />
       </div>
@@ -35,15 +37,16 @@ function AppShellHeader() {
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  const isPublicChrome =
-    pathname === "/" ||
+  const isAuthPublic =
     pathname === LOGIN_PATH ||
     pathname === SIGNUP_PATH ||
     pathname === SIGNIN_PATH ||
     pathname === AUTH_RESET_PATH ||
     pathname.startsWith(`${AUTH_RESET_PATH}/`);
+  const isMarketingPublic = pathname === "/" && !user;
+  const isPublicChrome = isAuthPublic || isMarketingPublic;
 
   if (isPublicChrome) {
     return (

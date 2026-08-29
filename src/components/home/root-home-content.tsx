@@ -2,11 +2,11 @@
 
 import { RefreshCw } from "lucide-react";
 import { MarketingHomePage } from "@/components/home/marketing-home";
+import { JourneyHomeContent } from "@/components/journey/journey-home-content";
 import { useAuth } from "@/hooks/use-auth";
-import { APP_HOME_PATH } from "@/lib/routes";
 
-/** Public marketing homepage — shown for both logged-out and logged-in visitors. */
-export function MarketingHomeContent() {
+/** Signed-out `/` is marketing. Signed-in `/` is Journey Home. */
+export function RootHomeContent() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -17,10 +17,9 @@ export function MarketingHomeContent() {
     );
   }
 
-  return (
-    <MarketingHomePage
-      isSignedIn={Boolean(user)}
-      dashboardHref={APP_HOME_PATH}
-    />
-  );
+  if (user) {
+    return <JourneyHomeContent />;
+  }
+
+  return <MarketingHomePage />;
 }

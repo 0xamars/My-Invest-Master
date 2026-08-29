@@ -46,10 +46,9 @@ export const FREEDOM_EMPTY = {
 } as const;
 
 export const JOURNEY_HOME_EMPTY = {
-  hint: "Start with Learn, or open Budget Do for the first-run kit. This page does not invent leftover, a book, or a Freedom date.",
+  leftoverMetric: "No budget yet",
+  bookMetric: "No holdings",
   freedomLabel: FREEDOM_DATE_NEEDS_INPUTS,
-  freedomHint:
-    "From leftover and the book only. Leftover is one-time cash, not × 12. This page will not invent a date.",
   leftoverHref: "/budget?tab=do",
   leftoverLabel: "Assign leftover",
   bookHref: "/invest?tab=do",
