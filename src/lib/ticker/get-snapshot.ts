@@ -65,6 +65,27 @@ export async function peekTickerSnapshot(
   return serveEntry(entry, status);
 }
 
+/** Read-only batch peek. Never calls FMP. */
+export async function peekTickerSnapshots(
+  rawSymbols: string[],
+): Promise<Map<string, TickerSnapshot>> {
+  const out = new Map<string, TickerSnapshot>();
+  const unique = [
+    ...new Set(
+      rawSymbols
+        .map((symbol) => normalizeTickerSymbol(symbol))
+        .filter((symbol): symbol is string => Boolean(symbol)),
+    ),
+  ];
+  await Promise.all(
+    unique.map(async (symbol) => {
+      const snapshot = await peekTickerSnapshot(symbol);
+      if (snapshot) out.set(symbol, snapshot);
+    }),
+  );
+  return out;
+}
+
 async function loadFromFmp(symbol: string): Promise<TickerSnapshot> {
   const now = Date.now();
   const windows = cacheWindows(now);

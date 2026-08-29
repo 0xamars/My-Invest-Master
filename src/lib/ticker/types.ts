@@ -1,3 +1,10 @@
+import type {
+  TickerHealthPrint,
+  TickerPastPrint,
+  TickerScore,
+  TickerStatementCharts,
+} from "@/lib/ticker/score-types";
+
 export type TickerCacheStatus = "fresh" | "stale" | "miss";
 
 export type TickerField = {
@@ -75,17 +82,25 @@ export type TickerSnapshot = {
   shares: TickerField[];
   estimates: TickerField[];
   years: TickerStatementYear[];
+  score: TickerScore;
+  past: TickerPastPrint;
+  health: TickerHealthPrint;
+  charts: TickerStatementCharts;
 };
 
 export type TickerBundle = {
   profile: Record<string, unknown> | null;
   quote: Record<string, unknown> | null;
   incomeAnnual: Record<string, unknown>[];
+  incomeQuarter: Record<string, unknown>[];
   balanceAnnual: Record<string, unknown>[];
   cashflowAnnual: Record<string, unknown>[];
   keyMetricsTtm: Record<string, unknown> | null;
+  keyMetricsAnnual: Record<string, unknown>[];
   ratiosTtm: Record<string, unknown> | null;
+  incomeGrowth: Record<string, unknown>[];
   growth: Record<string, unknown> | null;
+  financialScores: Record<string, unknown> | null;
   estimates: Record<string, unknown>[];
 };
 

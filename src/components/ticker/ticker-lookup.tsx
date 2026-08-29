@@ -6,10 +6,32 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { investTickerPath, normalizeTickerSymbol } from "@/lib/ticker/symbol";
 import { cn } from "@/lib/utils";
+import type { AssetCatalogItem } from "@/types/portfolio";
+
+async function resolveSymbol(raw: string): Promise<string | null> {
+  const ticker = normalizeTickerSymbol(raw);
+  try {
+    const response = await fetch(
+      `/api/assets/search?q=${encodeURIComponent(raw.trim())}&type=stock`,
+    );
+    if (response.ok) {
+      const payload = (await response.json()) as { results?: AssetCatalogItem[] };
+      const results = payload.results ?? [];
+      if (ticker) {
+        const exact = results.find((item) => item.symbol === ticker);
+        if (exact) return exact.symbol;
+      }
+      if (results[0]?.symbol) return results[0].symbol;
+    }
+  } catch {
+    // Fall through to the typed ticker.
+  }
+  return ticker;
+}
 
 export function TickerLookup({
   className,
-  placeholder = "Open a public stock, e.g. NVDA",
+  placeholder = "Name or ticker",
 }: {
   className?: string;
   placeholder?: string;
@@ -17,15 +39,23 @@ export function TickerLookup({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    const symbol = normalizeTickerSymbol(query);
-    if (!symbol) {
-      setError("Enter a public ticker, e.g. NVDA.");
+    const raw = query.trim();
+    if (!raw) {
+      setError("Enter a name or ticker.");
       return;
     }
+    setPending(true);
     setError(null);
+    const symbol = await resolveSymbol(raw);
+    setPending(false);
+    if (!symbol) {
+      setError("Enter a public name or ticker.");
+      return;
+    }
     router.push(investTickerPath(symbol));
   }
 
@@ -40,14 +70,17 @@ export function TickerLookup({
             if (error) setError(null);
           }}
           placeholder={placeholder}
-          aria-label="Open a public stock ticker"
+          aria-label="Search a public stock by name or ticker"
           className="h-11 pl-10 text-sm"
           autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}
+          disabled={pending}
         />
       </div>
-      {error ? <p className="text-xs text-amber-600 dark:text-amber-400">{error}</p> : null}
+      {error ? (
+        <p className="text-xs text-amber-600 dark:text-amber-400">{error}</p>
+      ) : null}
     </form>
   );
 }

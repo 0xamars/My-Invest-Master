@@ -2,17 +2,22 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TickerLookup } from "@/components/ticker/ticker-lookup";
+import { TickerHealthSection } from "@/components/ticker/ticker-health-section";
+import { TickerPastSection } from "@/components/ticker/ticker-past-section";
+import { TickerScoreGraphic } from "@/components/ticker/ticker-score";
 import { Button } from "@/components/ui/button";
 import {
   RetirePageHeader,
   RetirePanel,
 } from "@/components/retirement/retire-ui";
 import {
+  formatTickerCacheAge,
   formatTickerField,
   formatTickerMarketCap,
   formatTickerPrice,
   TICKER_UNKNOWN,
 } from "@/lib/ticker/format";
+import { SCORE_NOT_A_BUY } from "@/lib/ticker/score";
 import type { TickerField, TickerSnapshot } from "@/lib/ticker/types";
 import { INVEST_PATH } from "@/lib/chrome/nav";
 import { profitLossClass } from "@/lib/portfolio/format";
@@ -21,6 +26,7 @@ import { cn } from "@/lib/utils";
 export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
   const { profile, quote } = snapshot;
   const change = quote.changePercent;
+  const name = profile.name ?? TICKER_UNKNOWN;
 
   return (
     <div className="flex flex-1 flex-col gap-5" data-ticker-read="1">
@@ -34,18 +40,12 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
           <ArrowLeft className="size-4" />
           Invest
         </Button>
-        <TickerLookup className="sm:max-w-sm sm:flex-1" placeholder="Another ticker…" />
+        <TickerLookup className="sm:max-w-sm sm:flex-1" placeholder="Another name or ticker…" />
       </div>
 
       <RetirePageHeader
-        title={snapshot.symbol}
-        description={
-          profile.name
-            ? [profile.name, profile.exchange, profile.sector, profile.industry]
-                .filter(Boolean)
-                .join(" · ")
-            : "Public stock read from Financial Modeling Prep."
-        }
+        title={name}
+        description={`${snapshot.symbol}${profile.exchange ? ` · ${profile.exchange}` : ""}`}
       />
 
       <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
@@ -84,6 +84,17 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
         </RetirePanel>
       ) : null}
 
+      <RetirePanel className="px-5 py-4">
+        <h2 className="text-sm font-semibold">Score</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{SCORE_NOT_A_BUY}</p>
+        <div className="mt-4">
+          <TickerScoreGraphic score={snapshot.score} />
+        </div>
+      </RetirePanel>
+
+      <TickerPastSection snapshot={snapshot} />
+      <TickerHealthSection snapshot={snapshot} />
+
       <Section title="Profile">
         <p className="text-sm leading-relaxed text-muted-foreground">
           {profile.description ?? TICKER_UNKNOWN}
@@ -91,7 +102,14 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Fact label="CEO" value={profile.ceo} />
           <Fact label="Country" value={profile.country} />
-          <Fact label="Employees" value={profile.employees != null ? profile.employees.toLocaleString("en-US") : null} />
+          <Fact
+            label="Employees"
+            value={
+              profile.employees != null
+                ? profile.employees.toLocaleString("en-US")
+                : null
+            }
+          />
           <Fact label="IPO" value={profile.ipoDate} />
         </div>
       </Section>
@@ -120,8 +138,13 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
               </thead>
               <tbody>
                 {snapshot.years.map((year) => (
-                  <tr key={year.fiscalYear ?? "unknown"} className="border-t border-border/50">
-                    <td className="py-2 pr-3 tabular-nums">{year.fiscalYear ?? TICKER_UNKNOWN}</td>
+                  <tr
+                    key={year.fiscalYear ?? "unknown"}
+                    className="border-t border-border/50"
+                  >
+                    <td className="py-2 pr-3 tabular-nums">
+                      {year.fiscalYear ?? TICKER_UNKNOWN}
+                    </td>
                     <td className="py-2 pr-3 tabular-nums">
                       {formatMaybe("money", year.revenue)}
                     </td>
@@ -150,10 +173,7 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
   );
 }
 
-function formatMaybe(
-  kind: TickerField["kind"],
-  value: number | null,
-): string {
+function formatMaybe(kind: TickerField["kind"], value: number | null): string {
   return formatTickerField({ label: "", value, kind });
 }
 
@@ -210,10 +230,8 @@ function CacheLine({ snapshot }: { snapshot: TickerSnapshot }) {
           : "Cache miss";
   return (
     <p className="mt-3 text-xs text-muted-foreground" data-ticker-cache={status}>
-      {label}
+      Cached {formatTickerCacheAge(snapshot.fetchedAt)} · {label}
       {snapshot.cache.fromCache ? " · first paint from cache" : ""}
-      {" · "}
-      Financial Modeling Prep
     </p>
   );
 }
