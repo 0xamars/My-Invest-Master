@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://investsalsa.com"),
   title: "InvestSalsa — Freedom, engineered.",
   description:
-    "Budget, Invest, and Freedom. Envelope leftover that carries, a portfolio book and checkup, and a Freedom plan you can refresh from the book. Not investment advice.",
+    "Budget, Invest, and Freedom. Ready to Assign leftover that carries, a portfolio book and checkup, and a Freedom plan you can refresh from the book. Not investment advice.",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
