@@ -103,11 +103,11 @@ export function AccountDialog({
               value={onBudget ? "on-budget" : "tracking"}
               onValueChange={(value) => setOnBudget(value === "on-budget")}
             >
-              <TabsList className="grid w-full grid-cols-2 rounded-full p-1">
-                <TabsTrigger value="on-budget" className="rounded-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="on-budget">
                   On-budget
                 </TabsTrigger>
-                <TabsTrigger value="tracking" className="rounded-full">
+                <TabsTrigger value="tracking">
                   Tracking
                 </TabsTrigger>
               </TabsList>

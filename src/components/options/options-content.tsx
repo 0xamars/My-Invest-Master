@@ -155,6 +155,16 @@ export function OptionsContent() {
       <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
       <RetirePageHeader
         title="Options"
+        titleAddon={
+          <CurrencyToggle
+            compact
+            currency={currency}
+            onChange={setCurrency}
+            rates={rates}
+            isLoading={isFxLoading}
+            error={fxError}
+          />
+        }
         description={
           isLoading
             ? "Fetching live stock prices…"
@@ -163,18 +173,11 @@ export function OptionsContent() {
               : "Premium ledger vs the primary book. No invented greeks."
         }
         action={
-          <div className="flex flex-wrap items-center gap-3">
-            <CurrencyToggle
-              currency={currency}
-              onChange={setCurrency}
-              rates={rates}
-              isLoading={isFxLoading}
-              error={fxError}
-            />
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="icon"
-              className="size-10 rounded-xl border-border/80 bg-card transition-colors hover:bg-muted/60"
+              className="size-10 rounded-[var(--radius)] border-border bg-muted"
               onClick={() => refetch()}
               disabled={isLoading || positions.length === 0}
               title="Refresh prices"

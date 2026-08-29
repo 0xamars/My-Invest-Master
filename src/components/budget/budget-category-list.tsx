@@ -39,6 +39,76 @@ import type { BudgetCategoryGroup } from "@/types/budget";
 const ENVELOPE_GRID =
   "md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(5.5rem,1fr))_2.75rem]";
 
+function EnvelopeRowMenu({
+  name,
+  monthClosed,
+  overspent,
+  isPaymentCategory,
+  onCoverOverspend,
+  onMoveMoney,
+  onSetGoal,
+  onRename,
+  onDelete,
+  className,
+}: {
+  name: string;
+  monthClosed: boolean;
+  overspent: boolean;
+  isPaymentCategory: boolean;
+  onCoverOverspend: () => void;
+  onMoveMoney: () => void;
+  onSetGoal: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  className?: string;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className={className}
+            aria-label={`${name} actions`}
+          >
+            <MoreHorizontal className="size-4" />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end" className="min-w-44">
+        {overspent && !monthClosed ? (
+          <DropdownMenuItem onClick={onCoverOverspend}>
+            Cover overspend
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem disabled={monthClosed} onClick={onMoveMoney}>
+          <ArrowLeftRight className="size-4" />
+          Move money
+        </DropdownMenuItem>
+        {isPaymentCategory ? null : (
+          <>
+            <DropdownMenuItem onClick={onSetGoal}>
+              <Target className="size-4" />
+              Set goal
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onRename}>
+              <Pencil className="size-4" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={onDelete}>
+              <Trash2 className="size-4" />
+              Delete
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 interface BudgetCategoryListProps {
   groups: Array<{ group: BudgetCategoryGroup; categories: CategoryBudgetRow[] }>;
   currency?: string;
@@ -279,7 +349,8 @@ export function BudgetCategoryList({
                         "budget-row-credit-overspent",
                     )}
                   >
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{row.category.name}</p>
                       {row.goal && row.goalProgress ? (
                         <div className="mt-1.5 max-w-xs">
@@ -316,6 +387,20 @@ export function BudgetCategoryList({
                             : ""}
                         </p>
                       ) : null}
+                      </div>
+                      <div className="shrink-0 md:hidden">
+                        <EnvelopeRowMenu
+                          name={row.category.name}
+                          monthClosed={monthClosed}
+                          overspent={overspent}
+                          isPaymentCategory={row.isPaymentCategory}
+                          onCoverOverspend={() => onCoverOverspend(row.category.id)}
+                          onMoveMoney={() => onMoveMoney(row.category.id)}
+                          onSetGoal={() => onSetGoal(row.category.id)}
+                          onRename={() => onEditCategory(row.category.id)}
+                          onDelete={() => onDeleteCategory(row.category.id)}
+                        />
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-2 md:justify-end">
@@ -375,62 +460,19 @@ export function BudgetCategoryList({
                       </BudgetAvailableChip>
                     </div>
 
-                    <div className="flex justify-end">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              className="budget-row-actions"
-                              aria-label={`${row.category.name} actions`}
-                            >
-                              <MoreHorizontal className="size-4" />
-                            </Button>
-                          }
-                        />
-                        <DropdownMenuContent align="end" className="min-w-44">
-                          {overspent && !monthClosed ? (
-                            <DropdownMenuItem
-                              onClick={() => onCoverOverspend(row.category.id)}
-                            >
-                              Cover overspend
-                            </DropdownMenuItem>
-                          ) : null}
-                          <DropdownMenuItem
-                            disabled={monthClosed}
-                            onClick={() => onMoveMoney(row.category.id)}
-                          >
-                            <ArrowLeftRight className="size-4" />
-                            Move money
-                          </DropdownMenuItem>
-                          {row.isPaymentCategory ? null : (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => onSetGoal(row.category.id)}
-                              >
-                                <Target className="size-4" />
-                                Set goal
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => onEditCategory(row.category.id)}
-                              >
-                                <Pencil className="size-4" />
-                                Rename
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => onDeleteCategory(row.category.id)}
-                              >
-                                <Trash2 className="size-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <div className="hidden justify-end md:flex">
+                      <EnvelopeRowMenu
+                        name={row.category.name}
+                        monthClosed={monthClosed}
+                        overspent={overspent}
+                        isPaymentCategory={row.isPaymentCategory}
+                        onCoverOverspend={() => onCoverOverspend(row.category.id)}
+                        onMoveMoney={() => onMoveMoney(row.category.id)}
+                        onSetGoal={() => onSetGoal(row.category.id)}
+                        onRename={() => onEditCategory(row.category.id)}
+                        onDelete={() => onDeleteCategory(row.category.id)}
+                        className="budget-row-actions"
+                      />
                     </div>
                   </div>
                   );

@@ -20,6 +20,7 @@ import {
 import { AddWatchlistTickerDialog } from "@/components/watchlist/add-watchlist-ticker-dialog";
 import { WatchlistTable } from "@/components/watchlist/watchlist-table";
 import { Button } from "@/components/ui/button";
+import { InlineTitle } from "@/components/ui/inline-title";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import {
   Select,
@@ -46,6 +47,7 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
     getWatchlist,
     addTicker,
     removeTicker,
+    renameWatchlist,
     isLoaded,
     syncError,
   } = useWatchlistPlans();
@@ -138,7 +140,17 @@ export function WatchlistContent({ listId }: WatchlistContentProps) {
               Back to Invest
             </Button>
             <RetirePageHeader
-              title={watchlist?.name ?? "Watchlist"}
+              title={
+                watchlist ? (
+                  <InlineTitle
+                    value={watchlist.name}
+                    onCommit={(next) => renameWatchlist(listId, next)}
+                    ariaLabel="Watchlist name"
+                  />
+                ) : (
+                  "Watchlist"
+                )
+              }
               description="Queue only — symbol, last price, and whether the name is already in the book. Adding here does not unlock research."
             />
           </div>

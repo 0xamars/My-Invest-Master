@@ -186,7 +186,9 @@ export function BudgetPlansListContent() {
                         "mt-1 text-[1.65rem] font-semibold tracking-tight tabular-nums",
                         summary.availableToBudget < 0
                           ? "text-[var(--brand-red)]"
-                          : "text-[var(--brand-green)]",
+                          : summary.availableToBudget > 0
+                            ? "text-[var(--brand-green)]"
+                            : "text-foreground",
                       )}
                     >
                       {formatBudgetMoney(summary.availableToBudget, summary.currency)}

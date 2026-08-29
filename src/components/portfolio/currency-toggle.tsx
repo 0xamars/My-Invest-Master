@@ -27,6 +27,7 @@ interface CurrencyToggleProps {
   rates: FxRates;
   isLoading?: boolean;
   error?: string | null;
+  compact?: boolean;
 }
 
 function matchesQuery(
@@ -49,6 +50,7 @@ export function CurrencyToggle({
   rates,
   isLoading,
   error,
+  compact = false,
 }: CurrencyToggleProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -96,14 +98,24 @@ export function CurrencyToggle({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div
+      className={cn(
+        "flex flex-col gap-1.5",
+        compact ? "items-start" : "items-end",
+      )}
+    >
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger
           render={
             <Button
               type="button"
               variant="outline"
-              className="h-10 min-w-[7.5rem] justify-between gap-2 rounded-xl border-border/70 bg-card px-3 text-xs font-medium shadow-sm"
+              className={cn(
+                "justify-between gap-2 border-border bg-muted px-2.5 text-xs font-medium",
+                compact
+                  ? "h-8 min-w-[5.5rem] rounded-md px-2"
+                  : "h-10 min-w-[7.5rem] rounded-[var(--radius)] px-3",
+              )}
               aria-label={`Display currency ${currency}`}
             />
           }
@@ -185,7 +197,7 @@ export function CurrencyToggle({
         </Popover.Portal>
       </Popover.Root>
 
-      {currency !== "USD" && (
+      {!compact && currency !== "USD" && (
         <p className="max-w-[14rem] text-right text-[11px] text-muted-foreground">
           {isLoading
             ? "Loading FX…"
@@ -196,7 +208,7 @@ export function CurrencyToggle({
                 : rateLabel}
         </p>
       )}
-      {error && currency === "USD" && (
+      {!compact && error && currency === "USD" && (
         <p className="max-w-[14rem] text-right text-[11px] text-amber-600 dark:text-amber-400">
           FX unavailable — showing USD
         </p>

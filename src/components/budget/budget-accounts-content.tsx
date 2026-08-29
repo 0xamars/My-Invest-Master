@@ -122,7 +122,7 @@ export function BudgetAccountsContent() {
             <span>Budget</span>
             <span className="text-right">Balance</span>
             <span className="text-right">Cleared</span>
-            <span />
+            <span className="text-right">Actions</span>
           </div>
           <AccountSection
             title="On-budget"
