@@ -6,6 +6,7 @@ import { Plus, RefreshCw, TrendingUp } from "lucide-react";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
+import { BrandStill } from "@/components/brand/brand-still";
 import {
   RetireEmptyState,
   RetirePageHeader,
@@ -18,6 +19,7 @@ import { useBookTickerQuotes } from "@/hooks/use-book-ticker-quotes";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { explainAddHoldingFields } from "@/lib/journey/density";
+import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { INVEST_EMPTY_BOOK } from "@/lib/journey/empty-states";
 import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
 import { buildBookRows } from "@/lib/ticker/book";
@@ -114,6 +116,15 @@ export function InvestHomeContent() {
         />
       ) : rows.length === 0 ? (
         <div className="surface-card" data-empty-state="invest">
+          <BrandStill
+            src={BRAND.emptyInvest}
+            alt=""
+            width={BRAND_SIZE.emptyInvest.width}
+            height={BRAND_SIZE.emptyInvest.height}
+            className="rounded-b-none border-0 border-b"
+            imageClassName="h-44 object-cover object-center sm:h-52"
+            sizes="(min-width: 640px) 40rem, 100vw"
+          />
           <RetireEmptyState
             icon={<TrendingUp className="size-5" />}
             title={INVEST_EMPTY_BOOK.title}

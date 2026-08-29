@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppShell } from "@/components/layout/app-shell";
+import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -20,12 +21,8 @@ export const metadata: Metadata = {
   description:
     "Budget, Invest, and Freedom. Ready to Assign leftover that carries, a portfolio book and checkup, and a Freedom plan you can refresh from the book. Not investment advice.",
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: "/apple-touch-icon.png",
+    icon: [{ url: BRAND.logoMark, type: "image/jpeg" }],
+    apple: BRAND.logoMark,
   },
   openGraph: {
     title: "InvestSalsa — Freedom, engineered.",
@@ -33,9 +30,9 @@ export const metadata: Metadata = {
       "Budget leftover that carries, an Invest book, and a Freedom plan you can refresh from the book.",
     images: [
       {
-        url: "/og.png",
-        width: 1200,
-        height: 630,
+        url: BRAND.logoLockup,
+        width: BRAND_SIZE.logoLockup.width,
+        height: BRAND_SIZE.logoLockup.height,
         alt: "InvestSalsa — Freedom, engineered.",
       },
     ],
@@ -45,7 +42,7 @@ export const metadata: Metadata = {
     title: "InvestSalsa — Freedom, engineered.",
     description:
       "Budget leftover that carries, an Invest book, and a Freedom plan you can refresh from the book.",
-    images: ["/og.png"],
+    images: [BRAND.logoLockup],
   },
 };
 
