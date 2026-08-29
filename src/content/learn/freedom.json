@@ -1,0 +1,83 @@
+{
+  "pillar": "freedom",
+  "lessons": [
+    {
+      "id": "freedom-date-leftover-book",
+      "title": "Freedom date = leftover + the book",
+      "keyIdea": "A date here needs leftover and the book. Missing either means the date is unknown — never invented.",
+      "paragraphs": [
+        "A Freedom date here comes from leftover and the book. Leftover is one-time cash from Budget, not leftover times 12. The book is what Invest shows you own.",
+        "If leftover or the book is missing, the date is unknown. This page will not invent a year. Journey Home says the same thing: needs leftover and a book.",
+        "Spending in the plan is a later assumption. First, leftover and the book have to exist in the tools. If this lesson and a screen disagree, the tools win."
+      ],
+      "cta": {
+        "label": "Open Freedom and see what it has",
+        "href": "/freedom?tab=do"
+      },
+      "checks": [
+        {
+          "id": "date-source",
+          "prompt": "A Freedom date here comes from…",
+          "options": [
+            { "id": "leftover_book", "label": "Leftover and the book" },
+            { "id": "times_twelve", "label": "Leftover × 12 as yearly savings" },
+            { "id": "guess", "label": "An invented year" }
+          ],
+          "correctId": "leftover_book"
+        },
+        {
+          "id": "date-missing",
+          "prompt": "If leftover or the book is missing…",
+          "options": [
+            { "id": "unknown", "label": "The date is unknown" },
+            { "id": "invent", "label": "We invent a date" },
+            { "id": "last_year", "label": "We reuse last year’s numbers" }
+          ],
+          "correctId": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "freedom-spending-assumption",
+      "title": "Spending is an assumption until you save a plan",
+      "keyIdea": "Spending is what you type and save. It is not leftover, and this page will not invent a lifestyle.",
+      "paragraphs": [
+        "A Freedom plan needs a spending number to draw a path. Until you save a plan, that number is an assumption, not a fact from your accounts.",
+        "The tool will not pull a lifestyle from leftover. Leftover is leftover. Spending is what you type and save. Treat any spending on screen as the plan’s assumption — not a number this lesson invents.",
+        "Save a plan when you are ready to pick a spending number you can live with. You can change it later. Do not copy a sample year from this page."
+      ],
+      "cta": {
+        "label": "Open Freedom and save a plan",
+        "href": "/freedom?tab=do"
+      }
+    },
+    {
+      "id": "freedom-inflation",
+      "title": "Inflation in one page",
+      "keyIdea": "Inflation means prices rise. The rate in use is whatever the saved plan shows — not a rate from this lesson.",
+      "paragraphs": [
+        "Inflation means prices rise over time. The same basket of goods can cost more next year. A plan that ignores that can look easier than life will be.",
+        "Freedom can use an inflation rate as an assumption. It is a setting, not a forecast we promise. This lesson does not invent a rate for you. Check the plan for the rate in use.",
+        "You cannot stop inflation from a lesson. You can only see that a path in today’s dollars and a path in future dollars are different stories. The saved plan is the source."
+      ],
+      "cta": {
+        "label": "Open your Freedom plan",
+        "href": "/freedom?tab=do"
+      }
+    },
+    {
+      "id": "freedom-chart-story",
+      "title": "The chart is a story, not a promise",
+      "keyIdea": "The chart is a path from leftover, the book, and saved assumptions. Paths can miss. You can lose money.",
+      "paragraphs": [
+        "The Freedom chart is a path the tool drew from leftover, the book, and the assumptions you saved. Paths can miss. Markets can fall. You can lose money.",
+        "A crossing year is not a guarantee you can stop working. If leftover or the book changes, the story changes. If leftover or the book is missing, there is no honest date to show.",
+        "Read the chart as “what this plan says if these inputs hold.” Then go back to Budget and Invest and check the inputs. The tools are the source."
+      ],
+      "cta": {
+        "label": "Open the Freedom chart",
+        "href": "/freedom?tab=do"
+      }
+    }
+  ]
+}

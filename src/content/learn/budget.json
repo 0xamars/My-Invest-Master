@@ -1,0 +1,123 @@
+{
+  "pillar": "budget",
+  "lessons": [
+    {
+      "id": "budget-money-in-out",
+      "title": "Money in vs money out",
+      "keyIdea": "Money in is cash you add. Money out is cash that leaves. The tool shows what you entered.",
+      "paragraphs": [
+        "A budget starts with two piles. Money in is cash that lands in your accounts. Money out is cash that leaves. The gap is what you can give a job.",
+        "This app does not invent money in. You add it. If you skip a deposit, leftover will be wrong. If you add a spend twice, leftover will be wrong. Budget shows what you entered.",
+        "You do not need a perfect history to start. Enter what you know for this month. The point is to see in versus out in one place — not to guess a lifestyle number."
+      ],
+      "cta": {
+        "label": "Open Budget and add money in or out",
+        "href": "/budget?tab=do"
+      },
+      "checks": [
+        {
+          "id": "money-in-source",
+          "prompt": "Money in here is…",
+          "options": [
+            { "id": "entered", "label": "Cash you add in Budget" },
+            { "id": "invented", "label": "A number this lesson invents" },
+            { "id": "yearly", "label": "Next year’s pay, guessed" }
+          ],
+          "correctId": "entered"
+        }
+      ]
+    },
+    {
+      "id": "budget-envelopes-leftover",
+      "title": "Envelopes and leftover",
+      "keyIdea": "Leftover is Ready to Assign — money not yet given a job. The number is whatever Budget shows.",
+      "paragraphs": [
+        "An envelope is a job for cash: rent, food, a debt payment. You move leftover into envelopes. Leftover is the point. It is money not yet given a job.",
+        "Leftover here is Ready to Assign. The number is whatever Budget shows. This page will not invent one. If leftover is missing or zero, that is the truth for now.",
+        "Giving leftover a job is how you decide. Spending from an envelope comes later. First see leftover. Then move it. The tool is the source, not this lesson."
+      ],
+      "cta": {
+        "label": "Open Budget and find leftover",
+        "href": "/budget?tab=do"
+      },
+      "checks": [
+        {
+          "id": "leftover-meaning",
+          "prompt": "Leftover (Ready to Assign) is…",
+          "options": [
+            { "id": "unassigned", "label": "Money not yet given a job" },
+            { "id": "assigned", "label": "Money already given a job" },
+            { "id": "spend", "label": "Extra income you can spend" }
+          ],
+          "correctId": "unassigned"
+        }
+      ]
+    },
+    {
+      "id": "budget-close-month",
+      "title": "Close the month so leftover is real",
+      "keyIdea": "Close month carries leftover forward. Skipping close can make next month look empty.",
+      "paragraphs": [
+        "A month is not done until you close it. Close month carries leftover and envelope leftover into the next month. That is how leftover becomes real, not a sticky note.",
+        "Closing does not start you at zero. It does not delete last month. If you skip close, next month can look empty even when last month still had leftover.",
+        "Close when the month is actually over and the register looks right. The button lives inside a budget plan. After you close, use what Budget shows — not a number from this page."
+      ],
+      "cta": {
+        "label": "Open a budget and use Close month",
+        "href": "/budget?tab=do"
+      },
+      "checks": [
+        {
+          "id": "close-carries",
+          "prompt": "Closing a month…",
+          "options": [
+            { "id": "carry", "label": "Carries leftover forward" },
+            { "id": "zero", "label": "Starts you at zero" },
+            { "id": "delete", "label": "Deletes last month" }
+          ],
+          "correctId": "carry"
+        }
+      ]
+    },
+    {
+      "id": "budget-debt-minimums",
+      "title": "Debt minimums first",
+      "keyIdea": "Required debt payments get an envelope before wants. Budget will not pick a debt plan for you.",
+      "paragraphs": [
+        "If you have a debt payment you must make, give it an envelope before you fund wants. A minimum is the amount you agreed to pay so the account stays current.",
+        "This is not a ranking of which debt to attack extra. It is order: required payments get a job first. Extra toward debt is a later choice, once leftover still remains.",
+        "Budget will not pick a debt plan for you. Make an envelope with the name you use at the lender. Fund it from leftover. The tool shows what you assigned."
+      ],
+      "cta": {
+        "label": "Open Budget and make a debt envelope",
+        "href": "/budget?tab=do"
+      },
+      "checks": [
+        {
+          "id": "minimum-first",
+          "prompt": "A debt minimum should get…",
+          "options": [
+            { "id": "envelope-first", "label": "An envelope before wants" },
+            { "id": "skip", "label": "No envelope — leftover covers it later" },
+            { "id": "invent", "label": "A payment amount this lesson invents" }
+          ],
+          "correctId": "envelope-first"
+        }
+      ]
+    },
+    {
+      "id": "budget-leftover-investing",
+      "title": "When leftover can fund investing",
+      "keyIdea": "Investing waits until leftover has cash with no job. Leftover is one-time cash, not × 12.",
+      "paragraphs": [
+        "Investing is optional until leftover says you have cash with no job. If leftover is missing or zero, there is nothing here to send to Invest. The tool wins.",
+        "Leftover is one-time cash for this month, not a yearly income. Do not multiply it by 12. If you want to invest, assign leftover to that job, then record it in the Invest book.",
+        "You can still learn Invest with an empty book. Funding it is a later step. This lesson does not invent a leftover or a buy list."
+      ],
+      "cta": {
+        "label": "Check leftover in Budget",
+        "href": "/budget?tab=do"
+      }
+    }
+  ]
+}
