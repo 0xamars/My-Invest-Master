@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { investTickerPath } from "@/lib/chrome/nav";
 import {
   ArrowDown,
   ArrowUp,
@@ -345,9 +347,19 @@ export function PortfolioTable({
                         size="sm"
                       />
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="font-semibold tracking-tight">
-                          {holding.symbol}
-                        </span>
+                        {holding.type === "stock" ? (
+                          <Link
+                            href={investTickerPath(holding.symbol)}
+                            className="font-semibold tracking-tight hover:underline"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {holding.symbol}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold tracking-tight">
+                            {holding.symbol}
+                          </span>
+                        )}
                         <Badge
                           variant="outline"
                           className="border-border/70 bg-muted/30 px-1.5 py-0 text-[10px] font-normal uppercase tracking-wide text-muted-foreground"

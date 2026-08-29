@@ -22,10 +22,12 @@ import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useInvestSummary } from "@/hooks/use-invest-summary";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
+import { TickerLookup } from "@/components/ticker/ticker-lookup";
 import {
   INVEST_OPTIONS_PATH,
   INVEST_WATCHLIST_PATH,
   investPortfolioPath,
+  investTickerPath,
 } from "@/lib/chrome/nav";
 import { leftoverFromBudgetPlans, pickOpenablePlan } from "@/lib/invest/leftover";
 import { LeftoverAction } from "@/components/invest/leftover-action";
@@ -156,8 +158,10 @@ export function InvestHomeContent() {
     <div className="flex flex-1 flex-col gap-5">
       <RetirePageHeader
         title="Invest"
-        description="The book — checkup, mix, leftover, and options vs the names you own. Not a research terminal."
+        description="The book — checkup, mix, leftover, and options vs the names you own. Open a public ticker for a Financial Modeling Prep read."
       />
+
+      <TickerLookup className="max-w-md" />
 
       <LeftoverAction />
       <RefreshRetireAction />
@@ -398,15 +402,24 @@ function CheckupPanel({
         </p>
         {top && checkup.concentration.note === "flag" ? (
           <p className="mt-2 text-sm">
-            <button
-              type="button"
-              className="font-medium text-primary hover:underline"
-              onClick={() =>
-                onToggleExpand(expandedHoldingId === top.id ? null : top.id)
-              }
-            >
-              {top.label}
-            </button>{" "}
+            {top.type === "stock" ? (
+              <Link
+                href={investTickerPath(top.symbol)}
+                className="font-medium text-primary hover:underline"
+              >
+                {top.label}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="font-medium text-primary hover:underline"
+                onClick={() =>
+                  onToggleExpand(expandedHoldingId === top.id ? null : top.id)
+                }
+              >
+                {top.label}
+              </button>
+            )}{" "}
             is {top.percent.toFixed(1)}% of the book.
           </p>
         ) : null}
@@ -439,15 +452,18 @@ function CheckupPanel({
               const note = concentrationNoteForWeight(holding.percent);
               const expanded = expandedHoldingId === holding.id;
               const full = holdings.find((item) => item.id === holding.id);
+              const tickerHref =
+                holding.type === "stock" ? investTickerPath(holding.symbol) : null;
               return (
                 <li key={holding.id}>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-3 rounded-md px-1 py-0.5 text-sm hover:bg-muted/40"
-                    onClick={() =>
-                      onToggleExpand(expanded ? null : holding.id)
-                    }
-                  >
+                  <div className="flex items-center gap-2 rounded-md px-1 py-0.5 text-sm hover:bg-muted/40">
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3"
+                      onClick={() =>
+                        onToggleExpand(expanded ? null : holding.id)
+                      }
+                    >
                     <span className="min-w-0 truncate">{holding.label}</span>
                     <span className="flex shrink-0 items-center gap-2 tabular-nums text-muted-foreground">
                       {note !== "none" ? (
@@ -464,7 +480,17 @@ function CheckupPanel({
                       ) : null}
                       {holding.percent.toFixed(1)}%
                     </span>
-                  </button>
+                    </button>
+                    {tickerHref ? (
+                      <Link
+                        href={tickerHref}
+                        className="shrink-0 text-xs text-primary hover:underline"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        Read
+                      </Link>
+                    ) : null}
+                  </div>
                   {expanded && full ? (
                     <div className="mt-2 rounded-md border border-border/60 bg-muted/15 px-3 py-3">
                       <HoldingExpandPanel

@@ -14,6 +14,7 @@ import {
   SIGNED_IN_FOOTER_NAV,
   SIGNED_IN_PRIMARY_NAV,
   investPortfolioPath,
+  investTickerPath,
   isInvestPath,
   isPillarHub,
   pillarForPath,
@@ -595,7 +596,13 @@ assert(destinationForLegacyInvestPath("/holdings") === "/invest/portfolio", "/ho
 assert(destinationForLegacyInvestPath("/markets") === "/invest", "/markets leftover goes to Invest");
 assert(destinationForLegacyInvestPath("/market") === "/invest", "/market leftover goes to Invest");
 assert(destinationForLegacyInvestPath("/analysis") === "/invest", "/analysis hub folds into Invest");
-assert(destinationForLegacyInvestPath("/analysis/AAPL") === "/invest", "/analysis/[symbol] folds into Invest");
+assert(
+  destinationForLegacyInvestPath("/analysis/AAPL") === null,
+  "/analysis/[symbol] is the ticker read, not a leftover redirect",
+);
+assert(investTickerPath("nvda") === "/analysis/NVDA", "ticker read lives under /analysis");
+assert(resolvePageTitle("/analysis/NVDA") === "NVDA", "ticker page title is the symbol");
+assert(isInvestPath("/analysis/NVDA"), "ticker read stays inside the Invest pillar");
 assert(destinationForLegacyInvestPath("/signin") === "/login", "/signin aliases /login");
 assert(destinationForLegacyInvestPath("/pricing") === "/", "/pricing redirects home");
 assert(isPublicRoute("/pricing"), "/pricing stays public so the redirect is not gated");

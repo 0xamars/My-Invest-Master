@@ -10,10 +10,12 @@
     "test:fundamentals": "npx --yes tsx --tsconfig tsconfig.json scripts/test-insurance-fs-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-sbc-events-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-forecast-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/run-fundamental-regression.mts",
     "test:budget": "npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-calculations-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-csv-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-parity-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-tracking-goals-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-daily-use-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-daily-more-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-month-close-unit.mts",
     "test:retire": "npx --yes tsx --tsconfig tsconfig.json scripts/test-retire-unit.mts",
-    "test:invest": "npx --yes tsx --tsconfig tsconfig.json scripts/test-invest-unit.mts"
+    "test:invest": "npx --yes tsx --tsconfig tsconfig.json scripts/test-invest-unit.mts",
+    "test:ticker": "npx --yes tsx --tsconfig tsconfig.json scripts/test-ticker-unit.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@vercel/functions": "^3.4.3",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "class-variance-authority": "^0.7.1",

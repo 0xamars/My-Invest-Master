@@ -101,6 +101,9 @@ export function buildAnalysisHref(
 ): string {
   const params = new URLSearchParams({ type });
   if (priceId) params.set("priceId", priceId);
+  if (type === "stock") {
+    return `/analysis/${encodeURIComponent(symbol.toUpperCase())}`;
+  }
   return `/analysis/${encodeURIComponent(symbol.toUpperCase())}?${params.toString()}`;
 }
 

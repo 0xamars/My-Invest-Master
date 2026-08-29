@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { investTickerPath } from "@/lib/chrome/nav";
 import { useInvestSummary } from "@/hooks/use-invest-summary";
 import { useHoldingExpand } from "@/hooks/use-holding-expand";
 import {
@@ -97,6 +99,17 @@ export function HoldingExpandPanel({
           </span>
         ) : null}
       </p>
+
+      {holding.type === "stock" ? (
+        <p>
+          <Link
+            href={investTickerPath(holding.symbol)}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Open {holding.symbol} read
+          </Link>
+        </p>
+      ) : null}
 
       {holding.type !== "stock" ? null : isLoading && !facts ? (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">

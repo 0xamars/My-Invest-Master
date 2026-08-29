@@ -10,7 +10,6 @@ export const INVEST_LEGACY_REDIRECTS = [
   { source: "/market", destination: "/invest", permanent: false },
   { source: "/holdings", destination: "/invest/portfolio", permanent: true },
   { source: "/analysis", destination: "/invest", permanent: false },
-  { source: "/analysis/:symbol", destination: "/invest", permanent: false },
   { source: "/signin", destination: "/login", permanent: false },
   { source: "/pricing", destination: "/", permanent: false },
   { source: "/portfolio", destination: "/invest/portfolio", permanent: false },
@@ -45,7 +44,7 @@ export function destinationForLegacyInvestPath(
   if (pathname === "/home" || pathname.startsWith("/home/")) {
     return "/invest";
   }
-  if (pathname === "/analysis" || pathname.startsWith("/analysis/")) {
+  if (pathname === "/analysis") {
     return "/invest";
   }
   if (pathname === "/market" || pathname === "/markets") {

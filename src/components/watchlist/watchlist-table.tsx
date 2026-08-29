@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { MoreHorizontal, Trash2 } from "lucide-react";
+import { investTickerPath } from "@/lib/chrome/nav";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -126,9 +128,18 @@ export function WatchlistTable({
                             size="sm"
                           />
                           <div className="min-w-0">
-                            <p className="font-medium tracking-tight">
-                              {item.symbol}
-                            </p>
+                            {item.type === "stock" ? (
+                              <Link
+                                href={investTickerPath(item.symbol)}
+                                className="font-medium tracking-tight hover:underline"
+                              >
+                                {item.symbol}
+                              </Link>
+                            ) : (
+                              <p className="font-medium tracking-tight">
+                                {item.symbol}
+                              </p>
+                            )}
                             <p className="truncate text-xs text-muted-foreground">
                               {item.name}
                             </p>
