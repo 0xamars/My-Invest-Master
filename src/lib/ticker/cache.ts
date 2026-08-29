@@ -6,7 +6,7 @@ export const TICKER_FRESH_MS = 15 * 60_000;
 export const TICKER_STALE_MS = 24 * 60 * 60_000;
 
 const memory = new Map<string, TickerCacheEntry>();
-const RUNTIME_NAMESPACE = "ticker-read-v2";
+const RUNTIME_NAMESPACE = "ticker-read-v3";
 
 export function classifyCacheAge(
   fetchedAtMs: number,
@@ -71,8 +71,8 @@ async function runtimeSet(symbol: string, entry: TickerCacheEntry) {
     const ttlSec = Math.ceil(TICKER_STALE_MS / 1000);
     await cache.set(symbol, entry, {
       ttl: ttlSec,
-      tags: ["ticker-read-v2", `ticker:${symbol}`],
-      name: "ticker-read-v2",
+      tags: ["ticker-read-v3", `ticker:${symbol}`],
+      name: "ticker-read-v3",
     });
   } catch {
     // Local / missing Runtime Cache — memory still holds the write-through.

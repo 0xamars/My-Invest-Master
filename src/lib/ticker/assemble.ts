@@ -330,6 +330,7 @@ export function assembleTickerSnapshot(
     score: scored.score,
     past: scored.past,
     health: scored.health,
+    future: scored.future,
     charts,
   };
 }

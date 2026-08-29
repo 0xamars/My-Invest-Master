@@ -76,6 +76,32 @@ export type TickerHealthPrint = {
   loanField: number | null;
 };
 
+export type FutureYearPrint = {
+  fiscalYear: string | null;
+  revenue: number | null;
+  eps: number | null;
+  netIncome: number | null;
+  numberOfAnalysts: number | null;
+  analystsRevenue: number | null;
+  analystsEps: number | null;
+};
+
+export type TickerFuturePrint = {
+  years: FutureYearPrint[];
+  forwardYears: number;
+  nextPrintDate: string | null;
+  treasury10y: number | null;
+  treasuryDate: string | null;
+  printedFiscalYear: string | null;
+  printedRevenue: number | null;
+  printedEps: number | null;
+  printedNetIncome: number | null;
+  revenueGrowth: number | null;
+  earningsGrowth: number | null;
+  growthWindow: "fy2-annualized" | "next-year" | null;
+  lossToProfit: boolean | null;
+};
+
 export type TickerChartPoint = {
   period: string;
   revenue: number | null;

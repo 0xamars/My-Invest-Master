@@ -2,6 +2,8 @@
  * Public-stock ticker read: FMP assembly, unknown gaps, cache windows.
  *   npx tsx --tsconfig tsconfig.json scripts/test-ticker-unit.mts
  */
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { assembleTickerSnapshot } from "../src/lib/ticker/assemble.ts";
 import {
   TICKER_FRESH_MS,
@@ -229,7 +231,12 @@ assert(nvda.cache.fmpHit === false, "peek path must not claim an FMP hit");
 assert(nvda.score.axes.length === 5, "Score has five axes");
 assert(
   nvda.score.axes.find((axis) => axis.key === "future")?.status === "unknown",
-  "Future petal stays Unknown this slice",
+  "one forward estimate year leaves Future Unknown",
+);
+assert(nvda.future.forwardYears === 1, "NVDA fixture has one forward estimate year");
+assert(
+  nvda.future.years.some((year) => year.eps === 3.1),
+  "Future print keeps the street EPS estimate",
 );
 assert(
   nvda.score.axes.find((axis) => axis.key === "past")?.status === "scored",
@@ -257,12 +264,53 @@ assert(
   "no fake estimates when FMP omits them",
 );
 assert(
+  missingEstimates.future.years.length === 0,
+  "missing annual estimates leave Future empty",
+);
+assert(
+  missingEstimates.score.axes.find((axis) => axis.key === "future")?.status ===
+    "unknown",
+  "Future is Unknown when street estimates are missing",
+);
+assert(
+  missingEstimates.score.axes.find((axis) => axis.key === "value")?.status ===
+    "unknown",
+  "Value stays Unknown",
+);
+assert(
+  missingEstimates.score.axes.find((axis) => axis.key === "dividend")?.status ===
+    "unknown",
+  "Dividend stays Unknown",
+);
+assert(
   formatTickerField({
     label: "Estimated EPS",
     value: null,
     kind: "ratio",
   }) === TICKER_UNKNOWN,
   "missing estimate displays Unknown",
+);
+
+const leftoverPage = readFileSync(
+  join(process.cwd(), "src/components/analysis/analysis-ticker-content.tsx"),
+  "utf8",
+);
+assert(!/Browse Market/.test(leftoverPage), "ticker leftover must not browse Market");
+assert(
+  !/Open Watchlist|Add to Watchlist/.test(leftoverPage),
+  "ticker leftover must not mount Watchlist",
+);
+assert(
+  !/AnalysisCompanyBlurb|company-blurb/.test(leftoverPage),
+  "ticker leftover must not mount a generated blurb",
+);
+assert(
+  !existsSync(join(process.cwd(), "src/app/api/analysis/narrative/route.ts")),
+  "narrative route is gone",
+);
+assert(
+  !existsSync(join(process.cwd(), "src/app/api/analysis/company-blurb/route.ts")),
+  "company-blurb route is gone",
 );
 
 console.log("ticker unit tests passed");

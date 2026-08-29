@@ -1,5 +1,5 @@
 /**
- * First-slice Score: Past + Health only. Missing inputs skipped, not failed.
+ * Score: Past + Health + Future. Missing inputs skipped, not failed.
  *   npx tsx --tsconfig tsconfig.json scripts/test-ticker-score-unit.mts
  */
 import { assembleTickerSnapshot } from "../src/lib/ticker/assemble.ts";
@@ -12,7 +12,9 @@ import {
   TICKER_UNKNOWN,
 } from "../src/lib/ticker/format.ts";
 import {
+  annualizedGrowth,
   asReturnRatio,
+  buildFuturePrint,
   buildTickerScore,
   formatScoreMark,
   isRegulatedHealthVehicle,
@@ -66,7 +68,7 @@ assert(
 );
 assert(
   formatScoreMark(scoreAxis(emptyScore.score, "future")) === TICKER_UNKNOWN,
-  "Future stays Unknown this slice",
+  "Future is Unknown when street estimates are missing",
 );
 assert(
   formatScoreMark(scoreAxis(emptyScore.score, "value")) === TICKER_UNKNOWN,
@@ -320,7 +322,7 @@ assert(assembled.past.years.length === 6, "Past print keeps the annual years");
 assert(assembled.charts.annual.length === 6, "annual statement chart uses income rows");
 assert(
   scoreAxis(assembled.score, "future")?.status === "unknown",
-  "assembled Future petal stays empty",
+  "assembled Future stays Unknown without two forward years",
 );
 
 const holding = (partial: Partial<PortfolioHolding> & Pick<PortfolioHolding, "id" | "symbol">): PortfolioHolding => ({
@@ -372,11 +374,153 @@ assert(weighted[1]?.weight === 63, "companion weight is 63");
 assert(formatTickerCacheAge("not-a-date") === TICKER_UNKNOWN, "bad cache age is Unknown");
 assert(PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Freedom", "nav stays three pillars");
 
+const streetYears: TickerBundle = {
+  ...sixYears,
+  estimates: [
+    {
+      date: "2027-01-31",
+      revenueAvg: 144,
+      epsAvg: 4.5,
+      netIncomeAvg: 32,
+      numAnalystsRevenue: 18,
+      numAnalystsEps: 16,
+    },
+    {
+      date: "2026-01-31",
+      revenueAvg: 110,
+      epsAvg: 3.6,
+      netIncomeAvg: 24,
+      numAnalystsRevenue: 20,
+      numAnalystsEps: 19,
+    },
+  ],
+  earnings: [{ date: "2026-11-18", epsActual: null, epsEstimated: 1.1 }],
+  treasury: { date: "2026-08-27", year10: 4.67 },
+};
+
+assert(
+  Math.abs((annualizedGrowth(80, 144, 2) as number) - (Math.sqrt(144 / 80) - 1)) < 1e-9,
+  "FY+2 growth is annualized from latest printed to the second forward year",
+);
+assert(annualizedGrowth(-5, 2, 2) == null, "loss start does not invent annualized growth");
+
+const streetScore = buildTickerScore(streetYears, { asOf: new Date("2026-08-29T00:00:00.000Z") });
+const future = scoreAxis(streetScore.score, "future")!;
+assert(streetScore.future.forwardYears === 2, "two street years after 2025 count as forward");
+assert(future.status === "scored", "Future scores when two forward years exist");
+assert(future.scored === 3, `Future scored 3 checks, got ${future.scored}`);
+assert(future.passed === 3, `Future passed 3 / 3, got ${future.passed}`);
+assert(formatScoreMark(future) === "3 / 3", "Future prints n / scored");
+assert(
+  streetScore.future.nextPrintDate === "2026-11-18",
+  "next print date uses earnings-company",
+);
+assert(
+  streetScore.future.treasury10y != null &&
+    Math.abs(streetScore.future.treasury10y - 0.0467) < 1e-9,
+  "Treasury 4.67 is a percent, stored as a ratio",
+);
+assert(
+  future.checks.every((item) =>
+    item.inputs.some((field) => /street|treasury|printed|gaap|window/i.test(field.label)),
+  ),
+  "Future checks print street / Treasury / printed inputs",
+);
+
+const oneForward: TickerBundle = {
+  ...streetYears,
+  estimates: [streetYears.estimates[1]!],
+};
+const oneForwardAxis = scoreAxis(buildTickerScore(oneForward).score, "future")!;
+assert(oneForwardAxis.status === "unknown", "one forward year leaves Future Unknown");
+assert(oneForwardAxis.scored == null, "one forward year does not score checks");
+assert(
+  buildFuturePrint(oneForward).growthWindow === "next-year",
+  "one forward year still computes next-year growth",
+);
+
+const slowStreet: TickerBundle = {
+  ...streetYears,
+  estimates: [
+    {
+      date: "2027-01-31",
+      revenueAvg: 88,
+      epsAvg: 3.2,
+      netIncomeAvg: 22,
+      numAnalystsRevenue: 10,
+      numAnalystsEps: 10,
+    },
+    {
+      date: "2026-01-31",
+      revenueAvg: 84,
+      epsAvg: 3.1,
+      netIncomeAvg: 21,
+      numAnalystsRevenue: 10,
+      numAnalystsEps: 10,
+    },
+  ],
+};
+const slowFuture = scoreAxis(buildTickerScore(slowStreet).score, "future")!;
+assert(slowFuture.passed === 0 && slowFuture.scored === 3, "low street growth fails all three");
+
+const skipTreasury: TickerBundle = { ...streetYears, treasury: null };
+const skipTreasuryFuture = scoreAxis(buildTickerScore(skipTreasury).score, "future")!;
+const treasuryCheck = skipTreasuryFuture.checks.find(
+  (item) => item.id === "street-earnings-vs-treasury",
+);
+assert(treasuryCheck?.passed === null, "missing Treasury skips the proxy check");
+assert(skipTreasuryFuture.scored === 2, "Future scored 2 when Treasury is missing");
+
+const lossTurn: TickerBundle = {
+  ...streetYears,
+  incomeAnnual: [
+    incomeYear("2025", { epsdiluted: -1.2, revenue: 80, netIncome: -6 }),
+    ...sixYears.incomeAnnual.slice(1),
+  ],
+  estimates: [
+    {
+      date: "2027-01-31",
+      revenueAvg: 144,
+      epsAvg: 0.4,
+      netIncomeAvg: 2,
+      numAnalystsRevenue: 8,
+      numAnalystsEps: 7,
+    },
+    {
+      date: "2026-01-31",
+      revenueAvg: 110,
+      epsAvg: -0.2,
+      netIncomeAvg: -1,
+      numAnalystsRevenue: 8,
+      numAnalystsEps: 7,
+    },
+  ],
+};
+const lossFuture = scoreAxis(buildTickerScore(lossTurn).score, "future")!;
+const earningsCheck = lossFuture.checks.find((item) => item.id === "street-earnings-growth");
+assert(earningsCheck?.passed === true, "GAAP loss turning to street profit passes earnings");
+assert(
+  buildTickerScore(lossTurn).future.earningsGrowth == null,
+  "loss start does not invent street earnings growth",
+);
+
+const noEstimatesAxis = scoreAxis(buildTickerScore(sixYears).score, "future")!;
+assert(noEstimatesAxis.status === "unknown", "no annual estimates leave Future Unknown");
+assert(
+  scoreAxis(buildTickerScore(streetYears).score, "value")?.status === "unknown",
+  "Value stays Unknown this slice",
+);
+assert(
+  scoreAxis(buildTickerScore(streetYears).score, "dividend")?.status === "unknown",
+  "Dividend stays Unknown this slice",
+);
+
 const uiFiles = [
   "src/components/ticker/ticker-score.tsx",
   "src/components/ticker/ticker-read-view.tsx",
   "src/components/ticker/ticker-past-section.tsx",
   "src/components/ticker/ticker-health-section.tsx",
+  "src/components/ticker/ticker-future-section.tsx",
   "src/components/invest/invest-home-content.tsx",
   "src/components/invest/invest-book.tsx",
 ];

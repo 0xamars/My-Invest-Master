@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TickerLookup } from "@/components/ticker/ticker-lookup";
+import { TickerFutureSection } from "@/components/ticker/ticker-future-section";
 import { TickerHealthSection } from "@/components/ticker/ticker-health-section";
 import { TickerPastSection } from "@/components/ticker/ticker-past-section";
 import { TickerScoreGraphic } from "@/components/ticker/ticker-score";
@@ -94,6 +95,7 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
 
       <TickerPastSection snapshot={snapshot} />
       <TickerHealthSection snapshot={snapshot} />
+      <TickerFutureSection snapshot={snapshot} />
 
       <Section title="Profile">
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -121,7 +123,6 @@ export function TickerReadView({ snapshot }: { snapshot: TickerSnapshot }) {
       <FieldGrid title="Growth" fields={snapshot.growth} />
       <FieldGrid title="Margins" fields={snapshot.margins} />
       <FieldGrid title="Shares & dilution" fields={snapshot.shares} />
-      <FieldGrid title="Estimates" fields={snapshot.estimates} />
 
       {snapshot.years.length > 0 ? (
         <Section title="Annual highlights">

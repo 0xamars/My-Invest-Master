@@ -1,16 +1,18 @@
 /**
- * First-slice Score: Past and Health only. Missing inputs are skipped, not failed.
- * Future, Value, and Dividend stay empty until later sections ship.
+ * Score: Past, Health, and Future. Missing inputs are skipped, not failed.
+ * Value and Dividend stay empty until later sections ship.
  */
 import { isBankIndustry, isInsuranceIndustry } from "@/lib/analysis/rating/industry-model";
-import { firstRow, fiscalYearLabel, num, pick, ratio, str, yoyChange } from "@/lib/ticker/pick";
+import { firstRow, fiscalYearLabel, pick, ratio, str, yoyChange } from "@/lib/ticker/pick";
 import { formatTickerField, TICKER_UNKNOWN } from "@/lib/ticker/format";
 import type { TickerBundle } from "@/lib/ticker/types";
 import type {
+  FutureYearPrint,
   ScoreAxis,
   ScoreCheck,
   ScoreCheckInput,
   TickerChartPoint,
+  TickerFuturePrint,
   TickerHealthPrint,
   TickerPastPrint,
   TickerScore,
@@ -24,6 +26,12 @@ export const PAST_LOOK_LINE =
 
 export const HEALTH_LOOK_LINE =
   "Look at whether cash and earnings cover the debt we can see.";
+
+export const FUTURE_LOOK_LINE =
+  "Look at street estimates for the next two years. Every figure is an estimate.";
+
+export const TREASURY_PROXY_NOTE =
+  "10-year Treasury is a rate proxy, not a savings rate.";
 
 export const SCORE_NOT_A_BUY =
   "A large Score is not a buy.";
@@ -253,6 +261,228 @@ function emptyLaterAxis(key: ScoreAxis["key"], label: string): ScoreAxis {
     status: "unknown",
     checks: [],
     note: "Not scored in this slice.",
+  };
+}
+
+/**
+ * Latest printed year → FY+2 annualized, or next-year when only one
+ * forward year exists. Start ≤ 0 cannot annualize (loss-to-profit is separate).
+ */
+export function annualizedGrowth(
+  start: number | null,
+  end: number | null,
+  years: number | null,
+): number | null {
+  if (start == null || end == null || years == null) return null;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || !Number.isFinite(years)) {
+    return null;
+  }
+  if (years <= 0 || start <= 0) return null;
+  if (years === 1) return yoyChange(end, start);
+  const value = (end / start) ** (1 / years) - 1;
+  return Number.isFinite(value) ? value : null;
+}
+
+function pickEstimateRevenue(row: Row | null): number | null {
+  return pick(
+    row,
+    "revenueAvg",
+    "estimatedRevenueAvg",
+    "estimatedRevenue",
+    "revenue",
+  );
+}
+
+function pickEstimateEps(row: Row | null): number | null {
+  return pick(
+    row,
+    "epsAvg",
+    "estimatedEpsAvg",
+    "estimatedEps",
+    "eps",
+    "epsdiluted",
+  );
+}
+
+function pickEstimateNetIncome(row: Row | null): number | null {
+  return pick(
+    row,
+    "netIncomeAvg",
+    "estimatedNetIncomeAvg",
+    "estimatedNetIncome",
+    "netIncome",
+  );
+}
+
+function pickAnalystCount(row: Row | null, ...keys: string[]): number | null {
+  return pick(row, ...keys);
+}
+
+function parseYearNumber(label: string | null): number | null {
+  if (!label) return null;
+  const match = label.match(/^(\d{4})/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  return Number.isFinite(year) ? year : null;
+}
+
+function isoDate(row: Row | null, ...keys: string[]): string | null {
+  if (!row) return null;
+  for (const key of keys) {
+    const value = str(row[key]);
+    if (!value) continue;
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+    if (/^\d{4}$/.test(value)) return `${value}-12-31`;
+  }
+  return null;
+}
+
+function nextEarningsPrintDate(
+  rows: Row[],
+  asOf: Date,
+): string | null {
+  const today = asOf.toISOString().slice(0, 10);
+  const dates = rows
+    .map((row) => isoDate(row, "date", "fiscalDateEnding"))
+    .filter((date): date is string => Boolean(date && date >= today))
+    .sort();
+  return dates[0] ?? null;
+}
+
+function pickTreasury10y(row: Row | null): number | null {
+  return asReturnRatio(
+    pick(row, "year10", "year10Rate", "tenYear", "treasury10y"),
+  );
+}
+
+function toFutureYear(row: Row): FutureYearPrint {
+  const analystsRevenue = pickAnalystCount(
+    row,
+    "numberOfAnalysts",
+    "numAnalystsRevenue",
+    "numberAnalystEstimatedRevenue",
+    "numberAnalystsEstimatedRevenue",
+    "numAnalysts",
+  );
+  const analystsEps = pickAnalystCount(
+    row,
+    "numAnalystsEps",
+    "numberAnalystsEstimatedEps",
+    "numberAnalystEstimatedEps",
+    "numberOfAnalysts",
+    "numAnalysts",
+  );
+  const numberOfAnalysts =
+    analystsRevenue != null && analystsEps != null
+      ? Math.max(analystsRevenue, analystsEps)
+      : (analystsRevenue ?? analystsEps);
+  return {
+    fiscalYear: fiscalYearLabel(row),
+    revenue: pickEstimateRevenue(row),
+    eps: pickEstimateEps(row),
+    netIncome: pickEstimateNetIncome(row),
+    numberOfAnalysts,
+    analystsRevenue,
+    analystsEps,
+  };
+}
+
+export function buildFuturePrint(
+  bundle: TickerBundle,
+  asOf = new Date(),
+): TickerFuturePrint {
+  const estimateYears = rows(bundle.estimates)
+    .map(toFutureYear)
+    .filter(
+      (year) =>
+        year.fiscalYear != null ||
+        year.revenue != null ||
+        year.eps != null ||
+        year.netIncome != null,
+    )
+    .sort((a, b) => (b.fiscalYear ?? "").localeCompare(a.fiscalYear ?? ""));
+
+  const printed = firstRow(bundle.incomeAnnual);
+  const printedFiscalYear = fiscalYearLabel(printed);
+  const printedYearNum = parseYearNumber(printedFiscalYear);
+  const printedRevenue = pick(printed, "revenue");
+  const printedEps = pick(printed, "epsdiluted", "epsDiluted", "eps");
+  const printedNetIncome = pick(printed, "netIncome");
+
+  const asOfYear = asOf.getUTCFullYear();
+  const forward = estimateYears
+    .filter((year) => {
+      const yearNum = parseYearNumber(year.fiscalYear);
+      if (yearNum == null) return false;
+      if (printedYearNum != null) return yearNum > printedYearNum;
+      return yearNum > asOfYear;
+    })
+    .sort((a, b) => (a.fiscalYear ?? "").localeCompare(b.fiscalYear ?? ""));
+
+  const fy1 = forward[0] ?? null;
+  const fy2 = forward[1] ?? null;
+  const endYear = fy2 ?? fy1;
+  const endYearNum = parseYearNumber(endYear?.fiscalYear ?? null);
+  const years =
+    printedYearNum != null && endYearNum != null
+      ? endYearNum - printedYearNum
+      : null;
+  const growthWindow: TickerFuturePrint["growthWindow"] =
+    fy2 && years != null && years > 1
+      ? "fy2-annualized"
+      : fy1
+        ? "next-year"
+        : null;
+
+  const earningsEnd = endYear?.eps ?? endYear?.netIncome ?? null;
+  const earningsStart =
+    endYear?.eps != null ? printedEps : endYear?.netIncome != null ? printedNetIncome : null;
+  const earningsGrowth = annualizedGrowth(earningsStart, earningsEnd, years);
+
+  const revenueGrowth = annualizedGrowth(
+    printedRevenue,
+    endYear?.revenue ?? null,
+    years,
+  );
+
+  const printedLoss =
+    printedNetIncome != null
+      ? printedNetIncome < 0
+      : printedEps != null
+        ? printedEps < 0
+        : null;
+  const windowYears = [fy1, fy2].filter((year): year is FutureYearPrint => year != null);
+  const hasForwardEarnings = windowYears.some(
+    (year) => year.netIncome != null || year.eps != null,
+  );
+  const forwardProfit = windowYears.some(
+    (year) =>
+      (year.netIncome != null && year.netIncome > 0) ||
+      (year.eps != null && year.eps > 0),
+  );
+  const lossToProfit =
+    printedLoss === true && forwardProfit
+      ? true
+      : printedLoss === true && hasForwardEarnings && !forwardProfit
+        ? false
+        : printedLoss === false
+          ? false
+          : null;
+
+  return {
+    years: estimateYears,
+    forwardYears: forward.length,
+    nextPrintDate: nextEarningsPrintDate(rows(bundle.earnings), asOf),
+    treasury10y: pickTreasury10y(bundle.treasury),
+    treasuryDate: isoDate(bundle.treasury, "date"),
+    printedFiscalYear,
+    printedRevenue,
+    printedEps,
+    printedNetIncome,
+    revenueGrowth,
+    earningsGrowth,
+    growthWindow,
+    lossToProfit,
   };
 }
 
@@ -559,21 +789,114 @@ function buildHealthChecks(
   };
 }
 
-export function buildTickerScore(bundle: TickerBundle): {
+function growthWindowLabel(print: TickerFuturePrint): string {
+  return print.growthWindow === "fy2-annualized"
+    ? "latest printed year to FY+2, annualized"
+    : "next-year street estimate";
+}
+
+function buildFutureChecks(print: TickerFuturePrint): {
+  checks: ScoreCheck[];
+  note: string | null;
+} {
+  if (print.years.length === 0) {
+    return {
+      checks: [],
+      note: "Street annual estimates are missing.",
+    };
+  }
+  if (print.forwardYears < 2) {
+    return {
+      checks: [],
+      note: "Street annual estimates need two forward years.",
+    };
+  }
+
+  const window = growthWindowLabel(print);
+  const treasury = print.treasury10y;
+  const hurdle = treasury != null ? treasury + 0.02 : null;
+  const earningsGrowth = print.earningsGrowth;
+  const revenueGrowth = print.revenueGrowth;
+  const lossToProfit = print.lossToProfit;
+
+  const earningsPass =
+    earningsGrowth != null && earningsGrowth > 0.2
+      ? true
+      : lossToProfit === true
+        ? true
+        : earningsGrowth == null && lossToProfit == null
+          ? null
+          : false;
+
+  return {
+    checks: [
+      check(
+        "street-earnings-growth",
+        "Street earnings growth greater than 20%, or a GAAP loss turning to profit",
+        earningsPass,
+        [
+          input("Street earnings growth", pct(earningsGrowth)),
+          input("Growth window", window),
+          input("Latest printed diluted EPS", ratioText(print.printedEps)),
+          input("Latest printed net income", money(print.printedNetIncome)),
+          input(
+            "GAAP loss to street profit",
+            lossToProfit == null
+              ? TICKER_UNKNOWN
+              : lossToProfit
+                ? "Yes"
+                : "No",
+          ),
+        ],
+      ),
+      check(
+        "street-revenue-growth",
+        "Street revenue growth greater than 20%",
+        revenueGrowth != null ? revenueGrowth > 0.2 : null,
+        [
+          input("Street revenue growth", pct(revenueGrowth)),
+          input("Growth window", window),
+          input("Latest printed revenue", money(print.printedRevenue)),
+        ],
+      ),
+      check(
+        "street-earnings-vs-treasury",
+        "Street earnings growth greater than the 10-year Treasury + 2 percentage points",
+        earningsGrowth != null && hurdle != null
+          ? earningsGrowth > hurdle
+          : null,
+        [
+          input("Street earnings growth", pct(earningsGrowth)),
+          input("10-year Treasury (rate proxy)", pct(treasury)),
+          input("Treasury + 2 percentage points", pct(hurdle)),
+        ],
+      ),
+    ],
+    note: TREASURY_PROXY_NOTE,
+  };
+}
+
+export function buildTickerScore(
+  bundle: TickerBundle,
+  opts?: { asOf?: Date },
+): {
   score: TickerScore;
   past: TickerPastPrint;
   health: TickerHealthPrint;
+  future: TickerFuturePrint;
 } {
   const past = buildPastPrint(bundle);
   const health = buildHealthPrint(bundle);
+  const future = buildFuturePrint(bundle, opts?.asOf);
   const pastChecks = buildPastChecks(bundle, past);
   const healthBuilt = buildHealthChecks(bundle, health);
+  const futureBuilt = buildFutureChecks(future);
 
   return {
     score: {
       axes: [
         axisFromChecks("past", "Past", pastChecks),
-        emptyLaterAxis("future", "Future"),
+        axisFromChecks("future", "Future", futureBuilt.checks, futureBuilt.note),
         axisFromChecks("health", "Health", healthBuilt.checks, healthBuilt.note),
         emptyLaterAxis("value", "Value"),
         emptyLaterAxis("dividend", "Dividend"),
@@ -581,6 +904,7 @@ export function buildTickerScore(bundle: TickerBundle): {
     },
     past,
     health,
+    future,
   };
 }
 

@@ -1,4 +1,5 @@
 import type {
+  TickerFuturePrint,
   TickerHealthPrint,
   TickerPastPrint,
   TickerScore,
@@ -85,6 +86,7 @@ export type TickerSnapshot = {
   score: TickerScore;
   past: TickerPastPrint;
   health: TickerHealthPrint;
+  future: TickerFuturePrint;
   charts: TickerStatementCharts;
 };
 
@@ -102,6 +104,8 @@ export type TickerBundle = {
   growth: Record<string, unknown> | null;
   financialScores: Record<string, unknown> | null;
   estimates: Record<string, unknown>[];
+  earnings: Record<string, unknown>[];
+  treasury: Record<string, unknown> | null;
 };
 
 export type TickerCacheEntry = {

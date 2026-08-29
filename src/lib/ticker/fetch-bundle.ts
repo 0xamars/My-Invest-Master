@@ -46,6 +46,8 @@ export async function fetchTickerBundle(symbol: string): Promise<TickerBundle> {
     growthRows,
     scoreRows,
     estimateRows,
+    earningsRows,
+    treasuryRows,
   ] = await Promise.all([
     safeRows("/profile", { symbol }, 3600),
     safeRows("/quote", { symbol }, 30),
@@ -67,11 +69,9 @@ export async function fetchTickerBundle(symbol: string): Promise<TickerBundle> {
     safeRows("/income-statement-growth", { symbol, limit: 8 }, 3600),
     safeRows("/financial-growth", { symbol, limit: 5 }, 3600),
     safeRows("/financial-scores", { symbol }, 3600),
-    safeRows(
-      "/analyst-estimates",
-      { symbol, period: "annual", limit: 8 },
-      3600,
-    ),
+    fetchAnnualEstimates(symbol),
+    fetchEarningsCompany(symbol),
+    safeRows("/treasury-rates", {}, 3600),
   ]);
 
   return {
@@ -88,7 +88,31 @@ export async function fetchTickerBundle(symbol: string): Promise<TickerBundle> {
     growth: first(growthRows),
     financialScores: first(scoreRows),
     estimates: estimateRows,
+    earnings: earningsRows,
+    treasury: first(treasuryRows),
   };
+}
+
+/** Street annual estimates. Prefer financial-estimates; fall back to analyst-estimates. */
+async function fetchAnnualEstimates(symbol: string): Promise<Row[]> {
+  const financial = await safeRows(
+    "/financial-estimates",
+    { symbol, period: "annual", limit: 8 },
+    3600,
+  );
+  if (financial.length) return financial;
+  return safeRows(
+    "/analyst-estimates",
+    { symbol, period: "annual", limit: 8 },
+    3600,
+  );
+}
+
+/** Next print date lives on calendar / earnings-company. */
+async function fetchEarningsCompany(symbol: string): Promise<Row[]> {
+  const earnings = await safeRows("/earnings", { symbol, limit: 8 }, 3600);
+  if (earnings.length) return earnings;
+  return safeRows("/earning-calendar", { symbol, limit: 8 }, 3600);
 }
 
 export function bundleLooksEmpty(bundle: TickerBundle): boolean {

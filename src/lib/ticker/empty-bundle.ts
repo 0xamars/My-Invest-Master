@@ -14,4 +14,6 @@ export const EMPTY_TICKER_BUNDLE: TickerBundle = {
   growth: null,
   financialScores: null,
   estimates: [],
+  earnings: [],
+  treasury: null,
 };
