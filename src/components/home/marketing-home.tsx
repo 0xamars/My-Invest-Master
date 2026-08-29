@@ -19,7 +19,7 @@ export function MarketingHomePage({
   dashboardHref = "/invest",
 }: MarketingHomePageProps) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#02030D] text-white">
+    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
       <header className="relative z-20 border-b border-white/8">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
           <BrandLogo variant="lockup" asLink priority className="!gap-2.5" />
@@ -68,7 +68,7 @@ export function MarketingHomePage({
               sizes="100vw"
               className="object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#02030D] via-[#02030D]/35 to-[#02030D]/15" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/55 to-[#121212]/20" />
           </div>
           <div className="relative mx-auto flex min-h-[32rem] max-w-6xl flex-col justify-end px-5 pb-16 pt-20 sm:min-h-[36rem] sm:px-8 sm:pb-20 lg:min-h-[40rem]">
             <div className="max-w-xl space-y-5">
@@ -111,7 +111,7 @@ export function MarketingHomePage({
                   </>
                 )}
               </div>
-              <p className="text-xs text-[#8B93A7]">
+              <p className="text-xs text-[#A3A3A8]">
                 {isSignedIn
                   ? "You're signed in — open Invest for the book, leftover, and Freedom at a glance."
                   : "One product. Budget, Invest, and Freedom are included. Not investment advice."}
@@ -221,10 +221,10 @@ export function MarketingHomePage({
 
         <section className="pb-20 sm:pb-24">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#02030D] to-[#0A1020] px-6 py-12 text-center sm:px-10 sm:py-14">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/20 via-[#121212] to-[#1A1A1A] px-6 py-12 text-center sm:px-10 sm:py-14">
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,color-mix(in_srgb,#E47B31_22%,transparent),transparent_45%)]"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,color-mix(in_srgb,#64B860_22%,transparent),transparent_45%)]"
               />
               <div className="relative space-y-5">
                 <div className="mx-auto w-fit">

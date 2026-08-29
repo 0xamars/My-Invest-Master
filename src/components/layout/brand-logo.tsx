@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { cn } from "@/lib/utils";
 
@@ -10,24 +11,26 @@ interface BrandLogoProps {
 
 const TAGLINE = "Freedom, engineered.";
 
-/** Compact shooting-star mark — favicon / header / collapsed chrome. */
-export function CometMark({
+const ICON = "/brand/logo-icon.png";
+const STACKED = "/brand/logo-lockup.png";
+
+/** Growth line + salsa swooshes — the locked InvestSalsa mark. */
+export function SalsaMark({
   className,
   size = 32,
-  priority: _priority = false,
+  priority = false,
 }: {
   className?: string;
   size?: number;
   priority?: boolean;
 }) {
   return (
-    // Compact two-stripe comet mark — not the long-streak hero.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/brand/comet-mark.svg"
+    <Image
+      src={ICON}
       alt=""
       width={size}
       height={size}
+      priority={priority}
       className={cn(
         "brand-logo-icon size-8 shrink-0 object-contain",
         className,
@@ -36,16 +39,24 @@ export function CometMark({
   );
 }
 
+/** @deprecated Use SalsaMark. Kept so existing imports keep working. */
+export function CometMark(props: {
+  className?: string;
+  size?: number;
+  priority?: boolean;
+}) {
+  return <SalsaMark {...props} />;
+}
+
 export function BrandWordmark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center whitespace-nowrap font-semibold tracking-tight",
+        "brand-wordmark inline-flex items-center whitespace-nowrap font-semibold tracking-tight",
         className,
       )}
     >
-      <span className="brand-text-invest">Invest</span>
-      <span className="brand-text-salsa">Salsa</span>
+      InvestSalsa
     </span>
   );
 }
@@ -68,13 +79,13 @@ export function BrandLogo({
 
   switch (variant) {
     case "icon":
-      content = <CometMark className={className} priority={priority} />;
+      content = <SalsaMark className={className} priority={priority} />;
       break;
 
     case "lockup":
       content = (
         <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
-          <CometMark priority={priority} />
+          <SalsaMark priority={priority} />
           <BrandWordmark className="text-lg leading-none" />
         </div>
       );
@@ -82,12 +93,16 @@ export function BrandLogo({
 
     case "hero":
       content = (
-        <div className={cn("flex flex-col items-start gap-2", className)}>
-          <div className="flex items-center gap-3">
-            <CometMark className="size-12" size={48} priority={priority} />
-            <BrandWordmark className="text-3xl leading-none" />
-          </div>
-          <BrandTagline className="pl-[3.75rem] text-sm" />
+        <div className={cn("flex flex-col items-center gap-2", className)}>
+          <Image
+            src={STACKED}
+            alt="InvestSalsa"
+            width={450}
+            height={338}
+            priority={priority}
+            className="h-auto w-[min(16rem,70vw)] object-contain"
+          />
+          <BrandTagline className="text-sm" />
         </div>
       );
       break;
@@ -100,7 +115,7 @@ export function BrandLogo({
             className,
           )}
         >
-          <CometMark
+          <SalsaMark
             className="size-8 group-data-[collapsible=icon]:size-8"
             priority={priority}
           />

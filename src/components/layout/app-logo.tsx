@@ -1,1 +1,7 @@
-export { BrandLogo, BrandWordmark, BrandTagline, CometMark } from "@/components/layout/brand-logo";
+export {
+  BrandLogo,
+  BrandWordmark,
+  BrandTagline,
+  SalsaMark,
+  CometMark,
+} from "@/components/layout/brand-logo";
