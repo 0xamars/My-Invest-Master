@@ -15,8 +15,10 @@ import {
   SIGNED_IN_PRIMARY_NAV,
   investPortfolioPath,
   isInvestPath,
+  isPillarHub,
   pillarForPath,
   pillarHomePath,
+  pillarLabel,
   resolvePageTitle,
 } from "../src/lib/chrome/nav.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
@@ -661,6 +663,16 @@ assert(
 );
 assert(pillarForPath("/home") === "invest", "legacy /home maps to Invest");
 assert(destinationForLegacyInvestPath("/home") === "/invest", "/home redirects to Invest");
+assert(destinationForLegacyInvestPath("/chat") === "/invest", "/chat is unshipped");
+assert(destinationForLegacyInvestPath("/chat/thread") === "/invest", "/chat/* is unshipped");
+assert(destinationForLegacyInvestPath("/assistant") === "/invest", "/assistant is unshipped");
+assert(destinationForLegacyInvestPath("/assistant/ask") === "/invest", "/assistant/* is unshipped");
+assert(isPillarHub("/invest"), "Invest hub has no up-link");
+assert(isPillarHub("/budget"), "Budget hub has no up-link");
+assert(isPillarHub("/freedom"), "Freedom hub has no up-link");
+assert(!isPillarHub("/budget/plans/abc"), "a budget plan is nested");
+assert(pillarLabel("/freedom/plans/abc") === "Freedom", "Freedom never reads as Retire");
+assert(pillarLabel("/invest/options") === "Invest", "options sit inside Invest");
 assert(pillarForPath("/budget/plans/abc") === "budget", "budget plan is Budget");
 assert(pillarForPath("/invest/portfolio/abc") === "invest", "nested book is Invest");
 assert(pillarForPath("/options") === "invest", "legacy options is still Invest");

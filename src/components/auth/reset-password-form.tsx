@@ -101,7 +101,7 @@ export function ResetPasswordForm() {
           />
         </div>
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
-        <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
+        <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           Update password
         </Button>

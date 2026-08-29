@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, Loader2, Target } from "lucide-react";
-import { LaunchAtmosphere, LaunchStillFrame } from "@/components/brand/launch-still";
 import { CategoryPageHeader } from "@/components/category/category-page-header";
 import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
 import { RetireEmptyState } from "@/components/retirement/retire-ui";
@@ -39,7 +38,6 @@ export function RetireHomeContent() {
 
   return (
     <div className="relative flex flex-1 flex-col gap-5">
-      {outlook ? <LaunchAtmosphere still="freedom" /> : null}
       <CategoryPageHeader
         category="retire"
         title="Freedom"
@@ -83,7 +81,7 @@ export function RetireHomeContent() {
           }
         />
       ) : (
-        <LaunchStillFrame still="freedom" scrim="left">
+        <div className="glass-card">
           <RetireEmptyState
             icon={<Target className="size-5" />}
             title="Map the path."
@@ -95,7 +93,7 @@ export function RetireHomeContent() {
               </Button>
             }
           />
-        </LaunchStillFrame>
+        </div>
       )}
     </div>
   );

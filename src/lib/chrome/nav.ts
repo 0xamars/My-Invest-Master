@@ -114,6 +114,24 @@ export function pillarHomePath(pathname: string): string {
   return INVEST_PATH;
 }
 
+export function pillarLabel(pathname: string): string {
+  const pillar = pillarForPath(pathname);
+  if (pillar === "budget") return "Budget";
+  if (pillar === "invest") return "Invest";
+  if (pillar === "retire") return "Freedom";
+  return "Invest";
+}
+
+/** True on the three hubs — not a nested plan, book, or settings screen. */
+export function isPillarHub(pathname: string): boolean {
+  return (
+    pathname === BUDGET_PATH ||
+    pathname === INVEST_PATH ||
+    pathname === FREEDOM_PATH ||
+    pathname === RETIRE_LEGACY_PATH
+  );
+}
+
 export function resolvePageTitle(
   pathname: string,
   planName?: string | null,

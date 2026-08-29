@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, BarChart3, Landmark, LayoutDashboard, List, Plus, Undo2 } from "lucide-react";
+import { BarChart3, Landmark, LayoutDashboard, List, Plus, Undo2 } from "lucide-react";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,15 +99,7 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
   return (
     <>
       <div className="mb-5 space-y-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-2 h-7 gap-1.5 text-muted-foreground"
-          render={<Link href="/budget" />}
-        >
-          <ArrowLeft className="size-3.5" />
-          All plans
-        </Button>
+        <PillarBackLink href="/budget" label="Back to Budget" />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <Input
             value={name}

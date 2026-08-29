@@ -1,7 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
-import { BrandLogo, BrandTagline } from "@/components/layout/brand-logo";
-import { LAUNCH_STILLS } from "@/lib/brand/stills";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 
 export function AuthPageShell({
@@ -12,44 +10,36 @@ export function AuthPageShell({
   eyebrow?: string;
 }) {
   return (
-    <div className="marketing-home dark relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
-        <Image
-          src={LAUNCH_STILLS.heroLockup}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/40 via-[#121212]/75 to-[#121212]" />
-      </div>
-      <header className="relative z-20 border-b border-white/8">
-        <div className="mx-auto flex h-16 max-w-lg items-center justify-between px-5">
-          <BrandLogo variant="lockup" asLink priority className="!gap-2.5" />
-          <Link href={LOGIN_PATH} className="text-sm text-[#A3A3A8] hover:text-white">
+    <div className="marketing-home relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
+      <div className="pointer-events-none absolute inset-0 field-grain" aria-hidden />
+
+      <header className="relative z-20">
+        <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-6 sm:h-16">
+          <BrandLogo variant="lockup" asLink priority />
+          <Link
+            href={LOGIN_PATH}
+            className="inline-flex h-11 items-center rounded-full px-4 text-sm text-white/60 transition-colors duration-200 hover:text-white"
+          >
             Sign in
           </Link>
         </div>
       </header>
-      <main className="relative z-10 mx-auto flex w-full max-w-lg flex-col px-5 py-12">
-        <BrandTagline className="mb-3 text-sm" />
-        {eyebrow ? (
-          <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-primary">
-            {eyebrow}
-          </p>
-        ) : null}
-        {children}
+
+      <main className="relative z-10 mx-auto flex w-full max-w-lg flex-col px-6 py-12">
+        <div className="glass-card px-6 py-8 sm:px-8">
+          {eyebrow ? (
+            <p className="mb-3 text-sm text-white/45">{eyebrow}</p>
+          ) : null}
+          {children}
+        </div>
       </main>
-      <footer className="relative z-10 border-t border-white/8 py-6">
-        <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-3 px-5 text-xs text-[#A3A3A8]">
+
+      <footer className="relative z-10 py-6">
+        <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-3 px-6 text-xs text-white/35">
           <p>Not investment advice.</p>
-          <div className="flex gap-4">
-            <Link href={LOGIN_PATH} className="hover:text-white/70">
-              Sign in
-            </Link>
+          <div className="flex gap-5">
             <Link href={SIGNUP_PATH} className="hover:text-white/70">
-              Sign up
+              Start
             </Link>
             <Link href={TERMS_PATH} className="hover:text-white/70">
               Terms

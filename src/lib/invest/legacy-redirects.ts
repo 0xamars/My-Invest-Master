@@ -26,6 +26,10 @@ export const INVEST_LEGACY_REDIRECTS = [
     permanent: false,
   },
   { source: "/options", destination: "/invest/options", permanent: false },
+  { source: "/chat", destination: "/invest", permanent: false },
+  { source: "/chat/:path*", destination: "/invest", permanent: false },
+  { source: "/assistant", destination: "/invest", permanent: false },
+  { source: "/assistant/:path*", destination: "/invest", permanent: false },
   { source: "/retire", destination: "/freedom", permanent: false },
   { source: "/retire/plans", destination: "/freedom/plans", permanent: false },
   {
@@ -73,6 +77,12 @@ export function destinationForLegacyInvestPath(
   }
   if (pathname === "/options" || pathname.startsWith("/options/")) {
     return "/invest/options";
+  }
+  if (pathname === "/chat" || pathname.startsWith("/chat/")) {
+    return "/invest";
+  }
+  if (pathname === "/assistant" || pathname.startsWith("/assistant/")) {
+    return "/invest";
   }
   if (pathname === "/retire") {
     return "/freedom";

@@ -102,18 +102,19 @@ export function LoginForm() {
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
           {message ? <p className="text-sm text-white/70">{message}</p> : null}
 
-          <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
+          <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
             Sign in
           </Button>
-          <button
+          <Button
             type="button"
-            className="w-full text-center text-sm text-white/55 hover:text-white"
+            variant="outline"
+            className="glass-button w-full"
             onClick={() => void handleReset()}
             disabled={isResetting}
           >
             {isResetting ? "Sending reset…" : "Forgot password?"}
-          </button>
+          </Button>
         </form>
       )}
 

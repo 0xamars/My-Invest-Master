@@ -7,14 +7,18 @@ import { AccountMenu } from "@/components/layout/account-menu";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { BrandHomeLink } from "@/components/layout/brand-home-link";
 import { BrandLogo } from "@/components/layout/brand-logo";
-import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
-import { AssistantChat } from "@/components/assistant/assistant-chat";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { BudgetPlansProvider, useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
 import { useAuth } from "@/hooks/use-auth";
-import { isInvestPath, resolvePageTitle } from "@/lib/chrome/nav";
+import {
+  isPillarHub,
+  pillarHomePath,
+  pillarLabel,
+  resolvePageTitle,
+} from "@/lib/chrome/nav";
 import {
   AUTH_RESET_PATH,
   LOGIN_PATH,
@@ -47,26 +51,27 @@ function AppShellHeader() {
     pathname,
     planName ?? portfolioName ?? watchlistName,
   );
-  const showInvestTools = isInvestPath(pathname);
+  const showBack = !isPillarHub(pathname);
+  const backHref = pillarHomePath(pathname);
+  const backLabel = `Back to ${pillarLabel(pathname)}`;
 
   return (
-    <header className="portal-header sticky top-0 z-20 flex min-h-16 shrink-0 flex-col gap-3 px-5 py-3 sm:px-6 lg:px-8">
+    <header className="portal-header sticky top-0 z-20 flex min-h-14 shrink-0 flex-col gap-2 px-5 py-3 sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
         <BrandHomeLink className="flex min-w-0 items-center gap-2.5 md:hidden">
           <BrandLogo variant="sidebar" priority />
           <span className="sr-only">InvestSalsa</span>
         </BrandHomeLink>
-        <div className="ml-0 flex min-w-0 flex-1 flex-col md:ml-0">
-          <span className="hidden text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground md:block">
-            InvestSalsa
-          </span>
-          <span className="truncate text-base font-semibold tracking-tight text-foreground">
+        <div className="ml-0 flex min-w-0 flex-1 flex-col justify-center">
+          {showBack ? (
+            <PillarBackLink href={backHref} label={backLabel} className="mb-0.5" />
+          ) : null}
+          <span className="truncate text-[1.05rem] font-semibold tracking-tight text-foreground">
             {title}
           </span>
         </div>
         <AccountMenu />
       </div>
-      {showInvestTools ? <InvestToolsNav /> : null}
     </header>
   );
 }
@@ -105,7 +110,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <main className="flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-10 md:pb-10">
           <div className="page-shell">{children}</div>
         </main>
-        <footer className="hidden border-t border-border/60 px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
+        <footer className="hidden border-t border-white/8 px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
           <div className="page-shell flex flex-wrap items-center justify-between gap-3">
             <p>Not investment advice.</p>
             <div className="flex gap-4">
@@ -118,7 +123,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </footer>
-        <AssistantChat />
         <MobileTabBar />
       </SidebarInset>
     </SidebarProvider>

@@ -29,10 +29,13 @@ export function PillarBackLink({
     <Button
       variant="ghost"
       size="sm"
-      className={cn("-ml-2 w-fit gap-1.5 text-muted-foreground", className)}
+      className={cn(
+        "-ml-2 h-9 w-fit gap-1.5 text-muted-foreground hover:text-foreground",
+        className,
+      )}
       render={<Link href={target} />}
     >
-      <ArrowLeft className="size-3.5" />
+      <ArrowLeft className="size-4" />
       {text}
     </Button>
   );
