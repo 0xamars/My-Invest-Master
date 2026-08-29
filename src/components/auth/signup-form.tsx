@@ -65,7 +65,7 @@ export function SignupForm() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="h-11 border-white/15 bg-white/5 text-white"
+              className="h-11 text-white"
             />
           </div>
           <div className="space-y-2">
@@ -78,7 +78,7 @@ export function SignupForm() {
               onChange={(event) => setPassword(event.target.value)}
               required
               minLength={6}
-              className="h-11 border-white/15 bg-white/5 text-white"
+              className="h-11 text-white"
             />
           </div>
 

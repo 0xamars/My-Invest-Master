@@ -90,7 +90,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   if (isPublicChrome) {
     return (
-      <div className="min-h-svh w-full bg-[#121212]">
+      <div className="relative min-h-svh w-full bg-[#121212]">
         {isLoading ? (
           <div className="flex min-h-svh items-center justify-center">
             <div className="size-5 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
@@ -103,14 +103,16 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="relative bg-background">
+      <div className="field-grain pointer-events-none absolute inset-0" aria-hidden />
+      <div className="field-orbs" aria-hidden />
       <AppSidebar />
-      <SidebarInset className="bg-background">
+      <SidebarInset className="relative bg-transparent">
         <AppShellHeader />
-        <main className="flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-10 md:pb-10">
+        <main className="relative flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-10 md:pb-10">
           <div className="page-shell">{children}</div>
         </main>
-        <footer className="hidden border-t border-white/8 px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
+        <footer className="relative hidden border-t border-[color:var(--glass-hairline)] px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
           <div className="page-shell flex flex-wrap items-center justify-between gap-3">
             <p>Not investment advice.</p>
             <div className="flex gap-4">

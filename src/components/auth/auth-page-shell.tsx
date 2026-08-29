@@ -12,13 +12,14 @@ export function AuthPageShell({
   return (
     <div className="marketing-home relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
       <div className="pointer-events-none absolute inset-0 field-grain" aria-hidden />
+      <div className="field-orbs" aria-hidden />
 
-      <header className="relative z-20">
+      <header className="portal-header sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-6 sm:h-16">
           <BrandLogo variant="lockup" asLink priority />
           <Link
             href={LOGIN_PATH}
-            className="inline-flex h-11 items-center rounded-full px-4 text-sm text-white/60 transition-colors duration-200 hover:text-white"
+            className="glass-button inline-flex h-11 items-center rounded-full px-4 text-sm text-white/80 transition-colors duration-200 hover:text-white"
           >
             Sign in
           </Link>

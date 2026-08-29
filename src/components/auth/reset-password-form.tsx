@@ -84,7 +84,7 @@ export function ResetPasswordForm() {
             onChange={(event) => setPassword(event.target.value)}
             required
             minLength={6}
-            className="h-11 border-white/15 bg-white/5 text-white"
+            className="h-11 text-white"
           />
         </div>
         <div className="space-y-2">
@@ -97,7 +97,7 @@ export function ResetPasswordForm() {
             onChange={(event) => setConfirm(event.target.value)}
             required
             minLength={6}
-            className="h-11 border-white/15 bg-white/5 text-white"
+            className="h-11 text-white"
           />
         </div>
         {error ? <p className="text-sm text-red-300">{error}</p> : null}

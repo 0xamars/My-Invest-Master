@@ -128,6 +128,20 @@
   --chart-series-10: #d6452a;
   --chart-series-11: #a3a3a8;
   --chart-series-12: #f28c33;
+  --glass-blur: 48px;
+  --glass-blur-chrome: 60px;
+  --glass-blur-control: 24px;
+  --glass-saturate: 200%;
+  --glass-fill: color-mix(in srgb, #ffffff 6%, transparent);
+  --glass-fill-raised: color-mix(in srgb, #ffffff 10%, transparent);
+  --glass-fill-chrome: color-mix(in srgb, #ffffff 8%, color-mix(in srgb, #121212 22%, transparent));
+  --glass-fill-control: color-mix(in srgb, #ffffff 8%, transparent);
+  --glass-hairline: color-mix(in srgb, #ffffff 20%, transparent);
+  --glass-specular: color-mix(in srgb, #ffffff 62%, transparent);
+  --glass-specular-soft: color-mix(in srgb, #ffffff 22%, transparent);
+  --glass-inset-bottom: color-mix(in srgb, #ffffff 8%, transparent);
+  --glass-duration: 220ms;
+  --glass-ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .light {
@@ -188,6 +202,14 @@
   --chart-series-10: #d6452a;
   --chart-series-11: #5c5c63;
   --chart-series-12: #f28c33;
+  --glass-fill: color-mix(in srgb, #ffffff 64%, transparent);
+  --glass-fill-raised: color-mix(in srgb, #ffffff 76%, transparent);
+  --glass-fill-chrome: color-mix(in srgb, #ffffff 58%, transparent);
+  --glass-fill-control: color-mix(in srgb, #ffffff 60%, transparent);
+  --glass-hairline: color-mix(in srgb, #121212 12%, transparent);
+  --glass-specular: color-mix(in srgb, #ffffff 78%, transparent);
+  --glass-specular-soft: color-mix(in srgb, #ffffff 42%, transparent);
+  --glass-inset-bottom: color-mix(in srgb, #121212 6%, transparent);
 }
 
 @layer base {
@@ -228,34 +250,215 @@
     @apply mt-1.5 max-w-xl text-[0.9375rem] leading-relaxed text-muted-foreground;
   }
 
-  .surface-card {
-    @apply rounded-[1.35rem] border border-white/8 bg-white/[0.04] backdrop-blur-xl;
+  /* Shared Liquid Glass language. Depth from stacked blur + light, not drop shadows. */
+  .glass,
+  .glass-card,
+  .surface-card,
+  .glass-panel,
+  .stat-card,
+  .table-shell,
+  .category-summary-card,
+  .category-coming-soon,
+  .category-panel,
+  .category-empty-panel,
+  .heatmap-movers-panel {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--glass-fill);
+    background-image: linear-gradient(
+      165deg,
+      color-mix(in srgb, #ffffff 22%, transparent) 0%,
+      color-mix(in srgb, #ffffff 4%, transparent) 34%,
+      color-mix(in srgb, #ffffff 6%, transparent) 100%
+    );
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-hairline);
+    box-shadow:
+      inset 0 1px 0 var(--glass-specular),
+      inset 0 -1px 0 var(--glass-inset-bottom);
   }
 
-  .dark .surface-card {
-    @apply border-white/8 bg-white/[0.04] shadow-none;
+  .glass::before,
+  .glass-card::before,
+  .surface-card::before,
+  .glass-panel::before,
+  .stat-card::before,
+  .table-shell::before,
+  .category-summary-card::before,
+  .category-coming-soon::before,
+  .category-panel::before,
+  .heatmap-movers-panel::before,
+  .glass-raised::before,
+  .heatmap-tooltip::before,
+  .budget-panel::before,
+  .budget-hero::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      160deg,
+      color-mix(in srgb, #ffffff 70%, transparent) 0%,
+      color-mix(in srgb, #ffffff 10%, transparent) 28%,
+      transparent 52%,
+      color-mix(in srgb, #ffffff 28%, transparent) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
   }
 
-  .glass-card {
-    @apply rounded-[1.35rem] border border-white/8 bg-white/[0.045] backdrop-blur-2xl;
+  .glass,
+  .glass-card,
+  .surface-card,
+  .glass-panel,
+  .table-shell,
+  .category-summary-card,
+  .category-coming-soon,
+  .category-panel {
+    border-radius: 1.35rem;
   }
 
+  .stat-card {
+    @apply flex flex-col gap-3 rounded-[1.35rem] p-6;
+    transition:
+      background-color var(--glass-duration) var(--glass-ease),
+      border-color var(--glass-duration) var(--glass-ease);
+  }
+
+  .stat-card:hover {
+    background-color: var(--glass-fill-raised);
+  }
+
+  .glass-raised,
+  .heatmap-tooltip {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--glass-fill-raised);
+    background-image: linear-gradient(
+      160deg,
+      color-mix(in srgb, #ffffff 20%, transparent) 0%,
+      color-mix(in srgb, #ffffff 5%, transparent) 42%,
+      color-mix(in srgb, #ffffff 10%, transparent) 100%
+    );
+    backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-hairline);
+    box-shadow:
+      inset 0 1px 0 var(--glass-specular),
+      inset 0 -1px 0 var(--glass-inset-bottom);
+  }
+
+  .glass-chrome {
+    isolation: isolate;
+    background-color: var(--glass-fill-chrome);
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, #ffffff 12%, transparent) 0%,
+      color-mix(in srgb, #121212 22%, transparent) 100%
+    );
+    backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
+    box-shadow: inset 0 1px 0 var(--glass-specular);
+  }
+
+  .glass-control,
   .glass-button {
-    @apply border-white/12 bg-white/[0.05] text-white backdrop-blur-md hover:bg-white/[0.1] hover:text-white;
+    isolation: isolate;
+    background-color: var(--glass-fill-control);
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, #ffffff 16%, transparent) 0%,
+      color-mix(in srgb, #ffffff 4%, transparent) 100%
+    );
+    backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-hairline);
+    box-shadow: inset 0 1px 0 var(--glass-specular);
+    color: var(--foreground);
+    transition:
+      background-color var(--glass-duration) var(--glass-ease),
+      border-color var(--glass-duration) var(--glass-ease),
+      transform var(--glass-duration) var(--glass-ease);
+  }
+
+  .glass-button:hover,
+  .glass-control:hover {
+    background-color: var(--glass-fill-raised);
+    color: var(--foreground);
+  }
+
+  .glass-field {
+    isolation: isolate;
+    background-color: color-mix(in srgb, #ffffff 6%, transparent);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid var(--glass-hairline);
+    box-shadow: inset 0 1px 0 var(--glass-specular-soft);
   }
 
   .field-grain {
     background:
-      radial-gradient(ellipse 90% 50% at 50% -10%, color-mix(in srgb, #ffffff 4%, transparent), transparent 58%),
+      radial-gradient(ellipse 70% 48% at 10% 6%, color-mix(in srgb, #64b860 34%, transparent), transparent 58%),
+      radial-gradient(ellipse 58% 42% at 92% 10%, color-mix(in srgb, #f28c33 26%, transparent), transparent 54%),
+      radial-gradient(ellipse 62% 40% at 48% 38%, color-mix(in srgb, #64b860 18%, transparent), transparent 52%),
+      radial-gradient(ellipse 55% 36% at 82% 58%, color-mix(in srgb, #f28c33 16%, transparent), transparent 50%),
+      radial-gradient(ellipse 48% 32% at 18% 72%, color-mix(in srgb, #d6452a 14%, transparent), transparent 50%),
+      radial-gradient(ellipse 80% 42% at 50% 102%, color-mix(in srgb, #64b860 12%, transparent), transparent 52%),
+      radial-gradient(ellipse 90% 50% at 50% -8%, color-mix(in srgb, #ffffff 8%, transparent), transparent 58%),
       #121212;
   }
 
-  .stat-card {
-    @apply flex flex-col gap-3 rounded-[1.35rem] border border-white/8 bg-white/[0.04] p-6 backdrop-blur-xl transition-colors duration-200 hover:bg-white/[0.06];
+  .field-orbs {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 42% 30% at 50% 48%, color-mix(in srgb, #64b860 24%, transparent), transparent 70%),
+      radial-gradient(ellipse 38% 26% at 72% 64%, color-mix(in srgb, #f28c33 18%, transparent), transparent 70%),
+      radial-gradient(ellipse 34% 22% at 22% 70%, color-mix(in srgb, #d6452a 12%, transparent), transparent 70%);
   }
 
-  .dark .stat-card {
-    @apply shadow-none;
+  .field-orbs::before,
+  .field-orbs::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(72px);
+  }
+
+  .field-orbs::before {
+    top: -6rem;
+    left: -4rem;
+    width: 28rem;
+    height: 28rem;
+    background: color-mix(in srgb, #64b860 38%, transparent);
+  }
+
+  .field-orbs::after {
+    top: 4rem;
+    right: -5rem;
+    width: 24rem;
+    height: 24rem;
+    background: color-mix(in srgb, #f28c33 30%, transparent);
+  }
+
+  .light .field-grain {
+    background:
+      radial-gradient(ellipse 80% 52% at 8% -12%, color-mix(in srgb, #64b860 14%, transparent), transparent 58%),
+      radial-gradient(ellipse 60% 42% at 96% 4%, color-mix(in srgb, #f28c33 10%, transparent), transparent 54%),
+      radial-gradient(ellipse 90% 50% at 50% -8%, color-mix(in srgb, #ffffff 70%, transparent), transparent 58%),
+      #f4f4f5;
   }
 
   .stat-label {
@@ -280,7 +483,8 @@
   }
 
   .brand-sidebar-header {
-    @apply overflow-visible border-b border-border/50 px-3 pb-4 pt-4;
+    @apply overflow-visible px-3 pb-4 pt-4;
+    border-bottom: 1px solid var(--glass-hairline);
   }
 
   .brand-sidebar-mark {
@@ -300,16 +504,23 @@
   }
 
   .brand-hero {
-    @apply relative overflow-hidden rounded-3xl border border-border/70 bg-card px-6 py-10 sm:px-10 sm:py-12;
-    background-image:
-      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand-exhaust) 16%, transparent), transparent 42%),
-      radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-ember) 10%, transparent), transparent 38%);
-  }
-
-  .dark .brand-hero {
+    @apply relative overflow-hidden rounded-3xl px-6 py-10 sm:px-10 sm:py-12;
+    isolation: isolate;
+    border: 1px solid var(--glass-hairline);
+    background-color: var(--glass-fill);
     background-image:
       radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand-exhaust) 18%, transparent), transparent 42%),
-      radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-ember) 12%, transparent), transparent 38%);
+      radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-ember) 12%, transparent), transparent 38%),
+      linear-gradient(
+        165deg,
+        color-mix(in srgb, #ffffff 16%, transparent) 0%,
+        color-mix(in srgb, #ffffff 4%, transparent) 100%
+      );
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    box-shadow:
+      inset 0 1px 0 var(--glass-specular),
+      inset 0 -1px 0 var(--glass-inset-bottom);
   }
 
   .brand-wordmark,
@@ -328,11 +539,24 @@
   }
 
   .nav-item {
-    @apply rounded-2xl text-[0.9375rem] font-medium text-muted-foreground transition-colors duration-200 hover:bg-white/[0.06] hover:text-foreground;
+    @apply rounded-2xl text-[0.9375rem] font-medium text-muted-foreground;
+    transition:
+      background-color var(--glass-duration) var(--glass-ease),
+      color var(--glass-duration) var(--glass-ease),
+      box-shadow var(--glass-duration) var(--glass-ease);
+  }
+
+  .nav-item:hover {
+    background-color: color-mix(in srgb, #ffffff 8%, transparent);
+    color: var(--foreground);
   }
 
   .nav-item-active {
-    @apply bg-white/[0.07] text-foreground shadow-none ring-0;
+    background-color: color-mix(in srgb, #ffffff 10%, transparent);
+    color: var(--foreground);
+    box-shadow:
+      inset 0 1px 0 var(--glass-specular-soft),
+      inset 0 0 0 1px color-mix(in srgb, #ffffff 8%, transparent);
   }
 
   .nav-category-header {
@@ -376,7 +600,7 @@
   }
 
   .category-summary-card {
-    @apply relative overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_oklch(0_0_0/4%),0_8px_24px_-12px_oklch(0_0_0/10%)];
+    @apply relative overflow-hidden;
   }
 
   .category-summary-card-header {
@@ -400,7 +624,7 @@
   }
 
   .category-coming-soon {
-    @apply grid gap-6 rounded-2xl border border-border/80 bg-card p-6 lg:grid-cols-[1.4fr_1fr] lg:items-center;
+    @apply grid gap-6 p-6 lg:grid-cols-[1.4fr_1fr] lg:items-center;
   }
 
   .category-coming-soon-chart {
@@ -408,7 +632,7 @@
   }
 
   .category-panel {
-    @apply space-y-4 rounded-2xl border border-border/80 bg-card p-5;
+    @apply space-y-4 p-5;
   }
 
   .category-panel-header {
@@ -416,7 +640,7 @@
   }
 
   .category-empty-panel {
-    @apply rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-5;
+    @apply rounded-xl border-dashed px-4 py-5;
   }
 
   .nav-category-menu {
@@ -427,28 +651,41 @@
     @apply text-[0.8125rem];
   }
 
-  .table-shell {
-    @apply overflow-hidden rounded-[1.35rem] border border-white/8 bg-white/[0.03] backdrop-blur-xl;
-  }
-
-  .dark .table-shell {
-    @apply shadow-none;
-  }
-
+  .table-shell,
   .glass-panel {
-    @apply overflow-hidden rounded-[1.35rem] border border-white/8 bg-white/[0.04] backdrop-blur-xl;
+    overflow: hidden;
+  }
+
+  .portal-header,
+  .portal-sidebar,
+  .portal-tabbar {
+    isolation: isolate;
+    background-color: var(--glass-fill-chrome);
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, #ffffff 12%, transparent) 0%,
+      color-mix(in srgb, #121212 22%, transparent) 100%
+    );
+    backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
+    box-shadow: inset 0 1px 0 var(--glass-specular);
   }
 
   .portal-header {
-    @apply border-b border-white/8 bg-[#121212]/72 backdrop-blur-2xl;
+    border-bottom: 1px solid var(--glass-hairline);
   }
 
   .portal-sidebar {
-    @apply border-r border-white/8 bg-[#121212]/80 backdrop-blur-2xl;
+    border-right: 1px solid var(--glass-hairline);
+  }
+
+  .portal-sidebar [data-slot="sidebar-inner"] {
+    background: transparent;
   }
 
   .portal-tabbar {
-    @apply border-t border-white/8 bg-[#121212]/78 backdrop-blur-2xl;
+    border-top: 1px solid var(--glass-hairline);
+    box-shadow: inset 0 1px 0 var(--glass-specular);
   }
 
   [data-slot="chart"] .recharts-cartesian-axis-tick text,
@@ -476,7 +713,7 @@
   }
 
   .heatmap-tooltip {
-    @apply rounded-lg border border-white/15 bg-[#111]/95 px-3.5 py-3 shadow-2xl backdrop-blur-sm;
+    @apply rounded-lg px-3.5 py-3;
   }
 
   .heatmap-sector-frame {
@@ -561,7 +798,7 @@
   }
 
   .heatmap-movers-panel {
-    @apply overflow-hidden rounded-xl border border-border/70 bg-card/50;
+    @apply overflow-hidden rounded-xl;
   }
 
   .heatmap-movers-header {
@@ -689,27 +926,25 @@
 
   .budget-hero {
     position: relative;
+    isolation: isolate;
     overflow: hidden;
     border-radius: 1.35rem;
-    border: 1px solid color-mix(in oklch, var(--brand-green) 22%, var(--border));
-    background:
-      radial-gradient(ellipse 80% 90% at 0% 0%, color-mix(in srgb, var(--brand-exhaust) 16%, transparent), transparent 55%),
-      radial-gradient(ellipse 50% 70% at 100% 100%, color-mix(in srgb, var(--brand-ember) 8%, transparent), transparent 50%),
-      var(--card);
-    box-shadow:
-      0 1px 0 oklch(1 0 0 / 55%) inset,
-      0 18px 40px -28px color-mix(in srgb, var(--brand-exhaust) 28%, transparent);
-  }
-
-  .dark .budget-hero {
-    border-color: color-mix(in oklch, var(--brand-green) 28%, var(--border));
-    background:
+    border: 1px solid color-mix(in srgb, var(--brand-green) 28%, var(--glass-hairline));
+    background-color: var(--glass-fill);
+    background-image:
       radial-gradient(ellipse 80% 90% at 0% 0%, color-mix(in srgb, var(--brand-exhaust) 18%, transparent), transparent 55%),
-      radial-gradient(ellipse 50% 70% at 100% 100%, color-mix(in srgb, var(--brand-ember) 8%, transparent), transparent 50%),
-      var(--card);
+      radial-gradient(ellipse 50% 70% at 100% 100%, color-mix(in srgb, var(--brand-ember) 10%, transparent), transparent 50%),
+      linear-gradient(
+        165deg,
+        color-mix(in srgb, #ffffff 16%, transparent) 0%,
+        color-mix(in srgb, #ffffff 3%, transparent) 38%,
+        color-mix(in srgb, #ffffff 7%, transparent) 100%
+      );
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     box-shadow:
-      0 1px 0 oklch(1 0 0 / 5%) inset,
-      0 22px 48px -28px oklch(0 0 0 / 55%);
+      inset 0 1px 0 var(--glass-specular),
+      inset 0 -1px 0 var(--glass-inset-bottom);
   }
 
   .budget-hero-value {
@@ -721,14 +956,23 @@
   }
 
   .budget-panel {
+    position: relative;
+    isolation: isolate;
     overflow: hidden;
     border-radius: 1.15rem;
-    border: 1px solid color-mix(in oklch, var(--border) 88%, transparent);
-    background: var(--card);
-  }
-
-  .dark .budget-panel {
-    border-color: oklch(1 0 0 / 7%);
+    background-color: var(--glass-fill);
+    background-image: linear-gradient(
+      165deg,
+      color-mix(in srgb, #ffffff 16%, transparent) 0%,
+      color-mix(in srgb, #ffffff 3%, transparent) 38%,
+      color-mix(in srgb, #ffffff 7%, transparent) 100%
+    );
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-hairline);
+    box-shadow:
+      inset 0 1px 0 var(--glass-specular),
+      inset 0 -1px 0 var(--glass-inset-bottom);
   }
 
   .budget-metric {
@@ -865,8 +1109,11 @@
     justify-content: space-between;
     gap: 0.75rem;
     border-radius: 0.9rem;
-    border: 1px solid color-mix(in oklch, var(--brand-green) 28%, var(--border));
-    background: color-mix(in oklch, var(--brand-green) 8%, var(--card));
+    border: 1px solid color-mix(in srgb, var(--brand-green) 28%, var(--glass-hairline));
+    background-color: color-mix(in srgb, var(--brand-green) 10%, var(--glass-fill));
+    backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
+    box-shadow: inset 0 1px 0 var(--glass-specular);
     padding: 0.55rem 0.85rem;
   }
 
@@ -999,10 +1246,17 @@
     width: 100%;
     overflow: auto;
     border-radius: 0.85rem;
-    border: 1px solid color-mix(in oklch, var(--border) 88%, transparent);
-    background: var(--popover);
+    background-color: var(--glass-fill-raised);
+    background-image: linear-gradient(
+      160deg,
+      color-mix(in srgb, #ffffff 20%, transparent) 0%,
+      color-mix(in srgb, #ffffff 6%, transparent) 100%
+    );
+    backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-hairline);
+    box-shadow: inset 0 1px 0 var(--glass-specular);
     padding: 0.3rem;
-    box-shadow: 0 12px 32px -18px oklch(0 0 0 / 45%);
   }
 
   .budget-payee-option {
@@ -1124,6 +1378,30 @@
   @media (hover: none) {
     .budget-register-row .budget-row-actions {
       opacity: 1;
+    }
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass,
+    .glass-card,
+    .surface-card,
+    .glass-panel,
+    .stat-card,
+    .table-shell,
+    .glass-raised,
+    .glass-chrome,
+    .glass-control,
+    .glass-button,
+    .glass-field,
+    .budget-panel,
+    .budget-hero,
+    .brand-hero,
+    .portal-header,
+    .portal-sidebar,
+    .portal-tabbar,
+    .heatmap-tooltip,
+    .heatmap-movers-panel {
+      background-color: color-mix(in srgb, #1a1a1a 88%, #ffffff);
     }
   }
 }

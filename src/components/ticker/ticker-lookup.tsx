@@ -32,7 +32,7 @@ export function TickerLookup({
   return (
     <form onSubmit={onSubmit} className={cn("space-y-1.5", className)}>
       <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
           onChange={(event) => {
@@ -41,7 +41,7 @@ export function TickerLookup({
           }}
           placeholder={placeholder}
           aria-label="Open a public stock ticker"
-          className="h-9 pl-8 text-sm"
+          className="h-11 pl-10 text-sm"
           autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}

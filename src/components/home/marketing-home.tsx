@@ -33,8 +33,9 @@ export function MarketingHomePage({
   return (
     <div className="marketing-home relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
       <div className="pointer-events-none absolute inset-0 field-grain" aria-hidden />
+      <div className="field-orbs" aria-hidden />
 
-      <header className="relative z-20">
+      <header className="portal-header sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6 sm:h-16 sm:px-8">
           <BrandLogo variant="lockup" asLink priority />
           <nav className="flex items-center gap-2">
@@ -160,7 +161,7 @@ export function MarketingHomePage({
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/8 py-8">
+      <footer className="relative z-10 border-t border-[color:var(--glass-hairline)] py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/35 sm:flex-row sm:px-8 sm:text-left">
           <p>© {new Date().getFullYear()} InvestSalsa</p>
           <div className="flex flex-wrap justify-center gap-5">
