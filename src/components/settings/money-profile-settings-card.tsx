@@ -11,11 +11,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
-import { profileSummaryLine } from "@/lib/journey/labels";
+import { useSyncWorkingFlags } from "@/hooks/use-sync-working-flags";
+import { profileSummaryLine, STATION_STATUS_LABELS } from "@/lib/journey/labels";
+import { withDerivedWorking } from "@/lib/journey/working";
 import { MONEY_PROFILE_PATH } from "@/lib/routes";
 
 export function MoneyProfileSettingsCard() {
   const { profile, isLoaded } = useMoneyProfile();
+  const derivedWorking = useSyncWorkingFlags();
+  const liveProfile =
+    profile && derivedWorking
+      ? withDerivedWorking(profile, derivedWorking)
+      : profile;
 
   if (!isLoaded) return null;
 
@@ -33,10 +40,19 @@ export function MoneyProfileSettingsCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {profile ? (
-          <p className="text-sm text-muted-foreground">
-            {profileSummaryLine(profile)}
-          </p>
+        {liveProfile ? (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {profileSummaryLine(liveProfile)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Budget {liveProfile.working.budget ? STATION_STATUS_LABELS.working : "not yet"}
+              {" · "}
+              Invest {liveProfile.working.invest ? STATION_STATUS_LABELS.working : "not yet"}
+              {" · "}
+              Freedom {liveProfile.working.freedom ? STATION_STATUS_LABELS.working : "not yet"}
+            </p>
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">
             No profile yet. Three steps. Pay is optional.

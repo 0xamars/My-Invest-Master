@@ -1,5 +1,5 @@
 /**
- * Journey rails: Money Profile, Learn/Do tabs, complete flags, honest Freedom date.
+ * Journey rails: Money Profile, Learn/Do tabs, derived working flags, soft locks.
  *   npx tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts
  */
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
@@ -20,6 +20,11 @@ import {
   lessonsForPillar,
 } from "../src/lib/journey/lessons.ts";
 import {
+  INVEST_DO_SKIP_WARNING,
+  confirmBudgetElsewhere,
+  investDoIsLocked,
+} from "../src/lib/journey/locks.ts";
+import {
   computeTrack,
   defaultMoneyProfileDraft,
   effectiveKnowledge,
@@ -35,8 +40,14 @@ import {
   pillarTabHref,
   resolvePillarTab,
 } from "../src/lib/journey/tabs.ts";
+import {
+  deriveWorkingFlags,
+  leftoverAssignedFromBudgetPlans,
+  monthClosedFromBudgetPlans,
+} from "../src/lib/journey/working.ts";
 import { bookPresenceFromPortfolio } from "../src/lib/retirement/freedom-path.ts";
 import { createEmptyBudgetPlan } from "../src/types/budget.ts";
+import type { BudgetPlan, BudgetTransaction } from "../src/types/budget.ts";
 import type { MoneyProfile } from "../src/types/money-profile.ts";
 import type { PortfolioHolding } from "../src/types/portfolio.ts";
 import { createEmptyPlan } from "../src/types/retirement.ts";
@@ -160,9 +171,22 @@ assert(stations[2].doHref === "/freedom?tab=do", "Freedom Do deep-links");
 assert(stations[0].href === "/budget", "Budget station hub is /budget");
 assert(stations[1].href === "/invest", "Invest station hub is /invest");
 assert(stations[2].href === "/freedom", "Freedom station hub is /freedom");
+assert(stations[0].status === "in_progress", "Fast Track Budget is in progress");
+assert(stations[1].status === "in_progress", "Fast Track Invest is in progress");
 assert(
   stations.every((station) => station.status !== "locked"),
-  "Slice B does not soft-lock stations",
+  "Fast Track does not soft-lock stations",
+);
+
+const beginnerStations = journeyStations(draft);
+assert(beginnerStations[0].status === "learn", "Beginner Budget starts as Learn");
+assert(
+  beginnerStations[1].status === "locked",
+  "Beginner Invest Do is locked until Budget is working",
+);
+assert(
+  beginnerStations[2].status === "learn",
+  "Freedom Learn stays available on Beginner Track",
 );
 
 const nextBeginner = primaryNextAction(draft);
@@ -341,6 +365,211 @@ const inventedIncome = normalizeMoneyProfile({
 });
 assert(inventedIncome.incomeAmount === null, "junk income stays unknown");
 assert(inventedIncome.age === null, "junk age stays unknown");
+
+function inflowOn(plan: BudgetPlan, amount: number): BudgetTransaction {
+  return {
+    id: "in-1",
+    date: "2026-08-02",
+    payee: "Pay",
+    accountId: plan.accounts[0]!.id,
+    categoryId: null,
+    amount,
+    type: "inflow",
+    cleared: "cleared",
+  };
+}
+
+const emptyDerived = deriveWorkingFlags({
+  flags: draft.flags,
+  completedLessons: {},
+  budgetPlans: [],
+  primaryBook: null,
+  freedomPlans: [],
+});
+assert(emptyDerived.budget === false, "no leftover is not budget.working");
+assert(emptyDerived.invest === false, "no book is not invest.working");
+assert(emptyDerived.freedom === false, "no saved plan is not freedom.working");
+
+const leftoverPlan = createEmptyBudgetPlan("Leftover");
+leftoverPlan.transactions = [inflowOn(leftoverPlan, 750)];
+assert(
+  leftoverAssignedFromBudgetPlans([leftoverPlan]),
+  "present leftover counts as leftover assigned",
+);
+assert(
+  deriveWorkingFlags({
+    flags: draft.flags,
+    completedLessons: {},
+    budgetPlans: [leftoverPlan],
+    primaryBook: null,
+    freedomPlans: [],
+  }).budget,
+  "real leftover sets budget.working",
+);
+
+const assignedPlan = createEmptyBudgetPlan("Assigned");
+assignedPlan.monthBudgets = {
+  "2026-08": { assignments: { [assignedPlan.categories[0]!.id]: 120 } },
+};
+assert(
+  leftoverAssignedFromBudgetPlans([assignedPlan]),
+  "envelope assignment counts as leftover assigned",
+);
+assert(
+  leftoverPresenceFromBudgetPlan(assignedPlan).status !== "present",
+  "assignment-only plan does not invent leftover",
+);
+
+const closedPlan = createEmptyBudgetPlan("Closed");
+closedPlan.closedThrough = "2026-07";
+assert(monthClosedFromBudgetPlans([closedPlan]), "closedThrough is a closed month");
+assert(
+  deriveWorkingFlags({
+    flags: draft.flags,
+    completedLessons: {},
+    budgetPlans: [closedPlan],
+    primaryBook: null,
+    freedomPlans: [],
+  }).budget,
+  "month close sets budget.working",
+);
+
+const closedAtPlan = createEmptyBudgetPlan("Closed at");
+closedAtPlan.monthBudgets = {
+  "2026-07": { assignments: {}, closedAt: "2026-08-01T00:00:00.000Z" },
+};
+assert(
+  monthClosedFromBudgetPlans([closedAtPlan]),
+  "closedAt marks a month closed",
+);
+
+assert(
+  deriveWorkingFlags({
+    flags: { ...draft.flags, budgetElsewhere: true },
+    completedLessons: {},
+    budgetPlans: [],
+    primaryBook: null,
+    freedomPlans: [],
+  }).budget,
+  "budgetElsewhere sets budget.working",
+);
+
+assert(
+  deriveWorkingFlags({
+    flags: draft.flags,
+    completedLessons: {},
+    budgetPlans: [],
+    primaryBook: { id: "p1", name: "Book", holdings: bookOnly.holdings },
+    freedomPlans: [],
+  }).invest,
+  "a holding on the primary book sets invest.working",
+);
+
+const emptyQtyHolding: PortfolioHolding = {
+  ...bookOnly.holdings[0]!,
+  quantity: 0,
+};
+assert(
+  deriveWorkingFlags({
+    flags: draft.flags,
+    completedLessons: {},
+    budgetPlans: [],
+    primaryBook: { id: "p1", name: "Book", holdings: [emptyQtyHolding] },
+    freedomPlans: [],
+  }).invest === false,
+  "zero-quantity holding is not a book",
+);
+
+assert(
+  deriveWorkingFlags({
+    flags: { ...draft.flags, investNoHoldingsYet: true },
+    completedLessons: {},
+    budgetPlans: [],
+    primaryBook: null,
+    freedomPlans: [],
+  }).invest === false,
+  "investNoHoldingsYet alone is not invest.working",
+);
+assert(
+  deriveWorkingFlags({
+    flags: { ...draft.flags, investNoHoldingsYet: true },
+    completedLessons: { "invest-the-book": true },
+    budgetPlans: [],
+    primaryBook: null,
+    freedomPlans: [],
+  }).invest,
+  "investNoHoldingsYet plus invest-the-book is invest.working",
+);
+
+assert(
+  deriveWorkingFlags({
+    flags: draft.flags,
+    completedLessons: {},
+    budgetPlans: [],
+    primaryBook: null,
+    freedomPlans: [createEmptyPlan("Freedom")],
+  }).freedom,
+  "a saved Freedom plan sets freedom.working",
+);
+
+assert(investDoIsLocked({ profile: draft, hasBook: false }), "Beginner Invest Do is locked");
+assert(
+  !investDoIsLocked({ profile: finalized, hasBook: false }),
+  "Fast Track Invest Do is unlocked",
+);
+assert(
+  !investDoIsLocked({ profile: tools, hasBook: false }),
+  "toolsOnly Invest Do is unlocked",
+);
+assert(
+  !investDoIsLocked({
+    profile: { ...draft, working: { ...draft.working, budget: true } },
+    hasBook: false,
+  }),
+  "budget.working unlocks Invest Do",
+);
+assert(
+  !investDoIsLocked({ profile: draft, hasBook: true }),
+  "an existing book unlocks Invest Do",
+);
+assert(
+  !investDoIsLocked({
+    profile: confirmBudgetElsewhere(draft),
+    hasBook: false,
+  }),
+  "I budget elsewhere unlocks Invest Do",
+);
+assert(
+  confirmBudgetElsewhere(draft).flags.budgetElsewhere,
+  "skip sets budgetElsewhere",
+);
+assert(
+  INVEST_DO_SKIP_WARNING.includes("will not stay in sync"),
+  "skip warning says leftover and the book will not stay in sync",
+);
+
+const skipped = confirmBudgetElsewhere(draft);
+const skippedWorking = deriveWorkingFlags({
+  flags: skipped.flags,
+  completedLessons: {},
+  budgetPlans: [],
+  primaryBook: null,
+  freedomPlans: [],
+});
+assert(skippedWorking.budget, "skip derives budget.working");
+assert(
+  journeyStations({ ...skipped, working: skippedWorking })[1].status !== "locked",
+  "after skip, Invest station is not locked",
+);
+assert(
+  journeyStations(draft, { hasBook: true })[1].status !== "locked",
+  "existing book is not hidden behind Locked",
+);
+assert(
+  journeyStations(markLessonComplete(draft, "budget-envelopes-leftover"))[0]
+    .status === "in_progress",
+  "a completed Budget lesson is In progress",
+);
 
 if (failed > 0) {
   console.error(`\n${failed} journey assertion(s) failed`);
