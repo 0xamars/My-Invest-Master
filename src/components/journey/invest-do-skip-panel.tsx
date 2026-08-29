@@ -45,7 +45,7 @@ export function InvestDoSkipPanel() {
   }
 
   return (
-    <div className="glass-card flex flex-1 flex-col gap-4 px-5 py-6">
+    <div className="surface-card flex flex-1 flex-col gap-4 px-5 py-6">
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Locked

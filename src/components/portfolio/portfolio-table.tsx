@@ -104,7 +104,7 @@ const COLUMNS: {
     label: "Ticker",
     className: cn(
       CELL,
-      "sticky left-0 z-10 bg-card pl-5 backdrop-blur-sm group-hover:bg-muted/25",
+      "sticky left-0 z-10 bg-card pl-5 group-hover:bg-muted/25",
     ),
     width: "minmax(168px, 1.4fr)",
   },
@@ -304,7 +304,7 @@ export function PortfolioTable({
               <TableHead
                 className={cn(
                   CELL,
-                  "sticky right-0 z-10 w-[52px] bg-card pr-5 backdrop-blur-sm",
+                  "sticky right-0 z-10 w-[52px] bg-card pr-5",
                 )}
               >
                 <span className="sr-only">Actions</span>
@@ -333,7 +333,7 @@ export function PortfolioTable({
                   <TableCell
                     className={cn(
                       CELL,
-                      "sticky left-0 z-10 pl-5 font-medium backdrop-blur-sm",
+                      "sticky left-0 z-10 pl-5 font-medium",
                       stickyToneClass(note),
                     )}
                   >
@@ -466,7 +466,7 @@ export function PortfolioTable({
                   <TableCell
                     className={cn(
                       CELL,
-                      "sticky right-0 z-10 w-[52px] pr-5 backdrop-blur-sm",
+                      "sticky right-0 z-10 w-[52px] pr-5",
                       stickyToneClass(note),
                     )}
                     onClick={(event) => event.stopPropagation()}

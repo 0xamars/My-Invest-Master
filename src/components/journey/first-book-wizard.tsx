@@ -66,7 +66,7 @@ export function FirstBookWizard({
 
   return (
     <div
-      className="glass-card flex flex-1 flex-col gap-4 px-5 py-6"
+      className="surface-card flex flex-1 flex-col gap-4 px-5 py-6"
       data-first-book-wizard="1"
       data-empty-state="invest-no-book"
     >

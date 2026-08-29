@@ -32,7 +32,7 @@ export function AccountMenu() {
   if (isLoading) {
     return (
       <div
-        className="size-11 animate-pulse rounded-full bg-white/10"
+        className="size-10 animate-pulse rounded-full bg-muted"
         aria-hidden
       />
     );
@@ -56,7 +56,7 @@ export function AccountMenu() {
           <Button
             variant="outline"
             size="icon"
-            className="glass-button size-11 rounded-full text-sm font-semibold"
+            className="size-10 rounded-full text-sm font-semibold"
             aria-label="Account menu"
           >
             {initialsFromEmail(user.email)}

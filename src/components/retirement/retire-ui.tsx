@@ -4,19 +4,28 @@ import type { RetirementVerdict } from "@/lib/retirement/dashboard";
 
 export function RetirePageHeader({
   title,
+  titleAddon,
   description,
   action,
 }: {
-  title: string;
+  title: ReactNode;
+  titleAddon?: ReactNode;
   description?: string;
   action?: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-1">
-        <h1 className="text-[1.45rem] font-semibold tracking-tight text-foreground">
-          {title}
-        </h1>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {typeof title === "string" ? (
+            <h1 className="text-[1.45rem] font-semibold tracking-tight text-foreground">
+              {title}
+            </h1>
+          ) : (
+            title
+          )}
+          {titleAddon}
+        </div>
         {description ? (
           <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
             {description}
@@ -51,7 +60,7 @@ export function RetireEmptyState({
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
-      <div className="glass mb-4 flex size-12 items-center justify-center rounded-2xl text-[var(--brand-green)]">
+      <div className="mb-4 flex size-12 items-center justify-center rounded-[var(--radius)] border border-border bg-muted text-[var(--brand-green)]">
         {icon}
       </div>
       <p className="text-base font-semibold tracking-tight">{title}</p>

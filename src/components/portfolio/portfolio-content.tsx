@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, Plus, RefreshCw, Star } from "lucide-react";
+import { AlertCircle, Plus, RefreshCw, Star } from "lucide-react";
 import {
   AddTransactionButton,
   AddTransactionDialog,
@@ -16,6 +15,8 @@ import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
 import { TargetMixPanel } from "@/components/invest/target-mix-panel";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
+import { InlineTitle } from "@/components/ui/inline-title";
 import {
   RetireEmptyState,
   RetireMoney,
@@ -79,6 +80,7 @@ export function PortfolioContent() {
     reloadFromCloud,
     activePortfolio,
     setActivePortfolioId,
+    renamePortfolio,
   } = usePortfolioPlans();
   const { plan, isLoaded: isPlanLoaded } = useUserPlan();
   const { profile } = useMoneyProfile();
@@ -210,8 +212,25 @@ export function PortfolioContent() {
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-5">
+          <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
           <RetirePageHeader
-            title={activePortfolio.name}
+            title={
+              <InlineTitle
+                value={activePortfolio.name}
+                onCommit={(next) => renamePortfolio(portfolioId, next)}
+                ariaLabel="Portfolio name"
+              />
+            }
+            titleAddon={
+              <CurrencyToggle
+                compact
+                currency={currency}
+                onChange={setCurrency}
+                rates={rates}
+                isLoading={isFxLoading}
+                error={fxError}
+              />
+            }
             description={
               isLoading
                 ? "Fetching live prices…"
@@ -222,25 +241,9 @@ export function PortfolioContent() {
             action={
               <div className="flex flex-wrap items-center gap-2">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  render={<Link href={INVEST_PATH} />}
-                >
-                  <ArrowLeft className="size-4" />
-                  Back to Invest
-                </Button>
-                <CurrencyToggle
-                  currency={currency}
-                  onChange={setCurrency}
-                  rates={rates}
-                  isLoading={isFxLoading}
-                  error={fxError}
-                />
-                <Button
                   variant="outline"
                   size="icon"
-                  className="size-10 rounded-xl border-border/80 bg-card"
+                  className="size-10 rounded-[var(--radius)] border-border bg-muted"
                   onClick={() => refetch()}
                   disabled={isLoading || holdings.length === 0}
                   title="Refresh prices"

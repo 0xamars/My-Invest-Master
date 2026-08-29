@@ -33,7 +33,7 @@ export function OptionsConfirmGate({
 
   return (
     <div
-      className="glass-card flex flex-1 flex-col gap-4 px-5 py-6"
+      className="surface-card flex flex-1 flex-col gap-4 px-5 py-6"
       data-options-gate="1"
     >
       <div>

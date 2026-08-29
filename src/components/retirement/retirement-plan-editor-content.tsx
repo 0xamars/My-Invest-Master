@@ -30,7 +30,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { InlineTitle } from "@/components/ui/inline-title";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -269,12 +269,10 @@ export function RetirementPlanEditorContent({
               <ArrowLeft className="size-4" />
               Back to Freedom
             </Button>
-            <Input
+            <InlineTitle
               value={workingPlan.name}
-              onChange={(event) =>
-                persistPlan({ ...workingPlan, name: event.target.value })
-              }
-              className="h-auto max-w-xl border-none bg-transparent px-0 text-2xl font-semibold tracking-tight shadow-none focus-visible:ring-0"
+              onCommit={(next) => persistPlan({ ...workingPlan, name: next })}
+              ariaLabel="Freedom plan name"
             />
             <p className="text-sm text-muted-foreground">
               One date from leftover and the book. What-ifs stay on this plan.

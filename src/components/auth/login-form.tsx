@@ -109,7 +109,7 @@ export function LoginForm() {
           <Button
             type="button"
             variant="outline"
-            className="glass-button w-full"
+            className="w-full"
             onClick={() => void handleReset()}
             disabled={isResetting}
           >

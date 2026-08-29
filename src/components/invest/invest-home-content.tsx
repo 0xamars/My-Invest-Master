@@ -113,7 +113,7 @@ export function InvestHomeContent() {
           isSubmitting={creating}
         />
       ) : rows.length === 0 ? (
-        <div className="glass-card" data-empty-state="invest">
+        <div className="surface-card" data-empty-state="invest">
           <RetireEmptyState
             icon={<TrendingUp className="size-5" />}
             title={INVEST_EMPTY_BOOK.title}

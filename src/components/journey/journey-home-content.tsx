@@ -94,7 +94,7 @@ export function JourneyHomeContent() {
         ) : null}
       </div>
 
-      <div className="glass-card flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="surface-card flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Next
@@ -111,7 +111,7 @@ export function JourneyHomeContent() {
         {stations.map((station) => (
           <div
             key={station.pillar}
-            className="glass-card flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
+            className="surface-card flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex items-center gap-3">
               <h2 className="text-base font-semibold">{station.title}</h2>
@@ -134,7 +134,7 @@ export function JourneyHomeContent() {
       </div>
 
       <div
-        className="glass-card px-5 py-5"
+        className="surface-card px-5 py-5"
         data-empty-state={
           freedomDate.status === "needs-inputs" ? "journey-home-freedom" : undefined
         }

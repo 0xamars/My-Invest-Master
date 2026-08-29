@@ -77,8 +77,9 @@ export function RetirementVerdictHero({
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-      <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
+    <div className="budget-panel">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+      <section className="border-b border-border px-5 py-5 lg:border-b-0 lg:border-r sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
           <RetireVerdictChip verdict={dashboard.verdict} />
           {planName ? (
@@ -111,9 +112,9 @@ export function RetirementVerdictHero({
         ) : null}
       </section>
 
-      <div className="grid gap-3">
+      <div className="grid">
         {hasInputs ? <FreedomInputsStrip leftover={leftover} book={book} /> : null}
-        <RetirePanel className="grid grid-cols-2 divide-x divide-y divide-border/60 sm:grid-cols-2">
+        <div className="grid grid-cols-2 divide-x divide-y divide-border">
           <Metric
             label="Target nest egg"
             value={money(dashboard.targetNestEgg)}
@@ -147,7 +148,8 @@ export function RetirementVerdictHero({
                 : money(dashboard.projectedNestEgg)
             }
           />
-        </RetirePanel>
+        </div>
+      </div>
       </div>
     </div>
   );
@@ -161,7 +163,7 @@ function FreedomInputsStrip({
   book: BookPresence;
 }) {
   return (
-    <RetirePanel className="grid grid-cols-1 divide-y divide-border/60 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+    <div className="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
       <InputStatus
         label="Leftover"
         value={leftoverLabel(leftover)}
@@ -181,7 +183,7 @@ function FreedomInputsStrip({
         }
         missing={book.status !== "present"}
       />
-    </RetirePanel>
+    </div>
   );
 }
 

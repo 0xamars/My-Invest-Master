@@ -2,17 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowRight, Plus } from "lucide-react";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import {
   BudgetKindBadge,
   BudgetMoney,
-  BudgetPageHeader,
   BudgetPanel,
 } from "@/components/budget/budget-ui";
-import {
-  AddCategoryDialog,
-  AddCategoryGroupDialog,
-} from "@/components/budget/add-category-dialog";
 import {
   DeleteCategoryDialog,
   DeleteCategoryGroupDialog,
@@ -24,13 +19,12 @@ import { BudgetCategoryList } from "@/components/budget/budget-category-list";
 import {
   AssignLeftoverDialog,
   AutoAssignUnderfundedDialog,
-  CloseMonthDialog,
   CoverOverspendDialog,
   MoveMoneyDialog,
   ResetAvailableDialog,
   SetCategoryGoalDialog,
 } from "@/components/budget/budget-dialogs";
-import { BudgetMonthNav } from "@/components/budget/budget-month-nav";
+import { useBudgetMonth } from "@/components/budget/budget-shell";
 import { BudgetSummaryStats } from "@/components/budget/budget-summary-stats";
 import { Button } from "@/components/ui/button";
 import { useBudget } from "@/contexts/budget-context";
@@ -38,15 +32,12 @@ import { computeAgeOfMoney } from "@/lib/budget/age-of-money";
 import {
   buildCategoryRows,
   computeMonthSummary,
-  getCurrentMonthKey,
   getSortedTransactions,
 } from "@/lib/budget/calculations";
 import { isMonthClosed } from "@/lib/budget/closed-months";
-import { previewMonthClose } from "@/lib/budget/month-close";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
 import { budgetHabitSnapshot } from "@/lib/budget/habit";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
-import { formatMonthLabel, shiftMonthKey } from "@/types/budget";
 
 export function BudgetContent() {
   const {
@@ -54,8 +45,6 @@ export function BudgetContent() {
     planId,
     isLoaded,
     syncError,
-    addCategoryGroup,
-    addCategory,
     updateCategoryGroup,
     moveCategoryGroup,
     deleteCategoryGroup,
@@ -63,7 +52,6 @@ export function BudgetContent() {
     deleteCategory,
     assignToCategory,
     assignLeftover,
-    closeMonth,
     moveMoney,
     coverOverspend,
     autoAssignUnderfunded,
@@ -71,12 +59,9 @@ export function BudgetContent() {
     setCategoryGoal,
     removeCategoryGoal,
   } = useBudget();
-  const { openAddTransaction } = useBudgetDialog();
+  const { openAddGroup, openAddEnvelope } = useBudgetDialog();
+  const { monthKey } = useBudgetMonth();
 
-  const [monthKey, setMonthKey] = useState(getCurrentMonthKey);
-  const [groupOpen, setGroupOpen] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [categoryGroupId, setCategoryGroupId] = useState<string | null>(null);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveFromCategoryId, setMoveFromCategoryId] = useState<string | null>(null);
   const [coverOpen, setCoverOpen] = useState(false);
@@ -94,7 +79,6 @@ export function BudgetContent() {
   const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [assignLeftoverOpen, setAssignLeftoverOpen] = useState(false);
-  const [closeOpen, setCloseOpen] = useState(false);
 
   const summary = useMemo(
     () => computeMonthSummary(budget, monthKey),
@@ -125,15 +109,8 @@ export function BudgetContent() {
     () => isMonthClosed(budget, monthKey),
     [budget, monthKey],
   );
-  const closePreview = useMemo(
-    () => previewMonthClose(budget, monthKey),
-    [budget, monthKey],
-  );
   const opening = budget.monthBudgets[monthKey]?.opening;
 
-  const activeGroup = budget.categoryGroups.find(
-    (group) => group.id === categoryGroupId,
-  );
   const activeCategory = budget.categories.find(
     (category) => category.id === goalCategoryId,
   );
@@ -169,33 +146,6 @@ export function BudgetContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <BudgetPageHeader
-        title={monthClosed ? "Closed month" : "This month"}
-        description={
-          monthClosed
-            ? "This month is closed. Leftover and envelope balances already carried forward."
-            : "Give every dollar a job. Assign leftover into envelopes, then close the month so balances carry."
-        }
-        action={
-          <>
-            <BudgetMonthNav monthKey={monthKey} onMonthChange={setMonthKey} />
-            {monthClosed ? null : (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCloseOpen(true)}
-              >
-                Close month
-              </Button>
-            )}
-            <Button type="button" onClick={openAddTransaction}>
-              <Plus className="size-4" />
-              Add
-            </Button>
-          </>
-        }
-      />
-
       {syncError && (
         <div className="flex items-center gap-2 rounded-xl border border-[var(--brand-red)]/30 bg-[var(--brand-red)]/10 px-4 py-3 text-sm text-[var(--brand-red)]">
           <AlertCircle className="size-4 shrink-0" />
@@ -288,11 +238,8 @@ export function BudgetContent() {
           setGoalCategoryId(categoryId);
           setGoalOpen(true);
         }}
-        onAddCategory={(groupId) => {
-          setCategoryGroupId(groupId);
-          setCategoryOpen(true);
-        }}
-        onAddGroup={() => setGroupOpen(true)}
+        onAddCategory={(groupId) => openAddEnvelope(groupId)}
+        onAddGroup={() => openAddGroup()}
         onEditGroup={(groupId) => {
           setEditGroupId(groupId);
           setEditGroupOpen(true);
@@ -379,21 +326,6 @@ export function BudgetContent() {
           </div>
         )}
       </BudgetPanel>
-
-      <AddCategoryGroupDialog
-        open={groupOpen}
-        onOpenChange={setGroupOpen}
-        onAdd={addCategoryGroup}
-      />
-
-      <AddCategoryDialog
-        open={categoryOpen}
-        onOpenChange={setCategoryOpen}
-        groupName={activeGroup?.name}
-        onAdd={(name) => {
-          if (categoryGroupId) addCategory(categoryGroupId, name);
-        }}
-      />
 
       <MoveMoneyDialog
         open={moveOpen}
@@ -560,22 +492,6 @@ export function BudgetContent() {
           .map((category) => ({ id: category.id, name: category.name }))}
         currency={budget.currency}
         onAssign={(allocations) => assignLeftover(monthKey, allocations)}
-      />
-
-      <CloseMonthDialog
-        open={closeOpen}
-        onOpenChange={setCloseOpen}
-        monthLabel={formatMonthLabel(monthKey)}
-        leftover={closePreview.leftover}
-        cashOverspend={closePreview.cashOverspend}
-        envelopes={closePreview.envelopes}
-        canClose={closePreview.canClose}
-        reason={closePreview.reason}
-        currency={budget.currency}
-        onClose={() => {
-          closeMonth(monthKey);
-          setMonthKey(shiftMonthKey(monthKey, 1));
-        }}
       />
     </div>
   );

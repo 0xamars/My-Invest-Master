@@ -341,18 +341,18 @@ export function BudgetScheduledDialog({
               handleTypeChange(value as BudgetTransactionType)
             }
           >
-            <TabsList className="grid w-full grid-cols-3 rounded-full p-1">
-              <TabsTrigger value="inflow" className="gap-1.5 rounded-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="inflow" className="gap-1.5">
                 <ArrowDownLeft className="size-3.5 text-[var(--brand-green)]" />
                 Inflow
               </TabsTrigger>
-              <TabsTrigger value="outflow" className="gap-1.5 rounded-full">
+              <TabsTrigger value="outflow" className="gap-1.5">
                 <ArrowUpRight className="size-3.5 text-[var(--brand-orange)]" />
                 Outflow
               </TabsTrigger>
               <TabsTrigger
                 value="transfer"
-                className="gap-1.5 rounded-full"
+                className="gap-1.5"
                 disabled={!canTransfer}
               >
                 <ArrowLeftRight className="size-3.5" />

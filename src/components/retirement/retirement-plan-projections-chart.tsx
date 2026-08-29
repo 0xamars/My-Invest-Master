@@ -121,7 +121,7 @@ function ProjectionChartTooltip({
   });
 
   return (
-    <div className="min-w-[210px] rounded-xl border border-border/40 bg-card/96 px-4 py-3 shadow-2xl backdrop-blur-md">
+    <div className="min-w-[210px] rounded-xl border border-border/40 bg-card/96 px-4 py-3 shadow-2xl">
       <p className="mb-2.5 border-b border-border/35 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         Year {label}
       </p>

@@ -8,10 +8,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {
+  AddCategoryDialog,
+  AddCategoryGroupDialog,
+} from "@/components/budget/add-category-dialog";
 import { BudgetScheduledDialog } from "@/components/budget/budget-scheduled-dialog";
 import { BudgetTransactionDialog } from "@/components/budget/budget-transaction-dialog";
 import { useBudget } from "@/contexts/budget-context";
 import { getCurrentMonthKey } from "@/lib/budget/calculations";
+import { isCreditCardPaymentsGroup } from "@/lib/budget/credit-card-payments";
 import { derivePayees } from "@/lib/budget/payees";
 
 interface BudgetDialogContextValue {
@@ -19,6 +24,8 @@ interface BudgetDialogContextValue {
   openEditTransaction: (transactionId: string) => void;
   openAddScheduled: () => void;
   openEditScheduled: (scheduleId: string) => void;
+  openAddGroup: () => void;
+  openAddEnvelope: (groupId?: string) => void;
 }
 
 const BudgetDialogContext = createContext<BudgetDialogContextValue | null>(null);
@@ -31,11 +38,16 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
     addScheduledTransaction,
     updateScheduledTransaction,
     deleteScheduledTransaction,
+    addCategoryGroup,
+    addCategory,
   } = useBudget();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [scheduledOpen, setScheduledOpen] = useState(false);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [envelopeOpen, setEnvelopeOpen] = useState(false);
+  const [envelopeGroupId, setEnvelopeGroupId] = useState<string | null>(null);
 
   const editingTransaction = useMemo(
     () =>
@@ -54,6 +66,14 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
         : null,
     [budget.scheduledTransactions, editingScheduleId],
   );
+
+  const envelopeGroups = useMemo(
+    () =>
+      budget.categoryGroups.filter((group) => !isCreditCardPaymentsGroup(group)),
+    [budget.categoryGroups],
+  );
+
+  const activeGroup = envelopeGroups.find((group) => group.id === envelopeGroupId);
 
   const openAddTransaction = useCallback(() => {
     setEditingId(null);
@@ -75,6 +95,15 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
     setScheduledOpen(true);
   }, []);
 
+  const openAddGroup = useCallback(() => {
+    setGroupOpen(true);
+  }, []);
+
+  const openAddEnvelope = useCallback((groupId?: string) => {
+    setEnvelopeGroupId(groupId ?? envelopeGroups[0]?.id ?? null);
+    setEnvelopeOpen(true);
+  }, [envelopeGroups]);
+
   return (
     <BudgetDialogContext.Provider
       value={{
@@ -82,6 +111,8 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
         openEditTransaction,
         openAddScheduled,
         openEditScheduled,
+        openAddGroup,
+        openAddEnvelope,
       }}
     >
       {children}
@@ -130,6 +161,25 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
         categoryGroups={budget.categoryGroups}
         defaultAccountId={budget.accounts[0]?.id}
         schedule={editingSchedule}
+      />
+      <AddCategoryGroupDialog
+        open={groupOpen}
+        onOpenChange={setGroupOpen}
+        onAdd={addCategoryGroup}
+      />
+      <AddCategoryDialog
+        open={envelopeOpen}
+        onOpenChange={(open) => {
+          setEnvelopeOpen(open);
+          if (!open) setEnvelopeGroupId(null);
+        }}
+        groupName={activeGroup?.name}
+        groups={envelopeGroups.map((group) => ({ id: group.id, name: group.name }))}
+        defaultGroupId={envelopeGroupId}
+        onAdd={(name, groupId) => {
+          const target = groupId ?? envelopeGroupId ?? envelopeGroups[0]?.id;
+          if (target) addCategory(target, name);
+        }}
       />
     </BudgetDialogContext.Provider>
   );

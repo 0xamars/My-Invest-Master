@@ -112,7 +112,7 @@ export function RetireHomeContent() {
           Loading Freedom…
         </div>
       ) : inputsMissing && !latest ? (
-        <div className="glass-card" data-empty-state="freedom">
+        <div className="surface-card" data-empty-state="freedom">
           <RetireEmptyState
             icon={<Target className="size-5" />}
             title={FREEDOM_EMPTY.title}

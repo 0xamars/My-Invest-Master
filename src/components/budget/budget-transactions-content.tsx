@@ -601,7 +601,7 @@ export function BudgetTransactionsContent() {
             }}
           >
             <Table>
-              <TableHeader className="sticky top-0 z-10 bg-card/95 shadow-[0_1px_0_var(--border)] backdrop-blur-sm">
+              <TableHeader className="sticky top-0 z-10 bg-card/95 shadow-[0_1px_0_var(--border)]">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-10 bg-transparent">
                     <input

@@ -31,7 +31,7 @@ export function MarketingHomePage({
   dashboardHref = "/home",
 }: MarketingHomePageProps) {
   return (
-    <div className="marketing-home relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
+    <div className="marketing-home relative min-h-svh overflow-x-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 field-grain" aria-hidden />
 
       <header className="portal-header sticky top-0 z-20">
@@ -52,7 +52,7 @@ export function MarketingHomePage({
                 <Button
                   variant="outline"
                   size="lg"
-                  className="glass-button"
+                  className="border border-border bg-muted"
                   render={<Link href={LOGIN_PATH} />}
                 >
                   Sign in
@@ -102,7 +102,7 @@ export function MarketingHomePage({
                 <Button
                   variant="outline"
                   size="lg"
-                  className="glass-button"
+                  className="border border-border bg-muted"
                   render={<Link href={LOGIN_PATH} />}
                 >
                   Sign in
@@ -115,7 +115,7 @@ export function MarketingHomePage({
         <section className="mx-auto max-w-5xl px-6 pb-20 sm:px-8 sm:pb-24">
           <div className="grid gap-4 sm:grid-cols-3">
             {PILLARS.map((item) => (
-              <div key={item.title} className="glass-card px-6 py-7">
+              <div key={item.title} className="surface-card px-6 py-7">
                 <h2 className="text-xl font-semibold tracking-tight text-white">
                   {item.title}
                 </h2>
@@ -128,7 +128,7 @@ export function MarketingHomePage({
         </section>
 
         <section className="mx-auto max-w-5xl px-6 pb-24 sm:px-8">
-          <div className="glass-card flex flex-col items-start gap-6 px-6 py-10 sm:px-10">
+          <div className="surface-card flex flex-col items-start gap-6 px-6 py-10 sm:px-10">
             <h2 className="text-balance text-3xl font-semibold tracking-tight">
               {isSignedIn ? "Continue" : "Start today"}
             </h2>
@@ -160,7 +160,7 @@ export function MarketingHomePage({
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-[color:var(--glass-hairline)] py-8">
+      <footer className="relative z-10 border-t border-border py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/35 sm:flex-row sm:px-8 sm:text-left">
           <p>© {new Date().getFullYear()} InvestSalsa</p>
           <div className="flex flex-wrap justify-center gap-5">

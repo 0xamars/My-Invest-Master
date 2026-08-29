@@ -23,7 +23,7 @@ export function CategoryPageHeader({
       <div className="flex items-start gap-4">
         <NavCategoryIcon
           category={category}
-          className="mt-1 size-11 rounded-2xl border border-white/8 bg-white/[0.04] text-primary"
+          className="mt-1 size-10 rounded-[var(--radius)] border border-border bg-muted text-muted-foreground"
         />
         <div className="min-w-0 space-y-1">
           <h1 className="page-title">{title}</h1>

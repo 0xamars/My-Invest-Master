@@ -11,12 +11,12 @@ interface BudgetMonthNavProps {
 
 export function BudgetMonthNav({ monthKey, onMonthChange }: BudgetMonthNavProps) {
   return (
-    <div className="inline-flex items-center rounded-full border border-border/70 bg-card p-0.5">
+    <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
       <Button
         type="button"
         variant="ghost"
         size="icon-sm"
-        className="rounded-full"
+        className="rounded-md"
         onClick={() => onMonthChange(shiftMonthKey(monthKey, -1))}
         aria-label="Previous month"
       >
@@ -29,7 +29,7 @@ export function BudgetMonthNav({ monthKey, onMonthChange }: BudgetMonthNavProps)
         type="button"
         variant="ghost"
         size="icon-sm"
-        className="rounded-full"
+        className="rounded-md"
         onClick={() => onMonthChange(shiftMonthKey(monthKey, 1))}
         aria-label="Next month"
       >

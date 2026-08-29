@@ -174,7 +174,7 @@ export function MoneyProfileWizard({
       </div>
 
       {step === 1 ? (
-        <div className="glass-card space-y-5 px-5 py-6">
+        <div className="surface-card space-y-5 px-5 py-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="profile-country">Country</Label>
@@ -341,7 +341,7 @@ export function MoneyProfileWizard({
       ) : null}
 
       {step === 2 ? (
-        <div className="glass-card space-y-6 px-5 py-6">
+        <div className="surface-card space-y-6 px-5 py-6">
           {JOURNEY_PILLARS.map((pillar) => (
             <ChoiceGroup
               key={pillar}
@@ -361,7 +361,7 @@ export function MoneyProfileWizard({
             />
           ))}
 
-          <div className="space-y-4 border-t border-[color:var(--glass-hairline)] pt-4">
+          <div className="space-y-4 border-t border-border pt-4">
             <p className="text-sm font-medium">Six short checks</p>
             {KNOWLEDGE_CHECKS.map((check) => (
               <ChoiceGroup
@@ -388,7 +388,7 @@ export function MoneyProfileWizard({
       ) : null}
 
       {step === 3 ? (
-        <div className="glass-card space-y-6 px-5 py-6">
+        <div className="surface-card space-y-6 px-5 py-6">
           <ChoiceGroup
             legend="Primary goal"
             name="primary-goal"

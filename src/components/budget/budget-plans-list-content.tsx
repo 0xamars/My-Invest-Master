@@ -120,7 +120,7 @@ export function BudgetPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <div className="glass-card" data-budget-first-run-kit="1" data-empty-state="budget">
+        <div className="surface-card" data-budget-first-run-kit="1" data-empty-state="budget">
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
             title={BUDGET_EMPTY.title}
@@ -186,7 +186,9 @@ export function BudgetPlansListContent() {
                         "mt-1 text-[1.65rem] font-semibold tracking-tight tabular-nums",
                         summary.availableToBudget < 0
                           ? "text-[var(--brand-red)]"
-                          : "text-[var(--brand-green)]",
+                          : summary.availableToBudget > 0
+                            ? "text-[var(--brand-green)]"
+                            : "text-foreground",
                       )}
                     >
                       {formatBudgetMoney(summary.availableToBudget, summary.currency)}
