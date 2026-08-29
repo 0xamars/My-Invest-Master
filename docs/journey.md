@@ -13,7 +13,7 @@ This is not advice. The app will not invent leftover, income, holdings, cash, or
 **Money Profile → Journey Home → Budget Learn/Do → Invest Learn/Do → Freedom Learn/Do.**
 
 1. **Money Profile** (`/money-profile`) — 3-step wizard. Country and currency are required. Pay / income / age can be skipped. Income is never required and never invented. Saving recomputes track.
-2. **Journey Home** (`/home`) — three stations, one Next action, and a Freedom date from leftover + the book only.
+2. **Journey Home** (`/home`, and signed-in `/`) — command center: one next-step CTA, three stations with leftover / book / Freedom date (or the honest gap). Never invents leftover, book value, or a date.
 3. **Budget Learn / Do** — Learn is static lessons. Do is leftover, envelopes, and a real month close. Empty Do offers the first-run kit.
 4. **Invest Learn / Do** — Learn is static lessons. Do is the book (quantity, average cost, P/L). Empty Do offers the first-book wizard. An existing book is never hidden or deleted.
 5. **Freedom Learn / Do** — Learn is always available. Do can be opened anytime to learn; a date still needs leftover and the book. Saving a plan is encouraged after a book exists.
@@ -42,7 +42,7 @@ Derived from live data. Never invented. Recomputed on Journey Home, pillar Learn
 | `invest.working` | The primary book has ≥1 visible holding **or** (`flags.investNoHoldingsYet` **and** the `invest-the-book` lesson is complete). |
 | `freedom.working` | A Freedom plan is saved. |
 
-Station status on Journey Home is **Locked | Learn | In progress | Working** from those flags, completed lessons, and the Invest soft lock.
+Station status on Journey Home is **Not started | In progress | Working** (from Locked / Learn / In progress / Working under the hood).
 
 ## Soft locks
 
@@ -77,9 +77,11 @@ Freedom has no first-run wizard. Spending-as-assumption copy on Freedom Do stays
 ## Middleware and landing
 
 - Signed-out public marketing (`/`) still works. Legal, login, signup, and `/auth/*` stay public.
+- Signed-in `/` does not stay on marketing — it goes to Journey Home (or the Money Profile wizard if there is no profile).
 - First login / no Money Profile goes to the 3-step wizard (`/money-profile`), then Journey Home.
 - Returning user with a profile lands on Journey Home (`/home`).
 - Logo click when signed in goes to Journey Home. Logo when signed out goes to `/`.
+- Signed-in header is Logo, Budget | Invest | Freedom, and an account menu with Settings and Sign out.
 - Journey Home is not a fourth nav pillar.
 - `/chat` and `/assistant` still redirect (chat stays unshipped).
 - Soft locks stay client-side. Middleware does not hard-block Invest Do.

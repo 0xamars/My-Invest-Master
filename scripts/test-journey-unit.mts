@@ -19,6 +19,7 @@ import {
   isMissingMoneyProfileTable,
   middlewareShouldHardBlockInvestDo,
   moneyProfilePresenceFromQuery,
+  shouldRedirectSignedInFromMarketing,
   shouldRedirectToMoneyProfile,
   signedInAuthRedirectPath,
   signedInLandingPath,
@@ -31,7 +32,10 @@ import {
   FREEDOM_DATE_NEEDS_INPUTS,
   journeyFreedomDate,
 } from "../src/lib/journey/freedom-date.ts";
-import { profileSummaryLine } from "../src/lib/journey/labels.ts";
+import {
+  JOURNEY_HOME_STATUS_LABELS,
+  profileSummaryLine,
+} from "../src/lib/journey/labels.ts";
 import {
   LEARN_CATALOG,
   LEARN_DISCLAIMER,
@@ -69,6 +73,16 @@ import {
   STARTER_ENVELOPE_NAMES,
   STARTER_SPENDING_ACCOUNT_NAME,
 } from "../src/lib/journey/first-run.ts";
+import {
+  type CommandCenterLive,
+  bookMetricLabel,
+  commandCenterNextAction,
+  leftoverMetricLabel,
+  monthCloseIsReadyNextStep,
+  nextLessonFromProgress,
+  stationCardHref,
+  JOURNEY_HOME_METRIC_EMPTY,
+} from "../src/lib/journey/command-center.ts";
 import { journeyStations, primaryNextAction } from "../src/lib/journey/stations.ts";
 import {
   defaultPillarTab,
@@ -764,7 +778,21 @@ assert(
     hasProfile: false,
     pathname: "/",
   }),
-  "signed-in visitors may still open public marketing",
+  "money-profile middleware does not treat marketing as a protected gate",
+);
+assert(
+  shouldRedirectSignedInFromMarketing({
+    signedIn: true,
+    pathname: "/",
+  }),
+  "signed-in `/` leaves marketing for Journey Home",
+);
+assert(
+  !shouldRedirectSignedInFromMarketing({
+    signedIn: false,
+    pathname: "/",
+  }),
+  "signed-out `/` stays marketing",
 );
 assert(
   !shouldRedirectToMoneyProfile({
@@ -891,8 +919,10 @@ assert(
   "Journey footer stays educational",
 );
 assert(
-  JOURNEY_HOME_EMPTY.freedomLabel === FREEDOM_DATE_NEEDS_INPUTS,
-  "Journey Home empty Freedom date is labeled, not guessed",
+  JOURNEY_HOME_EMPTY.freedomLabel === FREEDOM_DATE_NEEDS_INPUTS &&
+    JOURNEY_HOME_EMPTY.leftoverMetric === "No budget yet" &&
+    JOURNEY_HOME_EMPTY.bookMetric === "No holdings",
+  "Journey Home empty metrics are labeled, not guessed",
 );
 assert(
   BUDGET_EMPTY.learnHref === "/budget?tab=learn",
@@ -922,6 +952,163 @@ assert(
   JOURNEY_HOME_EMPTY.leftoverHref === "/budget?tab=do" &&
     JOURNEY_HOME_EMPTY.bookHref === "/invest?tab=do",
   "Journey Home empty date points to leftover and the book",
+);
+
+function commandLive(
+  partial: Partial<CommandCenterLive> = {},
+): CommandCenterLive {
+  return {
+    hasBudgetPlan: false,
+    leftover: { status: "missing-budget" },
+    monthCloseReady: false,
+    hasHoldings: false,
+    hasFreedomPlan: false,
+    budgetWorking: false,
+    budgetPlanId: null,
+    ...partial,
+  };
+}
+
+const noPlanNext = commandCenterNextAction(draft, commandLive());
+assert(noPlanNext.label === "Create a budget", "no budget plan next is Create a budget");
+assert(noPlanNext.href === "/budget?tab=do", "no budget plan opens Budget Do");
+assert(!noPlanNext.label.toLowerCase().includes("continue"), "next action is not Continue");
+
+const leftoverNext = commandCenterNextAction(
+  workingBudget,
+  commandLive({
+    hasBudgetPlan: true,
+    leftover: leftoverPresent,
+    budgetPlanId: leftoverPresent.budgetPlanId,
+    budgetWorking: true,
+  }),
+);
+assert(leftoverNext.label === "Assign leftover", "leftover > 0 next is Assign leftover");
+assert(
+  leftoverNext.href === `/budget/plans/${leftoverPresent.budgetPlanId}`,
+  "assign leftover opens the live plan",
+);
+
+const closeMonthPlan = createEmptyBudgetPlan("Close ready");
+closeMonthPlan.transactions = [inflowOn(closeMonthPlan, 750)];
+const closeMonthKey = "2026-08";
+const closeToday = new Date("2026-08-29T12:00:00.000Z");
+closeMonthPlan.monthBudgets = {
+  [closeMonthKey]: {
+    assignments: { [closeMonthPlan.categories[0]!.id]: 750 },
+  },
+};
+const closeLeftover = leftoverPresenceFromBudgetPlan(closeMonthPlan, closeMonthKey);
+assert(closeLeftover.status === "none", "fully assigned leftover is not present");
+assert(
+  monthCloseIsReadyNextStep({
+    plan: closeMonthPlan,
+    leftover: closeLeftover,
+    monthKey: closeMonthKey,
+    today: closeToday,
+  }),
+  "assigned leftover and an open month is close-ready",
+);
+assert(
+  !monthCloseIsReadyNextStep({
+    plan: leftoverPlan,
+    leftover: leftoverPresenceFromBudgetPlan(leftoverPlan, closeMonthKey),
+    monthKey: closeMonthKey,
+    today: closeToday,
+  }),
+  "unassigned leftover is not close-ready",
+);
+assert(
+  !monthCloseIsReadyNextStep({
+    plan: createEmptyBudgetPlan("Empty"),
+    leftover: leftoverPresenceFromBudgetPlan(createEmptyBudgetPlan("Empty"), closeMonthKey),
+    monthKey: closeMonthKey,
+    today: closeToday,
+  }),
+  "an unused empty plan is not close-ready",
+);
+
+const closeNext = commandCenterNextAction(
+  workingBudget,
+  commandLive({
+    hasBudgetPlan: true,
+    leftover: closeLeftover,
+    monthCloseReady: true,
+    budgetWorking: true,
+    budgetPlanId: closeMonthPlan.id,
+  }),
+);
+assert(closeNext.label === "Close month", "close-ready next is Close month");
+
+const firstHoldingNext = commandCenterNextAction(
+  workingBudget,
+  commandLive({
+    hasBudgetPlan: true,
+    leftover: { status: "none", budgetPlanId: plan.id, currency: "USD" },
+    budgetWorking: true,
+    hasHoldings: false,
+  }),
+);
+assert(
+  firstHoldingNext.label === "Add a holding",
+  "working budget with no holdings next is Add a holding",
+);
+assert(firstHoldingNext.href === "/invest?tab=do", "first holding opens Invest Do");
+
+const freedomNext = commandCenterNextAction(
+  {
+    ...workingBudget,
+    working: { budget: true, invest: true, freedom: false },
+  },
+  commandLive({
+    hasBudgetPlan: true,
+    leftover: { status: "none", budgetPlanId: plan.id, currency: "USD" },
+    budgetWorking: true,
+    hasHoldings: true,
+    hasFreedomPlan: false,
+  }),
+);
+assert(
+  freedomNext.label === "Open Freedom",
+  "book without a Freedom plan next is Open Freedom",
+);
+assert(freedomNext.href === "/freedom?tab=do", "Freedom opens Freedom Do");
+
+assert(
+  leftoverMetricLabel({ status: "missing-budget" }) ===
+    JOURNEY_HOME_METRIC_EMPTY.leftover,
+  "missing leftover metric is No budget yet",
+);
+assert(
+  bookMetricLabel({ status: "missing" }) === JOURNEY_HOME_METRIC_EMPTY.book,
+  "missing book metric is No holdings",
+);
+assert(
+  bookMetricLabel(bookOnly).includes("4,000") ||
+    bookMetricLabel(bookOnly).includes("4000"),
+  "book metric is cost basis of real holdings",
+);
+
+assert(nextLessonFromProgress(draft) === null, "no learn progress omits next lesson");
+const nextLesson = nextLessonFromProgress(marked);
+assert(
+  nextLesson?.title === "Money in vs money out" ||
+    nextLesson?.title === "Close the month",
+  "learn progress names a real next lesson",
+);
+assert(Boolean(nextLesson?.href.includes("tab=learn")), "next lesson opens Learn");
+
+const beginnerBudgetCard = journeyStations(draft)[0]!;
+assert(
+  stationCardHref(beginnerBudgetCard) === beginnerBudgetCard.learnHref,
+  "unstarted Budget station opens Learn",
+);
+assert(
+  JOURNEY_HOME_STATUS_LABELS.learn === "Not started" &&
+    JOURNEY_HOME_STATUS_LABELS.locked === "Not started" &&
+    JOURNEY_HOME_STATUS_LABELS.in_progress === "In progress" &&
+    JOURNEY_HOME_STATUS_LABELS.working === "Working",
+  "Journey Home stations use Not started / In progress / Working",
 );
 
 const emptyCopy = emptyStateCopyText();

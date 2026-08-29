@@ -40,6 +40,17 @@ export const STATION_STATUS_LABELS: Record<StationStatus, string> = {
   working: "Working",
 };
 
+/** Journey Home station chips — three honest states. */
+export const JOURNEY_HOME_STATUS_LABELS: Record<
+  StationStatus,
+  "Not started" | "In progress" | "Working"
+> = {
+  locked: "Not started",
+  learn: "Not started",
+  in_progress: "In progress",
+  working: "Working",
+};
+
 export const WORK_STATUS_LABELS: Record<WorkStatus, string> = {
   employed: "Employed",
   self_employed: "Self-employed",

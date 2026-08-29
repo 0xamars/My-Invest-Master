@@ -22,6 +22,14 @@ export function signedInLandingPath(hasProfile: boolean): string {
   return hasProfile ? APP_HOME_PATH : MONEY_PROFILE_PATH;
 }
 
+/** Signed-in visitors do not stay on the public marketing homepage. */
+export function shouldRedirectSignedInFromMarketing(input: {
+  signedIn: boolean;
+  pathname: string;
+}): boolean {
+  return input.signedIn && input.pathname === "/";
+}
+
 export function isMissingMoneyProfileTable(error: {
   message: string;
   code?: string;

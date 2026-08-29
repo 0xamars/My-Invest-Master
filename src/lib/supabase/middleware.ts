@@ -2,8 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import {
   moneyProfilePresenceFromQuery,
+  shouldRedirectSignedInFromMarketing,
   shouldRedirectToMoneyProfile,
   signedInAuthRedirectPath,
+  signedInLandingPath,
 } from "@/lib/journey/landing";
 import { mergeSessionCookieOptions } from "@/lib/security/cookies";
 import { isProtectedRoute } from "@/lib/security/protected-routes";
@@ -130,6 +132,21 @@ export async function updateSession(request: NextRequest) {
       redirect.cookies.set(cookie.name, cookie.value);
     });
     return redirect;
+  }
+
+  if (
+    user &&
+    shouldRedirectSignedInFromMarketing({
+      signedIn: true,
+      pathname,
+    })
+  ) {
+    const hasProfile = await userHasMoneyProfile(supabase, user.id);
+    return redirectWithSession(
+      request,
+      supabaseResponse,
+      signedInLandingPath(hasProfile),
+    );
   }
 
   if (
