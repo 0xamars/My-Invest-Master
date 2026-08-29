@@ -7,7 +7,6 @@ import {
   Loader2,
   PenLine,
   Plus,
-  Search,
   TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,8 +22,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
+import {
+  TickerSearch,
+  toAssetCatalogItem,
+} from "@/components/ticker/ticker-search";
 import { useAssetPrice } from "@/hooks/use-asset-price";
-import { useAssetSearch } from "@/hooks/use-asset-search";
 import {
   DEFAULT_CAGR_BY_TYPE,
   type RetirementPlanAsset,
@@ -47,14 +49,12 @@ export function AddRetirementAssetDialog({
   existingSymbols,
 }: AddRetirementAssetDialogProps) {
   const [mode, setMode] = useState<DialogMode>("stock");
-  const [query, setQuery] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<AssetCatalogItem | null>(
     null,
   );
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [expectedCagr, setExpectedCagr] = useState("");
-  const [showResults, setShowResults] = useState(false);
   const [priceTouched, setPriceTouched] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -62,7 +62,6 @@ export function AddRetirementAssetDialog({
   const [customName, setCustomName] = useState("");
 
   const isSearchMode = mode === "stock" || mode === "crypto";
-  const { results, isSearching } = useAssetSearch(query, mode, isSearchMode);
 
   const { price: livePrice, isLoading: isPriceLoading } =
     useAssetPrice(selectedAsset);
@@ -70,12 +69,10 @@ export function AddRetirementAssetDialog({
   useEffect(() => {
     if (!open) return;
     setMode("stock");
-    setQuery("");
     setSelectedAsset(null);
     setQuantity("");
     setUnitPrice("");
     setExpectedCagr(String(DEFAULT_CAGR_BY_TYPE.stock));
-    setShowResults(false);
     setPriceTouched(false);
     setSubmitError(null);
     setCustomSymbol("");
@@ -90,15 +87,12 @@ export function AddRetirementAssetDialog({
   useEffect(() => {
     setExpectedCagr(String(DEFAULT_CAGR_BY_TYPE[mode]));
     setSelectedAsset(null);
-    setQuery("");
     setUnitPrice("");
     setPriceTouched(false);
   }, [mode]);
 
   function handleSelectAsset(asset: AssetCatalogItem) {
     setSelectedAsset(asset);
-    setQuery(asset.symbol);
-    setShowResults(false);
     setPriceTouched(false);
   }
 
@@ -183,7 +177,7 @@ export function AddRetirementAssetDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-visible sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add Asset to Plan</DialogTitle>
           <DialogDescription>
@@ -218,65 +212,21 @@ export function AddRetirementAssetDialog({
         <div className="space-y-4 pt-2">
           {isSearchMode && (
             <div className="space-y-2">
-              <Label>Search asset</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setSelectedAsset(null);
-                    setShowResults(true);
-                  }}
-                  onFocus={() => setShowResults(true)}
-                  placeholder="Search ticker or name…"
-                  className="pl-9"
-                />
-                {showResults && query.length >= 1 && (
-                  <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
-                    {isSearching ? (
-                      <div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
-                        <Loader2 className="size-4 animate-spin" />
-                        Searching…
-                      </div>
-                    ) : results.length === 0 ? (
-                      <p className="px-3 py-4 text-sm text-muted-foreground">
-                        No results found.
-                      </p>
-                    ) : (
-                      results.map((asset) => (
-                        <button
-                          key={`${asset.symbol}-${asset.priceId ?? ""}`}
-                          type="button"
-                          className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/60"
-                          onClick={() => handleSelectAsset(asset)}
-                        >
-                          <AssetLogo
-                            symbol={asset.symbol}
-                            name={asset.name}
-                            type={mode}
-                            logoUrl={asset.logoUrl}
-                            priceId={asset.priceId}
-                            size="sm"
-                          />
-                          <div className="min-w-0">
-                            <p className="font-medium">{asset.symbol}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {asset.name}
-                            </p>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-              {selectedAsset && (
-                <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-muted/20 p-3">
+              <Label htmlFor="retire-asset-search">Search asset</Label>
+              <TickerSearch
+                key={`${open}-${mode}`}
+                id="retire-asset-search"
+                assetType={mode === "crypto" ? "crypto" : "stock"}
+                placeholder="Search ticker or name…"
+                onSelect={(hit) => handleSelectAsset(toAssetCatalogItem(hit))}
+                onClear={() => setSelectedAsset(null)}
+              />
+              {selectedAsset ? (
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-muted p-3">
                   <AssetLogo
                     symbol={selectedAsset.symbol}
                     name={selectedAsset.name}
-                    type={mode}
+                    type={mode === "crypto" ? "crypto" : "stock"}
                     logoUrl={selectedAsset.logoUrl}
                     priceId={selectedAsset.priceId}
                     size="md"
@@ -288,7 +238,7 @@ export function AddRetirementAssetDialog({
                     </p>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 

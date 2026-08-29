@@ -1,12 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { searchAssetsFromApi } from "@/lib/portfolio/asset-search-client";
-import type { AssetCatalogItem, AssetType } from "@/types/portfolio";
+import {
+  searchAssetsFromApi,
+  type SearchableAssetType,
+} from "@/lib/portfolio/asset-search-client";
+import type { AssetCatalogItem } from "@/types/portfolio";
 
-const DEBOUNCE_MS = 350;
+const DEBOUNCE_MS = 200;
+const MAX_RESULTS = 8;
 
-export function useAssetSearch(query: string, type: AssetType, enabled: boolean) {
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+export function useAssetSearch(
+  query: string,
+  type: SearchableAssetType,
+  enabled = true,
+) {
   const [results, setResults] = useState<AssetCatalogItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,31 +32,34 @@ export function useAssetSearch(query: string, type: AssetType, enabled: boolean)
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
     setIsSearching(true);
     setError(null);
 
-    const timeout = setTimeout(async () => {
-      try {
-        const data = await searchAssetsFromApi(trimmed, type);
-        if (!cancelled) {
-          setResults(data);
-        }
-      } catch {
-        if (!cancelled) {
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const data = await searchAssetsFromApi(
+            trimmed,
+            type,
+            controller.signal,
+          );
+          setResults(data.slice(0, MAX_RESULTS));
+        } catch (caught) {
+          if (controller.signal.aborted || isAbortError(caught)) return;
           setError("Search failed. Please try again.");
           setResults([]);
+        } finally {
+          if (!controller.signal.aborted) {
+            setIsSearching(false);
+          }
         }
-      } finally {
-        if (!cancelled) {
-          setIsSearching(false);
-        }
-      }
+      })();
     }, DEBOUNCE_MS);
 
     return () => {
-      cancelled = true;
-      clearTimeout(timeout);
+      controller.abort();
+      window.clearTimeout(timeout);
     };
   }, [query, type, enabled]);
 

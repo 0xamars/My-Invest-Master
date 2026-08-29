@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bitcoin, Loader2, Search, TrendingUp } from "lucide-react";
-import { AssetLogo } from "@/components/portfolio/asset-logo";
+import { Bitcoin, TrendingUp } from "lucide-react";
+import { TickerSearch } from "@/components/ticker/ticker-search";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,33 +13,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAssetSearch } from "@/hooks/use-asset-search";
 import {
   buildAnalysisHref,
   type AnalysisAssetType,
 } from "@/lib/analysis/types";
 import { isWatchlistAssetType } from "@/types/watchlist";
-import type { AssetCatalogItem } from "@/types/portfolio";
 
 export function AnalysisHubContent() {
   const router = useRouter();
   const [mode, setMode] = useState<AnalysisAssetType>("stock");
-  const [query, setQuery] = useState("");
-  const [showResults, setShowResults] = useState(false);
-
-  const { results, isSearching, error } = useAssetSearch(query, mode, true);
-
-  useEffect(() => {
-    setQuery("");
-    setShowResults(false);
-  }, [mode]);
-
-  function openTicker(asset: AssetCatalogItem) {
-    if (!isWatchlistAssetType(asset.type)) return;
-    router.push(buildAnalysisHref(asset.symbol, asset.type, asset.priceId));
-  }
 
   return (
     <div className="flex flex-1 flex-col gap-8">
@@ -77,64 +60,23 @@ export function AnalysisHubContent() {
             </TabsList>
           </Tabs>
 
-          <div className="relative z-20 max-w-xl space-y-1.5">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="h-11 pl-9"
-                placeholder={
-                  mode === "stock"
-                    ? "Search AAPL, NVDA, MSFT…"
-                    : "Search BTC, ETH…"
-                }
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setShowResults(true);
-                }}
-                onFocus={() => setShowResults(true)}
-                autoFocus
-              />
-              {isSearching && (
-                <Loader2 className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-              )}
-            </div>
-
-            {showResults && query.trim().length > 0 && (
-              <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-72 overflow-auto rounded-xl border border-border bg-popover shadow-lg">
-                {results.length === 0 && !isSearching ? (
-                  <p className="px-3 py-4 text-sm text-muted-foreground">
-                    {error ?? "No matches found."}
-                  </p>
-                ) : (
-                  results.map((asset) => (
-                    <button
-                      key={`${asset.symbol}-${asset.type}-${asset.priceId ?? ""}`}
-                      type="button"
-                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
-                      onClick={() => openTicker(asset)}
-                    >
-                      <AssetLogo
-                        symbol={asset.symbol}
-                        name={asset.name}
-                        type={asset.type}
-                        logoUrl={asset.logoUrl}
-                        priceId={asset.priceId}
-                        size="sm"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-semibold tracking-wide">
-                          {asset.symbol}
-                        </span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {asset.name}
-                        </span>
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
+          <div className="relative z-20 max-w-xl">
+            <TickerSearch
+              key={mode}
+              assetType={mode}
+              size="lg"
+              autoFocus
+              clearOnSelect
+              placeholder={
+                mode === "stock"
+                  ? "Search AAPL, NVDA, MSFT…"
+                  : "Search BTC, ETH…"
+              }
+              onSelect={(hit) => {
+                if (!isWatchlistAssetType(hit.type)) return;
+                router.push(buildAnalysisHref(hit.symbol, hit.type, hit.priceId));
+              }}
+            />
           </div>
         </CardContent>
       </Card>
