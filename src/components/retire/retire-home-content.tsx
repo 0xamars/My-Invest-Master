@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Loader2, Target } from "lucide-react";
-import { LaunchAtmosphere, LaunchStillFrame } from "@/components/brand/launch-still";
 import { CategoryPageHeader } from "@/components/category/category-page-header";
 import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
 import { RetirementWhatIf } from "@/components/retirement/retirement-what-if";
@@ -87,10 +86,7 @@ export function RetireHomeContent() {
     leftover.status !== "present" && book.status === "missing";
 
   return (
-    <div className="relative flex flex-1 flex-col gap-5">
-      {basePath.path.assets.length > 0 ? (
-        <LaunchAtmosphere still="freedom" />
-      ) : null}
+    <div className="flex flex-1 flex-col gap-5">
       <CategoryPageHeader
         category="retire"
         title="Freedom"
@@ -115,7 +111,7 @@ export function RetireHomeContent() {
           Loading Freedom…
         </div>
       ) : inputsMissing && !latest ? (
-        <LaunchStillFrame still="freedom" scrim="left">
+        <div className="glass-card">
           <RetireEmptyState
             icon={<Target className="size-5" />}
             title="Leftover and the book are missing"
@@ -129,7 +125,7 @@ export function RetireHomeContent() {
               </>
             }
           />
-        </LaunchStillFrame>
+        </div>
       ) : (
         <>
           <RetirementVerdictHero
