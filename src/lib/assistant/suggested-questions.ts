@@ -138,8 +138,8 @@ export function getDynamicSuggestedQuestions(
       const plan = context.activeBudgetPlan;
       if (!plan) {
         return [
-          "How do I assign leftover to an envelope?",
-          "What does leftover mean?",
+          "How do I assign money to a category?",
+          "What does Ready to Assign mean?",
           "What is Available to Budget?",
         ];
       }
@@ -148,7 +148,7 @@ export function getDynamicSuggestedQuestions(
         plan.categorySpend[0]
           ? `How much have I spent in ${plan.categorySpend[0].name} this month?`
           : "Which categories have spending this month?",
-        "How do I assign leftover to an envelope?",
+        "How do I assign money to a category?",
       ];
     }
 

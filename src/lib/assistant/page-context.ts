@@ -156,7 +156,7 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       id: "budget-plan",
       path: pathname,
       title: "Budget Plan",
-      description: "Envelope budgeting for one plan — leftover you assign, then a real month close.",
+      description: "Envelope budgeting for one plan — Ready to Assign and leftover that carries.",
     };
   }
   if (pathname === "/budget" || pathname.startsWith("/budget/")) {
@@ -238,8 +238,8 @@ export function getStarterQuestions(pageId: AssistantPageId): string[] {
     case "budget-plan":
       return [
         "How much is available to budget this month?",
-        "How do I assign leftover to an envelope?",
-        "What does leftover mean?",
+        "How do I assign money to a category?",
+        "What does Ready to Assign mean?",
       ];
     case "budget-accounts":
       return [
