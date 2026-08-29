@@ -9,6 +9,7 @@ import {
   str,
   yoyChange,
 } from "@/lib/ticker/pick";
+import { buildStatementCharts, buildTickerScore } from "@/lib/ticker/score";
 import type {
   TickerBundle,
   TickerCacheStatus,
@@ -78,6 +79,8 @@ export function assembleTickerSnapshot(
     bundle.cashflowAnnual,
     bundle.balanceAnnual,
   );
+  const scored = buildTickerScore(bundle);
+  const charts = buildStatementCharts(bundle);
 
   return {
     symbol,
@@ -324,6 +327,10 @@ export function assembleTickerSnapshot(
       ),
     ],
     years,
+    score: scored.score,
+    past: scored.past,
+    health: scored.health,
+    charts,
   };
 }
 
@@ -379,7 +386,7 @@ function buildYears(
     return next;
   };
 
-  for (const row of income.slice(0, 5)) {
+  for (const row of income.slice(0, 8)) {
     const year = upsert(fiscalYearLabel(row));
     if (!year) continue;
     year.revenue = pick(row, "revenue");
@@ -394,14 +401,14 @@ function buildYears(
       "weightedAverageShsOutDiluted",
     );
   }
-  for (const row of cashflow.slice(0, 5)) {
+  for (const row of cashflow.slice(0, 8)) {
     const year = upsert(fiscalYearLabel(row));
     if (!year) continue;
     year.operatingCashFlow = pick(row, "operatingCashFlow");
     year.capex = pick(row, "capitalExpenditure");
     year.freeCashFlow = pick(row, "freeCashFlow");
   }
-  for (const row of balance.slice(0, 5)) {
+  for (const row of balance.slice(0, 8)) {
     const year = upsert(fiscalYearLabel(row));
     if (!year) continue;
     year.cash = pick(

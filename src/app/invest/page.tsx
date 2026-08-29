@@ -5,7 +5,7 @@ export default function InvestPage() {
   return (
     <RequireAuth
       title="Sign in to open Invest"
-      description="Your portfolio checkup is tied to your account. Sign in to continue."
+      description="The public-stock book is tied to your account. Sign in to continue."
     >
       <InvestHomeContent />
     </RequireAuth>

@@ -94,6 +94,7 @@ assert(formatTickerPrice(null) === TICKER_UNKNOWN, "missing price is Unknown");
 const nvda = assembleTickerSnapshot(
   "NVDA",
   {
+    ...EMPTY_TICKER_BUNDLE,
     profile: {
       companyName: "NVIDIA Corporation",
       sector: "Technology",
@@ -225,6 +226,15 @@ assert(
 assert(nvda.years[0]?.fiscalYear === "2025", "annual highlights keep FMP years");
 assert(nvda.cache.fromCache === true, "cache meta is preserved");
 assert(nvda.cache.fmpHit === false, "peek path must not claim an FMP hit");
+assert(nvda.score.axes.length === 5, "Score has five axes");
+assert(
+  nvda.score.axes.find((axis) => axis.key === "future")?.status === "unknown",
+  "Future petal stays Unknown this slice",
+);
+assert(
+  nvda.score.axes.find((axis) => axis.key === "past")?.status === "scored",
+  "Past can score from FMP rows",
+);
 
 const missingEstimates = assembleTickerSnapshot(
   "XYZ",

@@ -36,6 +36,21 @@ export function formatTickerPrice(value: number | null): string {
   }).format(value);
 }
 
+export function formatTickerCacheAge(fetchedAt: string | null | undefined): string {
+  if (!fetchedAt) return TICKER_UNKNOWN;
+  const then = Date.parse(fetchedAt);
+  if (!Number.isFinite(then)) return TICKER_UNKNOWN;
+  const ms = Date.now() - then;
+  if (!Number.isFinite(ms) || ms < 0) return TICKER_UNKNOWN;
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export function formatTickerMarketCap(value: number | null): string {
   if (value == null || !Number.isFinite(value)) return TICKER_UNKNOWN;
   return formatCompact(value);
