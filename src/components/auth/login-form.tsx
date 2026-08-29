@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { APP_HOME_PATH, SIGNUP_PATH, safeAuthNextPath } from "@/lib/routes";
+import { SIGNUP_PATH, safeAuthNextPath } from "@/lib/routes";
 
 export function LoginForm() {
   const { isConfigured, signIn, requestPasswordReset } = useAuth();
@@ -62,7 +62,7 @@ export function LoginForm() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
         <p className="text-sm text-white/60">
-          Email and password. After you sign in you land on Invest.
+          Email and password. After you sign in you land on your Journey.
         </p>
       </div>
 

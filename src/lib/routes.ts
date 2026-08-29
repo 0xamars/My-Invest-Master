@@ -1,8 +1,11 @@
 /** Public marketing homepage (signed-out logo always returns here). */
 export const MARKETING_HOME_PATH = "/";
 
-/** Signed-in landing — the Invest book. Home is not a pillar. */
-export const APP_HOME_PATH = "/invest";
+/** Signed-in landing — Journey Home. Not a fourth pillar. */
+export const APP_HOME_PATH = "/home";
+
+/** First-run / edit Money Profile wizard. */
+export const MONEY_PROFILE_PATH = "/money-profile";
 
 export const LOGIN_PATH = "/login";
 export const SIGNUP_PATH = "/signup";
@@ -19,9 +22,6 @@ export function safeAuthNextPath(raw: string | null | undefined): string {
     return APP_HOME_PATH;
   }
   if (raw.includes("\\") || raw.includes("://")) {
-    return APP_HOME_PATH;
-  }
-  if (raw === "/home" || raw.startsWith("/home/")) {
     return APP_HOME_PATH;
   }
   return raw;

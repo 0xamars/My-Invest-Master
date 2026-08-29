@@ -5,6 +5,8 @@ export const FREEDOM_PATH = "/freedom";
 export const RETIRE_PATH = FREEDOM_PATH;
 export const RETIRE_LEGACY_PATH = "/retire";
 export const SETTINGS_PATH = "/settings";
+export const JOURNEY_HOME_PATH = "/home";
+export const MONEY_PROFILE_PATH = "/money-profile";
 
 /** Invest children live under the Invest pillar — never as peer products. */
 export const INVEST_PORTFOLIO_PATH = "/invest/portfolio";
@@ -59,6 +61,17 @@ export function isHomePath(pathname: string): boolean {
   return pathname === "/home" || pathname === "/";
 }
 
+export function isJourneyHomePath(pathname: string): boolean {
+  return pathname === JOURNEY_HOME_PATH;
+}
+
+export function isMoneyProfilePath(pathname: string): boolean {
+  return (
+    pathname === MONEY_PROFILE_PATH ||
+    pathname.startsWith(`${MONEY_PROFILE_PATH}/`)
+  );
+}
+
 export function isBudgetPath(pathname: string): boolean {
   return pathname === BUDGET_PATH || pathname.startsWith(`${BUDGET_PATH}/`);
 }
@@ -102,7 +115,7 @@ export function isNavItemActive(
 
 export function pillarForPath(pathname: string): ProductPillar | null {
   if (isBudgetPath(pathname)) return "budget";
-  if (isInvestPath(pathname) || pathname === "/home") return "invest";
+  if (isInvestPath(pathname)) return "invest";
   if (isRetirePath(pathname)) return "retire";
   return null;
 }
@@ -113,7 +126,7 @@ export function pillarHomePath(pathname: string): string {
   if (pillar === "budget") return BUDGET_PATH;
   if (pillar === "invest") return INVEST_PATH;
   if (pillar === "retire") return RETIRE_PATH;
-  return INVEST_PATH;
+  return JOURNEY_HOME_PATH;
 }
 
 export function pillarLabel(pathname: string): string {
@@ -121,16 +134,18 @@ export function pillarLabel(pathname: string): string {
   if (pillar === "budget") return "Budget";
   if (pillar === "invest") return "Invest";
   if (pillar === "retire") return "Freedom";
-  return "Invest";
+  return "Journey";
 }
 
-/** True on the three hubs — not a nested plan, book, or settings screen. */
+/** True on product hubs and Journey landing — no up-link. */
 export function isPillarHub(pathname: string): boolean {
   return (
     pathname === BUDGET_PATH ||
     pathname === INVEST_PATH ||
     pathname === FREEDOM_PATH ||
-    pathname === RETIRE_LEGACY_PATH
+    pathname === RETIRE_LEGACY_PATH ||
+    pathname === JOURNEY_HOME_PATH ||
+    pathname === MONEY_PROFILE_PATH
   );
 }
 
@@ -198,7 +213,8 @@ export function resolvePageTitle(
 
   const pageTitles: Record<string, string> = {
     "/": "InvestSalsa",
-    "/home": "Invest",
+    "/home": "Journey",
+    "/money-profile": "Money Profile",
     "/invest": "Invest",
     "/invest/options": "Options",
     "/options": "Options",

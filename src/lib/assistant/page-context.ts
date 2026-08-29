@@ -33,10 +33,19 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
   }
   if (pathname === "/home") {
     return {
-      id: "invest",
+      id: "home",
       path: pathname,
-      title: "Invest",
-      description: "Invest checkup: concentration, mix, leftover, and the book.",
+      title: "Journey",
+      description:
+        "Signed-in Journey Home: Budget, Invest, and Freedom stations. Educational, not advice.",
+    };
+  }
+  if (pathname === "/money-profile" || pathname.startsWith("/money-profile/")) {
+    return {
+      id: "settings",
+      path: pathname,
+      title: "Money Profile",
+      description: "Three-step Money Profile: situation, knowledge, goal and risk.",
     };
   }
   if (pathname === "/invest") {

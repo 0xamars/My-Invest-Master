@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/hooks/use-auth";
+import { MoneyProfileProvider } from "@/hooks/use-money-profile";
 import { UserPreferencesProvider } from "@/hooks/use-user-preferences";
 import { PortfolioPlansProvider } from "@/contexts/portfolio-plans-context";
 import { WatchlistPlansProvider } from "@/contexts/watchlist-plans-context";
@@ -17,11 +18,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <AuthProvider>
         <UserPreferencesProvider>
-          <PortfolioPlansProvider>
-            <WatchlistPlansProvider>
-              <TooltipProvider>{children}</TooltipProvider>
-            </WatchlistPlansProvider>
-          </PortfolioPlansProvider>
+          <MoneyProfileProvider>
+            <PortfolioPlansProvider>
+              <WatchlistPlansProvider>
+                <TooltipProvider>{children}</TooltipProvider>
+              </WatchlistPlansProvider>
+            </PortfolioPlansProvider>
+          </MoneyProfileProvider>
         </UserPreferencesProvider>
       </AuthProvider>
     </ThemeProvider>

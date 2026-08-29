@@ -1,5 +1,6 @@
 import type { BudgetData, BudgetPlan } from "@/types/budget";
 import type { DisplayCurrency } from "@/types/currency";
+import type { MoneyProfile } from "@/types/money-profile";
 import type { OptionsPosition } from "@/types/options";
 import type { UserPlan } from "@/types/plan";
 import type { PortfolioHolding, UserPortfolio } from "@/types/portfolio";
@@ -70,6 +71,24 @@ export interface Database {
         Update: {
           user_id?: string;
           positions?: OptionsPosition[];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_money_profiles: {
+        Row: {
+          user_id: string;
+          data: MoneyProfile;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          data: MoneyProfile;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          data?: MoneyProfile;
           updated_at?: string;
         };
         Relationships: [];
