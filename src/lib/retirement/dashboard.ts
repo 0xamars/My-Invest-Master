@@ -1,4 +1,5 @@
 import { getPlanTotalValue, type RetirementPlan } from "@/types/retirement";
+import { findFreedomCrossing } from "@/lib/retirement/freedom-path";
 import { computeTargetNestEgg, presentValue } from "@/lib/retirement/target";
 import {
   computeRetirementProjections,
@@ -25,6 +26,9 @@ export interface RetirementDashboard {
   planEndAge: number;
   successRate: number | null;
   yearsToRetirement: number;
+  freedomYear: number | null;
+  freedomAge: number | null;
+  yearsToFreedom: number | null;
 }
 
 export function verdictFromGap(
@@ -56,6 +60,12 @@ export function computeRetirementDashboard(
   );
   const yearsToRetirement = Math.max(0, plan.retirementAge - plan.currentAge);
 
+  const emptyFreedom = {
+    freedomYear: null,
+    freedomAge: null,
+    yearsToFreedom: null,
+  };
+
   if (plan.assets.length === 0) {
     return {
       verdict: "empty",
@@ -72,6 +82,7 @@ export function computeRetirementDashboard(
       planEndAge: plan.planEndAge,
       successRate: null,
       yearsToRetirement,
+      ...emptyFreedom,
     };
   }
 
@@ -87,12 +98,27 @@ export function computeRetirementDashboard(
     projectedNestEggToday == null ? null : projectedNestEggToday - targetNestEgg;
   const depletionYear = findDepletionYear(projections);
   const depletionAge = findDepletionAge(projections);
+  const freedom = findFreedomCrossing(plan, { currentYear });
+  const yearsToFreedom =
+    freedom == null ? null : Math.max(0, freedom.year - currentYear);
+
+  const gapVerdict =
+    projectedNestEggToday == null
+      ? "behind"
+      : verdictFromGap(projectedNestEggToday, targetNestEgg);
+  const verdict =
+    targetNestEgg <= 0
+      ? gapVerdict
+      : freedom == null
+        ? "behind"
+        : freedom.age + 2 < plan.retirementAge
+          ? "ahead"
+          : freedom.age <= plan.retirementAge
+            ? "on-track"
+            : "behind";
 
   return {
-    verdict:
-      projectedNestEggToday == null
-        ? "behind"
-        : verdictFromGap(projectedNestEggToday, targetNestEgg),
+    verdict,
     currentPortfolio,
     targetNestEgg,
     annualSpending: plan.annualLifestyleSpending,
@@ -106,5 +132,8 @@ export function computeRetirementDashboard(
     planEndAge: plan.planEndAge,
     successRate: options?.monteCarlo?.successRate ?? null,
     yearsToRetirement,
+    freedomYear: freedom?.year ?? null,
+    freedomAge: freedom?.age ?? null,
+    yearsToFreedom,
   };
 }

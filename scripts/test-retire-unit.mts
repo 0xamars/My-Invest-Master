@@ -5,6 +5,17 @@
  */
 import { computeRetirementDashboard, verdictFromGap } from "../src/lib/retirement/dashboard.ts";
 import {
+  assetsFromBook,
+  bindFreedomPathPlan,
+  bookPresenceFromPortfolio,
+  findFreedomCrossing,
+  formatFreedomDate,
+  FREEDOM_LEFTOVER_ASSET_ID,
+  leftoverAlreadyInBook,
+  leftoverCashAsset,
+  pickFreedomLever,
+} from "../src/lib/retirement/freedom-path.ts";
+import {
   impliedPathSentence,
   whatIfLeverSentence,
 } from "../src/lib/retirement/path-copy.ts";
@@ -463,9 +474,10 @@ assert(applied.retirementYear === CURRENT_YEAR + 27, "applying retire-later sync
 
 const emptyPath = impliedPathSentence(emptyDash, (value) => `$${value}`);
 assert(
-  emptyPath.includes("Refresh from the book") || emptyPath.includes("add assets"),
-  "empty path does not invent a CAGR",
+  emptyPath.includes("Leftover or the book is missing"),
+  "empty path does not invent cash",
 );
+assert(!/cagr/i.test(emptyPath), "empty path does not invent a CAGR");
 const behindDash = computeRetirementDashboard(
   plan({
     currentAge: 40,
@@ -489,9 +501,10 @@ assert(behindDash.verdict === "behind", "tiny pot vs 4% target is behind");
 assert(behindDash.yearsToRetirement === 25, "years left comes from the plan ages");
 assert(behindDash.gapToday != null && behindDash.gapToday < 0, "gap today is already computed");
 const path = impliedPathSentence(behindDash, (value) => `$${Math.round(value)}`);
-assert(path.includes("25 years left"), "path sentence uses years left");
-assert(path.includes("short today"), "path sentence uses the existing gap");
+assert(path.includes("Not on this path"), "tiny pot never reaches the target date");
+assert(path.includes("Target"), "path sentence still names the target");
 assert(!/cagr/i.test(path), "path sentence does not invent a CAGR");
+assert(behindDash.freedomYear == null, "tiny pot has no Freedom date");
 const lever = whatIfLeverSentence(
   plan({ retirementAge: 65, annualLifestyleSpending: 100_000, annualContribution: 0 }),
 );
@@ -625,6 +638,289 @@ assert(nudgeAnnualSavings(plan({ annualContribution: 1_000 }), -1, CURRENT_YEAR,
 const winOutlook = outlookLivesFromResult(winMc, 68);
 assert(winOutlook?.typical.lastsPastEnd === true, "no-spend cash sim still lasts on the typical life");
 assert(outlookSentence(winOutlook, 68) === "This plan lasts even when markets are bad.", "same sim, human sentence when every life lasts");
+
+// --- One date from leftover + book ----------------------------------------
+
+function bookHolding(
+  partial: Pick<PortfolioHolding, "id" | "symbol" | "quantity"> &
+    Partial<PortfolioHolding>,
+): PortfolioHolding {
+  return {
+    name: partial.name ?? partial.symbol,
+    type: partial.type ?? "stock",
+    sector: "Test",
+    category: "Test",
+    subCategory: "Test",
+    costPrice: partial.costPrice ?? 10,
+    addedAt: "2026-01-01T00:00:00.000Z",
+    transactions: [],
+    ...partial,
+  };
+}
+
+const missingBook = bookPresenceFromPortfolio(null);
+assert(missingBook.status === "missing", "no portfolio is a missing book");
+assert(
+  bookPresenceFromPortfolio({
+    id: "p1",
+    name: "Book",
+    holdings: [bookHolding({ id: "z", symbol: "VOO", quantity: 0 })],
+  }).status === "missing",
+  "zero-qty holdings do not invent a book",
+);
+
+const vooBook = bookPresenceFromPortfolio({
+  id: "p1",
+  name: "Primary",
+  holdings: [
+    bookHolding({
+      id: "voo",
+      symbol: "VOO",
+      quantity: 10,
+      costPrice: 100,
+      type: "stock",
+    }),
+  ],
+});
+assert(vooBook.status === "present", "visible holdings are a present book");
+const vooAssets = assetsFromBook(vooBook, { VOO: 500 });
+assert(vooAssets.length === 1, "book maps to one Freedom asset");
+assert(vooAssets[0]?.unitPrice === 500, "book uses the live price");
+assert(vooAssets[0]?.quantity === 10, "book keeps quantity");
+
+const leftoverNone = { status: "none" as const, budgetPlanId: "b1", currency: "USD" as const };
+const leftoverPresent = {
+  status: "present" as const,
+  amount: 250,
+  currency: "USD" as const,
+  budgetPlanId: "b1",
+};
+assert(leftoverCashAsset(leftoverNone) == null, "missing leftover does not invent cash");
+assert(leftoverCashAsset(leftoverPresent)?.quantity === 250, "present leftover is the RTA stock");
+assert(
+  leftoverCashAsset(leftoverPresent)?.id === FREEDOM_LEFTOVER_ASSET_ID,
+  "leftover cash has a stable id",
+);
+
+const boundMissing = bindFreedomPathPlan(
+  plan({ annualContribution: 6_000, incomeStreams: retiredNow.incomeStreams }),
+  leftoverNone,
+  missingBook,
+);
+assert(boundMissing.assets.length === 0, "missing leftover + book does not invent assets");
+assert(boundMissing.annualContribution === 0, "bound path does not invent annual savings");
+assert(boundMissing.incomeStreams.length === 0, "bound path does not invent income");
+
+const boundBookOnly = bindFreedomPathPlan(plan(), leftoverNone, vooBook, { VOO: 500 });
+assert(boundBookOnly.assets.length === 1, "book-only path uses the book");
+assert(
+  boundBookOnly.assets.every((item) => item.id !== FREEDOM_LEFTOVER_ASSET_ID),
+  "book-only path does not add leftover cash",
+);
+assert(boundBookOnly.annualContribution === 0, "book-only path does not annualize leftover");
+
+const boundBoth = bindFreedomPathPlan(plan(), leftoverPresent, vooBook, { VOO: 500 });
+assert(boundBoth.assets.length === 2, "leftover + book are both on the path");
+assert(
+  boundBoth.assets.some((item) => item.id === FREEDOM_LEFTOVER_ASSET_ID && item.quantity === 250),
+  "leftover is added as one-time cash, not leftover × 12",
+);
+
+const bookWithLeftoverCash = bookPresenceFromPortfolio({
+  id: "p2",
+  name: "Primary",
+  holdings: [
+    bookHolding({
+      id: "cash",
+      symbol: "CASH",
+      quantity: 250,
+      type: "cash",
+      cashCurrency: "USD",
+      costPrice: 1,
+    }),
+  ],
+});
+assert(
+  leftoverAlreadyInBook(bookWithLeftoverCash, leftoverPresent) === true,
+  "matching book cash counts leftover as already in the book",
+);
+const boundNoDouble = bindFreedomPathPlan(
+  plan(),
+  leftoverPresent,
+  bookWithLeftoverCash,
+);
+assert(boundNoDouble.assets.length === 1, "leftover already in the book is not added twice");
+assert(
+  boundNoDouble.assets[0]?.id !== FREEDOM_LEFTOVER_ASSET_ID,
+  "double-count leftover cash is skipped",
+);
+
+const alreadyFree = findFreedomCrossing(
+  plan({
+    currentAge: 40,
+    retirementAge: 65,
+    retirementYear: CURRENT_YEAR + 25,
+    annualLifestyleSpending: 4_000,
+    withdrawalRate: 4,
+    inflationRate: 0,
+    assets: [
+      asset({
+        id: "fat",
+        symbol: "CASH",
+        unitPrice: 1,
+        quantity: 200_000,
+        expectedCagr: 0,
+        type: "cash",
+      }),
+    ],
+  }),
+  { currentYear: CURRENT_YEAR },
+);
+assert(alreadyFree?.year === CURRENT_YEAR, "book already at the target is free this year");
+assert(alreadyFree?.age === 40, "free this year uses current age");
+assert(
+  formatFreedomDate(alreadyFree, CURRENT_YEAR) === "This year",
+  "already-free date label is This year",
+);
+
+const laterFree = findFreedomCrossing(
+  plan({
+    currentAge: 40,
+    retirementAge: 65,
+    retirementYear: CURRENT_YEAR + 25,
+    annualLifestyleSpending: 8_000,
+    withdrawalRate: 4,
+    inflationRate: 0,
+    annualContribution: 0,
+    assets: [
+      asset({
+        id: "grow",
+        symbol: "VOO",
+        unitPrice: 1,
+        quantity: 100_000,
+        expectedCagr: 10,
+        type: "stock",
+      }),
+    ],
+  }),
+  { currentYear: CURRENT_YEAR },
+);
+assert(laterFree != null, "growing book reaches the $200k target");
+assert((laterFree?.year ?? 0) > CURRENT_YEAR, "freedom year is in the future");
+assert(
+  formatFreedomDate(laterFree, CURRENT_YEAR) === String(laterFree?.year),
+  "future date is the calendar year",
+);
+
+const neverFree = findFreedomCrossing(
+  plan({
+    currentAge: 40,
+    retirementAge: 65,
+    retirementYear: CURRENT_YEAR + 25,
+    annualLifestyleSpending: 80_000,
+    withdrawalRate: 4,
+    inflationRate: 0,
+    assets: [
+      asset({
+        id: "tiny",
+        symbol: "CASH",
+        unitPrice: 1,
+        quantity: 10_000,
+        expectedCagr: 0,
+        type: "cash",
+      }),
+    ],
+  }),
+  { currentYear: CURRENT_YEAR },
+);
+assert(neverFree == null, "tiny pot never names a Freedom date");
+assert(
+  formatFreedomDate(null, CURRENT_YEAR) === "Not on this path",
+  "no crossing is not on this path",
+);
+
+const noSpendDate = findFreedomCrossing(
+  plan({ annualLifestyleSpending: 0, assets: [] }),
+  { currentYear: CURRENT_YEAR },
+);
+assert(noSpendDate == null, "no spending target and no assets is not a date");
+
+const freeDash = computeRetirementDashboard(
+  plan({
+    currentAge: 40,
+    retirementAge: 65,
+    retirementYear: CURRENT_YEAR + 25,
+    annualLifestyleSpending: 4_000,
+    withdrawalRate: 4,
+    inflationRate: 0,
+    assets: [
+      asset({
+        id: "fat2",
+        symbol: "CASH",
+        unitPrice: 1,
+        quantity: 200_000,
+        expectedCagr: 0,
+        type: "cash",
+      }),
+    ],
+  }),
+  { currentYear: CURRENT_YEAR },
+);
+assert(freeDash.freedomYear === CURRENT_YEAR, "dashboard exposes the Freedom year");
+assert(freeDash.yearsToFreedom === 0, "already free is zero years");
+assert(freeDash.verdict === "ahead", "free 25 years early is ahead");
+assert(
+  impliedPathSentence(freeDash, (value) => `$${value}`).includes("Free this year"),
+  "path sentence uses the date",
+);
+
+assert(
+  pickFreedomLever(leftoverNone, missingBook, {
+    verdict: "empty",
+    freedomYear: null,
+  }) === "missing-book",
+  "missing book is the book lever",
+);
+assert(
+  pickFreedomLever(leftoverNone, vooBook, {
+    verdict: "behind",
+    freedomYear: null,
+  }) === "missing-leftover",
+  "missing leftover on a behind path is save more",
+);
+assert(
+  pickFreedomLever(leftoverPresent, vooBook, {
+    verdict: "ahead",
+    freedomYear: CURRENT_YEAR,
+  }) === "book-path",
+  "ahead with leftover uses the book path",
+);
+
+const whatIfDates = compareRetirementScenarios(
+  plan({
+    currentAge: 40,
+    retirementAge: 65,
+    retirementYear: CURRENT_YEAR + 25,
+    annualLifestyleSpending: 4_000,
+    withdrawalRate: 4,
+    inflationRate: 0,
+    assets: [
+      asset({
+        id: "fat3",
+        symbol: "CASH",
+        unitPrice: 1,
+        quantity: 200_000,
+        expectedCagr: 0,
+        type: "cash",
+      }),
+    ],
+  }),
+  { currentYear: CURRENT_YEAR, paths: 20, seed: 3, includeBase: false },
+);
+assert(
+  whatIfDates.every((item) => item.freedomYear === CURRENT_YEAR),
+  "what-ifs on an already-free path keep this year's date",
+);
 
 if (failed > 0) {
   console.error(`\n${failed} assertion(s) failed`);

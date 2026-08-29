@@ -1,4 +1,5 @@
 import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
+import { findFreedomCrossing } from "@/lib/retirement/freedom-path";
 import {
   formatOutlookAge,
   outlookLivesFromResult,
@@ -37,6 +38,8 @@ export interface ScenarioComparison {
   lastsPastPlanEnd: boolean;
   typicalAgeLabel: string | null;
   typicalLastsToTarget: boolean;
+  freedomYear: number | null;
+  freedomAge: number | null;
   plan: RetirementPlan;
 }
 
@@ -142,6 +145,7 @@ export function compareRetirementScenarios(
     });
     const depletionAge = findDepletionAge(projections);
     const lives = outlookLivesFromResult(monteCarlo, next.planEndAge);
+    const freedom = findFreedomCrossing(next, { currentYear });
 
     return {
       id: scenario.id,
@@ -155,6 +159,8 @@ export function compareRetirementScenarios(
         ? formatOutlookAge(lives.typical, next.planEndAge)
         : null,
       typicalLastsToTarget: lives?.typical.lastsToTarget ?? false,
+      freedomYear: freedom?.year ?? null,
+      freedomAge: freedom?.age ?? null,
       plan: next,
     };
   });
