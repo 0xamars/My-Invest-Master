@@ -41,27 +41,29 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 1.75);
+  --radius-4xl: calc(var(--radius) * 2);
 }
 
 :root,
 .dark {
   /* InvestSalsa mark — sampled from the locked logo board. */
-  --brand-charcoal: #121212;
-  --brand-surface: #1a1a1a;
-  --brand-black: #0c0c0c;
-  --brand-white: #f5f5f5;
+  --brand-charcoal: #0b0c0e;
+  --brand-surface: #141518;
+  --brand-surface-2: #1a1b1f;
+  --brand-black: #0b0c0e;
+  --brand-white: #f2f3f5;
   --brand-green: #64b860;
   --brand-green-deep: #4d9a4a;
   --brand-orange: #f28c33;
-  --brand-red: #d6452a;
-  --brand-muted: #a3a3a8;
+  --brand-red: #e5484d;
+  --brand-muted: #8b8e97;
+  --brand-faint: #5c5f69;
   --brand-space: var(--brand-charcoal);
   --brand-comet: var(--brand-orange);
   --brand-lava: var(--brand-orange);
@@ -70,78 +72,64 @@
   --brand-ember: var(--brand-orange);
   --brand-smoke: var(--brand-muted);
   --brand-lime: var(--brand-green);
-  --background: #121212;
-  --foreground: #f5f5f5;
-  --card: #1a1a1a;
-  --card-foreground: #f5f5f5;
-  --popover: #1a1a1a;
-  --popover-foreground: #f5f5f5;
+  --background: #0b0c0e;
+  --foreground: #f2f3f5;
+  --card: #141518;
+  --card-foreground: #f2f3f5;
+  --popover: #1a1b1f;
+  --popover-foreground: #f2f3f5;
   --primary: #64b860;
-  --primary-foreground: #121212;
-  --secondary: #242424;
-  --secondary-foreground: #f5f5f5;
-  --muted: #242424;
-  --muted-foreground: #a3a3a8;
-  --accent: color-mix(in srgb, #64b860 16%, #121212);
-  --accent-foreground: #f5f5f5;
-  --destructive: #d6452a;
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
+  --primary-foreground: #0b0c0e;
+  --secondary: #1a1b1f;
+  --secondary-foreground: #f2f3f5;
+  --muted: #1a1b1f;
+  --muted-foreground: #8b8e97;
+  --accent: #1a1b1f;
+  --accent-foreground: #f2f3f5;
+  --destructive: #e5484d;
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(255 255 255 / 10%);
   --ring: color-mix(in srgb, #64b860 50%, transparent);
   --chart-1: #64b860;
   --chart-2: #f28c33;
-  --chart-3: #d6452a;
-  --chart-4: #a3a3a8;
+  --chart-3: #e5484d;
+  --chart-4: #8b8e97;
   --chart-5: #4d9a4a;
-  --radius: 0.875rem;
-  --sidebar: #121212;
-  --sidebar-foreground: #a3a3a8;
+  --radius: 0.75rem;
+  --sidebar: #141518;
+  --sidebar-foreground: #8b8e97;
   --sidebar-primary: #64b860;
-  --sidebar-primary-foreground: #121212;
-  --sidebar-accent: color-mix(in srgb, #64b860 12%, #121212);
-  --sidebar-accent-foreground: #f5f5f5;
-  --sidebar-border: oklch(1 0 0 / 6%);
+  --sidebar-primary-foreground: #0b0c0e;
+  --sidebar-accent: #1a1b1f;
+  --sidebar-accent-foreground: #f2f3f5;
+  --sidebar-border: rgb(255 255 255 / 8%);
   --sidebar-ring: color-mix(in srgb, #64b860 50%, transparent);
-  --chart-label: #f5f5f5;
-  --chart-label-muted: #a3a3a8;
-  --chart-label-line: color-mix(in srgb, #a3a3a8 70%, transparent);
-  --chart-axis: #a3a3a8;
-  --chart-grid: oklch(1 0 0 / 8%);
-  --chart-slice-stroke: #121212;
+  --chart-label: #f2f3f5;
+  --chart-label-muted: #8b8e97;
+  --chart-label-line: color-mix(in srgb, #8b8e97 70%, transparent);
+  --chart-axis: #8b8e97;
+  --chart-grid: rgb(255 255 255 / 8%);
+  --chart-slice-stroke: #0b0c0e;
   --chart-positive: #64b860;
-  --chart-negative: #d6452a;
-  --chart-cost: #a3a3a8;
+  --chart-negative: #e5484d;
+  --chart-cost: #8b8e97;
   --chart-current: #64b860;
   --chart-type-stock: #64b860;
   --chart-type-crypto: #f28c33;
-  --chart-type-cash: #a3a3a8;
-  --chart-type-custom: #d6452a;
+  --chart-type-cash: #8b8e97;
+  --chart-type-custom: #e5484d;
   --chart-series-1: #64b860;
   --chart-series-2: #f28c33;
-  --chart-series-3: #d6452a;
-  --chart-series-4: #a3a3a8;
+  --chart-series-3: #e5484d;
+  --chart-series-4: #8b8e97;
   --chart-series-5: #4d9a4a;
   --chart-series-6: #c46a38;
-  --chart-series-7: #a3a3a8;
+  --chart-series-7: #8b8e97;
   --chart-series-8: #f28c33;
   --chart-series-9: #64b860;
-  --chart-series-10: #d6452a;
-  --chart-series-11: #a3a3a8;
+  --chart-series-10: #e5484d;
+  --chart-series-11: #8b8e97;
   --chart-series-12: #f28c33;
-  --glass-blur: 48px;
-  --glass-blur-chrome: 60px;
-  --glass-blur-control: 24px;
-  --glass-saturate: 200%;
-  --glass-fill: color-mix(in srgb, #ffffff 6%, transparent);
-  --glass-fill-raised: color-mix(in srgb, #ffffff 10%, transparent);
-  --glass-fill-chrome: color-mix(in srgb, #ffffff 8%, color-mix(in srgb, #121212 22%, transparent));
-  --glass-fill-control: color-mix(in srgb, #ffffff 8%, transparent);
-  --glass-hairline: color-mix(in srgb, #ffffff 20%, transparent);
-  --glass-specular: color-mix(in srgb, #ffffff 62%, transparent);
-  --glass-specular-soft: color-mix(in srgb, #ffffff 22%, transparent);
-  --glass-inset-bottom: color-mix(in srgb, #ffffff 8%, transparent);
-  --glass-duration: 220ms;
-  --glass-ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .light {
@@ -152,64 +140,56 @@
   --popover: #ffffff;
   --popover-foreground: #121212;
   --primary: #64b860;
-  --primary-foreground: #121212;
+  --primary-foreground: #0b0c0e;
   --secondary: #ececee;
   --secondary-foreground: #121212;
   --muted: #ececee;
-  --muted-foreground: #5c5c63;
-  --accent: color-mix(in srgb, #64b860 16%, #ffffff);
+  --muted-foreground: #5c5f69;
+  --accent: #ececee;
   --accent-foreground: #121212;
-  --destructive: #d6452a;
-  --border: #e4e4e7;
+  --destructive: #e5484d;
+  --border: rgb(18 18 18 / 10%);
   --input: #e4e4e7;
   --ring: color-mix(in srgb, #64b860 55%, transparent);
   --chart-1: #64b860;
   --chart-2: #f28c33;
-  --chart-3: #d6452a;
-  --chart-4: #5c5c63;
+  --chart-3: #e5484d;
+  --chart-4: #5c5f69;
   --chart-5: #4d9a4a;
-  --sidebar: #f4f4f5;
-  --sidebar-foreground: #5c5c63;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #5c5f69;
   --sidebar-primary: #64b860;
-  --sidebar-primary-foreground: #121212;
-  --sidebar-accent: color-mix(in srgb, #64b860 12%, #f4f4f5);
+  --sidebar-primary-foreground: #0b0c0e;
+  --sidebar-accent: #ececee;
   --sidebar-accent-foreground: #121212;
-  --sidebar-border: #e4e4e7;
+  --sidebar-border: rgb(18 18 18 / 10%);
   --sidebar-ring: color-mix(in srgb, #64b860 55%, transparent);
   --chart-label: #121212;
-  --chart-label-muted: #5c5c63;
-  --chart-label-line: color-mix(in srgb, #5c5c63 65%, transparent);
-  --chart-axis: #5c5c63;
+  --chart-label-muted: #5c5f69;
+  --chart-label-line: color-mix(in srgb, #5c5f69 65%, transparent);
+  --chart-axis: #5c5f69;
   --chart-grid: color-mix(in srgb, #121212 8%, transparent);
   --chart-slice-stroke: #ffffff;
   --chart-positive: #64b860;
-  --chart-negative: #d6452a;
-  --chart-cost: #5c5c63;
+  --chart-negative: #e5484d;
+  --chart-cost: #5c5f69;
   --chart-current: #64b860;
   --chart-type-stock: #64b860;
   --chart-type-crypto: #f28c33;
-  --chart-type-cash: #5c5c63;
-  --chart-type-custom: #d6452a;
+  --chart-type-cash: #5c5f69;
+  --chart-type-custom: #e5484d;
   --chart-series-1: #64b860;
   --chart-series-2: #f28c33;
-  --chart-series-3: #d6452a;
-  --chart-series-4: #5c5c63;
+  --chart-series-3: #e5484d;
+  --chart-series-4: #5c5f69;
   --chart-series-5: #4d9a4a;
   --chart-series-6: #c46a38;
-  --chart-series-7: #5c5c63;
+  --chart-series-7: #5c5f69;
   --chart-series-8: #f28c33;
   --chart-series-9: #64b860;
-  --chart-series-10: #d6452a;
-  --chart-series-11: #5c5c63;
+  --chart-series-10: #e5484d;
+  --chart-series-11: #5c5f69;
   --chart-series-12: #f28c33;
-  --glass-fill: color-mix(in srgb, #ffffff 64%, transparent);
-  --glass-fill-raised: color-mix(in srgb, #ffffff 76%, transparent);
-  --glass-fill-chrome: color-mix(in srgb, #ffffff 58%, transparent);
-  --glass-fill-control: color-mix(in srgb, #ffffff 60%, transparent);
-  --glass-hairline: color-mix(in srgb, #121212 12%, transparent);
-  --glass-specular: color-mix(in srgb, #ffffff 78%, transparent);
-  --glass-specular-soft: color-mix(in srgb, #ffffff 42%, transparent);
-  --glass-inset-bottom: color-mix(in srgb, #121212 6%, transparent);
 }
 
 @layer base {
@@ -238,19 +218,19 @@
   }
 
   .page-header {
-    @apply flex flex-col gap-6 pb-2 lg:flex-row lg:items-end lg:justify-between;
+    @apply flex flex-col gap-4 pb-1 lg:flex-row lg:items-end lg:justify-between;
   }
 
   .page-title {
-    @apply text-[1.75rem] font-semibold tracking-tight text-foreground;
+    @apply text-[1.65rem] font-semibold tracking-tight text-foreground;
     letter-spacing: -0.03em;
   }
 
   .page-description {
-    @apply mt-1.5 max-w-xl text-[0.9375rem] leading-relaxed text-muted-foreground;
+    @apply mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground;
   }
 
-  /* Shared Liquid Glass language. Depth from stacked blur + light, not drop shadows. */
+  /* Solid desk surfaces — no blur, frost, or specular rims. */
   .glass,
   .glass-card,
   .surface-card,
@@ -263,157 +243,50 @@
   .category-empty-panel,
   .heatmap-movers-panel {
     position: relative;
-    isolation: isolate;
-    background-color: var(--glass-fill);
-    background-image: linear-gradient(
-      165deg,
-      color-mix(in srgb, #ffffff 22%, transparent) 0%,
-      color-mix(in srgb, #ffffff 4%, transparent) 34%,
-      color-mix(in srgb, #ffffff 6%, transparent) 100%
-    );
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    border: 1px solid var(--glass-hairline);
-    box-shadow:
-      inset 0 1px 0 var(--glass-specular),
-      inset 0 -1px 0 var(--glass-inset-bottom);
-  }
-
-  .glass::before,
-  .glass-card::before,
-  .surface-card::before,
-  .glass-panel::before,
-  .stat-card::before,
-  .table-shell::before,
-  .category-summary-card::before,
-  .category-coming-soon::before,
-  .category-panel::before,
-  .heatmap-movers-panel::before,
-  .glass-raised::before,
-  .heatmap-tooltip::before,
-  .budget-panel::before,
-  .budget-hero::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(
-      160deg,
-      color-mix(in srgb, #ffffff 70%, transparent) 0%,
-      color-mix(in srgb, #ffffff 10%, transparent) 28%,
-      transparent 52%,
-      color-mix(in srgb, #ffffff 28%, transparent) 100%
-    );
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-  }
-
-  .glass,
-  .glass-card,
-  .surface-card,
-  .glass-panel,
-  .table-shell,
-  .category-summary-card,
-  .category-coming-soon,
-  .category-panel {
-    border-radius: 1.35rem;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
 
   .stat-card {
-    @apply flex flex-col gap-3 rounded-[1.35rem] p-6;
-    transition:
-      background-color var(--glass-duration) var(--glass-ease),
-      border-color var(--glass-duration) var(--glass-ease);
-  }
-
-  .stat-card:hover {
-    background-color: var(--glass-fill-raised);
+    @apply flex flex-col gap-3 rounded-[var(--radius)] p-5;
   }
 
   .glass-raised,
   .heatmap-tooltip {
     position: relative;
-    isolation: isolate;
-    background-color: var(--glass-fill-raised);
-    background-image: linear-gradient(
-      160deg,
-      color-mix(in srgb, #ffffff 20%, transparent) 0%,
-      color-mix(in srgb, #ffffff 5%, transparent) 42%,
-      color-mix(in srgb, #ffffff 10%, transparent) 100%
-    );
-    backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
-    border: 1px solid var(--glass-hairline);
-    box-shadow:
-      inset 0 1px 0 var(--glass-specular),
-      inset 0 -1px 0 var(--glass-inset-bottom);
+    background-color: var(--popover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
   }
 
   .glass-chrome {
-    isolation: isolate;
-    background-color: var(--glass-fill-chrome);
-    background-image: linear-gradient(
-      180deg,
-      color-mix(in srgb, #ffffff 12%, transparent) 0%,
-      color-mix(in srgb, #121212 22%, transparent) 100%
-    );
-    backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
-    box-shadow: inset 0 1px 0 var(--glass-specular);
+    background-color: var(--card);
   }
 
   .glass-control,
   .glass-button {
-    isolation: isolate;
-    background-color: var(--glass-fill-control);
-    background-image: linear-gradient(
-      180deg,
-      color-mix(in srgb, #ffffff 16%, transparent) 0%,
-      color-mix(in srgb, #ffffff 4%, transparent) 100%
-    );
-    backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
-    border: 1px solid var(--glass-hairline);
-    box-shadow: inset 0 1px 0 var(--glass-specular);
+    background-color: var(--muted);
+    border: 1px solid var(--border);
     color: var(--foreground);
     transition:
-      background-color var(--glass-duration) var(--glass-ease),
-      border-color var(--glass-duration) var(--glass-ease),
-      transform var(--glass-duration) var(--glass-ease);
+      background-color 150ms ease,
+      border-color 150ms ease;
   }
 
   .glass-button:hover,
   .glass-control:hover {
-    background-color: var(--glass-fill-raised);
+    background-color: color-mix(in srgb, var(--muted) 80%, white);
     color: var(--foreground);
   }
 
   .glass-field {
-    isolation: isolate;
-    background-color: color-mix(in srgb, #ffffff 6%, transparent);
-    backdrop-filter: blur(16px) saturate(150%);
-    -webkit-backdrop-filter: blur(16px) saturate(150%);
-    border: 1px solid var(--glass-hairline);
-    box-shadow: inset 0 1px 0 var(--glass-specular-soft);
+    background-color: var(--muted);
+    border: 1px solid var(--border);
   }
 
   .field-grain {
-    background:
-      radial-gradient(ellipse 90% 50% at 50% -10%, color-mix(in srgb, #ffffff 4%, transparent), transparent 58%),
-      #121212;
-  }
-
-  .light .field-grain {
-    background: #f4f4f5;
+    background: var(--background);
   }
 
   .stat-label {
@@ -430,16 +303,12 @@
   }
 
   .premium-cta {
-    @apply h-12 min-h-12 gap-2 rounded-full bg-primary px-6 text-[0.9375rem] font-medium text-primary-foreground shadow-[0_0_0_1px_color-mix(in_srgb,#64B860_35%,transparent),0_10px_28px_-10px_color-mix(in_srgb,#64B860_55%,transparent)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-[var(--brand-green-deep)] active:scale-[0.98];
-  }
-
-  .dark .premium-cta {
-    @apply shadow-[0_0_0_1px_color-mix(in_srgb,#64B860_28%,transparent),0_10px_28px_-10px_color-mix(in_srgb,#64B860_40%,transparent)];
+    @apply h-11 min-h-11 gap-2 rounded-[var(--radius)] bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-[var(--brand-green-deep)];
   }
 
   .brand-sidebar-header {
     @apply overflow-visible px-3 pb-4 pt-4;
-    border-bottom: 1px solid var(--glass-hairline);
+    border-bottom: 1px solid var(--border);
   }
 
   .brand-sidebar-mark {
@@ -455,27 +324,13 @@
   }
 
   .dark .brand-logo-icon {
-    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand-core) 35%, transparent));
+    filter: none;
   }
 
   .brand-hero {
-    @apply relative overflow-hidden rounded-3xl px-6 py-10 sm:px-10 sm:py-12;
-    isolation: isolate;
-    border: 1px solid var(--glass-hairline);
-    background-color: var(--glass-fill);
-    background-image:
-      radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--brand-exhaust) 18%, transparent), transparent 42%),
-      radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--brand-ember) 12%, transparent), transparent 38%),
-      linear-gradient(
-        165deg,
-        color-mix(in srgb, #ffffff 16%, transparent) 0%,
-        color-mix(in srgb, #ffffff 4%, transparent) 100%
-      );
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    box-shadow:
-      inset 0 1px 0 var(--glass-specular),
-      inset 0 -1px 0 var(--glass-inset-bottom);
+    @apply relative overflow-hidden rounded-[var(--radius)] px-6 py-10 sm:px-10 sm:py-12;
+    border: 1px solid var(--border);
+    background-color: var(--card);
   }
 
   .brand-wordmark,
@@ -494,24 +349,21 @@
   }
 
   .nav-item {
-    @apply rounded-2xl text-[0.9375rem] font-medium text-muted-foreground;
+    @apply rounded-lg text-[0.9375rem] font-medium text-muted-foreground;
     transition:
-      background-color var(--glass-duration) var(--glass-ease),
-      color var(--glass-duration) var(--glass-ease),
-      box-shadow var(--glass-duration) var(--glass-ease);
+      background-color 150ms ease,
+      color 150ms ease;
   }
 
   .nav-item:hover {
-    background-color: color-mix(in srgb, #ffffff 8%, transparent);
+    background-color: var(--muted);
     color: var(--foreground);
   }
 
   .nav-item-active {
-    background-color: color-mix(in srgb, #ffffff 10%, transparent);
+    background-color: var(--muted);
     color: var(--foreground);
-    box-shadow:
-      inset 0 1px 0 var(--glass-specular-soft),
-      inset 0 0 0 1px color-mix(in srgb, #ffffff 8%, transparent);
+    box-shadow: inset 2px 0 0 var(--foreground);
   }
 
   .nav-category-header {
@@ -614,33 +466,23 @@
   .portal-header,
   .portal-sidebar,
   .portal-tabbar {
-    isolation: isolate;
-    background-color: var(--glass-fill-chrome);
-    background-image: linear-gradient(
-      180deg,
-      color-mix(in srgb, #ffffff 12%, transparent) 0%,
-      color-mix(in srgb, #121212 22%, transparent) 100%
-    );
-    backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate));
-    box-shadow: inset 0 1px 0 var(--glass-specular);
+    background-color: var(--card);
   }
 
   .portal-header {
-    border-bottom: 1px solid var(--glass-hairline);
+    border-bottom: 1px solid var(--border);
   }
 
   .portal-sidebar {
-    border-right: 1px solid var(--glass-hairline);
+    border-right: 1px solid var(--border);
   }
 
   .portal-sidebar [data-slot="sidebar-inner"] {
-    background: transparent;
+    background: var(--card);
   }
 
   .portal-tabbar {
-    border-top: 1px solid var(--glass-hairline);
-    box-shadow: inset 0 1px 0 var(--glass-specular);
+    border-top: 1px solid var(--border);
   }
 
   [data-slot="chart"] .recharts-cartesian-axis-tick text,
@@ -881,53 +723,25 @@
 
   .budget-hero {
     position: relative;
-    isolation: isolate;
     overflow: hidden;
-    border-radius: 1.35rem;
-    border: 1px solid color-mix(in srgb, var(--brand-green) 28%, var(--glass-hairline));
-    background-color: var(--glass-fill);
-    background-image:
-      radial-gradient(ellipse 80% 90% at 0% 0%, color-mix(in srgb, var(--brand-exhaust) 18%, transparent), transparent 55%),
-      radial-gradient(ellipse 50% 70% at 100% 100%, color-mix(in srgb, var(--brand-ember) 10%, transparent), transparent 50%),
-      linear-gradient(
-        165deg,
-        color-mix(in srgb, #ffffff 16%, transparent) 0%,
-        color-mix(in srgb, #ffffff 3%, transparent) 38%,
-        color-mix(in srgb, #ffffff 7%, transparent) 100%
-      );
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    box-shadow:
-      inset 0 1px 0 var(--glass-specular),
-      inset 0 -1px 0 var(--glass-inset-bottom);
+    background-color: transparent;
+    border: 0;
   }
 
   .budget-hero-value {
-    font-size: clamp(2.35rem, 5vw, 3.4rem);
-    font-weight: 650;
-    letter-spacing: -0.05em;
-    line-height: 0.95;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
     font-variant-numeric: tabular-nums;
   }
 
   .budget-panel {
     position: relative;
-    isolation: isolate;
     overflow: hidden;
-    border-radius: 1.15rem;
-    background-color: var(--glass-fill);
-    background-image: linear-gradient(
-      165deg,
-      color-mix(in srgb, #ffffff 16%, transparent) 0%,
-      color-mix(in srgb, #ffffff 3%, transparent) 38%,
-      color-mix(in srgb, #ffffff 7%, transparent) 100%
-    );
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    border: 1px solid var(--glass-hairline);
-    box-shadow:
-      inset 0 1px 0 var(--glass-specular),
-      inset 0 -1px 0 var(--glass-inset-bottom);
+    border-radius: var(--radius);
+    background-color: var(--card);
+    border: 1px solid var(--border);
   }
 
   .budget-metric {
@@ -1033,9 +847,10 @@
   .budget-nav {
     display: inline-flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    border-radius: 999px;
-    background: color-mix(in oklch, var(--muted) 80%, transparent);
+    gap: 0.15rem;
+    border-radius: var(--radius);
+    background: var(--muted);
+    border: 1px solid var(--border);
     padding: 0.2rem;
   }
 
@@ -1063,12 +878,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    border-radius: 0.9rem;
-    border: 1px solid color-mix(in srgb, var(--brand-green) 28%, var(--glass-hairline));
-    background-color: color-mix(in srgb, var(--brand-green) 10%, var(--glass-fill));
-    backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur-control)) saturate(var(--glass-saturate));
-    box-shadow: inset 0 1px 0 var(--glass-specular);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background-color: var(--card);
     padding: 0.55rem 0.85rem;
   }
 
@@ -1076,31 +888,29 @@
     display: inline-flex;
     min-width: 4.25rem;
     justify-content: flex-end;
-    border-radius: 999px;
-    padding: 0.18rem 0.55rem;
     font-size: 0.8125rem;
-    font-weight: 650;
+    font-weight: 600;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
   }
 
   .budget-available-chip--healthy {
-    background: color-mix(in oklch, var(--brand-green) 12%, transparent);
     color: var(--brand-green);
   }
 
+  .budget-available-chip--zero {
+    color: var(--muted-foreground);
+  }
+
   .budget-available-chip--low {
-    background: color-mix(in oklch, var(--brand-orange) 12%, transparent);
     color: var(--brand-orange);
   }
 
   .budget-available-chip--credit {
-    background: color-mix(in oklch, var(--brand-orange) 14%, transparent);
-    color: var(--brand-orange);
+    color: var(--brand-red);
   }
 
   .budget-available-chip--cash {
-    background: color-mix(in oklch, var(--brand-red) 12%, transparent);
     color: var(--brand-red);
   }
 
@@ -1200,17 +1010,9 @@
     max-height: 12rem;
     width: 100%;
     overflow: auto;
-    border-radius: 0.85rem;
-    background-color: var(--glass-fill-raised);
-    background-image: linear-gradient(
-      160deg,
-      color-mix(in srgb, #ffffff 20%, transparent) 0%,
-      color-mix(in srgb, #ffffff 6%, transparent) 100%
-    );
-    backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 8px)) saturate(var(--glass-saturate));
-    border: 1px solid var(--glass-hairline);
-    box-shadow: inset 0 1px 0 var(--glass-specular);
+    border-radius: var(--radius);
+    background-color: var(--popover);
+    border: 1px solid var(--border);
     padding: 0.3rem;
   }
 
@@ -1336,33 +1138,10 @@
     }
   }
 
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass,
-    .glass-card,
-    .surface-card,
-    .glass-panel,
-    .stat-card,
-    .table-shell,
-    .glass-raised,
-    .glass-chrome,
-    .glass-control,
-    .glass-button,
-    .glass-field,
-    .budget-panel,
-    .budget-hero,
-    .brand-hero,
-    .portal-header,
-    .portal-sidebar,
-    .portal-tabbar,
-    .heatmap-tooltip,
-    .heatmap-movers-panel {
-      background-color: color-mix(in srgb, #1a1a1a 88%, #ffffff);
-    }
-  }
 }
 
 [data-slot="dialog-content"].budget-dialog {
-  border-radius: 1.15rem;
+  border-radius: var(--radius);
 }
 
 @keyframes assistant-fab-pulse {

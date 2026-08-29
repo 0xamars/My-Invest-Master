@@ -8,17 +8,8 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { BrandHomeLink } from "@/components/layout/brand-home-link";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
-import { PillarBackLink } from "@/components/layout/pillar-back-link";
-import { BudgetPlansProvider, useBudgetPlans } from "@/contexts/budget-plans-context";
-import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
-import { useWatchlistPlans } from "@/contexts/watchlist-plans-context";
+import { BudgetPlansProvider } from "@/contexts/budget-plans-context";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  isPillarHub,
-  pillarHomePath,
-  pillarLabel,
-  resolvePageTitle,
-} from "@/lib/chrome/nav";
 import {
   AUTH_RESET_PATH,
   LOGIN_PATH,
@@ -29,47 +20,13 @@ import {
 } from "@/lib/routes";
 
 function AppShellHeader() {
-  const pathname = usePathname();
-  const { getPlan } = useBudgetPlans();
-  const { portfolios } = usePortfolioPlans();
-  const { lists } = useWatchlistPlans();
-  const planMatch = pathname.match(/^\/budget\/plans\/([^/]+)/);
-  const portfolioMatch = pathname.match(
-    /(?:^\/invest)?\/portfolio\/([^/]+)/,
-  );
-  const watchlistMatch = pathname.match(
-    /(?:^\/invest)?\/watchlist\/([^/]+)/,
-  );
-  const planName = planMatch ? getPlan(planMatch[1])?.name : null;
-  const portfolioName = portfolioMatch
-    ? portfolios.find((portfolio) => portfolio.id === portfolioMatch[1])?.name
-    : null;
-  const watchlistName = watchlistMatch
-    ? lists.find((list) => list.id === watchlistMatch[1])?.name
-    : null;
-  const title = resolvePageTitle(
-    pathname,
-    planName ?? portfolioName ?? watchlistName,
-  );
-  const showBack = !isPillarHub(pathname);
-  const backHref = pillarHomePath(pathname);
-  const backLabel = `Back to ${pillarLabel(pathname)}`;
-
   return (
-    <header className="portal-header sticky top-0 z-20 flex min-h-14 shrink-0 flex-col gap-2 px-5 py-3 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
-        <BrandHomeLink className="flex min-w-0 items-center gap-2.5 md:hidden">
-          <BrandLogo variant="sidebar" priority />
-          <span className="sr-only">InvestSalsa</span>
-        </BrandHomeLink>
-        <div className="ml-0 flex min-w-0 flex-1 flex-col justify-center">
-          {showBack ? (
-            <PillarBackLink href={backHref} label={backLabel} className="mb-0.5" />
-          ) : null}
-          <span className="truncate text-[1.05rem] font-semibold tracking-tight text-foreground">
-            {title}
-          </span>
-        </div>
+    <header className="portal-header sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 px-5 sm:px-6 lg:px-8">
+      <BrandHomeLink className="flex min-w-0 items-center gap-2.5 md:hidden">
+        <BrandLogo variant="sidebar" priority />
+        <span className="sr-only">InvestSalsa</span>
+      </BrandHomeLink>
+      <div className="ml-auto">
         <AccountMenu />
       </div>
     </header>
@@ -90,7 +47,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   if (isPublicChrome) {
     return (
-      <div className="relative min-h-svh w-full bg-[#121212]">
+      <div className="relative min-h-svh w-full bg-background">
         {isLoading ? (
           <div className="flex min-h-svh items-center justify-center">
             <div className="size-5 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
@@ -104,14 +61,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider className="relative bg-background">
-      <div className="field-grain pointer-events-none absolute inset-0" aria-hidden />
       <AppSidebar />
-      <SidebarInset className="relative bg-transparent">
+      <SidebarInset className="relative bg-background">
         <AppShellHeader />
-        <main className="relative flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-10 md:pb-10">
+        <main className="relative flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-8 md:pb-10">
           <div className="page-shell">{children}</div>
         </main>
-        <footer className="relative hidden border-t border-[color:var(--glass-hairline)] px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
+        <footer className="relative hidden border-t border-border px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
           <div className="page-shell flex flex-wrap items-center justify-between gap-3">
             <p>Not investment advice.</p>
             <div className="flex gap-4">

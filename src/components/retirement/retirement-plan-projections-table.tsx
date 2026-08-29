@@ -80,7 +80,7 @@ const METRIC_ROWS: {
 const CELL = "px-3 py-3";
 const LABEL_CELL = cn(
   CELL,
-  "sticky left-0 z-10 min-w-[200px] bg-card pl-5 text-sm font-medium backdrop-blur-sm",
+  "sticky left-0 z-10 min-w-[200px] bg-card pl-5 text-sm font-medium",
 );
 const NUMERIC = cn(CELL, "min-w-[112px] text-right text-sm tabular-nums");
 

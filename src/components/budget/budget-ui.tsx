@@ -50,7 +50,7 @@ export function BudgetEmptyState({
 }) {
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
-      <div className="glass mb-4 flex size-12 items-center justify-center rounded-2xl text-[var(--brand-green)]">
+      <div className="mb-4 flex size-12 items-center justify-center rounded-[var(--radius)] border border-border bg-muted text-[var(--brand-green)]">
         {icon}
       </div>
       <p className="text-base font-semibold tracking-tight">{title}</p>
@@ -111,21 +111,35 @@ export function BudgetMoney({
 
 export function BudgetAvailableChip({
   status,
+  available,
   children,
   className,
 }: {
   status: "healthy" | "low" | "overspent" | "credit-overspent";
+  available: number;
   children: ReactNode;
   className?: string;
 }) {
+  const tone =
+    status === "overspent" || available < 0
+      ? "cash"
+      : status === "credit-overspent"
+        ? "credit"
+        : available === 0
+          ? "zero"
+          : status === "low"
+            ? "low"
+            : "healthy";
+
   return (
     <span
       className={cn(
         "budget-available-chip",
-        status === "overspent" && "budget-available-chip--cash",
-        status === "credit-overspent" && "budget-available-chip--credit",
-        status === "low" && "budget-available-chip--low",
-        status === "healthy" && "budget-available-chip--healthy",
+        tone === "cash" && "budget-available-chip--cash",
+        tone === "credit" && "budget-available-chip--credit",
+        tone === "low" && "budget-available-chip--low",
+        tone === "healthy" && "budget-available-chip--healthy",
+        tone === "zero" && "budget-available-chip--zero",
         className,
       )}
     >

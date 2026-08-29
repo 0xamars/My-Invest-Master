@@ -120,7 +120,7 @@ export function BudgetPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <div className="glass-card" data-budget-first-run-kit="1" data-empty-state="budget">
+        <div className="surface-card" data-budget-first-run-kit="1" data-empty-state="budget">
           <BudgetEmptyState
             icon={<Wallet className="size-5" />}
             title={BUDGET_EMPTY.title}

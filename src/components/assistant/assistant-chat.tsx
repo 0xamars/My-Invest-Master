@@ -229,14 +229,14 @@ export function AssistantChat() {
       {open && (
         <div
           className={cn(
-            "fixed bottom-6 right-6 z-50 flex w-[min(100vw-1.5rem,24rem)] flex-col overflow-hidden rounded-2xl border border-border/70",
-            "bg-card/95 shadow-2xl shadow-black/50 backdrop-blur-xl",
+            "fixed bottom-6 right-6 z-50 flex w-[min(100vw-1.5rem,24rem)] flex-col overflow-hidden rounded-[var(--radius)] border border-border",
+            "bg-card",
             "h-[min(72vh,38rem)]",
           )}
           role="dialog"
           aria-label="InvestSalsa assistant"
         >
-          <div className="flex items-start gap-3 border-b border-border/60 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--brand-green)_20%,transparent),color-mix(in_oklch,var(--brand-orange)_12%,transparent))] px-4 py-3">
+          <div className="flex items-start gap-3 border-b border-border bg-muted/40 px-4 py-3">
             <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-green)]/20 text-[var(--brand-green)]">
               <Sparkles className="size-4" />
             </div>

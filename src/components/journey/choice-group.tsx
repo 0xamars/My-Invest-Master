@@ -43,7 +43,7 @@ export function ChoiceGroup<T extends string>({
               aria-pressed={selected}
               onClick={() => onChange(option.value)}
               className={cn(
-                "glass-field rounded-xl px-3 py-3 text-left transition-colors",
+                "rounded-xl border border-border bg-muted px-3 py-3 text-left transition-colors",
                 selected
                   ? "border-primary/50 bg-primary/10 text-foreground"
                   : "text-muted-foreground hover:text-foreground",

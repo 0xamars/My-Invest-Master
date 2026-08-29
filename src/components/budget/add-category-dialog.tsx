@@ -12,6 +12,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AddCategoryGroupDialogProps {
   open: boolean;
@@ -74,24 +81,33 @@ interface AddCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   groupName?: string;
-  onAdd: (name: string) => void;
+  groups?: Array<{ id: string; name: string }>;
+  defaultGroupId?: string | null;
+  onAdd: (name: string, groupId?: string) => void;
 }
 
 export function AddCategoryDialog({
   open,
   onOpenChange,
   groupName,
+  groups,
+  defaultGroupId,
   onAdd,
 }: AddCategoryDialogProps) {
   const [name, setName] = useState("");
+  const [groupId, setGroupId] = useState(defaultGroupId ?? groups?.[0]?.id ?? "");
 
   useEffect(() => {
-    if (open) setName("");
-  }, [open]);
+    if (open) {
+      setName("");
+      setGroupId(defaultGroupId ?? groups?.[0]?.id ?? "");
+    }
+  }, [open, defaultGroupId, groups]);
 
   function handleSubmit() {
     if (!name.trim()) return;
-    onAdd(name);
+    if (groups && groups.length > 0 && !groupId) return;
+    onAdd(name, groupId || undefined);
     onOpenChange(false);
   }
 
@@ -106,17 +122,39 @@ export function AddCategoryDialog({
               : "Create a new spending envelope."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-1.5 py-1">
-          <Label htmlFor="category-name">Envelope name</Label>
-          <Input
-            id="category-name"
-            placeholder="Groceries"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") handleSubmit();
-            }}
-          />
+        <div className="space-y-3 py-1">
+          {groups && groups.length > 0 ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="envelope-group">Group</Label>
+              <Select
+                value={groupId}
+                onValueChange={(value) => setGroupId(value ?? "")}
+              >
+                <SelectTrigger id="envelope-group" className="w-full">
+                  <SelectValue placeholder="Choose a group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+          <div className="space-y-1.5">
+            <Label htmlFor="category-name">Envelope name</Label>
+            <Input
+              id="category-name"
+              placeholder="Groceries"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleSubmit();
+              }}
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

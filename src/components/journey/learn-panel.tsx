@@ -31,7 +31,7 @@ function LessonChecks({ lesson }: { lesson: LearnLesson }) {
   if (checks.length === 0) return null;
 
   return (
-    <div className="space-y-4 border-t border-[color:var(--glass-hairline)] pt-4">
+    <div className="space-y-4 border-t border-border pt-4">
       <p className="text-sm font-medium">Quick check</p>
       {checks.map((check) => {
         const picked = answers[check.id] ?? "";
@@ -84,7 +84,7 @@ function LessonDetail({
   hasProfile: boolean;
 }) {
   return (
-    <article className="glass-card space-y-4 px-5 py-5">
+    <article className="surface-card space-y-4 px-5 py-5">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-base font-semibold tracking-tight">{lesson.title}</h3>
         {completed ? (
@@ -170,7 +170,7 @@ export function LearnPanel({
               onClick={() => onSelectLesson(lesson.id)}
               aria-current={active ? "true" : undefined}
               className={cn(
-                "glass-field flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors",
+                "flex border border-border bg-muted w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors",
                 active
                   ? "border-primary/50 bg-primary/10 text-foreground"
                   : "text-muted-foreground hover:text-foreground",
@@ -207,7 +207,7 @@ export function LearnPanel({
       </div>
 
       {collapsed ? (
-        <details className="glass-card px-5 py-4">
+        <details className="surface-card px-5 py-4">
           <summary className="cursor-pointer text-sm font-semibold">
             Key ideas
           </summary>

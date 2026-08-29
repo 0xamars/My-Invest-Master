@@ -10,7 +10,7 @@ export function AuthPageShell({
   eyebrow?: string;
 }) {
   return (
-    <div className="marketing-home relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
+    <div className="marketing-home relative min-h-svh overflow-x-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 field-grain" aria-hidden />
 
       <header className="portal-header sticky top-0 z-20">
@@ -18,7 +18,7 @@ export function AuthPageShell({
           <BrandLogo variant="lockup" asLink priority />
           <Link
             href={LOGIN_PATH}
-            className="glass-button inline-flex h-11 items-center rounded-full px-4 text-sm text-white/80 transition-colors duration-200 hover:text-white"
+            className="inline-flex h-11 items-center rounded-[var(--radius)] border border-border bg-muted px-4 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
           >
             Sign in
           </Link>
@@ -26,7 +26,7 @@ export function AuthPageShell({
       </header>
 
       <main className="relative z-10 mx-auto flex w-full max-w-lg flex-col px-6 py-12">
-        <div className="glass-card px-6 py-8 sm:px-8">
+        <div className="surface-card px-6 py-8 sm:px-8">
           {eyebrow ? (
             <p className="mb-3 text-sm text-white/45">{eyebrow}</p>
           ) : null}

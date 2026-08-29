@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   CheckCircle2,
   Landmark,
+  MoreHorizontal,
   Pencil,
   Plus,
   Scale,
@@ -18,6 +19,13 @@ import {
   BudgetPanel,
 } from "@/components/budget/budget-ui";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useBudget } from "@/contexts/budget-context";
 import {
   ACCOUNT_TYPE_LABELS,
@@ -278,32 +286,39 @@ function AccountSection({
                     {formatBudgetMoney(clearedBalance, currency)}
                   </p>
                 </div>
-                <div className="flex justify-end gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onReconcile(account)}
-                  >
-                    <Scale className="size-3.5" />
-                    Reconcile
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => onEdit(account)}
-                    aria-label={`Edit ${account.name}`}
-                  >
-                    <Pencil className="size-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => onDelete(account)}
-                    disabled={allAccounts.length <= 1}
-                    aria-label={`Delete ${account.name}`}
-                  >
-                    <Trash2 className="size-3.5 text-muted-foreground" />
-                  </Button>
+                <div className="flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`${account.name} actions`}
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      }
+                    />
+                    <DropdownMenuContent align="end" className="min-w-40">
+                      <DropdownMenuItem onClick={() => onReconcile(account)}>
+                        <Scale className="size-4" />
+                        Reconcile
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(account)}>
+                        <Pencil className="size-4" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        disabled={allAccounts.length <= 1}
+                        onClick={() => onDelete(account)}
+                      >
+                        <Trash2 className="size-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             );

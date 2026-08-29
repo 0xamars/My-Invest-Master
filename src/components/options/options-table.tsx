@@ -282,7 +282,7 @@ export function OptionsTable({
                   onSort={handleSort}
                   className={cn(
                     CELL,
-                    "sticky left-0 z-10 bg-card pl-5 backdrop-blur-sm",
+                    "sticky left-0 z-10 bg-card pl-5",
                   )}
                 />
                 <SortableHeader
@@ -330,7 +330,7 @@ export function OptionsTable({
                 <TableHead
                   className={cn(
                     CELL,
-                    "sticky right-0 z-10 w-[52px] bg-card pr-5 backdrop-blur-sm",
+                    "sticky right-0 z-10 w-[52px] bg-card pr-5",
                   )}
                 >
                   <span className="sr-only">Actions</span>
@@ -359,7 +359,7 @@ export function OptionsTable({
                     <TableCell
                       className={cn(
                         CELL,
-                        "sticky left-0 z-10 bg-card pl-5 font-medium backdrop-blur-sm",
+                        "sticky left-0 z-10 bg-card pl-5 font-medium",
                         isHistory
                           ? "group-hover:bg-muted/20"
                           : "group-hover:bg-muted/30",
@@ -496,7 +496,7 @@ export function OptionsTable({
                     <TableCell
                       className={cn(
                         CELL,
-                        "sticky right-0 z-10 w-[52px] bg-card pr-5 backdrop-blur-sm",
+                        "sticky right-0 z-10 w-[52px] bg-card pr-5",
                         isHistory
                           ? "group-hover:bg-muted/20"
                           : "group-hover:bg-muted/30",

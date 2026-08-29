@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, Plus, RefreshCw, Star } from "lucide-react";
+import { AlertCircle, Plus, RefreshCw, Star } from "lucide-react";
 import {
   AddTransactionButton,
   AddTransactionDialog,
@@ -16,6 +15,7 @@ import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
 import { TargetMixPanel } from "@/components/invest/target-mix-panel";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
+import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import {
   RetireEmptyState,
   RetireMoney,
@@ -210,6 +210,7 @@ export function PortfolioContent() {
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-5">
+          <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
           <RetirePageHeader
             title={activePortfolio.name}
             description={
@@ -221,15 +222,6 @@ export function PortfolioContent() {
             }
             action={
               <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground"
-                  render={<Link href={INVEST_PATH} />}
-                >
-                  <ArrowLeft className="size-4" />
-                  Back to Invest
-                </Button>
                 <CurrencyToggle
                   currency={currency}
                   onChange={setCurrency}
