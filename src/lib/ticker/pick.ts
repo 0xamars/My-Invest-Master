@@ -80,7 +80,7 @@ export function firstRow(
 
 export function fiscalYearLabel(row: Record<string, unknown> | null): string | null {
   if (!row) return null;
-  const year = str(row.calendarYear);
+  const year = str(row.calendarYear) ?? str(row.fiscalYear);
   if (year) return year;
   const date = str(row.date) ?? str(row.fiscalDateEnding);
   if (date && /^\d{4}/.test(date)) return date.slice(0, 4);
