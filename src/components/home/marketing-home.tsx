@@ -28,7 +28,7 @@ const PILLARS = [
 
 export function MarketingHomePage({
   isSignedIn = false,
-  dashboardHref = "/invest",
+  dashboardHref = "/home",
 }: MarketingHomePageProps) {
   return (
     <div className="marketing-home relative min-h-svh overflow-x-hidden bg-[#121212] text-white">
@@ -44,7 +44,7 @@ export function MarketingHomePage({
                 className="premium-cta"
                 render={<Link href={dashboardHref} />}
               >
-                Open Invest
+                Continue
                 <ArrowRight className="size-4" />
               </Button>
             ) : (
@@ -86,7 +86,7 @@ export function MarketingHomePage({
                 className="premium-cta"
                 render={<Link href={dashboardHref} />}
               >
-                Open Invest
+                Continue
                 <ArrowRight className="size-4" />
               </Button>
             ) : (
@@ -130,7 +130,7 @@ export function MarketingHomePage({
         <section className="mx-auto max-w-5xl px-6 pb-24 sm:px-8">
           <div className="glass-card flex flex-col items-start gap-6 px-6 py-10 sm:px-10">
             <h2 className="text-balance text-3xl font-semibold tracking-tight">
-              {isSignedIn ? "Continue in the book" : "Start today"}
+              {isSignedIn ? "Continue" : "Start today"}
             </h2>
             <p className="max-w-md text-pretty leading-relaxed text-white/55">
               {isSignedIn
@@ -143,7 +143,7 @@ export function MarketingHomePage({
                 className="premium-cta"
                 render={<Link href={dashboardHref} />}
               >
-                Open Invest
+                Continue
                 <ArrowRight className="size-4" />
               </Button>
             ) : (
@@ -172,7 +172,7 @@ export function MarketingHomePage({
             </Link>
             {isSignedIn ? (
               <Link href={dashboardHref} className="hover:text-white/70">
-                Open Invest
+                Continue
               </Link>
             ) : (
               <Link href={LOGIN_PATH} className="hover:text-white/70">

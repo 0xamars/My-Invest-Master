@@ -18,6 +18,8 @@ import {
   investPortfolioPath,
   investTickerPath,
   isInvestPath,
+  isJourneyHomePath,
+  isMoneyProfilePath,
   isPillarHub,
   pillarForPath,
   pillarHomePath,
@@ -552,13 +554,14 @@ assert(isPublicRoute("/auth/reset"), "/auth/reset is public");
 assert(!isProtectedRoute("/auth/callback"), "/auth/callback stays public");
 assert(!isProtectedRoute("/auth/reset"), "/auth/reset stays public");
 assert(!isProtectedRoute("/api/prices"), "/api/prices is not a page gate");
-assert(safeAuthNextPath("https://evil.test") === "/invest", "rejects absolute next");
-assert(safeAuthNextPath("//evil.test") === "/invest", "rejects protocol-relative next");
-assert(safeAuthNextPath("/home") === "/invest", "legacy /home next lands on Invest");
+assert(safeAuthNextPath("https://evil.test") === "/home", "rejects absolute next");
+assert(safeAuthNextPath("//evil.test") === "/home", "rejects protocol-relative next");
+assert(safeAuthNextPath("/home") === "/home", "/home next stays on Journey Home");
 assert(safeAuthNextPath("/invest") === "/invest", "keeps a relative next");
 
 const mustProtect = [
   "/home",
+  "/money-profile",
   "/invest",
   "/freedom",
   "/freedom/plans",
@@ -670,8 +673,13 @@ assert(
   !INVEST_CHILD_NAV.some((item) => item.href === "/market" || item.href === "/analysis"),
   "Market and Analysis are not Invest children",
 );
-assert(pillarForPath("/home") === "invest", "legacy /home maps to Invest");
-assert(destinationForLegacyInvestPath("/home") === "/invest", "/home redirects to Invest");
+assert(pillarForPath("/home") === null, "Journey Home is not a product pillar");
+assert(destinationForLegacyInvestPath("/home") === null, "/home is Journey Home, not a leftover");
+assert(isJourneyHomePath("/home"), "/home is Journey Home");
+assert(isMoneyProfilePath("/money-profile"), "/money-profile is the wizard");
+assert(isPillarHub("/home"), "Journey Home has no up-link");
+assert(resolvePageTitle("/home") === "Journey", "Journey Home title");
+assert(pillarHomePath("/settings") === "/home", "Settings up-link is Journey");
 assert(destinationForLegacyInvestPath("/chat") === "/invest", "/chat is unshipped");
 assert(destinationForLegacyInvestPath("/chat/thread") === "/invest", "/chat/* is unshipped");
 assert(destinationForLegacyInvestPath("/assistant") === "/invest", "/assistant is unshipped");

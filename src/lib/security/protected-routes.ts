@@ -5,6 +5,7 @@
  */
 export const PROTECTED_ROUTE_PREFIXES = [
   "/home",
+  "/money-profile",
   "/invest",
   "/freedom",
   "/retire",

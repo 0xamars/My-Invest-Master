@@ -22,8 +22,8 @@ export function PillarBackLink({
   label?: string;
   className?: string;
 }) {
-  const target = href ?? "/invest";
-  const text = label ?? `Back to ${PILLAR_LABEL[target] ?? "Invest"}`;
+  const target = href ?? "/home";
+  const text = label ?? `Back to ${PILLAR_LABEL[target] ?? "Journey"}`;
 
   return (
     <Button
