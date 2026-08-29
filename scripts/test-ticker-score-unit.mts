@@ -504,6 +504,80 @@ assert(
   "loss start does not invent street earnings growth",
 );
 
+const revenueOnlyStreet: TickerBundle = {
+  ...streetYears,
+  estimates: [
+    {
+      date: "2027-01-31",
+      revenueAvg: 144,
+      numAnalystsRevenue: 18,
+    },
+    {
+      date: "2026-01-31",
+      revenueAvg: 110,
+      numAnalystsRevenue: 20,
+    },
+  ],
+};
+const revenueOnlyFuture = scoreAxis(buildTickerScore(revenueOnlyStreet).score, "future")!;
+const revenueOnlyEarnings = revenueOnlyFuture.checks.find(
+  (item) => item.id === "street-earnings-growth",
+);
+assert(
+  buildTickerScore(revenueOnlyStreet).future.earningsGrowth == null,
+  "revenue-only street years leave earnings growth empty",
+);
+assert(
+  buildTickerScore(revenueOnlyStreet).future.lossToProfit === false,
+  "latest print is a profit, so loss-to-profit is not true",
+);
+assert(
+  revenueOnlyEarnings?.passed === null,
+  "profit with no street EPS or net income skips earnings growth",
+);
+
+const lossStaysLoss: TickerBundle = {
+  ...streetYears,
+  incomeAnnual: [
+    incomeYear("2025", { epsdiluted: -1.2, revenue: 80, netIncome: -6 }),
+    ...sixYears.incomeAnnual.slice(1),
+  ],
+  estimates: [
+    {
+      date: "2027-01-31",
+      revenueAvg: 144,
+      epsAvg: -0.4,
+      netIncomeAvg: -2,
+      numAnalystsRevenue: 8,
+      numAnalystsEps: 7,
+    },
+    {
+      date: "2026-01-31",
+      revenueAvg: 110,
+      epsAvg: -0.8,
+      netIncomeAvg: -4,
+      numAnalystsRevenue: 8,
+      numAnalystsEps: 7,
+    },
+  ],
+};
+const lossStaysFuture = scoreAxis(buildTickerScore(lossStaysLoss).score, "future")!;
+const lossStaysEarnings = lossStaysFuture.checks.find(
+  (item) => item.id === "street-earnings-growth",
+);
+assert(
+  buildTickerScore(lossStaysLoss).future.earningsGrowth == null,
+  "loss that stays a loss has no annualized earnings growth",
+);
+assert(
+  buildTickerScore(lossStaysLoss).future.lossToProfit === false,
+  "loss that stays a loss is not a loss-to-profit turn",
+);
+assert(
+  lossStaysEarnings?.passed === false,
+  "loss that stays a loss fails street earnings growth",
+);
+
 const noEstimatesAxis = scoreAxis(buildTickerScore(sixYears).score, "future")!;
 assert(noEstimatesAxis.status === "unknown", "no annual estimates leave Future Unknown");
 assert(
