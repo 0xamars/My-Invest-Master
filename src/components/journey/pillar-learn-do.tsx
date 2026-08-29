@@ -2,10 +2,17 @@
 
 import { useCallback, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { FreedomDoNudge } from "@/components/journey/freedom-do-nudge";
+import { InvestDoSkipPanel } from "@/components/journey/invest-do-skip-panel";
 import { LearnPanel } from "@/components/journey/learn-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
+import { useSyncWorkingFlags } from "@/hooks/use-sync-working-flags";
+import { investDoIsLocked } from "@/lib/journey/locks";
 import { parseLessonId } from "@/lib/journey/lessons";
+import { withDerivedWorking } from "@/lib/journey/working";
+import { bookPresenceFromPortfolio } from "@/lib/retirement/freedom-path";
 import {
   learnIsCollapsed,
   parsePillarTab,
@@ -26,10 +33,21 @@ export function PillarLearnDo({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { profile } = useMoneyProfile();
+  const { primaryPortfolio } = usePortfolioPlans();
+  const derivedWorking = useSyncWorkingFlags();
+  const liveProfile =
+    profile && derivedWorking
+      ? withDerivedWorking(profile, derivedWorking)
+      : profile;
+
+  const hasBook = bookPresenceFromPortfolio(primaryPortfolio).status === "present";
+  const investLocked = investDoIsLocked({ profile: liveProfile, hasBook });
 
   const tab = resolvePillarTab(searchParams.get("tab"), profile, pillar);
   const lessonId = parseLessonId(searchParams.get("lesson"), pillar);
   const collapsed = learnIsCollapsed(profile);
+  const showInvestLock = pillar === "invest" && tab === "do" && investLocked;
+  const showFreedomNudge = pillar === "freedom" && tab === "do";
 
   const go = useCallback(
     (next: PillarTab, lesson?: string | null) => {
@@ -65,8 +83,15 @@ export function PillarLearnDo({
         />
       </TabsContent>
 
-      <TabsContent value="do" className="flex flex-1 flex-col">
-        {children}
+      <TabsContent value="do" className="flex flex-1 flex-col gap-4">
+        {showInvestLock ? (
+          <InvestDoSkipPanel />
+        ) : (
+          <>
+            {showFreedomNudge ? <FreedomDoNudge hasBook={hasBook} /> : null}
+            {children}
+          </>
+        )}
       </TabsContent>
     </Tabs>
   );

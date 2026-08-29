@@ -10,10 +10,12 @@ import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
+import { useSyncWorkingFlags } from "@/hooks/use-sync-working-flags";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
 import { journeyFreedomDate } from "@/lib/journey/freedom-date";
 import { STATION_STATUS_LABELS, profileSummaryLine } from "@/lib/journey/labels";
 import { journeyStations, primaryNextAction } from "@/lib/journey/stations";
+import { withDerivedWorking } from "@/lib/journey/working";
 import { bookPresenceFromPortfolio } from "@/lib/retirement/freedom-path";
 import { MONEY_PROFILE_PATH } from "@/lib/routes";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
@@ -24,6 +26,7 @@ export function JourneyHomeContent() {
   const budget = useBudgetPlans();
   const { primaryPortfolio, isLoaded: portfoliosLoaded } = usePortfolioPlans();
   const { plans, isLoaded: retireLoaded } = useRetirementPlansStorage();
+  const derivedWorking = useSyncWorkingFlags();
 
   useEffect(() => {
     if (isLoaded && !profile) {
@@ -64,8 +67,12 @@ export function JourneyHomeContent() {
     );
   }
 
-  const stations = journeyStations(profile);
-  const next = primaryNextAction(profile);
+  const hasBook = book.status === "present";
+  const liveProfile = derivedWorking
+    ? withDerivedWorking(profile, derivedWorking)
+    : profile;
+  const stations = journeyStations(liveProfile, { hasBook });
+  const next = primaryNextAction(liveProfile, { hasBook });
 
   return (
     <div className="flex flex-1 flex-col gap-6">

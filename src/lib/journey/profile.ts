@@ -289,7 +289,8 @@ export function defaultMoneyProfileDraft(): MoneyProfile {
 
 /**
  * Normalize stored JSON. Recomputes effective knowledge and track.
- * Working flags stay stored — they are not derived from live data this slice.
+ * Working flags stay as last persisted — live leftover / book / Freedom plan
+ * are applied by deriveWorkingFlags, then saved when they change.
  * Income and age stay optional; never invented.
  */
 export function normalizeMoneyProfile(raw: unknown): MoneyProfile {
