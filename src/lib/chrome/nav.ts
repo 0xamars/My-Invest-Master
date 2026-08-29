@@ -49,6 +49,8 @@ export function investWatchlistPath(id?: string): string {
   return id ? `${INVEST_WATCHLIST_PATH}/${id}` : INVEST_WATCHLIST_PATH;
 }
 
+export { investTickerPath } from "@/lib/ticker/symbol";
+
 export function retirePlansPath(id?: string): string {
   return id ? `${RETIRE_PATH}/plans/${id}` : `${RETIRE_PATH}/plans`;
 }
@@ -187,6 +189,11 @@ export function resolvePageTitle(
     pathname.startsWith("/watchlist/")
   ) {
     return planName ?? "Watchlist";
+  }
+
+  if (pathname.startsWith("/analysis/")) {
+    const symbol = decodeURIComponent(pathname.slice("/analysis/".length)).split("/")[0];
+    return symbol ? symbol.toUpperCase() : "Ticker";
   }
 
   const pageTitles: Record<string, string> = {
