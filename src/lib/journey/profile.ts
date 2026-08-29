@@ -17,6 +17,7 @@ import {
   type KnowledgeByPillar,
   type KnowledgeCheckId,
   type KnowledgeChecks,
+  type CompletedLessons,
   type KnowledgeLevel,
   type MoneyProfile,
   type MoneyProfileFlags,
@@ -26,6 +27,7 @@ import {
   type WorkStatus,
 } from "@/types/money-profile";
 import { KNOWLEDGE_CHECKS, knowledgeFromChecks } from "@/lib/journey/checks";
+import { isLessonId } from "@/lib/journey/lessons";
 
 const KNOWLEDGE_RANK: Record<KnowledgeLevel, number> = {
   beginner: 0,
@@ -213,6 +215,35 @@ function parseWorking(raw: unknown): MoneyProfileWorking {
   };
 }
 
+function parseCompletedLessons(raw: unknown): CompletedLessons {
+  if (!isRecord(raw)) return {};
+  const next: CompletedLessons = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (isLessonId(key) && value === true) {
+      next[key] = true;
+    }
+  }
+  return next;
+}
+
+export function isLessonComplete(
+  profile: Pick<MoneyProfile, "completedLessons"> | null | undefined,
+  lessonId: string,
+): boolean {
+  return profile?.completedLessons[lessonId] === true;
+}
+
+export function markLessonComplete(
+  profile: MoneyProfile,
+  lessonId: string,
+): MoneyProfile {
+  if (!isLessonId(lessonId)) return normalizeMoneyProfile(profile);
+  return normalizeMoneyProfile({
+    ...profile,
+    completedLessons: { ...profile.completedLessons, [lessonId]: true },
+  });
+}
+
 function parseRiskBand(value: unknown): RiskBand {
   return (RISK_BANDS as readonly string[]).includes(value as string)
     ? (value as RiskBand)
@@ -252,6 +283,7 @@ export function defaultMoneyProfileDraft(): MoneyProfile {
       freedom: false,
     },
     track: "beginner",
+    completedLessons: {},
   };
 }
 
@@ -268,6 +300,7 @@ export function normalizeMoneyProfile(raw: unknown): MoneyProfile {
   const knowledgeChecks = parseKnowledgeChecks(record.knowledgeChecks);
   const flags = parseFlags(record.flags);
   const working = parseWorking(record.working);
+  const completedLessons = parseCompletedLessons(record.completedLessons);
   const effective = effectiveKnowledge(knowledge, knowledgeChecks);
 
   return {
@@ -284,6 +317,7 @@ export function normalizeMoneyProfile(raw: unknown): MoneyProfile {
     flags,
     working,
     track: computeTrack(effective, flags),
+    completedLessons,
   };
 }
 

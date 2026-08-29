@@ -1,0 +1,123 @@
+{
+  "pillar": "invest",
+  "lessons": [
+    {
+      "id": "invest-what-you-own",
+      "title": "What you own",
+      "keyIdea": "The book lists what you already hold: stock, fund, cash, or crypto. An empty book is fine.",
+      "paragraphs": [
+        "The Invest book is a list of what you already hold. A stock is a slice of one company. A fund is a basket of many names. Cash is money sitting as cash. Crypto is a coin the book can list.",
+        "The book does not buy or sell for you. You add a name when you own it. If the book is empty, that is fine — search still works. This page will not invent a position.",
+        "Type is a label so you can sort. Weight is how big that name is on the page. Missing price cache prints Unknown. The book is the source."
+      ],
+      "cta": {
+        "label": "Open the Invest book",
+        "href": "/invest?tab=do"
+      },
+      "checks": [
+        {
+          "id": "book-lists",
+          "prompt": "The Invest book lists…",
+          "options": [
+            { "id": "owned", "label": "Names you add because you own them" },
+            { "id": "sample", "label": "A sample book this lesson invents" },
+            { "id": "buys", "label": "Trades the app places for you" }
+          ],
+          "correctId": "owned"
+        }
+      ]
+    },
+    {
+      "id": "invest-you-can-lose",
+      "title": "You can lose money",
+      "keyIdea": "A price can fall. A green number is history, not a promise.",
+      "paragraphs": [
+        "A price can fall. A name can go to zero. Profit and loss on the book is history, not a promise. You can lose money.",
+        "This app is educational. It is not financial advice. A green number today can be red later. Do not treat a chart or a score as a guarantee.",
+        "If you do not have holdings yet, you can still read this and search. Nothing here invents a position or a return. The book only shows what you add."
+      ],
+      "cta": {
+        "label": "Open Invest and read the book as it is",
+        "href": "/invest?tab=do"
+      }
+    },
+    {
+      "id": "invest-one-name",
+      "title": "Don't put everything on one name",
+      "keyIdea": "If one name is most of the book, a drop in that name hits the whole book. The bar shows your mix — not a sample.",
+      "paragraphs": [
+        "Concentration means one name is a large share of the book. If that name drops, the whole book drops with it. Spreading across names is one way to reduce that single-name hit.",
+        "The book can show a concentration bar when you have holdings. This lesson will not invent weights. If the book is empty, there is nothing to concentrate yet.",
+        "There is no “right” mix on this page. The tool shows what you own. Use that, not a sample book from a lesson."
+      ],
+      "cta": {
+        "label": "Open the book and check mix",
+        "href": "/invest?tab=do"
+      }
+    },
+    {
+      "id": "invest-the-book",
+      "title": "The book: quantity, average cost, profit/loss",
+      "keyIdea": "Quantity, average cost, and P/L are book columns. Average cost is what you paid, not today’s price.",
+      "paragraphs": [
+        "Quantity is how many units you hold. Average cost is what you paid per unit, on average. Profit or loss is today’s value versus what you paid — when a price is known.",
+        "Average cost is not today’s price and not a target. If a price is missing, the book can print Unknown. The book does not invent a gain.",
+        "Add a name only when you own it. Search is for looking up a public name. The columns on the book are the source of truth."
+      ],
+      "cta": {
+        "label": "Open the book",
+        "href": "/invest?tab=do"
+      },
+      "checks": [
+        {
+          "id": "avg-cost",
+          "prompt": "Average cost is…",
+          "options": [
+            { "id": "paid", "label": "What you paid per share, on average" },
+            { "id": "today", "label": "Today’s price" },
+            { "id": "target", "label": "A target you hope to hit" }
+          ],
+          "correctId": "paid"
+        },
+        {
+          "id": "book-columns",
+          "prompt": "The Invest book shows…",
+          "options": [
+            { "id": "qty", "label": "Quantity, average cost, and P/L" },
+            { "id": "rating", "label": "A buy or sell rating" },
+            { "id": "return", "label": "Next year’s return" }
+          ],
+          "correctId": "qty"
+        }
+      ]
+    },
+    {
+      "id": "invest-company-page",
+      "title": "How to read a company page without drowning",
+      "keyIdea": "Search a name you already know. Missing data prints Unknown. Do not fill gaps with a guess.",
+      "paragraphs": [
+        "Search a name or ticker you already know. The company page is a read: price, facts, and a score when the cache has them. It is not a buy or sell ticket.",
+        "You do not need every box. Start with what it is, what it costs today, and whether the cache is fresh. Missing data prints Unknown. Do not fill gaps with a guess.",
+        "This lesson will not name a sample ticker. Type a public name you care about on Invest. You will land on a company page for that lookup — not a fake name from a lesson."
+      ],
+      "cta": {
+        "label": "Search a name on Invest",
+        "href": "/invest?tab=do"
+      }
+    },
+    {
+      "id": "invest-options-advanced",
+      "title": "Options are advanced — skip until you want them",
+      "keyIdea": "Options can expire worthless. The book and search work without them. Skip them for now.",
+      "paragraphs": [
+        "Options are contracts about a price in the future. They can expire worthless. They are easy to misuse. You can skip them.",
+        "Invest still works without options. The book, search, and mix do not require them. If you are learning, stay on those.",
+        "When you want options later, they live under Invest. This slice does not lock the book. Both Learn and Do stay open."
+      ],
+      "cta": {
+        "label": "Stay on the Invest book",
+        "href": "/invest?tab=do"
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 /**
- * Slice A journey rails: Money Profile normalize/track, stations, honest Freedom date.
+ * Journey rails: Money Profile, Learn/Do tabs, complete flags, honest Freedom date.
  *   npx tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts
  */
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
@@ -13,13 +13,28 @@ import {
 } from "../src/lib/journey/freedom-date.ts";
 import { profileSummaryLine } from "../src/lib/journey/labels.ts";
 import {
+  LEARN_CATALOG,
+  LEARN_DISCLAIMER,
+  LESSON_IDS,
+  isLessonId,
+  lessonsForPillar,
+} from "../src/lib/journey/lessons.ts";
+import {
   computeTrack,
   defaultMoneyProfileDraft,
   effectiveKnowledge,
   finalizeMoneyProfile,
+  isLessonComplete,
+  markLessonComplete,
   normalizeMoneyProfile,
 } from "../src/lib/journey/profile.ts";
 import { journeyStations, primaryNextAction } from "../src/lib/journey/stations.ts";
+import {
+  defaultPillarTab,
+  learnIsCollapsed,
+  pillarTabHref,
+  resolvePillarTab,
+} from "../src/lib/journey/tabs.ts";
 import { bookPresenceFromPortfolio } from "../src/lib/retirement/freedom-path.ts";
 import { createEmptyBudgetPlan } from "../src/types/budget.ts";
 import type { MoneyProfile } from "../src/types/money-profile.ts";
@@ -42,6 +57,10 @@ assert(draft.currency === "CAD", "default currency is CAD");
 assert(draft.incomeAmount === null, "income is not invented");
 assert(draft.working.budget === false, "working budget starts false");
 assert(draft.track === "beginner", "default track is beginner");
+assert(
+  Object.keys(draft.completedLessons).length === 0,
+  "completed lessons start empty",
+);
 
 assert(
   knowledgeFromChecks("budget", {}) === "beginner",
@@ -132,20 +151,22 @@ assert(finalized.working.invest === false, "working is not inferred from leftove
 
 const stations = journeyStations(finalized);
 assert(stations.length === 3, "three stations");
-assert(
-  stations.every((station) => station.learnHref === station.doHref),
-  "Slice A Learn and Do share the existing tool href",
-);
-assert(stations[0].href === "/budget", "Budget station links to /budget");
-assert(stations[1].href === "/invest", "Invest station links to /invest");
-assert(stations[2].href === "/freedom", "Freedom station links to /freedom");
+assert(stations[0].learnHref === "/budget?tab=learn", "Budget Learn deep-links");
+assert(stations[0].doHref === "/budget?tab=do", "Budget Do deep-links");
+assert(stations[1].learnHref === "/invest?tab=learn", "Invest Learn deep-links");
+assert(stations[1].doHref === "/invest?tab=do", "Invest Do deep-links");
+assert(stations[2].learnHref === "/freedom?tab=learn", "Freedom Learn deep-links");
+assert(stations[2].doHref === "/freedom?tab=do", "Freedom Do deep-links");
+assert(stations[0].href === "/budget", "Budget station hub is /budget");
+assert(stations[1].href === "/invest", "Invest station hub is /invest");
+assert(stations[2].href === "/freedom", "Freedom station hub is /freedom");
 assert(
   stations.every((station) => station.status !== "locked"),
-  "Slice A does not soft-lock stations",
+  "Slice B does not soft-lock stations",
 );
 
 const nextBeginner = primaryNextAction(draft);
-assert(nextBeginner.href === "/budget", "Beginner next action is Budget");
+assert(nextBeginner.href === "/budget?tab=learn", "Beginner next action is Budget Learn");
 assert(nextBeginner.label === "Learn Budget", "Beginner next label is Learn Budget");
 
 const workingBudget: MoneyProfile = {
@@ -153,9 +174,97 @@ const workingBudget: MoneyProfile = {
   working: { budget: true, invest: false, freedom: false },
 };
 assert(
-  primaryNextAction(workingBudget).href === "/invest",
-  "after Budget working, next is Invest",
+  primaryNextAction(workingBudget).href === "/invest?tab=do",
+  "after Budget working, next is Invest Do",
 );
+
+assert(defaultPillarTab(draft, "budget") === "learn", "beginner Budget defaults to Learn");
+assert(defaultPillarTab(finalized, "budget") === "do", "Fast Track defaults to Do");
+assert(defaultPillarTab(tools, "invest") === "do", "toolsOnly defaults to Do");
+assert(learnIsCollapsed(finalized) === true, "Fast Track collapses Learn");
+assert(learnIsCollapsed(tools) === true, "toolsOnly collapses Learn");
+assert(learnIsCollapsed(draft) === false, "Beginner Track shows full Learn");
+assert(
+  defaultPillarTab(beginner, "invest") === "learn",
+  "Beginner Track + beginner Invest knowledge defaults to Learn",
+);
+assert(
+  defaultPillarTab(beginner, "freedom") === "do",
+  "Beginner Track + confident Freedom knowledge defaults to Do",
+);
+assert(resolvePillarTab("learn", finalized, "budget") === "learn", "explicit Learn wins");
+assert(resolvePillarTab("do", draft, "budget") === "do", "explicit Do wins on beginner");
+assert(pillarTabHref("invest", "learn", "invest-the-book") === "/invest?tab=learn&lesson=invest-the-book", "lesson query");
+
+const marked = markLessonComplete(draft, "budget-envelopes-leftover");
+assert(isLessonComplete(marked, "budget-envelopes-leftover"), "complete flag persists");
+assert(
+  !isLessonComplete(marked, "budget-close-month"),
+  "other lessons stay incomplete",
+);
+const normalizedFlags = normalizeMoneyProfile({
+  ...marked,
+  completedLessons: {
+    "budget-envelopes-leftover": true,
+    "not-a-lesson": true,
+    "budget-close-month": false,
+  },
+});
+assert(
+  normalizedFlags.completedLessons["budget-envelopes-leftover"] === true,
+  "known complete flag is kept",
+);
+assert(
+  normalizedFlags.completedLessons["not-a-lesson"] === undefined,
+  "unknown lesson ids are dropped",
+);
+assert(
+  normalizedFlags.completedLessons["budget-close-month"] === undefined,
+  "false complete flags are dropped",
+);
+assert(
+  markLessonComplete(draft, "not-a-lesson").completedLessons["not-a-lesson"] ===
+    undefined,
+  "marking an unknown id is a no-op",
+);
+
+assert(lessonsForPillar("budget").length === 5, "Budget has five lessons");
+assert(lessonsForPillar("invest").length === 6, "Invest has six lessons");
+assert(lessonsForPillar("freedom").length === 4, "Freedom has four lessons");
+assert(LESSON_IDS.length === 15, "fifteen V1 lessons");
+assert(isLessonId("invest-company-page"), "company page lesson exists");
+assert(
+  LEARN_DISCLAIMER ===
+    "Educational. Not financial advice. You can lose money.",
+  "learn footer is the required disclaimer",
+);
+
+const forbidden = [
+  "YNAB",
+  "Retire",
+  "Simply Wall St",
+  "Snowflake",
+  "Apple",
+  "iOS",
+];
+const catalogText = JSON.stringify(LEARN_CATALOG);
+for (const word of forbidden) {
+  assert(!catalogText.includes(word), `lesson copy does not name ${word}`);
+}
+
+const requiredCtaPrefix = ["/budget?tab=do", "/invest?tab=do", "/freedom?tab=do"];
+for (const pillar of ["budget", "invest", "freedom"] as const) {
+  for (const lesson of lessonsForPillar(pillar)) {
+    assert(lesson.paragraphs.length === 3, `${lesson.id} has three paragraphs`);
+    assert(lesson.cta.href.length > 0, `${lesson.id} has a CTA route`);
+    assert(
+      requiredCtaPrefix.some((prefix) => lesson.cta.href.startsWith(prefix.split("?")[0])),
+      `${lesson.id} CTA stays on a real pillar route`,
+    );
+    assert(!lesson.cta.href.includes("/analysis/"), `${lesson.id} does not fake a ticker`);
+    assert((lesson.checks?.length ?? 0) <= 2, `${lesson.id} has at most two checks`);
+  }
+}
 
 assert(
   profileSummaryLine(finalized) === "Build a cushion · Fast Track · Preserve",

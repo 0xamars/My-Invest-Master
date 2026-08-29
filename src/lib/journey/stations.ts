@@ -1,9 +1,5 @@
-import {
-  BUDGET_PATH,
-  FREEDOM_PATH,
-  INVEST_PATH,
-} from "@/lib/chrome/nav";
 import { effectiveKnowledge } from "@/lib/journey/profile";
+import { pillarPath, pillarTabHref } from "@/lib/journey/tabs";
 import {
   JOURNEY_PILLARS,
   type JourneyPillar,
@@ -26,13 +22,10 @@ export type JourneyNextAction = {
   label: string;
 };
 
-const STATION_META: Record<
-  JourneyPillar,
-  { title: JourneyStation["title"]; href: string }
-> = {
-  budget: { title: "Budget", href: BUDGET_PATH },
-  invest: { title: "Invest", href: INVEST_PATH },
-  freedom: { title: "Freedom", href: FREEDOM_PATH },
+const STATION_TITLE: Record<JourneyPillar, JourneyStation["title"]> = {
+  budget: "Budget",
+  invest: "Invest",
+  freedom: "Freedom",
 };
 
 /**
@@ -55,14 +48,14 @@ export function stationStatus(
 
 export function journeyStations(profile: MoneyProfile): JourneyStation[] {
   return JOURNEY_PILLARS.map((pillar) => {
-    const meta = STATION_META[pillar];
+    const href = pillarPath(pillar);
     return {
       pillar,
-      title: meta.title,
-      href: meta.href,
+      title: STATION_TITLE[pillar],
+      href,
       status: stationStatus(pillar, profile),
-      learnHref: meta.href,
-      doHref: meta.href,
+      learnHref: pillarTabHref(pillar, "learn"),
+      doHref: pillarTabHref(pillar, "do"),
     };
   });
 }
@@ -74,7 +67,7 @@ export function primaryNextAction(profile: MoneyProfile): JourneyNextAction {
   const verb = next.status === "learn" ? "Learn" : "Open";
   return {
     pillar: next.pillar,
-    href: next.href,
+    href: next.status === "learn" ? next.learnHref : next.doHref,
     label: `${verb} ${next.title}`,
   };
 }

@@ -65,6 +65,9 @@ export type KnowledgeCheckId = (typeof KNOWLEDGE_CHECK_IDS)[number];
 export type KnowledgeByPillar = Record<JourneyPillar, KnowledgeLevel>;
 export type KnowledgeChecks = Partial<Record<KnowledgeCheckId, string>>;
 
+/** Lesson ids from src/content/learn. Unknown keys are dropped on normalize. */
+export type CompletedLessons = Record<string, boolean>;
+
 export interface MoneyProfileFlags {
   budgetElsewhere: boolean;
   investNoHoldingsYet: boolean;
@@ -91,6 +94,8 @@ export interface MoneyProfile {
   flags: MoneyProfileFlags;
   working: MoneyProfileWorking;
   track: JourneyTrack;
+  /** Slice B: which static Learn lessons this profile marked complete. */
+  completedLessons: CompletedLessons;
 }
 
 export const DEFAULT_MONEY_PROFILE_COUNTRY = "CA";
