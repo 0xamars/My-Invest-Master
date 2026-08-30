@@ -126,9 +126,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    if (!isConfigured) return;
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    if (isConfigured) {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    }
+    setUser(null);
   }, [isConfigured]);
 
   const value = useMemo(
