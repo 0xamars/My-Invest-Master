@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { HeaderAccountBoundary } from "@/components/layout/header-account-boundary";
 import { BrandHomeLink } from "@/components/layout/brand-home-link";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
@@ -29,7 +30,9 @@ function AppShellHeader() {
       </BrandHomeLink>
       <SignedInHeaderNav />
       <div className="ml-auto">
-        <AccountMenu />
+        <HeaderAccountBoundary>
+          <AccountMenu />
+        </HeaderAccountBoundary>
       </div>
     </header>
   );
