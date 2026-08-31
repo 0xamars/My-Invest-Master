@@ -11,6 +11,7 @@
     "test:budget": "npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-calculations-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-csv-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-parity-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-tracking-goals-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-daily-use-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-daily-more-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-budget-month-close-unit.mts",
     "test:retire": "npx --yes tsx --tsconfig tsconfig.json scripts/test-retire-unit.mts",
     "test:invest": "npx --yes tsx --tsconfig tsconfig.json scripts/test-invest-unit.mts",
+    "test:assess": "npx --yes tsx --tsconfig tsconfig.json scripts/test-assess-unit.mts",
     "test:journey": "npx --yes tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts",
     "test:ticker": "npx --yes tsx --tsconfig tsconfig.json scripts/test-ticker-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-ticker-score-unit.mts"
   },
