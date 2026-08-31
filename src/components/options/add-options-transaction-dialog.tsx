@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Save, Search } from "lucide-react";
+import { Plus, Save } from "lucide-react";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
+import {
+  TickerSearch,
+  toAssetCatalogItem,
+} from "@/components/ticker/ticker-search";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAssetSearch } from "@/hooks/use-asset-search";
 import { getTodayDateString } from "@/lib/portfolio/transactions";
 import { cn } from "@/lib/utils";
 import {
@@ -59,23 +62,15 @@ export function OptionsTransactionDialog({
 }: OptionsTransactionDialogProps) {
   const isEditing = editingPosition !== null;
 
-  const [query, setQuery] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<AssetCatalogItem | null>(
     null,
   );
-  const [showResults, setShowResults] = useState(false);
   const [optionType, setOptionType] = useState<OptionType>("buy_call");
   const [txDate, setTxDate] = useState(getTodayDateString);
   const [expiryDate, setExpiryDate] = useState("");
   const [strikePrice, setStrikePrice] = useState("");
   const [contracts, setContracts] = useState("");
   const [premiumPerContract, setPremiumPerContract] = useState("");
-
-  const { results, isSearching, error: searchError } = useAssetSearch(
-    query,
-    "stock",
-    !isEditing && showResults && !selectedAsset && query.trim().length > 0,
-  );
 
   useEffect(() => {
     if (!open) {
@@ -92,8 +87,6 @@ export function OptionsTransactionDialog({
         subCategory: "Equity",
         logoUrl: editingPosition.logoUrl,
       });
-      setQuery(editingPosition.ticker);
-      setShowResults(false);
       setOptionType(editingPosition.optionType);
       setTxDate(editingPosition.txDate);
       setExpiryDate(editingPosition.expiryDate);
@@ -104,9 +97,7 @@ export function OptionsTransactionDialog({
   }, [open, editingPosition]);
 
   function resetForm() {
-    setQuery("");
     setSelectedAsset(null);
-    setShowResults(false);
     setOptionType("buy_call");
     setTxDate(getTodayDateString());
     setExpiryDate("");
@@ -117,8 +108,6 @@ export function OptionsTransactionDialog({
 
   const handleSelectAsset = (asset: AssetCatalogItem) => {
     setSelectedAsset(asset);
-    setQuery(asset.symbol);
-    setShowResults(false);
   };
 
   const parsedContracts = parseFloat(contracts);
@@ -163,9 +152,6 @@ export function OptionsTransactionDialog({
     onOpenChange(false);
   };
 
-  const showDropdown =
-    !isEditing && showResults && !selectedAsset && query.trim().length > 0;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -183,72 +169,18 @@ export function OptionsTransactionDialog({
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="options-ticker">Ticker</Label>
-            <div className="relative">
-              <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="options-ticker"
-                placeholder="Search stock ticker, e.g. AAPL, TSLA"
-                value={query}
-                onChange={(e) => {
-                  if (isEditing) return;
-                  setQuery(e.target.value.toUpperCase());
-                  setSelectedAsset(null);
-                  setShowResults(true);
-                }}
-                onFocus={() => !isEditing && setShowResults(true)}
-                onKeyDown={(e) => {
-                  if (isEditing) return;
-                  if (e.key === "Enter" && results[0] && !selectedAsset) {
-                    e.preventDefault();
-                    handleSelectAsset(results[0]);
-                  }
-                }}
-                className="pl-9"
-                autoComplete="off"
-                readOnly={isEditing}
-              />
-              {showDropdown && (
-                <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-popover shadow-md">
-                  {isSearching ? (
-                    <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
-                      <Loader2 className="size-4 animate-spin" />
-                      Searching…
-                    </div>
-                  ) : searchError ? (
-                    <div className="px-3 py-3 text-sm text-destructive">
-                      {searchError}
-                    </div>
-                  ) : results.length > 0 ? (
-                    results.map((asset) => (
-                      <button
-                        key={asset.symbol}
-                        type="button"
-                        onClick={() => handleSelectAsset(asset)}
-                        className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
-                      >
-                        <AssetLogo
-                          symbol={asset.symbol}
-                          name={asset.name}
-                          type="stock"
-                          logoUrl={asset.logoUrl}
-                          size="sm"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <span className="font-semibold">{asset.symbol}</span>
-                          <span className="ml-2 truncate text-muted-foreground">
-                            {asset.name}
-                          </span>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-3 py-3 text-sm text-muted-foreground">
-                      No results for &quot;{query.trim().toUpperCase()}&quot;.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <TickerSearch
+              key={`${open}-${isEditing ? editingPosition?.id ?? "edit" : "new"}`}
+              id="options-ticker"
+              assetType="stock"
+              disabled={isEditing}
+              defaultQuery={isEditing ? (editingPosition?.ticker ?? "") : ""}
+              placeholder="Search stock ticker, e.g. AAPL, TSLA"
+              onSelect={(hit) => handleSelectAsset(toAssetCatalogItem(hit))}
+              onClear={() => {
+                if (!isEditing) setSelectedAsset(null);
+              }}
+            />
           </div>
 
           {selectedAsset && (

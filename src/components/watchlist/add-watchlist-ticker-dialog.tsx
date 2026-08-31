@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bitcoin, Loader2, Search, TrendingUp } from "lucide-react";
+import { Bitcoin, TrendingUp } from "lucide-react";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
+import {
+  TickerSearch,
+  toAssetCatalogItem,
+} from "@/components/ticker/ticker-search";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,10 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAssetSearch } from "@/hooks/use-asset-search";
 import type { AddWatchlistTickerInput } from "@/hooks/use-watchlist-plans-storage";
 import type { AssetCatalogItem } from "@/types/portfolio";
 import type { WatchlistAssetType } from "@/types/watchlist";
@@ -39,42 +41,22 @@ export function AddWatchlistTickerDialog({
   existingKeys,
 }: AddWatchlistTickerDialogProps) {
   const [mode, setMode] = useState<WatchlistAssetType>("stock");
-  const [query, setQuery] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<AssetCatalogItem | null>(
     null,
   );
-  const [showResults, setShowResults] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  const { results, isSearching, error: searchError } = useAssetSearch(
-    query,
-    mode,
-    open,
-  );
 
   useEffect(() => {
     if (!open) return;
     setMode("stock");
-    setQuery("");
     setSelectedAsset(null);
-    setShowResults(false);
     setSubmitError(null);
   }, [open]);
 
   useEffect(() => {
     setSelectedAsset(null);
-    setQuery("");
-    setShowResults(false);
     setSubmitError(null);
   }, [mode]);
-
-  function handleSelectAsset(asset: AssetCatalogItem) {
-    if (!isWatchlistAssetType(asset.type)) return;
-    setSelectedAsset(asset);
-    setQuery(asset.symbol);
-    setShowResults(false);
-    setSubmitError(null);
-  }
 
   function handleSubmit() {
     setSubmitError(null);
@@ -100,7 +82,7 @@ export function AddWatchlistTickerDialog({
     onOpenChange(false);
   }
 
-  const canSubmit = Boolean(selectedAsset) && !isSearching;
+  const canSubmit = Boolean(selectedAsset);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,77 +114,31 @@ export function AddWatchlistTickerDialog({
             </TabsList>
           </Tabs>
 
-          <div className="relative space-y-1.5">
+          <div className="space-y-1.5">
             <Label htmlFor="watchlist-ticker-search">Search</Label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="watchlist-ticker-search"
-                className="pl-9"
-                placeholder={
-                  mode === "stock" ? "Search AAPL, NVDA…" : "Search BTC, ETH…"
-                }
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setSelectedAsset(null);
-                  setShowResults(true);
-                  if (submitError) setSubmitError(null);
-                }}
-                onFocus={() => setShowResults(true)}
-                autoFocus
-              />
-              {isSearching && (
-                <Loader2 className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-              )}
-            </div>
-
-            {showResults && query.trim().length > 0 && (
-              <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-popover shadow-md">
-                {results.length === 0 && !isSearching ? (
-                  <p className="px-3 py-2 text-sm text-muted-foreground">
-                    {searchError ?? "No matches found."}
-                  </p>
-                ) : (
-                  results.map((asset) => {
-                    const alreadyAdded = existingKeys.includes(
-                      assetKey(asset.symbol, asset.type),
-                    );
-                    return (
-                      <button
-                        key={`${asset.symbol}-${asset.type}`}
-                        type="button"
-                        disabled={alreadyAdded}
-                        className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                        onClick={() => handleSelectAsset(asset)}
-                      >
-                        <AssetLogo
-                          symbol={asset.symbol}
-                          name={asset.name}
-                          type={asset.type}
-                          logoUrl={asset.logoUrl}
-                          priceId={asset.priceId}
-                          size="sm"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-medium">
-                            {asset.symbol}
-                          </span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {asset.name}
-                            {alreadyAdded ? " · Already added" : ""}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
+            <TickerSearch
+              key={`${open}-${mode}`}
+              id="watchlist-ticker-search"
+              assetType={mode}
+              autoFocus
+              placeholder={
+                mode === "stock" ? "Search AAPL, NVDA…" : "Search BTC, ETH…"
+              }
+              isDisabled={(hit) =>
+                existingKeys.includes(assetKey(hit.symbol, hit.type))
+              }
+              onSelect={(hit) => {
+                const asset = toAssetCatalogItem(hit);
+                if (!isWatchlistAssetType(asset.type)) return;
+                setSelectedAsset(asset);
+                setSubmitError(null);
+              }}
+              onClear={() => setSelectedAsset(null)}
+            />
           </div>
 
-          {selectedAsset && (
-            <div className="flex items-center gap-3 rounded-lg border border-border/80 bg-muted/30 px-3 py-2.5">
+          {selectedAsset ? (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted px-3 py-2.5">
               <AssetLogo
                 symbol={selectedAsset.symbol}
                 name={selectedAsset.name}
@@ -218,11 +154,11 @@ export function AddWatchlistTickerDialog({
                 </p>
               </div>
             </div>
-          )}
+          ) : null}
 
-          {submitError && (
+          {submitError ? (
             <p className="text-sm text-destructive">{submitError}</p>
-          )}
+          ) : null}
         </div>
 
         <DialogFooter>

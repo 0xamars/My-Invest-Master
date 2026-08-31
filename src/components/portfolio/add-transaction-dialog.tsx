@@ -9,9 +9,12 @@ import {
   Loader2,
   PenLine,
   Plus,
-  Search,
   TrendingUp,
 } from "lucide-react";
+import {
+  TickerSearch,
+  toAssetCatalogItem,
+} from "@/components/ticker/ticker-search";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +35,6 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAssetPrice } from "@/hooks/use-asset-price";
-import { useAssetSearch } from "@/hooks/use-asset-search";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { SectorSelect } from "@/components/portfolio/sector-select";
 import { formatPrice, formatQuantity } from "@/lib/portfolio/format";
@@ -82,7 +84,6 @@ export function AddTransactionDialog({
   explainFields = false,
 }: AddTransactionDialogProps) {
   const [mode, setMode] = useState<DialogMode>("stock");
-  const [query, setQuery] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<AssetCatalogItem | null>(
     null,
   );
@@ -90,7 +91,6 @@ export function AddTransactionDialog({
   const [quantity, setQuantity] = useState("");
   const [pricePerUnit, setPricePerUnit] = useState("");
   const [date, setDate] = useState(getTodayDateString);
-  const [showResults, setShowResults] = useState(false);
   const [priceTouched, setPriceTouched] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -132,12 +132,6 @@ export function AddTransactionDialog({
 
   const isNewAsset = !existingHolding;
 
-  const { results, isSearching, error: searchError } = useAssetSearch(
-    query,
-    mode === "stock" || mode === "crypto" ? mode : "stock",
-    isSearchMode && showResults && !selectedAsset && query.trim().length > 0,
-  );
-
   const { price: livePrice, isLoading: isPriceLoading, error: priceError } =
     useAssetPrice(isSearchMode ? selectedAsset : null);
 
@@ -163,13 +157,11 @@ export function AddTransactionDialog({
   }, [transactionType, quantity, pricePerUnit, selectedAsset, customSymbol]);
 
   function resetFields() {
-    setQuery("");
     setSelectedAsset(null);
     setTransactionType("buy");
     setQuantity("");
     setPricePerUnit("");
     setDate(getTodayDateString());
-    setShowResults(false);
     setPriceTouched(false);
     setSubmitError(null);
     setCustomSymbol("");
@@ -185,8 +177,6 @@ export function AddTransactionDialog({
 
   const handleSelectAsset = (asset: AssetCatalogItem) => {
     setSelectedAsset(asset);
-    setQuery(asset.symbol);
-    setShowResults(false);
     setPricePerUnit("");
     setPriceTouched(false);
     setTransactionType("buy");
@@ -317,9 +307,6 @@ export function AddTransactionDialog({
         ? isCashValid
         : isSearchValid;
 
-  const showDropdown =
-    isSearchMode && showResults && !selectedAsset && query.trim().length > 0;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -381,78 +368,14 @@ export function AddTransactionDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="asset-search">Name or ticker</Label>
-                <div className="relative">
-                  <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="asset-search"
-                    placeholder={
-                      mode === "stock"
-                        ? "Search a name or ticker"
-                        : "Search a name or ticker"
-                    }
-                    value={query}
-                    onChange={(e) => {
-                      setQuery(e.target.value.toUpperCase());
-                      setSelectedAsset(null);
-                      setShowResults(true);
-                    }}
-                    onFocus={() => setShowResults(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && results[0] && !selectedAsset) {
-                        e.preventDefault();
-                        handleSelectAsset(results[0]);
-                      }
-                    }}
-                    className="pl-9"
-                    autoComplete="off"
-                  />
-                  {showDropdown && (
-                    <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border bg-popover shadow-md">
-                      {isSearching ? (
-                        <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
-                          <Loader2 className="size-4 animate-spin" />
-                          Searching…
-                        </div>
-                      ) : searchError ? (
-                        <div className="px-3 py-3 text-sm text-destructive">
-                          {searchError}
-                        </div>
-                      ) : results.length > 0 ? (
-                        results.map((asset) => (
-                          <button
-                            key={`${asset.symbol}-${asset.priceId ?? asset.type}`}
-                            type="button"
-                            onClick={() => handleSelectAsset(asset)}
-                            className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
-                          >
-                            <AssetLogo
-                              symbol={asset.symbol}
-                              name={asset.name}
-                              type={asset.type}
-                              logoUrl={asset.logoUrl}
-                              priceId={asset.priceId}
-                              size="sm"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">
-                                  {asset.symbol}
-                                </span>
-                                <span className="truncate text-muted-foreground">
-                                  {asset.name}
-                                </span>
-                              </div>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-3 text-sm text-muted-foreground">
-                          No results for &quot;{query.trim().toUpperCase()}&quot;.
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <TickerSearch
+                  key={`${open}-${mode}`}
+                  id="asset-search"
+                  assetType={mode === "crypto" ? "crypto" : "stock"}
+                  placeholder="Search a name or ticker"
+                  onSelect={(hit) => handleSelectAsset(toAssetCatalogItem(hit))}
+                  onClear={() => setSelectedAsset(null)}
+                />
                 {explainFields ? (
                   <FieldHelp>{ADD_HOLDING_FIELD_HELP.asset}</FieldHelp>
                 ) : null}
