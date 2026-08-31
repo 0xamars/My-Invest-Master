@@ -21,7 +21,10 @@ export const SIGNED_IN_PRIMARY_NAV = [
 ] as const;
 
 /** Invest children — submenu or in-page cards, never top-level peers. */
+export const INVEST_ASSESS_PATH = "/invest/assess";
+
 export const INVEST_CHILD_NAV = [
+  { title: "Assess", href: INVEST_ASSESS_PATH },
   { title: "Portfolio", href: INVEST_PORTFOLIO_PATH },
   { title: "Watchlist", href: INVEST_WATCHLIST_PATH },
   { title: "Options", href: INVEST_OPTIONS_PATH },
@@ -52,6 +55,11 @@ export function investWatchlistPath(id?: string): string {
 }
 
 export { investTickerPath } from "@/lib/ticker/symbol";
+
+export function investAssessPath(id?: string): string {
+  if (!id?.trim()) return INVEST_ASSESS_PATH;
+  return `${INVEST_ASSESS_PATH}/${encodeURIComponent(id.toUpperCase())}`;
+}
 
 export function retirePlansPath(id?: string): string {
   return id ? `${RETIRE_PATH}/plans/${id}` : `${RETIRE_PATH}/plans`;
@@ -211,11 +219,22 @@ export function resolvePageTitle(
     return symbol ? symbol.toUpperCase() : "Ticker";
   }
 
+  if (pathname === INVEST_ASSESS_PATH) {
+    return "Assess";
+  }
+  if (pathname.startsWith(`${INVEST_ASSESS_PATH}/`)) {
+    const symbol = decodeURIComponent(
+      pathname.slice(`${INVEST_ASSESS_PATH}/`.length),
+    ).split("/")[0];
+    return symbol ? `${symbol.toUpperCase()} · Assess` : "Assess";
+  }
+
   const pageTitles: Record<string, string> = {
     "/": "InvestSalsa",
     "/home": "Journey",
     "/money-profile": "Money Profile",
     "/invest": "Invest",
+    "/invest/assess": "Assess",
     "/invest/options": "Options",
     "/options": "Options",
     "/settings": "Settings",

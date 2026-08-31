@@ -666,8 +666,8 @@ assert(
 );
 assert(
   INVEST_CHILD_NAV.map((item) => item.href).join(",") ===
-    "/invest/portfolio,/invest/watchlist,/invest/options",
-  "Invest children are book, queue, and options under /invest",
+    "/invest/assess,/invest/portfolio,/invest/watchlist,/invest/options",
+  "Invest children include Assess plus book, queue, and options under /invest",
 );
 assert(
   !INVEST_CHILD_NAV.some((item) => item.href === "/market" || item.href === "/analysis"),
