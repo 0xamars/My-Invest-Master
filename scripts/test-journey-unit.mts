@@ -223,15 +223,15 @@ assert(finalized.working.invest === false, "working is not inferred from leftove
 
 const stations = journeyStations(finalized);
 assert(stations.length === 3, "three stations");
-assert(stations[0].learnHref === "/budget?tab=learn", "Budget Learn deep-links");
-assert(stations[0].doHref === "/budget?tab=do", "Budget Do deep-links");
-assert(stations[1].learnHref === "/invest?tab=learn", "Invest Learn deep-links");
-assert(stations[1].doHref === "/invest?tab=do", "Invest Do deep-links");
-assert(stations[2].learnHref === "/freedom?tab=learn", "Freedom Learn deep-links");
-assert(stations[2].doHref === "/freedom?tab=do", "Freedom Do deep-links");
+assert(stations[0].learnHref === "/budget", "Budget Learn deep-links");
+assert(stations[0].doHref === "/budget", "Budget Do deep-links");
+assert(stations[1].learnHref === "/invest", "Invest Learn deep-links");
+assert(stations[1].doHref === "/invest", "Invest Do deep-links");
+assert(stations[2].learnHref === "/retire", "Freedom Learn deep-links");
+assert(stations[2].doHref === "/retire", "Freedom Do deep-links");
 assert(stations[0].href === "/budget", "Budget station hub is /budget");
 assert(stations[1].href === "/invest", "Invest station hub is /invest");
-assert(stations[2].href === "/freedom", "Freedom station hub is /freedom");
+assert(stations[2].href === "/retire", "Retire station hub is /retire");
 assert(stations[0].status === "in_progress", "Fast Track Budget is in progress");
 assert(stations[1].status === "in_progress", "Fast Track Invest is in progress");
 assert(
@@ -251,27 +251,27 @@ assert(
 );
 
 const nextBeginner = primaryNextAction(draft);
-assert(nextBeginner.href === "/budget?tab=learn", "Beginner next action is Budget Learn");
-assert(nextBeginner.label === "Learn Budget", "Beginner next label is Learn Budget");
+assert(nextBeginner.href === "/budget", "Beginner next action is Budget Learn");
+assert(nextBeginner.label === "Open Budget", "Beginner next label is Learn Budget");
 
 const workingBudget: MoneyProfile = {
   ...finalized,
   working: { budget: true, invest: false, freedom: false },
 };
 assert(
-  primaryNextAction(workingBudget).href === "/invest?tab=do",
+  primaryNextAction(workingBudget).href === "/invest",
   "after Budget working, next is Invest Do",
 );
 
-assert(defaultPillarTab(draft, "budget") === "learn", "beginner Budget defaults to Learn");
+assert(defaultPillarTab(draft, "budget") === "do", "beginner Budget opens the tool");
 assert(defaultPillarTab(finalized, "budget") === "do", "Fast Track defaults to Do");
 assert(defaultPillarTab(tools, "invest") === "do", "toolsOnly defaults to Do");
 assert(learnIsCollapsed(finalized) === true, "Fast Track collapses Learn");
 assert(learnIsCollapsed(tools) === true, "toolsOnly collapses Learn");
 assert(learnIsCollapsed(draft) === false, "Beginner Track shows full Learn");
 assert(
-  defaultPillarTab(beginner, "invest") === "learn",
-  "Beginner Track + beginner Invest knowledge defaults to Learn",
+  defaultPillarTab(beginner, "invest") === "do",
+  "Beginner Track + beginner Invest knowledge opens the tool",
 );
 assert(
   defaultPillarTab(beginner, "freedom") === "do",
@@ -279,7 +279,7 @@ assert(
 );
 assert(resolvePillarTab("learn", finalized, "budget") === "learn", "explicit Learn wins");
 assert(resolvePillarTab("do", draft, "budget") === "do", "explicit Do wins on beginner");
-assert(pillarTabHref("invest", "learn", "invest-the-book") === "/invest?tab=learn&lesson=invest-the-book", "lesson query");
+assert(pillarTabHref("invest", "learn", "invest-the-book") === "/invest", "lesson query is unused");
 
 const marked = markLessonComplete(draft, "budget-envelopes-leftover");
 assert(isLessonComplete(marked, "budget-envelopes-leftover"), "complete flag persists");
@@ -326,7 +326,6 @@ assert(
 
 const forbidden = [
   "YNAB",
-  "Retire",
   "Simply Wall St",
   "Snowflake",
   "Apple",
@@ -337,7 +336,7 @@ for (const word of forbidden) {
   assert(!catalogText.includes(word), `lesson copy does not name ${word}`);
 }
 
-const requiredCtaPrefix = ["/budget?tab=do", "/invest?tab=do", "/freedom?tab=do"];
+const requiredCtaPrefix = ["/budget", "/invest", "/freedom", "/retire"];
 for (const pillar of ["budget", "invest", "freedom"] as const) {
   for (const lesson of lessonsForPillar(pillar)) {
     assert(lesson.paragraphs.length === 3, `${lesson.id} has three paragraphs`);
@@ -405,7 +404,7 @@ assert(
   "leftover without a book is not a date",
 );
 
-const assumptions = createEmptyPlan("Freedom");
+const assumptions = createEmptyPlan("Retire");
 assumptions.annualLifestyleSpending = 40_000;
 assumptions.annualContribution = 99_999;
 const dated = journeyFreedomDate({
@@ -568,12 +567,12 @@ assert(
     completedLessons: {},
     budgetPlans: [],
     primaryBook: null,
-    freedomPlans: [createEmptyPlan("Freedom")],
+    freedomPlans: [createEmptyPlan("Retire")],
   }).freedom,
   "a saved Freedom plan sets freedom.working",
 );
 
-assert(investDoIsLocked({ profile: draft, hasBook: false }), "Beginner Invest Do is locked");
+assert(!investDoIsLocked({ profile: draft, hasBook: false }), "Beginner Invest is unlocked");
 assert(
   !investDoIsLocked({ profile: finalized, hasBook: false }),
   "Fast Track Invest Do is unlocked",
@@ -673,8 +672,8 @@ assert(
   "first book copy includes the Freedom line",
 );
 assert(
-  FIRST_BOOK_FREEDOM_LINE === "this is the book Freedom will use.",
-  "Freedom line is the required sentence",
+  FIRST_BOOK_FREEDOM_LINE === "this is the book Retire will use.",
+  "Retire line is the required sentence",
 );
 assert(shouldOfferFirstBookWizard([]), "no book offers the first-book wizard");
 const existingBook = createEmptyPortfolio("Keep me", { isPrimary: true });
@@ -694,7 +693,7 @@ assert(newBook.length === 1, "missing book creates one empty book");
 assert(newBook[0]!.holdings.length === 0, "first book does not invent holdings");
 assert(newBook[0]!.name === "My book", "first book uses the given name");
 
-assert(tickerStartsCollapsed(draft), "beginner ticker starts collapsed");
+assert(!tickerStartsCollapsed(draft), "beginner ticker stays full");
 assert(
   SHOW_THE_DETAILS_LABEL === "Show the details",
   "ticker details control is labeled Show the details",
@@ -703,11 +702,11 @@ assert(!tickerStartsCollapsed(finalized), "Fast Track ticker stays full density"
 assert(!tickerStartsCollapsed(tools), "toolsOnly ticker stays full density");
 assert(!tickerStartsCollapsed(null), "no profile does not collapse the ticker");
 assert(
-  tickerStartsCollapsed(beginner),
-  "Beginner Track + beginner invest knowledge collapses the ticker",
+  !tickerStartsCollapsed(beginner),
+  "Beginner Track does not collapse the ticker",
 );
 
-assert(optionsIsGated(draft), "beginner Options is gated");
+assert(!optionsIsGated(draft), "beginner Options is not gated");
 assert(!optionsIsGated(finalized), "Fast Track skips the Options gate");
 assert(!optionsIsGated(tools), "toolsOnly skips the Options gate");
 assert(!optionsIsGated(null), "no profile does not gate Options");
@@ -740,7 +739,7 @@ for (const word of forbidden) {
   assert(!sliceDCopy.includes(word), `Slice D copy does not name ${word}`);
 }
 
-assert(investDoIsLocked({ profile: draft, hasBook: false }), "Slice C lock stays: Beginner Invest Do is locked");
+assert(!investDoIsLocked({ profile: draft, hasBook: false }), "Slice C lock is off: Beginner Invest is unlocked");
 assert(
   !investDoIsLocked({ profile: finalized, hasBook: false }),
   "Slice C lock stays: Fast Track Invest Do is unlocked",
@@ -750,17 +749,17 @@ assert(
   "Slice C lock stays: toolsOnly Invest Do is unlocked",
 );
 
-assert(signedInLandingPath(true) === "/home", "signed-in landing with a profile is Journey Home");
+assert(signedInLandingPath(true) === "/budget", "signed-in landing with a profile is Journey Home");
 assert(
-  signedInLandingPath(false) === "/money-profile",
+  signedInLandingPath(false) === "/budget",
   "signed-in landing with no profile is the wizard",
 );
 assert(
-  signedInAuthRedirectPath(true) === "/home",
+  signedInAuthRedirectPath(true) === "/budget",
   "returning signed-in login bounce is Journey Home",
 );
 assert(
-  signedInAuthRedirectPath(false) === "/money-profile",
+  signedInAuthRedirectPath(false) === "/budget",
   "first-login bounce is the Money Profile wizard",
 );
 
@@ -803,28 +802,28 @@ assert(
   "the wizard itself is not redirected",
 );
 assert(
-  shouldRedirectToMoneyProfile({
+  !shouldRedirectToMoneyProfile({
     signedIn: true,
     hasProfile: false,
     pathname: "/home",
   }),
-  "no-profile Journey Home redirects to the wizard",
+  "Money Profile quiz is unshipped",
 );
 assert(
-  shouldRedirectToMoneyProfile({
+  !shouldRedirectToMoneyProfile({
     signedIn: true,
     hasProfile: false,
     pathname: "/budget",
   }),
-  "no-profile Budget redirects to the wizard",
+  "no-profile Budget is not sent to a quiz",
 );
 assert(
-  shouldRedirectToMoneyProfile({
+  !shouldRedirectToMoneyProfile({
     signedIn: true,
     hasProfile: false,
     pathname: "/invest",
   }),
-  "no-profile Invest redirects to the wizard",
+  "no-profile Invest is not sent to a quiz",
 );
 assert(
   !shouldRedirectToMoneyProfile({
@@ -902,8 +901,8 @@ assert(
 );
 
 assert(
-  PRIMARY_NAV_TITLES.join("|") === "Budget|Invest|Freedom",
-  "chrome stays Budget | Invest | Freedom",
+  PRIMARY_NAV_TITLES.join("|") === "Budget|Invest|Retire",
+  "chrome stays Budget | Invest | Retire",
 );
 assert(
   destinationForLegacyInvestPath("/chat") === "/invest",
@@ -925,7 +924,7 @@ assert(
   "Journey Home empty metrics are labeled, not guessed",
 );
 assert(
-  BUDGET_EMPTY.learnHref === "/budget?tab=learn",
+  BUDGET_EMPTY.learnHref === "/budget",
   "empty Budget points to Learn",
 );
 assert(
@@ -939,18 +938,18 @@ assert(
 );
 assert(
   INVEST_EMPTY_BOOK.description.includes("invented") &&
-    INVEST_EMPTY_BOOK.learnHref === "/invest?tab=learn",
+    INVEST_EMPTY_BOOK.learnHref === "/invest",
   "empty book points to Learn and does not invent holdings",
 );
 assert(
-  FREEDOM_EMPTY.leftoverHref === "/budget?tab=do" &&
-    FREEDOM_EMPTY.bookHref === "/invest?tab=do" &&
-    FREEDOM_EMPTY.learnHref === "/freedom?tab=learn",
+  FREEDOM_EMPTY.leftoverHref === "/budget" &&
+    FREEDOM_EMPTY.bookHref === "/invest" &&
+    FREEDOM_EMPTY.learnHref === "/retire",
   "empty Freedom points to leftover, the book, and Learn",
 );
 assert(
-  JOURNEY_HOME_EMPTY.leftoverHref === "/budget?tab=do" &&
-    JOURNEY_HOME_EMPTY.bookHref === "/invest?tab=do",
+  JOURNEY_HOME_EMPTY.leftoverHref === "/budget" &&
+    JOURNEY_HOME_EMPTY.bookHref === "/invest",
   "Journey Home empty date points to leftover and the book",
 );
 
@@ -971,7 +970,7 @@ function commandLive(
 
 const noPlanNext = commandCenterNextAction(draft, commandLive());
 assert(noPlanNext.label === "Create a budget", "no budget plan next is Create a budget");
-assert(noPlanNext.href === "/budget?tab=do", "no budget plan opens Budget Do");
+assert(noPlanNext.href === "/budget", "no budget plan opens Budget Do");
 assert(!noPlanNext.label.toLowerCase().includes("continue"), "next action is not Continue");
 
 const leftoverNext = commandCenterNextAction(
@@ -1053,7 +1052,7 @@ assert(
   firstHoldingNext.label === "Add a holding",
   "working budget with no holdings next is Add a holding",
 );
-assert(firstHoldingNext.href === "/invest?tab=do", "first holding opens Invest Do");
+assert(firstHoldingNext.href === "/invest", "first holding opens Invest Do");
 
 const freedomNext = commandCenterNextAction(
   {
@@ -1069,10 +1068,10 @@ const freedomNext = commandCenterNextAction(
   }),
 );
 assert(
-  freedomNext.label === "Open Freedom",
+  freedomNext.label === "Open Retire",
   "book without a Freedom plan next is Open Freedom",
 );
-assert(freedomNext.href === "/freedom?tab=do", "Freedom opens Freedom Do");
+assert(freedomNext.href === "/retire", "Retire opens Retire");
 
 assert(
   leftoverMetricLabel({ status: "missing-budget" }) ===
@@ -1096,7 +1095,7 @@ assert(
     nextLesson?.title === "Close the month",
   "learn progress names a real next lesson",
 );
-assert(Boolean(nextLesson?.href.includes("tab=learn")), "next lesson opens Learn");
+assert(Boolean(nextLesson?.href.includes("/budget")), "next lesson opens Budget");
 
 const beginnerBudgetCard = journeyStations(draft)[0]!;
 assert(

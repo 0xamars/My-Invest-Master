@@ -1,8 +1,8 @@
 /** Public marketing homepage (signed-out logo always returns here). */
 export const MARKETING_HOME_PATH = "/";
 
-/** Signed-in landing — Journey Home. Not a fourth pillar. */
-export const APP_HOME_PATH = "/home";
+/** Signed-in landing — Budget. Not a fourth pillar. */
+export const APP_HOME_PATH = "/budget";
 
 /** First-run / edit Money Profile wizard. */
 export const MONEY_PROFILE_PATH = "/money-profile";

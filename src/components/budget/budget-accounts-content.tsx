@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AccountDialog } from "@/components/budget/account-dialog";
+import { BudgetBankLink } from "@/components/budget/budget-bank-link";
 import { BudgetReconcileDialog } from "@/components/budget/budget-reconcile-dialog";
 import { DeleteAccountDialog } from "@/components/budget/delete-account-dialog";
 import {
@@ -91,14 +92,16 @@ export function BudgetAccountsContent() {
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Accounts"
-        description="One spending account is enough. Add income and spend against envelopes. Not a bank link."
+        description="Connect a bank to pull transactions, or add an account by hand. File import stays on the register as a fallback."
         action={
-          <Button type="button" onClick={() => setAddOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" />
             Add account
           </Button>
         }
       />
+
+      <BudgetBankLink primary />
 
       {accounts.length === 0 ? (
         <BudgetPanel>
@@ -246,12 +249,14 @@ function AccountSection({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{account.name}</p>
                   <p className="text-[11px] text-muted-foreground">
+                    {account.plaidAccountId ? "Linked bank" : null}
+                    {account.plaidAccountId && lastReconciled ? " · " : null}
                     {lastReconciled ? (
                       <span className="inline-flex items-center gap-1 text-[var(--brand-green)]">
                         <CheckCircle2 className="size-3" />
                         Reconciled {lastReconciled}
                       </span>
-                    ) : (
+                    ) : account.plaidAccountId ? null : (
                       "Not reconciled yet"
                     )}
                     {unclearedCount > 0

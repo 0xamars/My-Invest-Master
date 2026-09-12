@@ -47,6 +47,10 @@ type LegacyAccount = Partial<BudgetAccount> & {
   type?: string;
   sortOrder?: number;
   onBudget?: boolean;
+  plaidAccountId?: string;
+  plaidItemId?: string;
+  plaidMask?: string;
+  lastSyncedAt?: string;
 };
 
 type LegacyGoal = Partial<CategoryGoal> & {
@@ -186,6 +190,22 @@ function normalizeAccount(account: LegacyAccount, index: number): BudgetAccount 
     lastReconciledAt:
       typeof account.lastReconciledAt === "string"
         ? account.lastReconciledAt
+        : undefined,
+    plaidAccountId:
+      typeof account.plaidAccountId === "string" && account.plaidAccountId
+        ? account.plaidAccountId
+        : undefined,
+    plaidItemId:
+      typeof account.plaidItemId === "string" && account.plaidItemId
+        ? account.plaidItemId
+        : undefined,
+    plaidMask:
+      typeof account.plaidMask === "string" && account.plaidMask
+        ? account.plaidMask
+        : undefined,
+    lastSyncedAt:
+      typeof account.lastSyncedAt === "string" && account.lastSyncedAt
+        ? account.lastSyncedAt
         : undefined,
   };
 }

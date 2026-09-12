@@ -77,8 +77,8 @@ export function RetirementPlansListContent() {
 
     setIsCreating(true);
     try {
-      const plan = await createPlanAndSave({ name: "New Freedom plan" });
-      router.push(`/freedom/plans/${plan.id}`);
+      const plan = await createPlanAndSave({ name: "New Retire plan" });
+      router.push(`/retire/plans/${plan.id}`);
     } finally {
       setIsCreating(false);
     }
@@ -91,23 +91,23 @@ export function RetirementPlansListContent() {
   }
 
   function openPlan(planId: string) {
-    router.push(`/freedom/plans/${planId}`);
+    router.push(`/retire/plans/${planId}`);
   }
 
   if (!isLoaded || !portfoliosLoaded) {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading Freedom plans…
+        Loading Retire plans…
       </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <PillarBackLink href="/freedom" label="Back to Freedom" />
+      <PillarBackLink href="/retire" label="Back to Retire" />
       <RetirePageHeader
-        title="Freedom plans"
+        title="Retire plans"
         description="Create from a blank model, or import holdings from Invest. Create as many plans as you need."
         action={
         <div className="flex flex-wrap gap-2">
@@ -277,11 +277,11 @@ export function RetirementPlansListContent() {
           setIsCreatingFromPortfolio(true);
           try {
             const plan = await createPlanAndSave({
-              name: `${portfolioName} Freedom plan`,
+              name: `${portfolioName} Retire plan`,
               assets,
             });
             setImportDialogOpen(false);
-            router.push(`/freedom/plans/${plan.id}`);
+            router.push(`/retire/plans/${plan.id}`);
           } finally {
             setIsCreatingFromPortfolio(false);
           }

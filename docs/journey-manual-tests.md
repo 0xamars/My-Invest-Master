@@ -1,6 +1,6 @@
 # Journey manual tests
 
-Slice E check. Use a real signed-in account. Apply `supabase/migrations/012_user_money_profiles.sql` first. Do not invent leftover, income, holdings, or a Freedom date while testing.
+Slice E check. Use a real signed-in account. Apply `supabase/migrations/012_user_money_profiles.sql` first. Do not invent leftover, income, holdings, or a Retire date while testing.
 
 ## 1. New user, all beginner, skip money amounts → wizard → Journey Home → Budget Learn → Do
 
@@ -17,11 +17,11 @@ Slice E check. Use a real signed-in account. Apply `supabase/migrations/012_user
 3. Confirm **I budget elsewhere** **or** assign leftover / close a month. Invest Do then opens.
 4. Soft lock is client-side. Middleware must not 404 or bounce `/invest?tab=do` after they have a book or `budgetElsewhere`.
 
-## 3. Existing user who already has leftover + book: Journey Home shows a real Freedom date
+## 3. Existing user who already has leftover + book: Journey Home shows a real Retire date
 
 1. Sign in as a user who already has leftover assigned (or present) **and** a primary book with at least one visible holding.
 2. Open Journey Home.
-3. Freedom date is the leftover + book date (or the honest “no crossing yet” label from that path). It is **not** blank and **not** a guessed year.
+3. Retire date is the leftover + book date (or the honest “no crossing yet” label from that path). It is **not** blank and **not** a guessed year.
 4. Existing leftover and the existing book stay visible. Nothing is deleted.
 
 ## 4. Tools-only flag: lessons available but not forced
@@ -34,7 +34,7 @@ Slice E check. Use a real signed-in account. Apply `supabase/migrations/012_user
 
 1. Open Settings → Money Profile → Edit.
 2. Change knowledge / goal / risk / tools-only. Save.
-3. The one-line summary and track update. Working flags still come from live leftover / book / saved Freedom plan — not from the wizard.
+3. The one-line summary and track update. Working flags still come from live leftover / book / saved Retire plan — not from the wizard.
 
 ## 6. Signed-out public page still works. Chat still gone.
 

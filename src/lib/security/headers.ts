@@ -12,6 +12,8 @@ const BASE_CONNECT = [
   "https://vercel.live",
   "https://*.vercel.live",
   "wss://*.pusher.com",
+  "https://*.plaid.com",
+  "https://cdn.plaid.com",
 ];
 
 export function buildContentSecurityPolicy(options?: {
@@ -35,11 +37,12 @@ export function buildContentSecurityPolicy(options?: {
 
   const directives: string[] = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://cdn.plaid.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     `connect-src ${connect.join(" ")}`,
+    "frame-src 'self' https://cdn.plaid.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

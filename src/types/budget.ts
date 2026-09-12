@@ -20,6 +20,11 @@ export interface BudgetAccount {
    */
   onBudget?: boolean;
   lastReconciledAt?: string;
+  /** Bank-linked account id from Plaid. */
+  plaidAccountId?: string;
+  plaidItemId?: string;
+  plaidMask?: string;
+  lastSyncedAt?: string;
 }
 
 export type BudgetCategoryGroupKind = "user" | "credit-card-payments";

@@ -1,8 +1,5 @@
-import {
-  APP_HOME_PATH,
-  MONEY_PROFILE_PATH,
-} from "@/lib/routes";
-import { isProtectedRoute, isPublicRoute } from "@/lib/security/protected-routes";
+import { BUDGET_PATH } from "@/lib/chrome/nav";
+import { MONEY_PROFILE_PATH } from "@/lib/routes";
 
 function isMoneyProfilePath(pathname: string): boolean {
   return (
@@ -12,14 +9,13 @@ function isMoneyProfilePath(pathname: string): boolean {
 }
 
 /**
- * Soft Invest Do locks stay client-side (skip + warning).
- * Middleware never hard-blocks `/invest?tab=do` for a book or budgetElsewhere.
+ * Soft locks are off. Middleware never hard-blocks Invest.
  */
 export const MIDDLEWARE_HARD_BLOCKS_INVEST_DO = false;
 
-/** Signed-in landing. Not a fourth nav pillar. */
-export function signedInLandingPath(hasProfile: boolean): string {
-  return hasProfile ? APP_HOME_PATH : MONEY_PROFILE_PATH;
+/** Signed-in landing is Budget — not a quiz, not Journey Home. */
+export function signedInLandingPath(_hasProfile?: boolean): string {
+  return BUDGET_PATH;
 }
 
 /** Signed-in visitors do not stay on the public marketing homepage. */
@@ -44,7 +40,7 @@ export function isMissingMoneyProfileTable(error: {
 
 /**
  * Presence only. A missing table, empty row, or lookup error is "no profile".
- * Never invents a Money Profile to pass the gate.
+ * Never invents a Money Profile.
  */
 export function moneyProfilePresenceFromQuery(input: {
   data: { user_id?: string } | null;
@@ -55,26 +51,30 @@ export function moneyProfilePresenceFromQuery(input: {
   return typeof userId === "string" && userId.length > 0;
 }
 
-export function shouldRedirectToMoneyProfile(input: {
+/** Money Profile quiz is unshipped — never redirect into it. */
+export function shouldRedirectToMoneyProfile(_input: {
   signedIn: boolean;
   hasProfile: boolean;
   pathname: string;
 }): boolean {
-  if (!input.signedIn) return false;
-  if (input.hasProfile) return false;
-  if (isMoneyProfilePath(input.pathname)) return false;
-  if (isPublicRoute(input.pathname)) return false;
-  return isProtectedRoute(input.pathname);
+  return false;
+}
+
+export function isBypassedJourneyPath(pathname: string): boolean {
+  return (
+    pathname === "/home" ||
+    pathname.startsWith("/home/") ||
+    isMoneyProfilePath(pathname)
+  );
 }
 
 /** Login / signup bounce for an already-signed-in visitor. */
-export function signedInAuthRedirectPath(hasProfile: boolean): string {
-  return signedInLandingPath(hasProfile);
+export function signedInAuthRedirectPath(_hasProfile?: boolean): string {
+  return signedInLandingPath();
 }
 
 /**
- * Documented no-op: Slice C locks stay in the client.
- * Do not call this from middleware with live budget/book flags.
+ * Documented no-op: Invest is never middleware-gated.
  */
 export function middlewareShouldHardBlockInvestDo(_input?: {
   pathname?: string;

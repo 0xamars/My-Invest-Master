@@ -10,7 +10,7 @@ import {
 
 export type JourneyStation = {
   pillar: JourneyPillar;
-  title: "Budget" | "Invest" | "Freedom";
+  title: "Budget" | "Invest" | "Retire";
   href: string;
   status: StationStatus;
   learnHref: string;
@@ -26,7 +26,7 @@ export type JourneyNextAction = {
 const STATION_TITLE: Record<JourneyPillar, JourneyStation["title"]> = {
   budget: "Budget",
   invest: "Invest",
-  freedom: "Freedom",
+  freedom: "Retire",
 };
 
 export type JourneyLiveHints = {

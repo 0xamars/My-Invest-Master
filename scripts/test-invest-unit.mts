@@ -554,9 +554,9 @@ assert(isPublicRoute("/auth/reset"), "/auth/reset is public");
 assert(!isProtectedRoute("/auth/callback"), "/auth/callback stays public");
 assert(!isProtectedRoute("/auth/reset"), "/auth/reset stays public");
 assert(!isProtectedRoute("/api/prices"), "/api/prices is not a page gate");
-assert(safeAuthNextPath("https://evil.test") === "/home", "rejects absolute next");
-assert(safeAuthNextPath("//evil.test") === "/home", "rejects protocol-relative next");
-assert(safeAuthNextPath("/home") === "/home", "/home next stays on Journey Home");
+assert(safeAuthNextPath("https://evil.test") === "/budget", "rejects absolute next");
+assert(safeAuthNextPath("//evil.test") === "/budget", "rejects protocol-relative next");
+assert(safeAuthNextPath("/home") === "/home", "/home next is still a relative path");
 assert(safeAuthNextPath("/invest") === "/invest", "keeps a relative next");
 
 const mustProtect = [
@@ -649,7 +649,7 @@ assert(
 assert(destinationForLegacyInvestPath("/options") === "/invest/options", "options folds under Invest");
 
 assert(
-  PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Freedom",
+  PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Retire",
   "signed-in chrome is three products — Home is not a pillar",
 );
 assert(
@@ -674,35 +674,35 @@ assert(
   "Market and Analysis are not Invest children",
 );
 assert(pillarForPath("/home") === null, "Journey Home is not a product pillar");
-assert(destinationForLegacyInvestPath("/home") === null, "/home is Journey Home, not a leftover");
+assert(destinationForLegacyInvestPath("/home") === "/budget", "/home folds into Budget");
 assert(isJourneyHomePath("/home"), "/home is Journey Home");
 assert(isMoneyProfilePath("/money-profile"), "/money-profile is the wizard");
 assert(isPillarHub("/home"), "Journey Home has no up-link");
-assert(resolvePageTitle("/home") === "Journey", "Journey Home title");
-assert(pillarHomePath("/settings") === "/home", "Settings up-link is Journey");
+assert(resolvePageTitle("/home") === "Budget", "Journey Home title");
+assert(pillarHomePath("/settings") === "/budget", "Settings up-link is Journey");
 assert(destinationForLegacyInvestPath("/chat") === "/invest", "/chat is unshipped");
 assert(destinationForLegacyInvestPath("/chat/thread") === "/invest", "/chat/* is unshipped");
 assert(destinationForLegacyInvestPath("/assistant") === "/invest", "/assistant is unshipped");
 assert(destinationForLegacyInvestPath("/assistant/ask") === "/invest", "/assistant/* is unshipped");
 assert(isPillarHub("/invest"), "Invest hub has no up-link");
 assert(isPillarHub("/budget"), "Budget hub has no up-link");
-assert(isPillarHub("/freedom"), "Freedom hub has no up-link");
+assert(isPillarHub("/retire"), "Freedom hub has no up-link");
 assert(!isPillarHub("/budget/plans/abc"), "a budget plan is nested");
-assert(pillarLabel("/freedom/plans/abc") === "Freedom", "Freedom never reads as Retire");
+assert(pillarLabel("/retire/plans/abc") === "Retire", "Retire is the pillar label");
 assert(pillarLabel("/invest/options") === "Invest", "options sit inside Invest");
 assert(pillarForPath("/budget/plans/abc") === "budget", "budget plan is Budget");
 assert(pillarForPath("/invest/portfolio/abc") === "invest", "nested book is Invest");
 assert(pillarForPath("/options") === "invest", "legacy options is still Invest");
-assert(pillarForPath("/freedom/plans/abc") === "retire", "plan editor is Freedom");
-assert(pillarForPath("/retire/plans/abc") === "retire", "legacy /retire still maps to Freedom");
+assert(pillarForPath("/retire/plans/abc") === "retire", "plan editor is Retire");
+assert(pillarForPath("/freedom/plans/abc") === "retire", "legacy /freedom still maps to Retire");
 assert(pillarHomePath("/invest/watchlist/abc") === "/invest", "up from watchlist is Invest");
 assert(pillarHomePath("/budget/plans/abc/transactions") === "/budget", "up from register is Budget");
-assert(pillarHomePath("/freedom/plans/abc") === "/freedom", "up from a plan is Freedom");
-assert(pillarHomePath("/retire/plans/abc") === "/freedom", "legacy up-link is Freedom");
-assert(destinationForLegacyInvestPath("/retire") === "/freedom", "/retire redirects to Freedom");
+assert(pillarHomePath("/retire/plans/abc") === "/retire", "up from a plan is Freedom");
+assert(pillarHomePath("/freedom/plans/abc") === "/retire", "legacy up-link is Freedom");
+assert(destinationForLegacyInvestPath("/freedom") === "/retire", "/freedom redirects to Retire");
 assert(
-  destinationForLegacyInvestPath("/retire/plans/abc") === "/freedom/plans/abc",
-  "/retire/plans/:id redirects to Freedom",
+  destinationForLegacyInvestPath("/freedom/plans/abc") === "/retire/plans/abc",
+  "/freedom/plans/:id redirects to Retire",
 );
 assert(isInvestPath("/invest/options") === true, "options under Invest is Invest");
 assert(investPortfolioPath("abc") === "/invest/portfolio/abc", "book path is nested");

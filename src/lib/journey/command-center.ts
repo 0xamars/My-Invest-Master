@@ -137,7 +137,7 @@ export function commandCenterNextAction(
     return {
       pillar: "freedom",
       href: pillarTabHref("freedom", "do"),
-      label: "Open Freedom",
+      label: "Open Retire",
     };
   }
 

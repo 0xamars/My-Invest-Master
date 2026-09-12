@@ -2,6 +2,7 @@
  * One parallel FMP batch for the ticker read. Never called from the client.
  */
 import { fmpFetch, num as fmpNum } from "@/lib/market-data/fmp/client";
+import { TICKER_PAST_YEARS, TICKER_QUARTER_LIMIT } from "@/lib/ticker/constants";
 import type { TickerBundle } from "@/lib/ticker/types";
 
 type Row = Record<string, unknown>;
@@ -48,30 +49,50 @@ export async function fetchTickerBundle(symbol: string): Promise<TickerBundle> {
     estimateRows,
     earningsRows,
     treasuryRows,
+    priceTargetRows,
+    gradesRows,
   ] = await Promise.all([
     safeRows("/profile", { symbol }, 3600),
     safeRows("/quote", { symbol }, 30),
-    safeRows("/income-statement", { symbol, period: "annual", limit: 8 }, 3600),
-    safeRows("/income-statement", { symbol, period: "quarter", limit: 8 }, 3600),
+    safeRows(
+      "/income-statement",
+      { symbol, period: "annual", limit: TICKER_PAST_YEARS },
+      3600,
+    ),
+    safeRows(
+      "/income-statement",
+      { symbol, period: "quarter", limit: TICKER_QUARTER_LIMIT },
+      3600,
+    ),
     safeRows(
       "/balance-sheet-statement",
-      { symbol, period: "annual", limit: 8 },
+      { symbol, period: "annual", limit: TICKER_PAST_YEARS },
       3600,
     ),
     safeRows(
       "/cash-flow-statement",
-      { symbol, period: "annual", limit: 8 },
+      { symbol, period: "annual", limit: TICKER_PAST_YEARS },
       3600,
     ),
     safeRows("/key-metrics-ttm", { symbol }, 3600),
-    safeRows("/key-metrics", { symbol, period: "annual", limit: 6 }, 3600),
+    safeRows(
+      "/key-metrics",
+      { symbol, period: "annual", limit: TICKER_PAST_YEARS },
+      3600,
+    ),
     safeRows("/ratios-ttm", { symbol }, 3600),
-    safeRows("/income-statement-growth", { symbol, limit: 8 }, 3600),
-    safeRows("/financial-growth", { symbol, limit: 5 }, 3600),
+    safeRows(
+      "/income-statement-growth",
+      { symbol, limit: TICKER_PAST_YEARS },
+      3600,
+    ),
+    safeRows("/financial-growth", { symbol, limit: TICKER_PAST_YEARS }, 3600),
     safeRows("/financial-scores", { symbol }, 3600),
     fetchAnnualEstimates(symbol),
     fetchEarningsCompany(symbol),
     safeRows("/treasury-rates", {}, 3600),
+    safeRows("/price-target-consensus", { symbol }, 3600),
+    safeRows("/grades-consensus", { symbol }, 3600),
   ]);
 
   return {
@@ -90,6 +111,8 @@ export async function fetchTickerBundle(symbol: string): Promise<TickerBundle> {
     estimates: estimateRows,
     earnings: earningsRows,
     treasury: first(treasuryRows),
+    priceTarget: first(priceTargetRows),
+    gradesConsensus: first(gradesRows),
   };
 }
 

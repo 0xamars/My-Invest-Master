@@ -58,7 +58,7 @@ export function RetireHomeContent() {
   const basePath = useMemo(() => {
     const assumptions = latest
       ? normalizeRetirementPlan(latest)
-      : createEmptyPlan("Freedom");
+      : createEmptyPlan("Retire");
     return {
       assumptions: latest ? assumptions : null,
       path: bindFreedomPathPlan(assumptions, leftover, book, prices),
@@ -92,14 +92,14 @@ export function RetireHomeContent() {
     <div className="flex flex-1 flex-col gap-5">
       <CategoryPageHeader
         category="retire"
-        title="Freedom"
+        title="Retire"
         description="One date from leftover and the book. Target, on-track, and the lever on this path."
         action={
           latest ? (
             <Button
               variant="outline"
               className="gap-2"
-              render={<Link href="/freedom/plans" />}
+              render={<Link href="/retire/plans" />}
             >
               All plans
               <ArrowRight className="size-4" />
@@ -111,7 +111,7 @@ export function RetireHomeContent() {
       {!ready ? (
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
           <Loader2 className="mr-2 size-4 animate-spin" />
-          Loading Freedom…
+          Loading Retire…
         </div>
       ) : inputsMissing && !latest ? (
         <div className="surface-card" data-empty-state="freedom">
@@ -161,7 +161,7 @@ export function RetireHomeContent() {
             lever={lever}
             href={
               basePath.assumptions
-                ? `/freedom/plans/${basePath.assumptions.id}`
+                ? `/retire/plans/${basePath.assumptions.id}`
                 : undefined
             }
             emptyActions={
@@ -187,7 +187,7 @@ export function RetireHomeContent() {
 
           {!basePath.assumptions && basePath.path.assets.length > 0 ? (
             <p className="text-xs text-muted-foreground">
-              Spending is an assumption until you save a plan. Freedom does
+              Spending is an assumption until you save a plan. Retire does
               not invent leftover or book cash.
             </p>
           ) : null}

@@ -372,7 +372,7 @@ assert(weighted[0]?.weight === 37, "37% name keeps a 37 weight");
 assert(weighted[1]?.weight === 63, "companion weight is 63");
 
 assert(formatTickerCacheAge("not-a-date") === TICKER_UNKNOWN, "bad cache age is Unknown");
-assert(PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Freedom", "nav stays three pillars");
+assert(PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Retire", "nav stays three pillars");
 
 const streetYears: TickerBundle = {
   ...sixYears,
@@ -595,6 +595,7 @@ const uiFiles = [
   "src/components/ticker/ticker-past-section.tsx",
   "src/components/ticker/ticker-health-section.tsx",
   "src/components/ticker/ticker-future-section.tsx",
+  "src/components/ticker/ticker-now-section.tsx",
   "src/components/invest/invest-home-content.tsx",
   "src/components/invest/invest-book.tsx",
 ];

@@ -75,7 +75,7 @@ export function freedomPlanIsSaved(
 
 /**
  * Derive working flags from live Budget / Invest / Freedom data.
- * Does not invent leftover, holdings, or a Freedom plan.
+ * Does not invent leftover, holdings, or a Retire plan.
  */
 export function deriveWorkingFlags(input: WorkingLiveInput): MoneyProfileWorking {
   const leftoverAssigned = leftoverAssignedFromBudgetPlans(input.budgetPlans);

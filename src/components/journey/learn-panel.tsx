@@ -21,7 +21,7 @@ import type { JourneyPillar } from "@/types/money-profile";
 const PILLAR_LABEL: Record<JourneyPillar, string> = {
   budget: "Budget",
   invest: "Invest",
-  freedom: "Freedom",
+  freedom: "Retire",
 };
 
 function LessonChecks({ lesson }: { lesson: LearnLesson }) {

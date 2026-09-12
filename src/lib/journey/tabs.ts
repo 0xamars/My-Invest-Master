@@ -1,9 +1,8 @@
 import {
   BUDGET_PATH,
-  FREEDOM_PATH,
   INVEST_PATH,
+  RETIRE_PATH,
 } from "@/lib/chrome/nav";
-import { effectiveKnowledge } from "@/lib/journey/profile";
 import type { JourneyPillar, MoneyProfile } from "@/types/money-profile";
 
 export const PILLAR_TABS = ["learn", "do"] as const;
@@ -12,7 +11,7 @@ export type PillarTab = (typeof PILLAR_TABS)[number];
 const PILLAR_PATH: Record<JourneyPillar, string> = {
   budget: BUDGET_PATH,
   invest: INVEST_PATH,
-  freedom: FREEDOM_PATH,
+  freedom: RETIRE_PATH,
 };
 
 export function parsePillarTab(
@@ -28,31 +27,18 @@ export function pillarPath(pillar: JourneyPillar): string {
 
 export function pillarTabHref(
   pillar: JourneyPillar,
-  tab: PillarTab,
-  lessonId?: string | null,
+  _tab?: PillarTab,
+  _lessonId?: string | null,
 ): string {
-  const params = new URLSearchParams();
-  params.set("tab", tab);
-  if (tab === "learn" && lessonId) params.set("lesson", lessonId);
-  return `${PILLAR_PATH[pillar]}?${params.toString()}`;
+  return PILLAR_PATH[pillar];
 }
 
-/**
- * Beginner Track + beginner knowledge for this pillar → Learn.
- * Fast Track / toolsOnly (and non-beginner knowledge) → Do.
- * No profile yet → Do so the existing tool stays the landing.
- */
+/** Learn/Do tabs are unshipped. Pillar hubs open the tool. */
 export function defaultPillarTab(
-  profile: MoneyProfile | null,
-  pillar: JourneyPillar,
+  _profile: MoneyProfile | null,
+  _pillar: JourneyPillar,
 ): PillarTab {
-  if (!profile) return "do";
-  if (profile.track === "fast" || profile.track === "tools") return "do";
-  const effective = effectiveKnowledge(
-    profile.knowledge,
-    profile.knowledgeChecks,
-  );
-  return effective[pillar] === "beginner" ? "learn" : "do";
+  return "do";
 }
 
 export function resolvePillarTab(

@@ -16,16 +16,11 @@ export function trackUnlocksAllDo(
  * budget elsewhere, or they already have a book (never hide an existing book).
  * Fast Track / toolsOnly: all Do unlocked.
  */
-export function investDoIsLocked(input: {
+export function investDoIsLocked(_input: {
   profile: MoneyProfile | null | undefined;
   hasBook: boolean;
 }): boolean {
-  const { profile, hasBook } = input;
-  if (!profile) return false;
-  if (trackUnlocksAllDo(profile)) return false;
-  if (profile.working.budget || profile.flags.budgetElsewhere) return false;
-  if (hasBook) return false;
-  return true;
+  return false;
 }
 
 export function confirmBudgetElsewhere(profile: MoneyProfile): MoneyProfile {
@@ -40,11 +35,9 @@ export function confirmBudgetElsewhere(profile: MoneyProfile): MoneyProfile {
  * Does not delete Options.
  */
 export function optionsIsGated(
-  profile: MoneyProfile | null | undefined,
+  _profile: MoneyProfile | null | undefined,
 ): boolean {
-  if (!profile) return false;
-  if (trackUnlocksAllDo(profile)) return false;
-  return profile.flags.optionsConfirmed !== true;
+  return false;
 }
 
 export function confirmOptionsUse(profile: MoneyProfile): MoneyProfile {

@@ -12,27 +12,47 @@ import {
   getChartSeriesColor,
 } from "@/lib/portfolio/chart-theme";
 import { formatTickerField, TICKER_UNKNOWN } from "@/lib/ticker/format";
-import type { TickerChartPoint } from "@/lib/ticker/score-types";
+import type { TickerChartPoint, TickerTrendPoint } from "@/lib/ticker/score-types";
+import type { TickerField } from "@/lib/ticker/types";
 
-const PANELS = [
-  { key: "revenue", label: "Revenue", color: getChartSeriesColor(0), kind: "money" as const },
-  { key: "netIncome", label: "Net income", color: getChartSeriesColor(1), kind: "money" as const },
-  { key: "epsDiluted", label: "Diluted EPS", color: getChartSeriesColor(2), kind: "ratio" as const },
-] as const;
+type SeriesDef = {
+  key: string;
+  label: string;
+  kind: TickerField["kind"];
+};
 
-function hasAny(points: TickerChartPoint[], key: (typeof PANELS)[number]["key"]) {
+const STATEMENT_PANELS: SeriesDef[] = [
+  { key: "revenue", label: "Revenue", kind: "money" },
+  { key: "netIncome", label: "Net income", kind: "money" },
+  { key: "epsDiluted", label: "Diluted EPS", kind: "ratio" },
+];
+
+const TREND_PANELS: SeriesDef[] = [
+  { key: "freeCashFlow", label: "Free cash flow", kind: "money" },
+  { key: "grossMargin", label: "Gross margin", kind: "percent" },
+  { key: "operatingMargin", label: "Operating margin", kind: "percent" },
+  { key: "netMargin", label: "Net margin", kind: "percent" },
+  { key: "fcfMargin", label: "FCF margin", kind: "percent" },
+];
+
+function hasAny(
+  points: Array<Record<string, string | number | null | undefined>>,
+  key: string,
+) {
   return points.some((point) => point[key] != null);
 }
 
 function Panel({
   points,
   series,
+  color,
 }: {
-  points: TickerChartPoint[];
-  series: (typeof PANELS)[number];
+  points: Array<Record<string, string | number | null | undefined>>;
+  series: SeriesDef;
+  color: string;
 }) {
   const config = {
-    [series.key]: { label: series.label, color: series.color },
+    [series.key]: { label: series.label, color },
   } satisfies ChartConfig;
 
   if (!hasAny(points, series.key)) {
@@ -71,9 +91,43 @@ function Panel({
               />
             }
           />
-          <Bar dataKey={series.key} fill={series.color} radius={3} />
+          <Bar dataKey={series.key} fill={color} radius={3} />
         </BarChart>
       </ChartContainer>
+    </div>
+  );
+}
+
+function ChartBlock({
+  title,
+  points,
+  series,
+}: {
+  title: string;
+  points: Array<Record<string, string | number | null | undefined>>;
+  series: SeriesDef[];
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {title}
+      </p>
+      <div
+        className={
+          series.length > 3
+            ? "mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            : "mt-3 grid gap-4 md:grid-cols-3"
+        }
+      >
+        {series.map((item, index) => (
+          <Panel
+            key={item.key}
+            points={points}
+            series={item}
+            color={getChartSeriesColor(index)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -85,16 +139,15 @@ export function TickerStatementCharts({
   title: string;
   points: TickerChartPoint[];
 }) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {title}
-      </p>
-      <div className="mt-3 grid gap-4 md:grid-cols-3">
-        {PANELS.map((series) => (
-          <Panel key={series.key} points={points} series={series} />
-        ))}
-      </div>
-    </div>
-  );
+  return <ChartBlock title={title} points={points} series={STATEMENT_PANELS} />;
+}
+
+export function TickerTrendCharts({
+  title,
+  points,
+}: {
+  title: string;
+  points: TickerTrendPoint[];
+}) {
+  return <ChartBlock title={title} points={points} series={TREND_PANELS} />;
 }

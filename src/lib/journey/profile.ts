@@ -291,7 +291,7 @@ export function defaultMoneyProfileDraft(): MoneyProfile {
 
 /**
  * Normalize stored JSON. Recomputes effective knowledge and track.
- * Working flags stay as last persisted — live leftover / book / Freedom plan
+ * Working flags stay as last persisted — live leftover / book / Retire plan
  * are applied by deriveWorkingFlags, then saved when they change.
  * Income and age stay optional; never invented.
  */

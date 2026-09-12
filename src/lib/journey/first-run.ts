@@ -13,7 +13,7 @@ export const STARTER_ENVELOPE_NAMES = [
 
 export const STARTER_SPENDING_ACCOUNT_NAME = "Spending";
 
-export const FIRST_BOOK_FREEDOM_LINE = "this is the book Freedom will use.";
+export const FIRST_BOOK_FREEDOM_LINE = "this is the book Retire will use.";
 
 export const SHOW_THE_DETAILS_LABEL = "Show the details";
 

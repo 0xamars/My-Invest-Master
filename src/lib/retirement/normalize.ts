@@ -152,7 +152,7 @@ export function normalizeRetirementPlan(
 
   return {
     id: optionalString(source.id, crypto.randomUUID()),
-    name: optionalString(source.name, "New Freedom plan"),
+    name: optionalString(source.name, "New Retire plan"),
     retirementYear: syncedRetirementYear,
     annualLifestyleSpending: Math.max(
       0,

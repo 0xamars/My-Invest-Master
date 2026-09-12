@@ -4,6 +4,7 @@ import type {
   TickerPastPrint,
   TickerScore,
   TickerStatementCharts,
+  TickerStreetOutlook,
 } from "@/lib/ticker/score-types";
 
 export type TickerCacheStatus = "fresh" | "stale" | "miss";
@@ -87,6 +88,7 @@ export type TickerSnapshot = {
   past: TickerPastPrint;
   health: TickerHealthPrint;
   future: TickerFuturePrint;
+  street: TickerStreetOutlook;
   charts: TickerStatementCharts;
 };
 
@@ -106,6 +108,8 @@ export type TickerBundle = {
   estimates: Record<string, unknown>[];
   earnings: Record<string, unknown>[];
   treasury: Record<string, unknown> | null;
+  priceTarget: Record<string, unknown> | null;
+  gradesConsensus: Record<string, unknown> | null;
 };
 
 export type TickerCacheEntry = {

@@ -55,8 +55,8 @@ export function PlanSettingsCard() {
           Your account
         </CardTitle>
         <CardDescription>
-          InvestSalsa is one product. Budget, Invest, and Freedom are
-          included. Create as many budget, portfolio, and Freedom plans as you
+          InvestSalsa is one product. Budget, Invest, and Retire are
+          included. Create as many budget, portfolio, and Retire plans as you
           need.
           Not investment advice.
         </CardDescription>
@@ -101,7 +101,7 @@ export function PlanSettingsCard() {
             <DialogTitle>Switch stored plan to Free?</DialogTitle>
             <DialogDescription>
               This only updates the stored plan preference used for testing.
-              Existing portfolios, Freedom plans, and budget plans are not
+              Existing portfolios, Retire plans, and budget plans are not
               deleted. Caps are not enforced.
             </DialogDescription>
           </DialogHeader>

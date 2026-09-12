@@ -22,7 +22,7 @@ export function SignedInHeaderNav() {
 
   return (
     <nav
-      aria-label="Budget, Invest, Freedom"
+      aria-label="Budget, Invest, Retire"
       className="flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto"
     >
       {SIGNED_IN_PRIMARY_NAV.map((item) => {

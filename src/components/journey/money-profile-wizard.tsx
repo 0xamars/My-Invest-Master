@@ -90,7 +90,7 @@ const RISK_OPTIONS = [
 const PILLAR_LABEL: Record<JourneyPillar, string> = {
   budget: "Budget",
   invest: "Invest",
-  freedom: "Freedom",
+  freedom: "Retire",
 };
 
 function currenciesForSelect(): DisplayCurrency[] {
@@ -456,7 +456,7 @@ export function MoneyProfileWizard({
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">
-          You can edit this anytime in Settings. Budget, Invest, and Freedom stay
+          You can edit this anytime in Settings. Budget, Invest, and Retire stay
           open.
         </p>
       )}

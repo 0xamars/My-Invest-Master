@@ -61,7 +61,7 @@ export function RetirementVerdictHero({
         <RetireEmptyState
           icon={<Wallet className="size-5" />}
           title="Leftover or the book is missing"
-          description="Freedom uses Budget leftover plus the Invest book. It will not invent cash."
+          description="Retire uses Budget leftover plus the Invest book. It will not invent cash."
           actions={emptyActions}
         />
         <div className="border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">

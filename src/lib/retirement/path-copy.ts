@@ -10,7 +10,7 @@ export function impliedPathSentence(
   formatMoney: (value: number) => string,
 ): string {
   if (dashboard.verdict === "empty") {
-    return "Leftover or the book is missing. Freedom will not invent cash.";
+    return "Leftover or the book is missing. Retire will not invent cash.";
   }
 
   const target = `Target ${formatMoney(dashboard.targetNestEgg)}.`;

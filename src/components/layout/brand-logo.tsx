@@ -10,7 +10,7 @@ interface BrandLogoProps {
   priority?: boolean;
 }
 
-const TAGLINE = "Freedom, engineered.";
+const TAGLINE = "Retire, engineered.";
 
 const ICON = BRAND.logoMark;
 
