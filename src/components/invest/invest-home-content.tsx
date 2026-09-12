@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Plus, RefreshCw, TrendingUp } from "lucide-react";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
@@ -22,7 +21,7 @@ import { explainAddHoldingFields } from "@/lib/journey/density";
 import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { INVEST_EMPTY_BOOK } from "@/lib/journey/empty-states";
 import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
-import { buildBookRows } from "@/lib/ticker/book";
+import { buildBookRows, formatBookCacheLine } from "@/lib/ticker/book";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import type { DisplayCurrency } from "@/types/currency";
 import type { AddTransactionInput } from "@/types/portfolio";
@@ -50,8 +49,12 @@ export function InvestHomeContent() {
     () => holdings.filter((item) => item.type === "stock").map((item) => item.symbol),
     [holdings],
   );
-  const { quotes } = useBookTickerQuotes(stockSymbols);
+  const { quotes, isLoaded: quotesLoaded } = useBookTickerQuotes(stockSymbols);
   const rows = useMemo(() => buildBookRows(holdings, quotes), [holdings, quotes]);
+  const cacheLine = useMemo(
+    () => formatBookCacheLine(Object.values(quotes), { isLoaded: quotesLoaded }),
+    [quotes, quotesLoaded],
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -138,12 +141,6 @@ export function InvestHomeContent() {
                   <Plus className="size-4" />
                   {INVEST_EMPTY_BOOK.addLabel}
                 </Button>
-                <Button
-                  variant="outline"
-                  render={<Link href={INVEST_EMPTY_BOOK.learnHref} />}
-                >
-                  {INVEST_EMPTY_BOOK.learnLabel}
-                </Button>
               </>
             }
           />
@@ -151,6 +148,11 @@ export function InvestHomeContent() {
       ) : (
         <RetirePanel className="px-5 py-4">
           <h2 className="text-sm font-semibold">Book</h2>
+          {cacheLine ? (
+            <p className="mt-1 text-xs text-muted-foreground" data-book-cache="1">
+              {cacheLine}
+            </p>
+          ) : null}
           <div className="mt-4">
             <BookConcentrationBar rows={rows} />
           </div>

@@ -13,6 +13,10 @@ import {
 } from "@/lib/plaid/store";
 import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
 
+/**
+ * After Plaid Link update-mode success: do not re-exchange the public token.
+ * Mark the existing item active and pull the latest transactions.
+ */
 export async function POST(request: Request) {
   const auth = await requirePlaidUser(request);
   if ("error" in auth && auth.error) return auth.error;
@@ -62,20 +66,20 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof PlaidRequestError) {
-      if (plaidErrorNeedsReconnect(error.errorCode) && itemId) {
+      if (plaidErrorNeedsReconnect(error.errorCode)) {
         try {
           await markPlaidItemStatus({
             itemId,
             status: "needs_reconnect",
           });
         } catch {
-          // Best-effort; the sync error still returns.
+          // Status write is best-effort; the error still returns to the client.
         }
       }
       return jsonError(error.message, error.status || 502);
     }
     return jsonError(
-      error instanceof Error ? error.message : "Could not sync bank",
+      error instanceof Error ? error.message : "Could not reconnect bank",
       502,
     );
   }

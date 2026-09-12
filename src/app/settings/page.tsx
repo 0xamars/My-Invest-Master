@@ -2,6 +2,7 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { AccountSettings } from "@/components/settings/account-settings";
 import { DataSettingsCard } from "@/components/settings/data-settings-card";
+import { DisplayCurrencyCard } from "@/components/settings/display-currency-card";
 import { PlanSettingsCard } from "@/components/settings/plan-settings-card";
 import { BUDGET_PATH } from "@/lib/chrome/nav";
 
@@ -20,6 +21,7 @@ export default function SettingsPage() {
           </p>
         </div>
         <AccountSettings />
+        <DisplayCurrencyCard />
         <DataSettingsCard />
         <PlanSettingsCard />
       </div>

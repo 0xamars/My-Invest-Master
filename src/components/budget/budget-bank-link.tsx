@@ -1,11 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Landmark, Loader2, RefreshCw, Unplug } from "lucide-react";
+import { Landmark, Loader2, Plug, RefreshCw, Unplug } from "lucide-react";
 import { usePlaidLink } from "react-plaid-link";
 import { Button } from "@/components/ui/button";
 import { BudgetPanel } from "@/components/budget/budget-ui";
 import { useBudget } from "@/contexts/budget-context";
+import {
+  formatPlaidItemSyncLine,
+  plaidItemNeedsUserReconnect,
+} from "@/lib/plaid/item-status";
 import type { PlaidItemSummary, PlaidStatusResponse, PlaidSyncPayload } from "@/lib/plaid/types";
 
 function PlaidOpen({
@@ -20,8 +24,7 @@ function PlaidOpen({
   const { open, ready } = usePlaidLink({
     token,
     onSuccess: (publicToken, metadata) => {
-      if (!publicToken) return;
-      onSuccess(publicToken, {
+      onSuccess(publicToken ?? "", {
         institution: metadata.institution
           ? {
               institution_id: metadata.institution.institution_id ?? undefined,
@@ -51,6 +54,7 @@ export function BudgetBankLink({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [updateItemId, setUpdateItemId] = useState<string | null>(null);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -90,15 +94,20 @@ export function BudgetBankLink({
     [importFromPlaid],
   );
 
-  const startLink = async () => {
+  const startLink = async (itemId?: string) => {
     setError(null);
     setBusy(true);
     try {
-      const response = await fetch("/api/plaid/link-token", { method: "POST" });
+      const response = await fetch("/api/plaid/link-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(itemId ? { itemId } : {}),
+      });
       const data = (await response.json()) as { linkToken?: string; error?: string };
       if (!response.ok || !data.linkToken) {
         throw new Error(data.error ?? "Could not start bank link");
       }
+      setUpdateItemId(itemId ?? null);
       setLinkToken(data.linkToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start bank link");
@@ -111,10 +120,30 @@ export function BudgetBankLink({
     publicToken: string,
     metadata: { institution?: { institution_id?: string; name?: string } },
   ) => {
+    const existingItemId = updateItemId;
     setLinkToken(null);
+    setUpdateItemId(null);
     setBusy(true);
     setError(null);
     try {
+      if (existingItemId) {
+        const response = await fetch("/api/plaid/reconnect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemId: existingItemId }),
+        });
+        const data = (await response.json()) as {
+          payload?: PlaidSyncPayload;
+          error?: string;
+        };
+        if (!response.ok || !data.payload) {
+          throw new Error(data.error ?? "Could not reconnect bank");
+        }
+        applyPayload(data.payload);
+        await refreshStatus();
+        return;
+      }
+
       const response = await fetch("/api/plaid/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +189,7 @@ export function BudgetBankLink({
       await refreshStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sync bank");
+      await refreshStatus();
     } finally {
       setBusy(false);
     }
@@ -202,7 +232,10 @@ export function BudgetBankLink({
         <PlaidOpen
           token={linkToken}
           onSuccess={handleSuccess}
-          onExit={() => setLinkToken(null)}
+          onExit={() => {
+            setLinkToken(null);
+            setUpdateItemId(null);
+          }}
         />
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -228,52 +261,74 @@ export function BudgetBankLink({
         </Button>
       </div>
 
+      {loading ? (
+        <p className="mt-3 text-sm text-muted-foreground" role="status">
+          Checking bank connections…
+        </p>
+      ) : null}
+
       {status?.items.length ? (
         <ul className="mt-4 divide-y divide-border/50">
-          {status.items.map((item) => (
-            <li
-              key={item.itemId}
-              className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0"
-            >
-              <div>
-                <p className="text-sm font-medium">
-                  {item.institutionName ?? "Linked bank"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {item.lastSyncedAt
-                    ? `Last sync ${new Date(item.lastSyncedAt).toLocaleString()}`
-                    : "Connected · sync to pull transactions"}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void syncItem(item)}
-                >
-                  <RefreshCw className="size-3.5" />
-                  Sync
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void disconnectItem(item)}
-                >
-                  <Unplug className="size-3.5" />
-                  Disconnect
-                </Button>
-              </div>
-            </li>
-          ))}
+          {status.items.map((item) => {
+            const needsReconnect = plaidItemNeedsUserReconnect(item.status);
+            return (
+              <li
+                key={item.itemId}
+                className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0"
+                data-plaid-item-status={item.status}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {item.institutionName ?? "Linked bank"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatPlaidItemSyncLine(item)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {needsReconnect ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busy || !configured}
+                      onClick={() => void startLink(item.itemId)}
+                    >
+                      <Plug className="size-3.5" />
+                      Reconnect
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => void syncItem(item)}
+                    >
+                      <RefreshCw className="size-3.5" />
+                      Sync
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void disconnectItem(item)}
+                  >
+                    <Unplug className="size-3.5" />
+                    Disconnect
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
 
       {error ? (
-        <p className="mt-3 text-sm text-[var(--brand-orange)]">{error}</p>
+        <p className="mt-3 text-sm text-[var(--brand-orange)]" role="alert">
+          {error}
+        </p>
       ) : null}
     </BudgetPanel>
   );

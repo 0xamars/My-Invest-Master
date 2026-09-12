@@ -17,6 +17,7 @@ import {
   formatTickerPrice,
   TICKER_UNKNOWN,
 } from "../src/lib/ticker/format.ts";
+import { formatBookCacheLine } from "../src/lib/ticker/book.ts";
 import { investTickerPath, normalizeTickerSymbol } from "../src/lib/ticker/symbol.ts";
 import { INVEST_LEGACY_REDIRECTS } from "../src/lib/invest/legacy-redirects.ts";
 import {
@@ -35,6 +36,36 @@ assert(normalizeTickerSymbol(" BRK.B ") === "BRK.B", "allows dotted tickers");
 assert(normalizeTickerSymbol("not a ticker!!") === null, "rejects junk");
 assert(normalizeTickerSymbol("") === null, "rejects empty");
 assert(investTickerPath("nvda") === "/analysis/NVDA", "path is analysis symbol");
+assert(
+  formatBookCacheLine([], { isLoaded: false }) === "Loading prices…",
+  "book cache loading is explicit",
+);
+assert(
+  formatBookCacheLine([
+    {
+      symbol: "VOO",
+      name: "Vanguard",
+      price: null,
+      healthMark: "Unknown",
+      fetchedAt: null,
+      cacheStatus: "miss",
+    },
+  ]) === "Prices · cache miss",
+  "book cache miss is labeled",
+);
+assert(
+  formatBookCacheLine([
+    {
+      symbol: "VOO",
+      name: "Vanguard",
+      price: 500,
+      healthMark: "A",
+      fetchedAt: new Date().toISOString(),
+      cacheStatus: "stale",
+    },
+  ])?.includes("stale"),
+  "stale book quotes say refreshing",
+);
 
 assert(
   !INVEST_LEGACY_REDIRECTS.some((entry) => entry.source === "/analysis/:symbol"),

@@ -15,6 +15,13 @@ import {
   parsePlaidEnv,
   readPlaidConfig,
 } from "../src/lib/plaid/config.ts";
+import {
+  formatPlaidItemSyncLine,
+  parsePlaidWebhookBody,
+  plaidErrorNeedsReconnect,
+  plaidItemNeedsUserReconnect,
+  resolvePlaidWebhookItemStatus,
+} from "../src/lib/plaid/item-status.ts";
 import { createEmptyBudgetPlan } from "../src/types/budget.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
 import { existsSync, readFileSync } from "node:fs";
@@ -147,9 +154,92 @@ const ui = readFileSync(
 );
 assert(!/YNAB/i.test(ui), "bank link UI does not name YNAB");
 assert(ui.includes("Connect bank"), "primary CTA is Connect bank");
+assert(ui.includes("Reconnect"), "item errors offer Reconnect");
+assert(ui.includes("/api/plaid/reconnect"), "update mode does not re-exchange");
 assert(
   existsSync(join(process.cwd(), "supabase/migrations/013_user_plaid_items.sql")),
   "Plaid migration is checked in",
 );
+
+assert(
+  plaidErrorNeedsReconnect("ITEM_LOGIN_REQUIRED"),
+  "login required needs reconnect",
+);
+assert(
+  plaidErrorNeedsReconnect("USER_PERMISSION_REVOKED"),
+  "revoked permission needs reconnect",
+);
+assert(!plaidErrorNeedsReconnect("RATE_LIMIT"), "rate limit is not reconnect");
+assert(plaidItemNeedsUserReconnect("needs_reconnect"), "needs_reconnect is UI flag");
+assert(plaidItemNeedsUserReconnect("error"), "error is UI flag");
+assert(!plaidItemNeedsUserReconnect("active"), "active does not ask reconnect");
+
+const loginWebhook = parsePlaidWebhookBody({
+  item_id: "item_1",
+  webhook_type: "ITEM",
+  webhook_code: "ERROR",
+  error: { error_code: "ITEM_LOGIN_REQUIRED" },
+});
+assert(loginWebhook.itemId === "item_1", "webhook parses item id");
+assert(
+  resolvePlaidWebhookItemStatus(loginWebhook) === "needs_reconnect",
+  "ITEM ERROR + login required marks reconnect",
+);
+assert(
+  resolvePlaidWebhookItemStatus({
+    itemId: "item_1",
+    webhookType: "ITEM",
+    webhookCode: "LOGIN_REPAIRED",
+    errorCode: null,
+  }) === "active",
+  "LOGIN_REPAIRED clears the flag",
+);
+assert(
+  resolvePlaidWebhookItemStatus({
+    itemId: "item_1",
+    webhookType: "TRANSACTIONS",
+    webhookCode: "DEFAULT_UPDATE",
+    errorCode: null,
+  }) === null,
+  "transaction webhooks do not change status",
+);
+assert(
+  formatPlaidItemSyncLine({
+    status: "needs_reconnect",
+    lastSyncedAt: "2026-09-01T00:00:00.000Z",
+  }).includes("reconnect"),
+  "expired item copy asks to reconnect",
+);
+
+const webhookRoute = readFileSync(
+  join(process.cwd(), "src/app/api/plaid/webhook/route.ts"),
+  "utf8",
+);
+assert(
+  webhookRoute.includes("resolvePlaidWebhookItemStatus") &&
+    webhookRoute.includes("markPlaidItemStatus"),
+  "webhook route writes reconnect status",
+);
+
+const settingsPage = readFileSync(
+  join(process.cwd(), "src/app/settings/page.tsx"),
+  "utf8",
+);
+assert(
+  settingsPage.includes("DisplayCurrencyCard"),
+  "settings includes display currency",
+);
+
+const retireHome = readFileSync(
+  join(process.cwd(), "src/components/retire/retire-home-content.tsx"),
+  "utf8",
+);
+assert(
+  retireHome.includes("Assign leftover") || retireHome.includes("leftoverLabel"),
+  "Retire empty points at leftover",
+);
+assert(!retireHome.includes("FREEDOM_EMPTY.learnHref"), "Retire empty has no Learn self-link");
+assert(!retireHome.includes("Open Retire"), "Retire empty has no self-link");
+assert(!retireHome.includes(">Freedom<"), "Retire home does not label Freedom");
 
 console.log("budget plaid unit tests passed");

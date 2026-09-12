@@ -114,7 +114,7 @@ export function RetireHomeContent() {
           Loading Retire…
         </div>
       ) : inputsMissing && !latest ? (
-        <div className="surface-card" data-empty-state="freedom">
+        <div className="surface-card" data-empty-state="retire">
           <BrandStill
             src={BRAND.emptyFreedom}
             alt=""
@@ -138,12 +138,6 @@ export function RetireHomeContent() {
                   render={<Link href={FREEDOM_EMPTY.bookHref} />}
                 >
                   {FREEDOM_EMPTY.bookLabel}
-                </Button>
-                <Button
-                  variant="outline"
-                  render={<Link href={FREEDOM_EMPTY.learnHref} />}
-                >
-                  {FREEDOM_EMPTY.learnLabel}
                 </Button>
               </>
             }
@@ -174,12 +168,6 @@ export function RetireHomeContent() {
                   render={<Link href={FREEDOM_EMPTY.bookHref} />}
                 >
                   {FREEDOM_EMPTY.bookLabel}
-                </Button>
-                <Button
-                  variant="outline"
-                  render={<Link href={FREEDOM_EMPTY.learnHref} />}
-                >
-                  {FREEDOM_EMPTY.learnLabel}
                 </Button>
               </>
             }
