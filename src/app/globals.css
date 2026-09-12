@@ -95,7 +95,7 @@
   --chart-3: #e5484d;
   --chart-4: #8b8e97;
   --chart-5: #4d9a4a;
-  --radius: 0.75rem;
+  --radius: 0.7rem;
   --sidebar: #141518;
   --sidebar-foreground: #8b8e97;
   --sidebar-primary: #64b860;
@@ -222,12 +222,12 @@
   }
 
   .page-title {
-    @apply text-[1.65rem] font-semibold tracking-tight text-foreground;
-    letter-spacing: -0.03em;
+    @apply text-[1.5rem] font-semibold tracking-tight text-foreground;
+    letter-spacing: -0.032em;
   }
 
   .page-description {
-    @apply mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground;
+    @apply mt-1 max-w-xl text-[0.8125rem] leading-relaxed text-muted-foreground;
   }
 
   /* Solid desk surfaces — no blur, frost, or specular rims. */
@@ -246,6 +246,9 @@
     background-color: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 3.5%),
+      0 18px 40px -28px rgb(0 0 0 / 70%);
   }
 
   .stat-card {
@@ -294,8 +297,8 @@
   }
 
   .stat-value {
-    @apply text-[1.625rem] font-semibold tabular-nums tracking-tight text-foreground;
-    letter-spacing: -0.02em;
+    @apply text-[1.5rem] font-semibold tabular-nums tracking-tight text-foreground;
+    letter-spacing: -0.028em;
   }
 
   .stat-sub {
@@ -346,6 +349,82 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  .premium-empty {
+    @apply flex flex-col items-center px-6 py-12 text-center sm:py-14;
+  }
+
+  .premium-empty-icon {
+    @apply mb-4 flex size-11 items-center justify-center rounded-[var(--radius)] border border-border bg-muted text-[var(--brand-green)];
+  }
+
+  .desk-table {
+    @apply w-full min-w-[28rem] text-left text-sm;
+  }
+
+  .desk-table thead th {
+    @apply py-2.5 pr-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground;
+  }
+
+  .desk-table tbody tr {
+    @apply border-t border-border/50;
+  }
+
+  .desk-table tbody td {
+    @apply py-2.5 pr-3 tabular-nums;
+  }
+
+  .segmented {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+    border-radius: var(--radius);
+    background: var(--muted);
+    border: 1px solid var(--border);
+    padding: 0.2rem;
+  }
+
+  .segmented-item {
+    @apply rounded-md px-3.5 py-1.5 text-[0.8125rem] font-medium text-muted-foreground transition-colors;
+  }
+
+  .segmented-item:hover {
+    color: var(--foreground);
+  }
+
+  .segmented-item[data-active="true"],
+  .segmented-item[aria-current="page"] {
+    background: var(--background);
+    color: var(--foreground);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset;
+  }
+
+  .progress-track {
+    margin-top: 1rem;
+    height: 0.35rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--muted-foreground) 16%, transparent);
+  }
+
+  .progress-track-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--brand-green);
+  }
+
+  .progress-track-fill--low {
+    background: var(--brand-orange);
+  }
+
+  .page-spinner {
+    @apply flex flex-1 items-center justify-center gap-2 py-16 text-sm text-muted-foreground;
+  }
+
+  .chart-unknown {
+    @apply mt-3 flex h-[140px] items-center rounded-[calc(var(--radius)*0.85)] border border-dashed border-border/80 bg-muted/20 px-3 text-sm text-muted-foreground;
   }
 
   .nav-item {
@@ -471,6 +550,7 @@
 
   .portal-header {
     border-bottom: 1px solid var(--border);
+    backdrop-filter: none;
   }
 
   .portal-sidebar {
@@ -742,6 +822,9 @@
     border-radius: var(--radius);
     background-color: var(--card);
     border: 1px solid var(--border);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 3.5%),
+      0 18px 40px -28px rgb(0 0 0 / 70%);
   }
 
   .budget-metric {

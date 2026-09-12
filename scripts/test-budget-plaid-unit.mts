@@ -229,6 +229,20 @@ assert(
   settingsPage.includes("DisplayCurrencyCard"),
   "settings includes display currency",
 );
+assert(
+  !settingsPage.includes("MoneyProfile"),
+  "settings has no Money Profile surface",
+);
+
+const appShell = readFileSync(
+  join(process.cwd(), "src/components/layout/app-shell.tsx"),
+  "utf8",
+);
+assert(!appShell.includes("AppSidebar"), "signed-in chrome has no leftover sidebar");
+assert(
+  appShell.includes("SignedInHeaderNav"),
+  "signed-in chrome keeps Budget / Invest / Retire in the header",
+);
 
 const retireHome = readFileSync(
   join(process.cwd(), "src/components/retire/retire-home-content.tsx"),

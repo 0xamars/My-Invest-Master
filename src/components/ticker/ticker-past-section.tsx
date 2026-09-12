@@ -112,23 +112,20 @@ export function TickerPastSection({ snapshot }: { snapshot: TickerSnapshot }) {
 
       {past.years.length > 0 ? (
         <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[28rem] text-left text-sm">
+          <table className="desk-table">
             <thead>
-              <tr className="text-xs text-muted-foreground">
-                <th className="py-2 pr-3 font-medium">Year</th>
-                <th className="py-2 pr-3 font-medium">Revenue</th>
-                <th className="py-2 pr-3 font-medium">Net income</th>
-                <th className="py-2 pr-3 font-medium">Diluted EPS</th>
-                <th className="py-2 pr-3 font-medium">Diluted shares</th>
+              <tr>
+                <th>Year</th>
+                <th>Revenue</th>
+                <th>Net income</th>
+                <th>Diluted EPS</th>
+                <th>Diluted shares</th>
               </tr>
             </thead>
             <tbody>
               {past.years.map((year) => (
-                <tr
-                  key={year.fiscalYear ?? "unknown"}
-                  className="border-t border-border/50"
-                >
-                  <td className="py-2 pr-3 tabular-nums">
+                <tr key={year.fiscalYear ?? "unknown"}>
+                  <td>
                     {year.fiscalYear ?? TICKER_UNKNOWN}
                   </td>
                   <td className="py-2 pr-3 tabular-nums">

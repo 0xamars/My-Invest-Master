@@ -105,6 +105,48 @@ export function RetirementVerdictHero({
         {leverText ? (
           <p className="mt-2 text-sm font-medium">{leverText}</p>
         ) : null}
+        {dashboard.targetNestEgg > 0 ? (
+          <div>
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="Book plus leftover toward the nest-egg target"
+              aria-valuemin={0}
+              aria-valuemax={dashboard.targetNestEgg}
+              aria-valuenow={Math.max(0, dashboard.currentPortfolio)}
+            >
+              <span
+                className={cn(
+                  "progress-track-fill",
+                  dashboard.verdict === "behind" || dashboard.verdict === "empty"
+                    ? "progress-track-fill--low"
+                    : undefined,
+                )}
+                style={{
+                  width: `${Math.round(
+                    Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        (dashboard.currentPortfolio / dashboard.targetNestEgg) * 100,
+                      ),
+                    ),
+                  )}%`,
+                }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {dashboard.currentPortfolio <= 0
+                ? "No book or leftover on this path yet."
+                : `${Math.round(
+                    Math.min(
+                      999,
+                      (dashboard.currentPortfolio / dashboard.targetNestEgg) * 100,
+                    ),
+                  )}% of the target from leftover and the book.`}
+            </p>
+          </div>
+        ) : null}
         {href ? (
           <Button className="mt-4" render={<Link href={href} />}>
             Open plan

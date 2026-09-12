@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Loader2,
   Plus,
   Trash2,
   Wallet,
 } from "lucide-react";
+import { PageLoading } from "@/components/layout/page-loading";
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-dialog";
 import { BudgetEmptyState, BudgetPageHeader } from "@/components/budget/budget-ui";
@@ -90,12 +90,7 @@ export function BudgetPlansListContent() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading budget plans…
-      </div>
-    );
+    return <PageLoading label="Loading Budget…" />;
   }
 
   return (
@@ -247,7 +242,7 @@ export function BudgetPlansListContent() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         title="Create Budget Plan"
-        description="Give your plan a name so you can find it easily in the sidebar and overview."
+        description="Give your plan a name so you can find it on Budget."
         confirmLabel="Create plan"
         onConfirm={handleCreate}
         isSubmitting={isCreating}

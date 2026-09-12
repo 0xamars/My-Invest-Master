@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, RefreshCw, TrendingUp } from "lucide-react";
+import { Plus, TrendingUp } from "lucide-react";
+import { PageLoading } from "@/components/layout/page-loading";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
@@ -83,11 +84,7 @@ export function InvestHomeContent() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex min-h-[12rem] items-center justify-center">
-        <RefreshCw className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoading label="Loading Invest…" />;
   }
 
   return (

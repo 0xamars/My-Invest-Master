@@ -62,32 +62,42 @@ export function TickerReadView({
 
       <RetirePageHeader
         title={name}
-        description={`${snapshot.symbol}${profile.exchange ? ` · ${profile.exchange}` : ""}`}
+        description={`${snapshot.symbol}${profile.exchange ? ` · ${profile.exchange}` : ""}${
+          profile.sector ? ` · ${profile.sector}` : ""
+        }`}
       />
 
-      <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="budget-hero-value">{formatTickerPrice(quote.price)}</p>
-          {change != null ? (
-            <p className={cn("text-sm font-medium tabular-nums", profitLossClass(change))}>
-              {quote.change != null
-                ? `${quote.change >= 0 ? "+" : ""}${formatTickerPrice(quote.change)}`
-                : null}
-              {quote.change != null ? " · " : null}
-              {formatTickerField({
-                label: "Day change",
-                value: change,
-                kind: "percent",
-              })}
+      <section className="budget-panel px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="budget-metric-label">Last</p>
+            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <p className="budget-hero-value">{formatTickerPrice(quote.price)}</p>
+              {change != null ? (
+                <p className={cn("text-sm font-medium tabular-nums", profitLossClass(change))}>
+                  {quote.change != null
+                    ? `${quote.change >= 0 ? "+" : ""}${formatTickerPrice(quote.change)}`
+                    : null}
+                  {quote.change != null ? " · " : null}
+                  {formatTickerField({
+                    label: "Day change",
+                    value: change,
+                    kind: "percent",
+                  })}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Day change · {TICKER_UNKNOWN}</p>
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="budget-metric-label">Market cap</p>
+            <p className="mt-1.5 text-sm font-medium tabular-nums">
+              {formatTickerMarketCap(quote.marketCap)}
+              {profile.currency ? ` · ${profile.currency}` : ""}
             </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Day change · {TICKER_UNKNOWN}</p>
-          )}
+          </div>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Market cap {formatTickerMarketCap(quote.marketCap)}
-          {profile.currency ? ` · ${profile.currency}` : ""}
-        </p>
         <CacheLine snapshot={snapshot} />
       </section>
 
@@ -124,7 +134,7 @@ export function TickerReadView({
       ) : null}
 
       {collapsed ? null : (
-      <RetirePanel className="px-5 py-4">
+      <RetirePanel className="px-5 py-5">
         <h2 className="text-sm font-semibold">Score</h2>
         <p className="mt-1 text-sm text-muted-foreground">{SCORE_NOT_A_BUY}</p>
         <div className="mt-4">
@@ -135,10 +145,16 @@ export function TickerReadView({
 
       {collapsed ? null : (
         <Tabs defaultValue="past" className="gap-4" data-ticker-tabs="past-now-future">
-          <TabsList className="grid h-auto w-full grid-cols-3 sm:w-fit">
-            <TabsTrigger value="past">Past</TabsTrigger>
-            <TabsTrigger value="now">Now</TabsTrigger>
-            <TabsTrigger value="future">Future</TabsTrigger>
+          <TabsList className="segmented h-auto w-full bg-muted p-[0.2rem] sm:w-fit">
+            <TabsTrigger value="past" className="rounded-md px-4 py-1.5">
+              Past
+            </TabsTrigger>
+            <TabsTrigger value="now" className="rounded-md px-4 py-1.5">
+              Now
+            </TabsTrigger>
+            <TabsTrigger value="future" className="rounded-md px-4 py-1.5">
+              Future
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="past" className="mt-1">
             <TickerPastSection snapshot={snapshot} />
@@ -173,7 +189,7 @@ function CacheLine({ snapshot }: { snapshot: TickerSnapshot }) {
           ? "Loaded from FMP"
           : "Cache miss";
   return (
-    <p className="mt-3 text-xs text-muted-foreground" data-ticker-cache={status}>
+    <p className="mt-4 text-xs text-muted-foreground" data-ticker-cache={status}>
       Cached {formatTickerCacheAge(snapshot.fetchedAt)} · {label}
       {snapshot.cache.fromCache ? " · first paint from cache" : ""}
     </p>

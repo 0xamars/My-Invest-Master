@@ -71,7 +71,7 @@ export function TickerLookup({
           }}
           placeholder={placeholder}
           aria-label="Search a public stock by name or ticker"
-          className="h-11 pl-10 text-sm"
+          className="h-11 rounded-[var(--radius)] border-border bg-muted/40 pl-10 text-sm"
           autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}

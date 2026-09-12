@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AccountMenu } from "@/components/layout/account-menu";
-import { AppSidebar } from "@/components/layout/app-sidebar";
 import { HeaderAccountBoundary } from "@/components/layout/header-account-boundary";
 import { BrandHomeLink } from "@/components/layout/brand-home-link";
 import { BrandLogo } from "@/components/layout/brand-logo";
@@ -66,29 +64,26 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider className="relative bg-background">
-      <AppSidebar />
-      <SidebarInset className="relative bg-background">
-        <AppShellHeader />
-        <main className="relative flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-8 md:pb-10">
-          <div className="page-shell">{children}</div>
-        </main>
-        <footer className="relative hidden border-t border-border px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
-          <div className="page-shell flex flex-wrap items-center justify-between gap-3">
-            <p>Not investment advice.</p>
-            <div className="flex gap-4">
-              <Link href={TERMS_PATH} className="hover:text-foreground">
-                Terms
-              </Link>
-              <Link href={PRIVACY_PATH} className="hover:text-foreground">
-                Privacy
-              </Link>
-            </div>
+    <div className="relative flex min-h-svh flex-col bg-background">
+      <AppShellHeader />
+      <main className="relative flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-8 md:pb-10">
+        <div className="page-shell">{children}</div>
+      </main>
+      <footer className="relative hidden border-t border-border px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">
+        <div className="page-shell flex flex-wrap items-center justify-between gap-3">
+          <p>Not investment advice.</p>
+          <div className="flex gap-4">
+            <Link href={TERMS_PATH} className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link href={PRIVACY_PATH} className="hover:text-foreground">
+              Privacy
+            </Link>
           </div>
-        </footer>
-        <MobileTabBar />
-      </SidebarInset>
-    </SidebarProvider>
+        </div>
+      </footer>
+      <MobileTabBar />
+    </div>
   );
 }
 

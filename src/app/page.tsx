@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 
 function HomeLoading() {
   return (
-    <div className="flex min-h-svh items-center justify-center bg-[#121212]">
-      <RefreshCw className="size-5 animate-spin text-white/50" />
+    <div className="flex min-h-svh items-center justify-center bg-background">
+      <RefreshCw className="size-5 animate-spin text-muted-foreground" />
     </div>
   );
 }

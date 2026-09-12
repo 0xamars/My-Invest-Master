@@ -35,6 +35,17 @@ const TREND_PANELS: SeriesDef[] = [
   { key: "fcfMargin", label: "FCF margin", kind: "percent" },
 ];
 
+const SERIES_COLOR: Record<string, string> = {
+  revenue: "var(--brand-green)",
+  netIncome: "var(--brand-orange)",
+  epsDiluted: "var(--brand-green-deep)",
+  freeCashFlow: "var(--brand-green)",
+  grossMargin: "var(--brand-orange)",
+  operatingMargin: "var(--chart-series-6)",
+  netMargin: "var(--brand-green-deep)",
+  fcfMargin: "var(--chart-series-5)",
+};
+
 function hasAny(
   points: Array<Record<string, string | number | null | undefined>>,
   key: string,
@@ -59,7 +70,7 @@ function Panel({
     return (
       <div>
         <p className="budget-metric-label">{series.label}</p>
-        <p className="mt-6 text-sm text-muted-foreground">{TICKER_UNKNOWN}</p>
+        <p className="chart-unknown">{TICKER_UNKNOWN}</p>
       </div>
     );
   }
@@ -67,12 +78,12 @@ function Panel({
   return (
     <div>
       <p className="budget-metric-label">{series.label}</p>
-      <ChartContainer config={config} className="mt-2 aspect-[5/3] h-[140px] w-full">
-        <BarChart data={points} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-          <CartesianGrid vertical={false} stroke={CHART_GRID_COLOR} />
+      <ChartContainer config={config} className="mt-2 aspect-[5/3] h-[148px] w-full">
+        <BarChart data={points} margin={{ top: 6, right: 4, left: 0, bottom: 0 }} barCategoryGap="22%">
+          <CartesianGrid vertical={false} stroke={CHART_GRID_COLOR} strokeDasharray="3 6" />
           <XAxis
             dataKey="period"
-            tick={{ fontSize: 10 }}
+            tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
             axisLine={false}
             tickLine={false}
             interval="preserveStartEnd"
@@ -91,7 +102,7 @@ function Panel({
               />
             }
           />
-          <Bar dataKey={series.key} fill={color} radius={3} />
+          <Bar dataKey={series.key} fill={color} radius={[4, 4, 0, 0]} maxBarSize={28} />
         </BarChart>
       </ChartContainer>
     </div>
@@ -124,7 +135,7 @@ function ChartBlock({
             key={item.key}
             points={points}
             series={item}
-            color={getChartSeriesColor(index)}
+            color={SERIES_COLOR[item.key] ?? getChartSeriesColor(index)}
           />
         ))}
       </div>

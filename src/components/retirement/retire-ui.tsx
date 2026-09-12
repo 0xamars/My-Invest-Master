@@ -18,7 +18,7 @@ export function RetirePageHeader({
       <div className="min-w-0 space-y-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {typeof title === "string" ? (
-            <h1 className="text-[1.45rem] font-semibold tracking-tight text-foreground">
+            <h1 className="page-title">
               {title}
             </h1>
           ) : (
@@ -27,7 +27,7 @@ export function RetirePageHeader({
           {titleAddon}
         </div>
         {description ? (
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <p className="page-description mt-0">
             {description}
           </p>
         ) : null}
@@ -59,11 +59,9 @@ export function RetireEmptyState({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center px-6 py-14 text-center">
-      <div className="mb-4 flex size-12 items-center justify-center rounded-[var(--radius)] border border-border bg-muted text-[var(--brand-green)]">
-        {icon}
-      </div>
-      <p className="text-base font-semibold tracking-tight">{title}</p>
+    <div className="premium-empty">
+      <div className="premium-empty-icon">{icon}</div>
+      <p className="text-[0.975rem] font-semibold tracking-tight">{title}</p>
       <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
         {description}
       </p>

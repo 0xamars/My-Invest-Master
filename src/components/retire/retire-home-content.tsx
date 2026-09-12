@@ -2,11 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Loader2, Target } from "lucide-react";
-import { CategoryPageHeader } from "@/components/category/category-page-header";
+import { ArrowRight, Target } from "lucide-react";
+import { PageLoading } from "@/components/layout/page-loading";
+import {
+  RetireEmptyState,
+  RetirePageHeader,
+  RetirePanel,
+} from "@/components/retirement/retire-ui";
 import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
 import { RetirementWhatIf } from "@/components/retirement/retirement-what-if";
-import { RetireEmptyState, RetirePanel } from "@/components/retirement/retire-ui";
 import { BrandStill } from "@/components/brand/brand-still";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
@@ -90,8 +94,7 @@ export function RetireHomeContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <CategoryPageHeader
-        category="retire"
+      <RetirePageHeader
         title="Retire"
         description="One date from leftover and the book. Target, on-track, and the lever on this path."
         action={
@@ -109,10 +112,7 @@ export function RetireHomeContent() {
       />
 
       {!ready ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-          <Loader2 className="mr-2 size-4 animate-spin" />
-          Loading Retire…
-        </div>
+        <PageLoading label="Loading Retire…" />
       ) : inputsMissing && !latest ? (
         <div className="surface-card" data-empty-state="retire">
           <BrandStill

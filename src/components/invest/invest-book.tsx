@@ -59,14 +59,14 @@ export function BookTable({ rows }: { rows: BookRow[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[28rem] text-left text-sm">
+      <table className="desk-table">
         <thead>
-          <tr className="text-xs text-muted-foreground">
-            <th className="py-2 pr-3 font-medium">Name</th>
-            <th className="py-2 pr-3 font-medium">Ticker</th>
-            <th className="py-2 pr-3 font-medium">Weight</th>
-            <th className="py-2 pr-3 font-medium">Price</th>
-            <th className="py-2 pr-3 font-medium">Health</th>
+          <tr>
+            <th>Name</th>
+            <th>Ticker</th>
+            <th>Weight</th>
+            <th>Price</th>
+            <th>Health</th>
           </tr>
         </thead>
         <tbody>
