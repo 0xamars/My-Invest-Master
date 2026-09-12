@@ -49,6 +49,10 @@ assert(
   "nav stays three pillars",
 );
 assert(
+  !PRIMARY_NAV_TITLES.some((title) => /plaid|connect|bank/i.test(title)),
+  "Plaid Connect is not a nav pillar",
+);
+assert(
   !INVEST_CHILD_NAV.some((item) => item.href === "/analysis"),
   "Analysis is not an Invest child product",
 );
@@ -327,7 +331,40 @@ const tickerView = readFileSync(
 assert(tickerView.includes('value="past"'), "ticker has Past tab");
 assert(tickerView.includes('value="now"'), "ticker has Now tab");
 assert(tickerView.includes('value="future"'), "ticker has Future tab");
-assert(!/Simply Wall/i.test(tickerView), "ticker UI does not name Simply Wall St");
+assert(!/value="health"/i.test(tickerView), "Health is folded into Now, not a tab");
+assert(!/Simply Wall|Snowflake/i.test(tickerView), "ticker UI does not name desk leftovers");
+assert(
+  !/Browse Market|Open Watchlist|Add to Watchlist/.test(tickerView),
+  "ticker page has no Market/Watchlist blurbs",
+);
+assert(
+  tickerView.indexOf("TickerScoreGraphic") < tickerView.indexOf("data-ticker-tabs"),
+  "Score sits above Past/Now/Future tabs",
+);
+
+const tickerPageFiles = [
+  "src/components/ticker/ticker-read-view.tsx",
+  "src/components/ticker/ticker-past-section.tsx",
+  "src/components/ticker/ticker-now-section.tsx",
+  "src/components/ticker/ticker-future-section.tsx",
+  "src/components/ticker/ticker-health-section.tsx",
+  "src/components/ticker/ticker-score.tsx",
+].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
+const tickerPageText = tickerPageFiles.join("\n");
+assert(!/Snowflake/i.test(tickerPageText), "ticker files do not name Snowflake");
+assert(
+  !/Browse Market|Open Watchlist|Add to Watchlist/.test(tickerPageText),
+  "ticker files have no Market/Watchlist blurbs",
+);
+assert(
+  !tickerPageFiles[5]!.includes('"value"') ||
+    !/const ORDER[\s\S]*"value"/.test(tickerPageFiles[5]!),
+  "Value petal is not drawn until inputs exist",
+);
+assert(
+  !/const ORDER[\s\S]*"dividend"/.test(tickerPageFiles[5]!),
+  "Dividend petal is not drawn until inputs exist",
+);
 
 const street = assembleTickerSnapshot(
   "NVDA",
