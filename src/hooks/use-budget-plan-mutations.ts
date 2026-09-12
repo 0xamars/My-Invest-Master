@@ -31,7 +31,9 @@ import { applyMonthClose } from "@/lib/budget/month-close";
 import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
+import { applyPlaidImport, unlinkPlaidItemFromPlan } from "@/lib/budget/plaid";
 import { transactionTouchesAccount } from "@/lib/budget/transactions";
+import type { PlaidSyncPayload } from "@/lib/plaid/types";
 import type {
   BudgetAccountType,
   BudgetCategory,
@@ -255,6 +257,26 @@ export function useBudgetPlanMutations(planId: string) {
           ],
         }),
         { label: "Undo import" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const importFromPlaid = useCallback(
+    (payload: PlaidSyncPayload) => {
+      commitPlan(
+        (current) => applyPlaidImport(current, payload).next,
+        { label: "Undo bank import" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const unlinkPlaidItem = useCallback(
+    (itemId: string) => {
+      commitPlan(
+        (current) => unlinkPlaidItemFromPlan(current, itemId),
+        { label: "Undo disconnect" },
       );
     },
     [commitPlan],
@@ -919,6 +941,8 @@ export function useBudgetPlanMutations(planId: string) {
       isCloudSynced,
       addTransaction,
       importTransactions,
+      importFromPlaid,
+      unlinkPlaidItem,
       importFromCsv,
       setTransactionApproved,
       updateTransaction,
@@ -967,6 +991,8 @@ export function useBudgetPlanMutations(planId: string) {
       isCloudSynced,
       addTransaction,
       importTransactions,
+      importFromPlaid,
+      unlinkPlaidItem,
       importFromCsv,
       setTransactionApproved,
       updateTransaction,

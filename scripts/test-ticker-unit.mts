@@ -45,8 +45,12 @@ assert(
   "analysis hub still folds into Invest",
 );
 assert(
-  PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Freedom",
+  PRIMARY_NAV_TITLES.join(",") === "Budget,Invest,Retire",
   "nav stays three pillars",
+);
+assert(
+  !PRIMARY_NAV_TITLES.some((title) => /plaid|connect|bank/i.test(title)),
+  "Plaid Connect is not a nav pillar",
 );
 assert(
   !INVEST_CHILD_NAV.some((item) => item.href === "/analysis"),
@@ -75,6 +79,8 @@ const empty = assembleTickerSnapshot("ZZZZ", EMPTY_TICKER_BUNDLE, {
   freshUntilMs: now + TICKER_FRESH_MS,
   staleUntilMs: now + TICKER_STALE_MS,
 });
+assert(empty.street.targetConsensus == null, "empty street target stays null");
+assert(empty.charts.trends.length === 0, "empty trends stay empty");
 assert(empty.found === false, "empty FMP bundle is not found");
 assert(empty.source === "fmp", "source is FMP only");
 assert(empty.quote.price === null, "missing price stays null");
@@ -226,6 +232,11 @@ assert(
   "estimates use FMP analyst row",
 );
 assert(nvda.years[0]?.fiscalYear === "2025", "annual highlights keep FMP years");
+assert(
+  nvda.charts.trends.some((point) => point.freeCashFlow === 41_000_000_000),
+  "Past trend charts use cached FCF",
+);
+assert(nvda.street.consensus == null, "missing grades stay Unknown");
 assert(nvda.cache.fromCache === true, "cache meta is preserved");
 assert(nvda.cache.fmpHit === false, "peek path must not claim an FMP hit");
 assert(nvda.score.axes.length === 5, "Score has five axes");
@@ -312,5 +323,81 @@ assert(
   !existsSync(join(process.cwd(), "src/app/api/analysis/company-blurb/route.ts")),
   "company-blurb route is gone",
 );
+
+const tickerView = readFileSync(
+  join(process.cwd(), "src/components/ticker/ticker-read-view.tsx"),
+  "utf8",
+);
+assert(tickerView.includes('value="past"'), "ticker has Past tab");
+assert(tickerView.includes('value="now"'), "ticker has Now tab");
+assert(tickerView.includes('value="future"'), "ticker has Future tab");
+assert(!/value="health"/i.test(tickerView), "Health is folded into Now, not a tab");
+assert(!/Simply Wall|Snowflake/i.test(tickerView), "ticker UI does not name desk leftovers");
+assert(
+  !/Browse Market|Open Watchlist|Add to Watchlist/.test(tickerView),
+  "ticker page has no Market/Watchlist blurbs",
+);
+assert(
+  tickerView.indexOf("TickerScoreGraphic") < tickerView.indexOf("data-ticker-tabs"),
+  "Score sits above Past/Now/Future tabs",
+);
+
+const tickerPageFiles = [
+  "src/components/ticker/ticker-read-view.tsx",
+  "src/components/ticker/ticker-past-section.tsx",
+  "src/components/ticker/ticker-now-section.tsx",
+  "src/components/ticker/ticker-future-section.tsx",
+  "src/components/ticker/ticker-health-section.tsx",
+  "src/components/ticker/ticker-score.tsx",
+].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
+const tickerPageText = tickerPageFiles.join("\n");
+assert(!/Snowflake/i.test(tickerPageText), "ticker files do not name Snowflake");
+assert(
+  !/Browse Market|Open Watchlist|Add to Watchlist/.test(tickerPageText),
+  "ticker files have no Market/Watchlist blurbs",
+);
+assert(
+  !tickerPageFiles[5]!.includes('"value"') ||
+    !/const ORDER[\s\S]*"value"/.test(tickerPageFiles[5]!),
+  "Value petal is not drawn until inputs exist",
+);
+assert(
+  !/const ORDER[\s\S]*"dividend"/.test(tickerPageFiles[5]!),
+  "Dividend petal is not drawn until inputs exist",
+);
+
+const street = assembleTickerSnapshot(
+  "NVDA",
+  {
+    ...EMPTY_TICKER_BUNDLE,
+    profile: { companyName: "NVIDIA Corporation" },
+    quote: { price: 120 },
+    priceTarget: {
+      targetHigh: 200,
+      targetLow: 80,
+      targetConsensus: 150,
+      targetMedian: 148,
+    },
+    gradesConsensus: {
+      strongBuy: 12,
+      buy: 8,
+      hold: 3,
+      sell: 1,
+      strongSell: 0,
+      consensus: "Buy",
+    },
+  },
+  {
+    status: "fresh",
+    fromCache: true,
+    fmpHit: false,
+    fetchedAtMs: now,
+    freshUntilMs: now + TICKER_FRESH_MS,
+    staleUntilMs: now + TICKER_STALE_MS,
+  },
+);
+assert(street.street.targetConsensus === 150, "street consensus is FMP");
+assert(street.street.consensus === "Buy", "street rating is FMP");
+assert(street.street.strongBuy === 12, "street grades are FMP");
 
 console.log("ticker unit tests passed");

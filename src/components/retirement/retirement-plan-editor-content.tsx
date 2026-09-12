@@ -236,13 +236,13 @@ export function RetirementPlanEditorContent({
         <CardHeader>
           <CardTitle>Plan not found</CardTitle>
           <CardDescription>
-            This Freedom plan may have been deleted or you don&apos;t have
+            This Retire plan may have been deleted or you don&apos;t have
             access to it.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" render={<Link href="/freedom" />}>
-            Back to Freedom
+          <Button variant="outline" render={<Link href="/retire" />}>
+            Back to Retire
           </Button>
         </CardContent>
       </Card>
@@ -254,8 +254,8 @@ export function RetirementPlanEditorContent({
       resource="retirement"
       isResourceLoaded={isLoaded && isPlanLoaded}
       canOpen={canOpen}
-      listHref="/freedom"
-      listLabel="Back to Freedom"
+      listHref="/retire"
+      listLabel="Back to Retire"
     >
       <div className="flex flex-1 flex-col gap-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -264,15 +264,15 @@ export function RetirementPlanEditorContent({
               variant="ghost"
               size="sm"
               className="-ml-2 gap-1.5 text-muted-foreground"
-              render={<Link href="/freedom" />}
+              render={<Link href="/retire" />}
             >
               <ArrowLeft className="size-4" />
-              Back to Freedom
+              Back to Retire
             </Button>
             <InlineTitle
               value={workingPlan.name}
               onCommit={(next) => persistPlan({ ...workingPlan, name: next })}
-              ariaLabel="Freedom plan name"
+              ariaLabel="Retire plan name"
             />
             <p className="text-sm text-muted-foreground">
               One date from leftover and the book. What-ifs stay on this plan.

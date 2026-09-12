@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import {
-  moneyProfilePresenceFromQuery,
+  isBypassedJourneyPath,
   shouldRedirectSignedInFromMarketing,
-  shouldRedirectToMoneyProfile,
   signedInAuthRedirectPath,
   signedInLandingPath,
 } from "@/lib/journey/landing";
@@ -11,7 +10,6 @@ import { mergeSessionCookieOptions } from "@/lib/security/cookies";
 import { isProtectedRoute } from "@/lib/security/protected-routes";
 import {
   LOGIN_PATH,
-  MONEY_PROFILE_PATH,
   SIGNIN_PATH,
   SIGNUP_PATH,
   safeAuthNextPath,
@@ -39,19 +37,6 @@ function redirectWithSession(
     redirect.cookies.set(cookie.name, cookie.value);
   });
   return redirect;
-}
-
-async function userHasMoneyProfile(
-  supabase: ReturnType<typeof createServerClient<Database>>,
-  userId: string,
-): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("user_money_profiles")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return moneyProfilePresenceFromQuery({ data, error });
 }
 
 export async function updateSession(request: NextRequest) {
@@ -105,20 +90,18 @@ export async function updateSession(request: NextRequest) {
     if (!user) {
       return redirectWithSession(request, supabaseResponse, LOGIN_PATH);
     }
-    const hasProfile = await userHasMoneyProfile(supabase, user.id);
     return redirectWithSession(
       request,
       supabaseResponse,
-      signedInAuthRedirectPath(hasProfile),
+      signedInAuthRedirectPath(),
     );
   }
 
   if (user && (pathname === LOGIN_PATH || pathname === SIGNUP_PATH)) {
-    const hasProfile = await userHasMoneyProfile(supabase, user.id);
     return redirectWithSession(
       request,
       supabaseResponse,
-      signedInAuthRedirectPath(hasProfile),
+      signedInAuthRedirectPath(),
     );
   }
 
@@ -141,36 +124,19 @@ export async function updateSession(request: NextRequest) {
       pathname,
     })
   ) {
-    const hasProfile = await userHasMoneyProfile(supabase, user.id);
     return redirectWithSession(
       request,
       supabaseResponse,
-      signedInLandingPath(hasProfile),
+      signedInLandingPath(),
     );
   }
 
-  if (
-    user &&
-    shouldRedirectToMoneyProfile({
-      signedIn: true,
-      hasProfile: false,
-      pathname,
-    })
-  ) {
-    const hasProfile = await userHasMoneyProfile(supabase, user.id);
-    if (
-      shouldRedirectToMoneyProfile({
-        signedIn: true,
-        hasProfile,
-        pathname,
-      })
-    ) {
-      return redirectWithSession(
-        request,
-        supabaseResponse,
-        MONEY_PROFILE_PATH,
-      );
-    }
+  if (user && isBypassedJourneyPath(pathname)) {
+    return redirectWithSession(
+      request,
+      supabaseResponse,
+      signedInLandingPath(),
+    );
   }
 
   return supabaseResponse;

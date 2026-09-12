@@ -10,7 +10,7 @@ import {
 
 export type JourneyStation = {
   pillar: JourneyPillar;
-  title: "Budget" | "Invest" | "Freedom";
+  title: "Budget" | "Invest" | "Retire";
   href: string;
   status: StationStatus;
   learnHref: string;
@@ -26,7 +26,7 @@ export type JourneyNextAction = {
 const STATION_TITLE: Record<JourneyPillar, JourneyStation["title"]> = {
   budget: "Budget",
   invest: "Invest",
-  freedom: "Freedom",
+  freedom: "Retire",
 };
 
 export type JourneyLiveHints = {
@@ -84,17 +84,9 @@ export function primaryNextAction(
   const stations = journeyStations(profile, live);
   const next =
     stations.find((station) => station.status !== "working") ?? stations[0];
-  if (next.status === "locked") {
-    return {
-      pillar: next.pillar,
-      href: next.learnHref,
-      label: `Learn ${next.title}`,
-    };
-  }
-  const verb = next.status === "learn" ? "Learn" : "Open";
   return {
     pillar: next.pillar,
-    href: next.status === "learn" ? next.learnHref : next.doHref,
-    label: `${verb} ${next.title}`,
+    href: next.doHref,
+    label: `Open ${next.title}`,
   };
 }

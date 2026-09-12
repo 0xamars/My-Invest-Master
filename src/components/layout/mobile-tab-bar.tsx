@@ -23,7 +23,7 @@ export function MobileTabBar() {
 
   return (
     <nav
-      aria-label="Budget, Invest, Freedom"
+      aria-label="Budget, Invest, Retire"
       className="portal-tabbar fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <ul className="mx-auto grid h-16 max-w-lg grid-cols-3">

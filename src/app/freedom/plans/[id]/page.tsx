@@ -1,21 +1,12 @@
-import { RequireAuth } from "@/components/auth/require-auth";
-import { RetirementPlanEditorContent } from "@/components/retirement/retirement-plan-editor-content";
+import { redirect } from "next/navigation";
 
-interface FreedomPlanPageProps {
+interface FreedomPlanRedirectProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function FreedomPlanPage({
+export default async function FreedomPlanRedirectPage({
   params,
-}: FreedomPlanPageProps) {
+}: FreedomPlanRedirectProps) {
   const { id } = await params;
-
-  return (
-    <RequireAuth
-      title="Sign in to edit Freedom plans"
-      description="Your Freedom projections are tied to your account. Sign in to view and edit this plan."
-    >
-      <RetirementPlanEditorContent planId={id} />
-    </RequireAuth>
-  );
+  redirect(`/retire/plans/${id}`);
 }

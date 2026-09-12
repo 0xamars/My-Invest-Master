@@ -67,7 +67,7 @@ export const KNOWLEDGE_CHECKS: readonly KnowledgeCheck[] = [
   {
     id: "freedom_date_source",
     pillar: "freedom",
-    prompt: "A Freedom date here comes from…",
+    prompt: "A Retire date here comes from…",
     options: [
       { id: "leftover_book", label: "Leftover and the book" },
       { id: "times_twelve", label: "Leftover × 12 as yearly savings" },

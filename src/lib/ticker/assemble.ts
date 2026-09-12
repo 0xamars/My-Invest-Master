@@ -1,3 +1,4 @@
+import { TICKER_PAST_YEARS } from "@/lib/ticker/constants";
 import {
   asBool,
   field,
@@ -10,6 +11,7 @@ import {
   yoyChange,
 } from "@/lib/ticker/pick";
 import { buildStatementCharts, buildTickerScore } from "@/lib/ticker/score";
+import type { TickerStreetOutlook } from "@/lib/ticker/score-types";
 import type {
   TickerBundle,
   TickerCacheStatus,
@@ -331,7 +333,25 @@ export function assembleTickerSnapshot(
     past: scored.past,
     health: scored.health,
     future: scored.future,
+    street: buildStreetOutlook(bundle),
     charts,
+  };
+}
+
+export function buildStreetOutlook(bundle: TickerBundle): TickerStreetOutlook {
+  const target = bundle.priceTarget;
+  const grades = bundle.gradesConsensus;
+  return {
+    targetHigh: pick(target, "targetHigh"),
+    targetLow: pick(target, "targetLow"),
+    targetConsensus: pick(target, "targetConsensus"),
+    targetMedian: pick(target, "targetMedian"),
+    strongBuy: pick(grades, "strongBuy"),
+    buy: pick(grades, "buy"),
+    hold: pick(grades, "hold"),
+    sell: pick(grades, "sell"),
+    strongSell: pick(grades, "strongSell"),
+    consensus: str(grades?.consensus),
   };
 }
 
@@ -387,7 +407,7 @@ function buildYears(
     return next;
   };
 
-  for (const row of income.slice(0, 8)) {
+  for (const row of income.slice(0, TICKER_PAST_YEARS)) {
     const year = upsert(fiscalYearLabel(row));
     if (!year) continue;
     year.revenue = pick(row, "revenue");
@@ -402,14 +422,14 @@ function buildYears(
       "weightedAverageShsOutDiluted",
     );
   }
-  for (const row of cashflow.slice(0, 8)) {
+  for (const row of cashflow.slice(0, TICKER_PAST_YEARS)) {
     const year = upsert(fiscalYearLabel(row));
     if (!year) continue;
     year.operatingCashFlow = pick(row, "operatingCashFlow");
     year.capex = pick(row, "capitalExpenditure");
     year.freeCashFlow = pick(row, "freeCashFlow");
   }
-  for (const row of balance.slice(0, 8)) {
+  for (const row of balance.slice(0, TICKER_PAST_YEARS)) {
     const year = upsert(fiscalYearLabel(row));
     if (!year) continue;
     year.cash = pick(

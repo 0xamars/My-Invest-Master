@@ -16,7 +16,7 @@ const RESOURCE_LABELS: Record<
   { singular: string; plural: string }
 > = {
   portfolio: { singular: "portfolio", plural: "portfolios" },
-  retirement: { singular: "Freedom plan", plural: "Freedom plans" },
+  retirement: { singular: "Retire plan", plural: "Retire plans" },
   budget: { singular: "budget plan", plural: "budget plans" },
   watchlist: { singular: "watchlist", plural: "watchlists" },
 };
@@ -29,9 +29,9 @@ const OPEN_COPY: Record<PlanLimitedResource, UpgradeCopy> = {
     ctaLabel: "Upgrade to Premium",
   },
   retirement: {
-    title: "Upgrade to Premium to open more Freedom plans",
+    title: "Upgrade to Premium to open more Retire plans",
     description:
-      "Free can open only 1 Freedom plan. Extra plans stay listed so you can delete them, but opening them requires Premium.",
+      "Free can open only 1 Retire plan. Extra plans stay listed so you can delete them, but opening them requires Premium.",
     ctaLabel: "Upgrade to Premium",
   },
   budget: {
@@ -56,9 +56,9 @@ const FEATURE_COPY: Record<PlanFeature, UpgradeCopy> = {
     ctaLabel: "Upgrade to Premium",
   },
   unlimited_retirement_plans: {
-    title: "Upgrade to Premium for unlimited Freedom plans",
+    title: "Upgrade to Premium for unlimited Retire plans",
     description:
-      "Free includes 1 Freedom plan. Upgrade to Premium for unlimited Freedom plans and upcoming Premium features.",
+      "Free includes 1 Retire plan. Upgrade to Premium for unlimited Retire plans and upcoming Premium features.",
     ctaLabel: "Upgrade to Premium",
   },
   unlimited_budget_plans: {
@@ -76,7 +76,7 @@ const FEATURE_COPY: Record<PlanFeature, UpgradeCopy> = {
   retirement_from_portfolio: {
     title: "Upgrade to Premium to create from a portfolio",
     description:
-      "Creating a Freedom plan from an existing portfolio is a Premium feature. Free users can still create one Freedom plan manually.",
+      "Creating a Retire plan from an existing portfolio is a Premium feature. Free users can still create one Retire plan manually.",
     ctaLabel: "Upgrade to Premium",
   },
   full_ai_chat: {

@@ -3,13 +3,7 @@ import { TICKER_UNKNOWN } from "@/lib/ticker/format";
 import type { ScoreAxis, TickerScore } from "@/lib/ticker/score-types";
 import { cn } from "@/lib/utils";
 
-const ORDER: ScoreAxis["key"][] = [
-  "past",
-  "future",
-  "health",
-  "value",
-  "dividend",
-];
+const ORDER: ScoreAxis["key"][] = ["past", "health", "future"];
 
 const SIZE = 220;
 const CX = SIZE / 2;
@@ -66,7 +60,7 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
           viewBox={`0 0 ${SIZE} ${SIZE}`}
           className="h-56 w-56"
           role="img"
-          aria-label="Five-point Score"
+          aria-label="Score"
         >
           <title>Score</title>
           {ORDER.map((key, index) => {
@@ -107,7 +101,7 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
             );
           })}
         </svg>
-        <p className="mt-1 text-xs text-muted-foreground">Five-point Score</p>
+        <p className="mt-1 text-xs text-muted-foreground">Score</p>
       </div>
 
       <div className="space-y-4">

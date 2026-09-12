@@ -28,13 +28,15 @@ export const INVEST_LEGACY_REDIRECTS = [
   { source: "/chat/:path*", destination: "/invest", permanent: false },
   { source: "/assistant", destination: "/invest", permanent: false },
   { source: "/assistant/:path*", destination: "/invest", permanent: false },
-  { source: "/retire", destination: "/freedom", permanent: false },
-  { source: "/retire/plans", destination: "/freedom/plans", permanent: false },
+  { source: "/freedom", destination: "/retire", permanent: false },
+  { source: "/freedom/plans", destination: "/retire/plans", permanent: false },
   {
-    source: "/retire/plans/:id",
-    destination: "/freedom/plans/:id",
+    source: "/freedom/plans/:id",
+    destination: "/retire/plans/:id",
     permanent: false,
   },
+  { source: "/home", destination: "/budget", permanent: false },
+  { source: "/money-profile", destination: "/budget", permanent: false },
 ] as const;
 
 export function destinationForLegacyInvestPath(
@@ -79,11 +81,17 @@ export function destinationForLegacyInvestPath(
   if (pathname === "/assistant" || pathname.startsWith("/assistant/")) {
     return "/invest";
   }
-  if (pathname === "/retire") {
-    return "/freedom";
+  if (pathname === "/freedom") {
+    return "/retire";
   }
-  if (pathname.startsWith("/retire/")) {
-    return `/freedom${pathname.slice("/retire".length)}`;
+  if (pathname.startsWith("/freedom/")) {
+    return `/retire${pathname.slice("/freedom".length)}`;
+  }
+  if (pathname === "/home" || pathname.startsWith("/home/")) {
+    return "/budget";
+  }
+  if (pathname === "/money-profile" || pathname.startsWith("/money-profile/")) {
+    return "/budget";
   }
   return null;
 }

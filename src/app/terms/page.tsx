@@ -5,7 +5,7 @@ import { PRIVACY_PATH } from "@/lib/routes";
 export const metadata: Metadata = {
   title: "Terms · InvestSalsa",
   description:
-    "InvestSalsa terms of use. Budget, Invest, and Freedom are personal finance tools — not investment advice.",
+    "InvestSalsa terms of use. Budget, Invest, and Retire are personal finance tools — not investment advice.",
 };
 
 export default function TermsPage() {
@@ -24,7 +24,7 @@ export default function TermsPage() {
       <section className="space-y-3 text-sm leading-relaxed text-muted-foreground">
         <p>
           InvestSalsa is a personal finance product with three live products:
-          Budget, Invest, and Freedom. You use it to track money you
+          Budget, Invest, and Retire. You use it to track money you
           already have. We do not execute trades, give personalized
           recommendations, or act as a broker, advisor, or fiduciary.
         </p>
@@ -36,8 +36,8 @@ export default function TermsPage() {
         <p>
           You are responsible for the numbers you enter. Plans are stored as
           JSON in your account. InvestSalsa is one product: Budget, Invest,
-          and Freedom are included. Create as many budget, portfolio,
-          and Freedom plans as you need. Nothing here is a recommendation to
+          and Retire are included. Create as many budget, portfolio,
+          and Retire plans as you need. Nothing here is a recommendation to
           buy or sell.
         </p>
         <p>

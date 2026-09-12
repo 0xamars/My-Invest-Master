@@ -14,6 +14,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { BudgetBankLink } from "@/components/budget/budget-bank-link";
 import { BudgetCsvImportDialog } from "@/components/budget/budget-csv-import-dialog";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
 import { BudgetUpcomingList } from "@/components/budget/budget-upcoming-list";
@@ -294,7 +295,7 @@ export function BudgetTransactionsContent() {
         description={
           lastImportedDate
             ? `Income, spending, and transfers. Latest imported row dated ${formatBudgetDate(lastImportedDate)}.`
-            : "Income, spending, and transfers. Import a bank CSV, then categorize later."
+            : "Income, spending, and transfers. Connect a bank, then assign envelopes. File import is a fallback."
         }
         action={
           <>
@@ -304,7 +305,7 @@ export function BudgetTransactionsContent() {
               onClick={() => setImportOpen(true)}
             >
               <Upload className="size-4" />
-              Import CSV
+              Import file
             </Button>
             <Button type="button" variant="outline" onClick={openAddScheduled}>
               <CalendarClock className="size-4" />
@@ -317,6 +318,8 @@ export function BudgetTransactionsContent() {
           </>
         }
       />
+
+      <BudgetBankLink primary />
 
       <BudgetUpcomingList
         instances={upcoming}

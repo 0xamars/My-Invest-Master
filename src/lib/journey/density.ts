@@ -1,6 +1,4 @@
 import type { MoneyProfile } from "@/types/money-profile";
-import { trackUnlocksAllDo } from "@/lib/journey/locks";
-import { effectiveKnowledge } from "@/lib/journey/profile";
 import { SHOW_THE_DETAILS_LABEL } from "@/lib/journey/first-run";
 
 export { SHOW_THE_DETAILS_LABEL };
@@ -10,12 +8,9 @@ export { SHOW_THE_DETAILS_LABEL };
  * the ticker collapsed. Fast Track / toolsOnly stay full density.
  */
 export function tickerStartsCollapsed(
-  profile: MoneyProfile | null | undefined,
+  _profile: MoneyProfile | null | undefined,
 ): boolean {
-  if (!profile) return false;
-  if (trackUnlocksAllDo(profile)) return false;
-  const effective = effectiveKnowledge(profile.knowledge, profile.knowledgeChecks);
-  return effective.invest === "beginner";
+  return false;
 }
 
 /** Beginner add-holding explains each field. Fast / tools skip the extra copy. */

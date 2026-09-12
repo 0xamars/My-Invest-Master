@@ -33,19 +33,19 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
   }
   if (pathname === "/home") {
     return {
-      id: "home",
+      id: "budget",
       path: pathname,
-      title: "Journey",
+      title: "Budget",
       description:
-        "Signed-in Journey Home: Budget, Invest, and Freedom stations. Educational, not advice.",
+        "Signed-in landing redirects to Budget. Budget, Invest, and Retire are the product apps.",
     };
   }
   if (pathname === "/money-profile" || pathname.startsWith("/money-profile/")) {
     return {
-      id: "settings",
+      id: "budget",
       path: pathname,
-      title: "Money Profile",
-      description: "Three-step Money Profile: situation, knowledge, goal and risk.",
+      title: "Budget",
+      description: "Money Profile is unshipped. This path redirects to Budget.",
     };
   }
   if (pathname === "/invest") {
@@ -109,31 +109,31 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
     };
   }
   if (
-    (pathname.startsWith("/freedom/plans/") ||
+    (pathname.startsWith("/retire/plans/") ||
       pathname.startsWith("/retire/plans/")) &&
     pathname.split("/").length >= 4
   ) {
     return {
       id: "retire-plan",
       path: pathname,
-      title: "Freedom plan",
-      description: "Edit a Freedom model and view projections.",
+      title: "Retire plan",
+      description: "Edit a Retire model and view projections.",
     };
   }
-  if (pathname === "/freedom/plans" || pathname === "/retire/plans") {
+  if (pathname === "/retire/plans" || pathname === "/retire/plans") {
     return {
       id: "retire-plans",
       path: pathname,
-      title: "Freedom plans",
-      description: "List and create Freedom plan scenarios.",
+      title: "Retire plans",
+      description: "List and create Retire plan scenarios.",
     };
   }
   if (pathname.startsWith("/freedom") || pathname.startsWith("/retire")) {
     return {
       id: "retire",
       path: pathname,
-      title: "Freedom",
-      description: "Freedom planning hub.",
+      title: "Retire",
+      description: "Retire planning hub.",
     };
   }
   if (pathname.startsWith("/budget/plans/")) {
@@ -228,7 +228,7 @@ export function getStarterQuestions(pageId: AssistantPageId): string[] {
     case "retire":
     case "retire-plans":
       return [
-        "How does a Freedom projection work?",
+        "How does a Retire projection work?",
         "How do I create a plan from my portfolio?",
         "What is CAGR?",
       ];

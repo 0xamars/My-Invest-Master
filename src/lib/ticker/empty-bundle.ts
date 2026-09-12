@@ -16,4 +16,6 @@ export const EMPTY_TICKER_BUNDLE: TickerBundle = {
   estimates: [],
   earnings: [],
   treasury: null,
+  priceTarget: null,
+  gradesConsensus: null,
 };

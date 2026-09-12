@@ -90,13 +90,13 @@ export function getDynamicSuggestedQuestions(
     case "retire-plans":
       return context.retirementPlans.length === 0
         ? [
-            "How do I create a Freedom plan?",
-            "How does a Freedom projection work?",
+            "How do I create a Retire plan?",
+            "How does a Retire projection work?",
             "What is CAGR?",
           ]
         : [
-            "Summarize my Freedom plans",
-            "How does a Freedom projection work?",
+            "Summarize my Retire plans",
+            "How does a Retire projection work?",
             "How do I create a plan from my portfolio?",
           ];
 
@@ -107,7 +107,7 @@ export function getDynamicSuggestedQuestions(
         ) ?? context.retirementPlans[0];
       if (!plan) {
         return [
-          "How does a Freedom projection work?",
+          "How does a Retire projection work?",
           "What is CAGR?",
           "How does inflation affect later spending?",
         ];

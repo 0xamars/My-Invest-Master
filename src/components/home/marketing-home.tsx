@@ -15,7 +15,7 @@ const PILLARS = [
     body: "Put leftover to work. Track the book, mix, and concentration — no broker trading.",
   },
   {
-    title: "Freedom",
+    title: "Retire",
     body: "See when you are free. Target nest egg, on-track verdict, and the lever to pull.",
   },
 ] as const;
@@ -44,11 +44,11 @@ export function MarketingHomePage() {
       <main className="relative z-10">
         <section className="mx-auto max-w-5xl px-6 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-24">
           <h1 className="max-w-xl text-balance text-[2.75rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Freedom, engineered.
+            Retire, engineered.
           </h1>
           <p className="mt-6 max-w-lg text-pretty text-lg leading-relaxed text-white/60">
             See cash. Put it to work. Know when you are free. Budget, Invest,
-            and Freedom — one product. Not investment advice.
+            and Retire — one product. Not investment advice.
           </p>
           <div className="mt-10">
             <Button

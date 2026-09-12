@@ -3,6 +3,7 @@
  * Value and Dividend stay empty until later sections ship.
  */
 import { isBankIndustry, isInsuranceIndustry } from "@/lib/analysis/rating/industry-model";
+import { TICKER_PAST_YEARS, TICKER_QUARTER_LIMIT } from "@/lib/ticker/constants";
 import { firstRow, fiscalYearLabel, pick, ratio, str, yoyChange } from "@/lib/ticker/pick";
 import { formatTickerField, TICKER_UNKNOWN } from "@/lib/ticker/format";
 import type { TickerBundle } from "@/lib/ticker/types";
@@ -17,12 +18,13 @@ import type {
   TickerPastPrint,
   TickerScore,
   TickerStatementCharts,
+  TickerTrendPoint,
 } from "@/lib/ticker/score-types";
 
 type Row = Record<string, unknown>;
 
 export const PAST_LOOK_LINE =
-  "Look at whether revenue, earnings, and returns held up across the years we have.";
+  "Key figures for about the last 10 years, from cached statements. Missing years stay Unknown.";
 
 export const HEALTH_LOOK_LINE =
   "Look at whether cash and earnings cover the debt we can see.";
@@ -102,7 +104,7 @@ function streakLabel(
   }
   const scored = up + down;
   if (scored === 0) return TICKER_UNKNOWN;
-  const years = Math.min(values.filter((v) => v != null).length, 8);
+  const years = Math.min(values.filter((v) => v != null).length, TICKER_PAST_YEARS);
   if (up === scored) return `${years}-year rising ${kind}`;
   if (down === scored) return `${years}-year falling ${kind}`;
   return `${years}-year ${kind} · ${up} up / ${down} down`;
@@ -499,7 +501,7 @@ function rows(value: Row[] | null | undefined): Row[] {
 
 export function buildPastPrint(bundle: TickerBundle): TickerPastPrint {
   const income = rows(bundle.incomeAnnual);
-  const years = income.slice(0, 8).map((row) => ({
+  const years = income.slice(0, TICKER_PAST_YEARS).map((row) => ({
     fiscalYear: fiscalYearLabel(row),
     revenue: pick(row, "revenue"),
     netIncome: pick(row, "netIncome"),
@@ -941,15 +943,51 @@ function chartPoint(row: Row | null): TickerChartPoint | null {
 
 export function buildStatementCharts(bundle: TickerBundle): TickerStatementCharts {
   const annual = (bundle.incomeAnnual ?? [])
-    .slice(0, 8)
+    .slice(0, TICKER_PAST_YEARS)
     .map((row) => chartPoint(row))
     .filter((row): row is TickerChartPoint => row != null)
     .reverse();
   const quarterly = (bundle.incomeQuarter ?? [])
-    .slice(0, 8)
+    .slice(0, TICKER_QUARTER_LIMIT)
     .map((row) => chartPoint(row))
     .filter((row): row is TickerChartPoint => row != null)
     .reverse();
-  return { annual, quarterly };
+  return { annual, quarterly, trends: buildTrendPoints(bundle) };
+}
+
+function buildTrendPoints(bundle: TickerBundle): TickerTrendPoint[] {
+  const byYear = new Map<
+    string,
+    { income: Row | null; cashflow: Row | null }
+  >();
+  const remember = (row: Row, kind: "income" | "cashflow") => {
+    const year = fiscalYearLabel(row);
+    if (!year) return;
+    const existing = byYear.get(year) ?? { income: null, cashflow: null };
+    if (kind === "income" && !existing.income) existing.income = row;
+    if (kind === "cashflow" && !existing.cashflow) existing.cashflow = row;
+    byYear.set(year, existing);
+  };
+  for (const row of bundle.incomeAnnual ?? []) remember(row, "income");
+  for (const row of bundle.cashflowAnnual ?? []) remember(row, "cashflow");
+
+  return [...byYear.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-TICKER_PAST_YEARS)
+    .map(([period, rows]) => {
+      const revenue = pick(rows.income, "revenue");
+      const fcf = pick(rows.cashflow, "freeCashFlow");
+      return {
+        period,
+        freeCashFlow: fcf,
+        grossMargin: ratio(pick(rows.income, "grossProfit"), revenue),
+        operatingMargin: ratio(
+          pick(rows.income, "operatingIncome", "ebit"),
+          revenue,
+        ),
+        netMargin: ratio(pick(rows.income, "netIncome"), revenue),
+        fcfMargin: ratio(fcf, revenue),
+      };
+    });
 }
 

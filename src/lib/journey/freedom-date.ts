@@ -28,7 +28,7 @@ export function journeyFreedomDate(input: {
   }
 
   const currentYear = input.currentYear ?? new Date().getFullYear();
-  const assumptions = input.assumptions ?? createEmptyPlan("Freedom");
+  const assumptions = input.assumptions ?? createEmptyPlan("Retire");
   const path = bindFreedomPathPlan(assumptions, input.leftover, input.book);
   const crossing = findFreedomCrossing(path, { currentYear });
 

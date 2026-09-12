@@ -25,7 +25,7 @@ export function TickerHealthSection({ snapshot }: { snapshot: TickerSnapshot }) 
 
   return (
     <RetirePanel className="px-5 py-4">
-      <h2 className="text-sm font-semibold">Health</h2>
+      <h2 className="text-sm font-semibold">Balance and coverage</h2>
       <p className="mt-1 text-sm text-muted-foreground">{HEALTH_LOOK_LINE}</p>
       {emptyBalance ? (
         <p className="mt-3 text-sm text-muted-foreground">
@@ -92,7 +92,7 @@ export function TickerHealthSection({ snapshot }: { snapshot: TickerSnapshot }) 
         />
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Altman Z and Piotroski are extras. They are not a Score petal.
+        Altman Z and Piotroski are extras. They are not a Score axis.
       </p>
     </RetirePanel>
   );

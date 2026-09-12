@@ -1,8 +1,9 @@
 export const BUDGET_PATH = "/budget";
 export const INVEST_PATH = "/invest";
-/** User-facing pillar. Legacy `/retire` redirects here. */
-export const FREEDOM_PATH = "/freedom";
-export const RETIRE_PATH = FREEDOM_PATH;
+/** User-facing pillar. Legacy `/freedom` redirects here. */
+export const RETIRE_PATH = "/retire";
+export const FREEDOM_PATH = RETIRE_PATH;
+export const FREEDOM_LEGACY_PATH = "/freedom";
 export const RETIRE_LEGACY_PATH = "/retire";
 export const SETTINGS_PATH = "/settings";
 export const JOURNEY_HOME_PATH = "/home";
@@ -17,7 +18,7 @@ export const INVEST_OPTIONS_PATH = "/invest/options";
 export const SIGNED_IN_PRIMARY_NAV = [
   { title: "Budget", href: BUDGET_PATH, category: "budget" as const },
   { title: "Invest", href: INVEST_PATH, category: "invest" as const },
-  { title: "Freedom", href: FREEDOM_PATH, category: "retire" as const },
+  { title: "Retire", href: RETIRE_PATH, category: "retire" as const },
 ] as const;
 
 /** Invest children — submenu or in-page cards, never top-level peers. */
@@ -101,10 +102,10 @@ export function isInvestPath(pathname: string): boolean {
 
 export function isRetirePath(pathname: string): boolean {
   return (
-    pathname === FREEDOM_PATH ||
-    pathname.startsWith(`${FREEDOM_PATH}/`) ||
-    pathname === RETIRE_LEGACY_PATH ||
-    pathname.startsWith(`${RETIRE_LEGACY_PATH}/`)
+    pathname === RETIRE_PATH ||
+    pathname.startsWith(`${RETIRE_PATH}/`) ||
+    pathname === FREEDOM_LEGACY_PATH ||
+    pathname.startsWith(`${FREEDOM_LEGACY_PATH}/`)
   );
 }
 
@@ -134,15 +135,15 @@ export function pillarHomePath(pathname: string): string {
   if (pillar === "budget") return BUDGET_PATH;
   if (pillar === "invest") return INVEST_PATH;
   if (pillar === "retire") return RETIRE_PATH;
-  return JOURNEY_HOME_PATH;
+  return BUDGET_PATH;
 }
 
 export function pillarLabel(pathname: string): string {
   const pillar = pillarForPath(pathname);
   if (pillar === "budget") return "Budget";
   if (pillar === "invest") return "Invest";
-  if (pillar === "retire") return "Freedom";
-  return "Journey";
+  if (pillar === "retire") return "Retire";
+  return "Budget";
 }
 
 /** True on product hubs and Journey landing — no up-link. */
@@ -150,8 +151,8 @@ export function isPillarHub(pathname: string): boolean {
   return (
     pathname === BUDGET_PATH ||
     pathname === INVEST_PATH ||
-    pathname === FREEDOM_PATH ||
-    pathname === RETIRE_LEGACY_PATH ||
+    pathname === RETIRE_PATH ||
+    pathname === FREEDOM_LEGACY_PATH ||
     pathname === JOURNEY_HOME_PATH ||
     pathname === MONEY_PROFILE_PATH
   );
@@ -161,17 +162,17 @@ export function resolvePageTitle(
   pathname: string,
   planName?: string | null,
 ): string {
-  if (pathname === `${FREEDOM_PATH}/plans` || pathname === `${RETIRE_LEGACY_PATH}/plans`) {
-    return "Freedom plans";
+  if (pathname === `${RETIRE_PATH}/plans` || pathname === `${FREEDOM_LEGACY_PATH}/plans`) {
+    return "Retire plans";
   }
   if (
-    pathname.startsWith(`${FREEDOM_PATH}/plans/`) ||
-    pathname.startsWith(`${RETIRE_LEGACY_PATH}/plans/`)
+    pathname.startsWith(`${RETIRE_PATH}/plans/`) ||
+    pathname.startsWith(`${FREEDOM_LEGACY_PATH}/plans/`)
   ) {
-    return planName ?? "Freedom plan";
+    return planName ?? "Retire plan";
   }
-  if (pathname.startsWith(FREEDOM_PATH) || pathname.startsWith(RETIRE_LEGACY_PATH)) {
-    return "Freedom";
+  if (pathname.startsWith(RETIRE_PATH) || pathname.startsWith(FREEDOM_LEGACY_PATH)) {
+    return "Retire";
   }
 
   if (pathname === "/budget") return "Budget";
@@ -231,8 +232,8 @@ export function resolvePageTitle(
 
   const pageTitles: Record<string, string> = {
     "/": "InvestSalsa",
-    "/home": "Journey",
-    "/money-profile": "Money Profile",
+    "/home": "Budget",
+    "/money-profile": "Budget",
     "/invest": "Invest",
     "/invest/assess": "Assess",
     "/invest/options": "Options",

@@ -1,4 +1,7 @@
-import { TickerStatementCharts } from "@/components/ticker/ticker-statement-charts";
+import {
+  TickerStatementCharts,
+  TickerTrendCharts,
+} from "@/components/ticker/ticker-statement-charts";
 import { RetirePanel } from "@/components/retirement/retire-ui";
 import {
   formatTickerField,
@@ -27,12 +30,16 @@ export function TickerPastSection({ snapshot }: { snapshot: TickerSnapshot }) {
   const tooFewYears = past.years.length < 2;
 
   return (
-    <RetirePanel className="px-5 py-4">
+    <RetirePanel className="px-5 py-4" data-ticker-tab="past">
       <h2 className="text-sm font-semibold">Past</h2>
       <p className="mt-1 text-sm text-muted-foreground">{PAST_LOOK_LINE}</p>
 
       <div className="mt-4 space-y-6">
         <TickerStatementCharts title="Annual" points={snapshot.charts.annual} />
+        <TickerTrendCharts
+          title="Cash and margins"
+          points={snapshot.charts.trends}
+        />
         <TickerStatementCharts title="Quarterly" points={snapshot.charts.quarterly} />
       </div>
 

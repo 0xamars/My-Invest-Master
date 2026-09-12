@@ -102,7 +102,7 @@ export function useRetirementPlansStorage() {
           setSyncError(
             error instanceof Error
               ? error.message
-              : "Failed to load Freedom plans.",
+              : "Failed to load Retire plans.",
           );
           setPlans([]);
         }
@@ -139,7 +139,7 @@ export function useRetirementPlansStorage() {
           setSyncError(
             error instanceof Error
               ? error.message
-              : "Failed to save Freedom plan.",
+              : "Failed to save Retire plan.",
           );
         }
       }
@@ -201,7 +201,7 @@ export function useRetirementPlansStorage() {
           setSyncError(
             error instanceof Error
               ? error.message
-              : "Failed to save Freedom plan.",
+              : "Failed to save Retire plan.",
           );
         }
       }
@@ -243,7 +243,7 @@ export function useRetirementPlansStorage() {
       setSyncError(
         error instanceof Error
           ? error.message
-          : "Failed to delete Freedom plan.",
+          : "Failed to delete Retire plan.",
       );
     }
   }, [user]);

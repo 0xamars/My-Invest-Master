@@ -37,8 +37,21 @@ export function TickerFutureSection({ snapshot }: { snapshot: TickerSnapshot }) 
   const missingEstimates = future.years.length === 0;
   const tooFewForward = future.forwardYears < 2;
 
+  const street = snapshot.street;
+  const hasTargets =
+    street.targetConsensus != null ||
+    street.targetHigh != null ||
+    street.targetLow != null;
+  const hasGrades =
+    street.strongBuy != null ||
+    street.buy != null ||
+    street.hold != null ||
+    street.sell != null ||
+    street.strongSell != null ||
+    street.consensus != null;
+
   return (
-    <RetirePanel className="px-5 py-4">
+    <RetirePanel className="px-5 py-4" data-ticker-tab="future">
       <h2 className="text-sm font-semibold">Future</h2>
       <p className="mt-1 text-sm text-muted-foreground">{FUTURE_LOOK_LINE}</p>
       {missingEstimates ? (
@@ -135,6 +148,100 @@ export function TickerFutureSection({ snapshot }: { snapshot: TickerSnapshot }) 
               ))}
             </tbody>
           </table>
+        </div>
+      ) : null}
+
+      <div className="mt-6 border-t border-border/50 pt-5">
+        <h3 className="text-sm font-semibold">Street outlook</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Analyst consensus and price targets from Financial Modeling Prep.
+          Labeled street, not a house forecast. Missing stays {TICKER_UNKNOWN}.
+        </p>
+        {!hasTargets && !hasGrades ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Street consensus · {TICKER_UNKNOWN}
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <Fact
+              label="Street price target (consensus)"
+              value={formatTickerField({
+                label: "Target",
+                value: street.targetConsensus,
+                kind: "ratio",
+              })}
+            />
+            <Fact
+              label="Street price target (median)"
+              value={formatTickerField({
+                label: "Median",
+                value: street.targetMedian,
+                kind: "ratio",
+              })}
+            />
+            <Fact
+              label="Street target high / low"
+              value={
+                street.targetHigh == null && street.targetLow == null
+                  ? TICKER_UNKNOWN
+                  : `${formatTickerField({
+                      label: "High",
+                      value: street.targetHigh,
+                      kind: "ratio",
+                    })} / ${formatTickerField({
+                      label: "Low",
+                      value: street.targetLow,
+                      kind: "ratio",
+                    })}`
+              }
+            />
+            <Fact
+              label="Street rating consensus"
+              value={street.consensus ?? TICKER_UNKNOWN}
+            />
+            <Fact
+              label="Street strong buy / buy"
+              value={`${formatTickerField({
+                label: "Strong buy",
+                value: street.strongBuy,
+                kind: "count",
+              })} / ${formatTickerField({
+                label: "Buy",
+                value: street.buy,
+                kind: "count",
+              })}`}
+            />
+            <Fact
+              label="Street hold / sell / strong sell"
+              value={`${formatTickerField({
+                label: "Hold",
+                value: street.hold,
+                kind: "count",
+              })} / ${formatTickerField({
+                label: "Sell",
+                value: street.sell,
+                kind: "count",
+              })} / ${formatTickerField({
+                label: "Strong sell",
+                value: street.strongSell,
+                kind: "count",
+              })}`}
+            />
+          </div>
+        )}
+      </div>
+
+      {snapshot.estimates.length > 0 ? (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {snapshot.estimates.map((item) => (
+            <Fact
+              key={item.label}
+              label={item.label.startsWith("Street") || item.label.startsWith("Estimated")
+                ? item.label.replace(/^Estimated /, "Street ")
+                : `Street ${item.label}`}
+              value={formatTickerField(item)}
+            />
+          ))}
         </div>
       ) : null}
 

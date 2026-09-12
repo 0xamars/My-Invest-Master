@@ -27,6 +27,7 @@ import {
 import { useBudgetMonth } from "@/components/budget/budget-shell";
 import { BudgetSummaryStats } from "@/components/budget/budget-summary-stats";
 import { Button } from "@/components/ui/button";
+import { PayCardDialog } from "@/components/budget/pay-card-dialog";
 import { useBudget } from "@/contexts/budget-context";
 import { computeAgeOfMoney } from "@/lib/budget/age-of-money";
 import {
@@ -58,6 +59,7 @@ export function BudgetContent() {
     resetAvailable,
     setCategoryGoal,
     removeCategoryGoal,
+    addTransaction,
   } = useBudget();
   const { openAddGroup, openAddEnvelope } = useBudgetDialog();
   const { monthKey } = useBudgetMonth();
@@ -79,6 +81,7 @@ export function BudgetContent() {
   const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [assignLeftoverOpen, setAssignLeftoverOpen] = useState(false);
+  const [payCardAccountId, setPayCardAccountId] = useState<string | null>(null);
 
   const summary = useMemo(
     () => computeMonthSummary(budget, monthKey),
@@ -231,6 +234,9 @@ export function BudgetContent() {
         onCoverOverspend={(categoryId) => {
           setCoverCategoryId(categoryId);
           setCoverOpen(true);
+        }}
+        onPayCard={(creditCardAccountId) => {
+          setPayCardAccountId(creditCardAccountId);
         }}
         onAutoAssignUnderfunded={() => setAutoAssignOpen(true)}
         onResetAvailable={() => setResetAvailableOpen(true)}
@@ -492,6 +498,31 @@ export function BudgetContent() {
           .map((category) => ({ id: category.id, name: category.name }))}
         currency={budget.currency}
         onAssign={(allocations) => assignLeftover(monthKey, allocations)}
+      />
+
+      <PayCardDialog
+        open={Boolean(payCardAccountId)}
+        onOpenChange={(open) => !open && setPayCardAccountId(null)}
+        budget={budget}
+        cardAccountId={payCardAccountId}
+        monthKey={monthKey}
+        currency={budget.currency}
+        onPay={({ fromAccountId, amount, date }) => {
+          if (!payCardAccountId) return;
+          addTransaction({
+            date,
+            payee: `Payment · ${
+              budget.accounts.find((account) => account.id === payCardAccountId)
+                ?.name ?? "card"
+            }`,
+            accountId: fromAccountId,
+            transferAccountId: payCardAccountId,
+            categoryId: null,
+            amount,
+            type: "transfer",
+            cleared: "cleared",
+          });
+        }}
       />
     </div>
   );

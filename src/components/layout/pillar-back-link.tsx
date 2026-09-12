@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 const PILLAR_LABEL: Record<string, string> = {
   "/budget": "Budget",
   "/invest": "Invest",
-  "/freedom": "Freedom",
-  "/retire": "Freedom",
+  "/freedom": "Retire",
+  "/retire": "Retire",
 };
 
 export function PillarBackLink({
@@ -22,8 +22,8 @@ export function PillarBackLink({
   label?: string;
   className?: string;
 }) {
-  const target = href ?? "/home";
-  const text = label ?? `Back to ${PILLAR_LABEL[target] ?? "Journey"}`;
+  const target = href ?? "/budget";
+  const text = label ?? `Back to ${PILLAR_LABEL[target] ?? "Budget"}`;
 
   return (
     <Button

@@ -1,14 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TickerLookup } from "@/components/ticker/ticker-lookup";
 import { TickerFutureSection } from "@/components/ticker/ticker-future-section";
-import { TickerHealthSection } from "@/components/ticker/ticker-health-section";
+import { TickerNowSection } from "@/components/ticker/ticker-now-section";
 import { TickerPastSection } from "@/components/ticker/ticker-past-section";
 import { TickerScoreGraphic } from "@/components/ticker/ticker-score";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   RetirePageHeader,
   RetirePanel,
@@ -22,7 +22,7 @@ import {
 } from "@/lib/ticker/format";
 import { SHOW_THE_DETAILS_LABEL } from "@/lib/journey/first-run";
 import { SCORE_NOT_A_BUY } from "@/lib/ticker/score";
-import type { TickerField, TickerSnapshot } from "@/lib/ticker/types";
+import type { TickerSnapshot } from "@/lib/ticker/types";
 import { INVEST_PATH } from "@/lib/chrome/nav";
 import { profitLossClass } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
@@ -98,7 +98,7 @@ export function TickerReadView({
             {profile.description ?? TICKER_UNKNOWN}
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Missing figures stay {TICKER_UNKNOWN}. Score, Past, Health, and
+            Missing figures stay {TICKER_UNKNOWN}. Score, Past, Now, and
             Future stay behind the details until you ask.
           </p>
           {onShowDetails ? (
@@ -133,132 +133,31 @@ export function TickerReadView({
       </RetirePanel>
       )}
 
-      {collapsed ? null : <TickerPastSection snapshot={snapshot} />}
-      {collapsed ? null : <TickerHealthSection snapshot={snapshot} />}
-      {collapsed ? null : <TickerFutureSection snapshot={snapshot} />}
+      {collapsed ? null : (
+        <Tabs defaultValue="past" className="gap-4" data-ticker-tabs="past-now-future">
+          <TabsList className="grid h-auto w-full grid-cols-3 sm:w-fit">
+            <TabsTrigger value="past">Past</TabsTrigger>
+            <TabsTrigger value="now">Now</TabsTrigger>
+            <TabsTrigger value="future">Future</TabsTrigger>
+          </TabsList>
+          <TabsContent value="past" className="mt-1">
+            <TickerPastSection snapshot={snapshot} />
+          </TabsContent>
+          <TabsContent value="now" className="mt-1">
+            <TickerNowSection snapshot={snapshot} />
+          </TabsContent>
+          <TabsContent value="future" className="mt-1">
+            <TickerFutureSection snapshot={snapshot} />
+          </TabsContent>
+        </Tabs>
+      )}
 
       {collapsed ? null : (
-        <>
-      <Section title="Profile">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {profile.description ?? TICKER_UNKNOWN}
+        <p className="text-xs text-muted-foreground">
+          Figures from Financial Modeling Prep only. If FMP does not have a number,
+          it is {TICKER_UNKNOWN}. Not investment advice.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Fact label="CEO" value={profile.ceo} />
-          <Fact label="Country" value={profile.country} />
-          <Fact
-            label="Employees"
-            value={
-              profile.employees != null
-                ? profile.employees.toLocaleString("en-US")
-                : null
-            }
-          />
-          <Fact label="IPO" value={profile.ipoDate} />
-        </div>
-      </Section>
-
-      <FieldGrid title="Key metrics" fields={snapshot.keyMetrics} />
-      <FieldGrid title="Income" fields={snapshot.income} />
-      <FieldGrid title="Cash flow" fields={snapshot.cashflow} />
-      <FieldGrid title="Balance sheet" fields={snapshot.balance} />
-      <FieldGrid title="Growth" fields={snapshot.growth} />
-      <FieldGrid title="Margins" fields={snapshot.margins} />
-      <FieldGrid title="Shares & dilution" fields={snapshot.shares} />
-
-      {snapshot.years.length > 0 ? (
-        <Section title="Annual highlights">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[36rem] text-left text-sm">
-              <thead>
-                <tr className="text-xs text-muted-foreground">
-                  <th className="py-2 pr-3 font-medium">Year</th>
-                  <th className="py-2 pr-3 font-medium">Revenue</th>
-                  <th className="py-2 pr-3 font-medium">Net income</th>
-                  <th className="py-2 pr-3 font-medium">FCF</th>
-                  <th className="py-2 pr-3 font-medium">Shares</th>
-                </tr>
-              </thead>
-              <tbody>
-                {snapshot.years.map((year) => (
-                  <tr
-                    key={year.fiscalYear ?? "unknown"}
-                    className="border-t border-border/50"
-                  >
-                    <td className="py-2 pr-3 tabular-nums">
-                      {year.fiscalYear ?? TICKER_UNKNOWN}
-                    </td>
-                    <td className="py-2 pr-3 tabular-nums">
-                      {formatMaybe("money", year.revenue)}
-                    </td>
-                    <td className="py-2 pr-3 tabular-nums">
-                      {formatMaybe("money", year.netIncome)}
-                    </td>
-                    <td className="py-2 pr-3 tabular-nums">
-                      {formatMaybe("money", year.freeCashFlow)}
-                    </td>
-                    <td className="py-2 pr-3 tabular-nums">
-                      {formatMaybe("shares", year.sharesOut)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-      ) : null}
-
-      <p className="text-xs text-muted-foreground">
-        Figures from Financial Modeling Prep only. If FMP does not have a number,
-        it is {TICKER_UNKNOWN}. Not investment advice.
-      </p>
-        </>
       )}
-    </div>
-  );
-}
-
-function formatMaybe(kind: TickerField["kind"], value: number | null): string {
-  return formatTickerField({ label: "", value, kind });
-}
-
-function FieldGrid({ title, fields }: { title: string; fields: TickerField[] }) {
-  return (
-    <Section title={title}>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {fields.map((item) => (
-          <div key={item.label}>
-            <p className="budget-metric-label">{item.label}</p>
-            <p className="mt-1 text-base font-medium tabular-nums tracking-tight">
-              {formatTickerField(item)}
-            </p>
-          </div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <RetirePanel className="px-5 py-4">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <div className="mt-3">{children}</div>
-    </RetirePanel>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div>
-      <p className="budget-metric-label">{label}</p>
-      <p className="mt-1 text-sm">{value ?? TICKER_UNKNOWN}</p>
     </div>
   );
 }

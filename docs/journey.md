@@ -6,14 +6,14 @@ Educational footer, everywhere it is shown:
 
 > Educational. Not financial advice. You can lose money.
 
-This is not advice. The app will not invent leftover, income, holdings, cash, or a Freedom date.
+This is not advice. The app will not invent leftover, income, holdings, cash, or a Retire date.
 
 ## Path
 
 **Money Profile → Journey Home → Budget Learn/Do → Invest Learn/Do → Freedom Learn/Do.**
 
 1. **Money Profile** (`/money-profile`) — 3-step wizard. Country and currency are required. Pay / income / age can be skipped. Income is never required and never invented. Saving recomputes track.
-2. **Journey Home** (`/home`, and signed-in `/`) — command center: one next-step CTA, three stations with leftover / book / Freedom date (or the honest gap). Never invents leftover, book value, or a date.
+2. **Journey Home** (`/home`, and signed-in `/`) — command center: one next-step CTA, three stations with leftover / book / Retire date (or the honest gap). Never invents leftover, book value, or a date.
 3. **Budget Learn / Do** — Learn is static lessons. Do is leftover, envelopes, and a real month close. Empty Do offers the first-run kit.
 4. **Invest Learn / Do** — Learn is static lessons. Do is the book (quantity, average cost, P/L). Empty Do offers the first-book wizard. An existing book is never hidden or deleted.
 5. **Freedom Learn / Do** — Learn is always available. Do can be opened anytime to learn; a date still needs leftover and the book. Saving a plan is encouraged after a book exists.
@@ -40,7 +40,7 @@ Derived from live data. Never invented. Recomputed on Journey Home, pillar Learn
 | --- | --- |
 | `budget.working` | Real leftover is assigned (Ready to Assign present, or leftover already given a job) **or** a month is closed **or** `flags.budgetElsewhere`. |
 | `invest.working` | The primary book has ≥1 visible holding **or** (`flags.investNoHoldingsYet` **and** the `invest-the-book` lesson is complete). |
-| `freedom.working` | A Freedom plan is saved. |
+| `freedom.working` | A Retire plan is saved. |
 
 Station status on Journey Home is **Not started | In progress | Working** (from Locked / Learn / In progress / Working under the hood).
 
@@ -66,7 +66,7 @@ Freedom has no first-run wizard. Spending-as-assumption copy on Freedom Do stays
 
 ## Honesty
 
-- Never invent leftover, income, holdings, cash, or a Freedom date.
+- Never invent leftover, income, holdings, cash, or a Retire date.
 - Leftover is one-time cash, not × 12.
 - If leftover or the book is missing, Journey Home prints **Needs leftover and a book** — not a blank and not a guess.
 - If a lesson and the tool disagree, the tool wins.
@@ -99,7 +99,7 @@ These seven are the Slice E check. Details and expected clicks live in [journey-
 
 1. New user, all beginner, skip money amounts → wizard → Journey Home → Budget Learn → Do.
 2. Same user cannot open Invest Do until leftover / month close **or** “I budget elsewhere.”
-3. Existing user who already has leftover + book: Journey Home shows a real Freedom date, not a blank or a guess.
+3. Existing user who already has leftover + book: Journey Home shows a real Retire date, not a blank or a guess.
 4. Tools-only flag: lessons available but not forced.
 5. Edit profile in Settings; track updates.
 6. Signed-out public page still works. Chat still gone.

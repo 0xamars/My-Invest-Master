@@ -40,7 +40,7 @@ export function DeleteRetirementPlanDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete Freedom plan</DialogTitle>
+          <DialogTitle>Delete Retire plan</DialogTitle>
           <DialogDescription>
             This will permanently delete &ldquo;{plan.name}&rdquo; and all its
             projections. This action cannot be undone.

@@ -21,6 +21,11 @@ import {
   ensureCreditCardPaymentCategories,
   paymentCategoryForAccount,
 } from "../src/lib/budget/credit-card-payments.ts";
+import {
+  applyPayCard,
+  cardPaymentSnapshot,
+  suggestedCardPaymentAmount,
+} from "../src/lib/budget/pay-card.ts";
 import { normalizeBudgetPlan } from "../src/lib/budget/migrate-plan.ts";
 import { getSpendingByCategory } from "../src/lib/budget/reports.ts";
 import {
@@ -465,6 +470,55 @@ const noCardAgain = ensureCreditCardPaymentCategories(
 assert(
   !noCardAgain.categoryGroups.some((group) => group.kind === "credit-card-payments"),
   "Plans without a credit card do not get a payment group",
+);
+
+assert(
+  suggestedCardPaymentAmount({ balanceOwed: 200, paymentAvailable: 80 }) === 80,
+  "Pay-card default is the smaller of owed and available to pay",
+);
+assert(
+  suggestedCardPaymentAmount({ balanceOwed: 50, paymentAvailable: 80 }) === 50,
+  "Pay-card default does not exceed the card balance",
+);
+
+const paySnap = cardPaymentSnapshot(legacyWithCard, creditCard.id, "2026-01");
+assert(
+  paySnap != null &&
+    paySnap.balanceOwed === 200 &&
+    paySnap.paymentAvailable === 200 &&
+    paySnap.suggestedAmount === 200 &&
+    paySnap.sources.some((account) => account.id === chequing.id),
+  "Pay-card snapshot shows owed, available, and a cash source",
+);
+
+const paidViaHelper = applyPayCard(legacyWithCard, {
+  cardAccountId: creditCard.id,
+  fromAccountId: chequing.id,
+  amount: 80,
+  date: "2026-01-22",
+  id: "pay-helper",
+});
+assert(
+  getAccountBalance(creditCard, paidViaHelper.transactions) === 120,
+  "Pay-card helper reduces the card balance owed",
+);
+assert(
+  getCategoryAvailable(paidViaHelper, paymentId, "2026-01") === 120,
+  "Pay-card helper spends the payment envelope, not leftover",
+);
+assert(
+  getReadyToAssign(paidViaHelper, "2026-01") ===
+    getReadyToAssign(legacyWithCard, "2026-01"),
+  "Pay-card helper does not change Ready to Assign",
+);
+assert(
+  applyPayCard(legacyWithCard, {
+    cardAccountId: creditCard.id,
+    fromAccountId: creditCard.id,
+    amount: 10,
+    date: "2026-01-22",
+  }).transactions.length === legacyWithCard.transactions.length,
+  "Pay-card helper refuses to pay a card from itself",
 );
 
 const emptyAom = computeAgeOfMoney([]);

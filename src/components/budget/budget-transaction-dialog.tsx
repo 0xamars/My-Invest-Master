@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ACCOUNT_TYPE_LABELS,
+  isCreditCardPaymentAccount,
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
@@ -337,22 +338,35 @@ export function BudgetTransactionDialog({
     return true;
   })();
 
+  const payingCard =
+    type === "transfer" &&
+    transferAccount != null &&
+    isCreditCardPaymentAccount(transferAccount);
+  const spendingOnCard =
+    type === "outflow" &&
+    selectedAccount != null &&
+    isCreditCardPaymentAccount(selectedAccount);
+
   const description =
     type === "transfer"
-      ? transferCrossesBudget
-        ? selectedOnBudget
-          ? "This leaves the budget. Leftover goes down by the transfer amount."
-          : "This enters the budget. Leftover goes up by the transfer amount."
-        : "Move money between accounts. Transfers between the same budget side do not change leftover."
+      ? payingCard
+        ? "This pays the card. It uses the card payment envelope. Leftover does not change."
+        : transferCrossesBudget
+          ? selectedOnBudget
+            ? "This leaves the budget. Leftover goes down by the transfer amount."
+            : "This enters the budget. Leftover goes up by the transfer amount."
+          : "Move money between accounts. Transfers between the same budget side do not change leftover."
       : type === "inflow"
         ? selectedOnBudget
           ? "Record income. Inflows go to leftover."
           : "Tracking inflow. This changes the account balance only — not leftover."
-        : !selectedOnBudget
-          ? "Tracking outflow. This changes the account balance only — not leftover or envelope Activity."
-          : splitEnabled
-            ? "Split this outflow across envelopes. Lines must add up to the total."
-            : "Record spending, linked to an account and envelope.";
+        : spendingOnCard
+          ? "Card spend moves dollars from the envelope into the card payment envelope."
+          : !selectedOnBudget
+            ? "Tracking outflow. This changes the account balance only — not leftover or envelope Activity."
+            : splitEnabled
+              ? "Split this outflow across envelopes. Lines must add up to the total."
+              : "Record spending, linked to an account and envelope.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

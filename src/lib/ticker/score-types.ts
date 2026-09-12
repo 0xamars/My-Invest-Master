@@ -109,7 +109,30 @@ export type TickerChartPoint = {
   epsDiluted: number | null;
 };
 
+export type TickerTrendPoint = {
+  period: string;
+  freeCashFlow: number | null;
+  grossMargin: number | null;
+  operatingMargin: number | null;
+  netMargin: number | null;
+  fcfMargin: number | null;
+};
+
 export type TickerStatementCharts = {
   annual: TickerChartPoint[];
   quarterly: TickerChartPoint[];
+  trends: TickerTrendPoint[];
+};
+
+export type TickerStreetOutlook = {
+  targetHigh: number | null;
+  targetLow: number | null;
+  targetConsensus: number | null;
+  targetMedian: number | null;
+  strongBuy: number | null;
+  buy: number | null;
+  hold: number | null;
+  sell: number | null;
+  strongSell: number | null;
+  consensus: string | null;
 };
