@@ -1185,7 +1185,20 @@ const marketingSrc = readFileSync(
   join(process.cwd(), "src/components/home/marketing-home.tsx"),
   "utf8",
 );
-assert(marketingSrc.includes("Budget → Invest → Retire"), "marketing hero is Budget → Invest → Retire");
+assert(
+  /<h1[^>]*>\s*Freedom, Engineered\.\s*<\/h1>/.test(marketingSrc),
+  "marketing hero is exactly Freedom, Engineered.",
+);
+assert(
+  marketingSrc.includes("Budget → Invest → Retire"),
+  "marketing subtitle/pillars stay Budget → Invest → Retire",
+);
+assert(
+  /title: "Budget"/.test(marketingSrc) &&
+    /title: "Invest"/.test(marketingSrc) &&
+    /title: "Retire"/.test(marketingSrc),
+  "marketing pillars stay Budget, Invest, Retire",
+);
 assert(marketingSrc.includes("Login") && marketingSrc.includes("Sign up"), "marketing CTAs are Login and Sign up");
 assert(!marketingSrc.includes("Open Home"), "marketing has no Open Home CTA");
 assert(
