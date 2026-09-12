@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Loader2, Target } from "lucide-react";
-import { CategoryPageHeader } from "@/components/category/category-page-header";
+import { ArrowRight } from "lucide-react";
+import { PageLoading } from "@/components/layout/page-loading";
+import {
+  RetireEmptyState,
+  RetirePageHeader,
+  RetirePanel,
+} from "@/components/retirement/retire-ui";
 import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
 import { RetirementWhatIf } from "@/components/retirement/retirement-what-if";
-import { RetireEmptyState, RetirePanel } from "@/components/retirement/retire-ui";
-import { BrandStill } from "@/components/brand/brand-still";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -15,7 +18,6 @@ import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
-import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { FREEDOM_EMPTY } from "@/lib/journey/empty-states";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
 import {
@@ -90,8 +92,7 @@ export function RetireHomeContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      <CategoryPageHeader
-        category="retire"
+      <RetirePageHeader
         title="Retire"
         description="One date from leftover and the book. Target, on-track, and the lever on this path."
         action={
@@ -109,23 +110,10 @@ export function RetireHomeContent() {
       />
 
       {!ready ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-          <Loader2 className="mr-2 size-4 animate-spin" />
-          Loading Retire…
-        </div>
+        <PageLoading label="Loading Retire…" />
       ) : inputsMissing && !latest ? (
-        <div className="surface-card" data-empty-state="retire">
-          <BrandStill
-            src={BRAND.emptyFreedom}
-            alt=""
-            width={BRAND_SIZE.emptyFreedom.width}
-            height={BRAND_SIZE.emptyFreedom.height}
-            className="rounded-b-none border-0 border-b"
-            imageClassName="h-44 object-cover object-center sm:h-52"
-            sizes="(min-width: 640px) 40rem, 100vw"
-          />
+        <div data-empty-state="retire">
           <RetireEmptyState
-            icon={<Target className="size-5" />}
             title={FREEDOM_EMPTY.title}
             description={FREEDOM_EMPTY.description}
             actions={

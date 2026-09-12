@@ -8,7 +8,7 @@ import { LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
 const PILLARS = [
   {
     title: "Budget",
-    body: "See cash first. Ready to Assign, leftover that carries, a register, and CSV import.",
+    body: "See cash first. Ready to Assign, leftover that carries, a register, and bank connect.",
   },
   {
     title: "Invest",
@@ -23,8 +23,6 @@ const PILLARS = [
 export function MarketingHomePage() {
   return (
     <div className="marketing-home relative min-h-svh overflow-x-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0 field-grain" aria-hidden />
-
       <header className="portal-header sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6 sm:h-16 sm:px-8">
           <BrandLogo variant="lockup" asLink priority />
@@ -41,7 +39,7 @@ export function MarketingHomePage() {
         </div>
       </header>
 
-      <main className="relative z-10">
+      <main>
         <section className="mx-auto max-w-5xl px-6 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-24">
           <h1 className="max-w-xl text-balance text-[2.75rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             Retire, engineered.
@@ -62,26 +60,22 @@ export function MarketingHomePage() {
         </section>
 
         <section className="mx-auto max-w-5xl px-6 pb-24 sm:px-8">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-8 sm:grid-cols-3">
             {PILLARS.map((item) => (
-              <Link
-                key={item.title}
-                href={LOGIN_PATH}
-                className="surface-card px-6 py-7 transition-colors hover:bg-muted/40"
-              >
-                <h2 className="text-xl font-semibold tracking-tight text-white">
+              <div key={item.title}>
+                <h2 className="text-sm font-semibold tracking-tight">
                   {item.title}
                 </h2>
-                <p className="mt-3 text-[0.9375rem] leading-relaxed text-white/55">
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {item.body}
                 </p>
-              </Link>
+              </div>
             ))}
           </div>
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-border py-8">
+      <footer className="border-t border-border py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/35 sm:flex-row sm:px-8 sm:text-left">
           <p>© {new Date().getFullYear()} InvestSalsa</p>
           <div className="flex flex-wrap justify-center gap-5">

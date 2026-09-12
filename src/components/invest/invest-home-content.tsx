@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, RefreshCw, TrendingUp } from "lucide-react";
+import { Plus } from "lucide-react";
+import { PageLoading } from "@/components/layout/page-loading";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
-import { BrandStill } from "@/components/brand/brand-still";
 import {
   RetireEmptyState,
   RetirePageHeader,
@@ -18,7 +18,6 @@ import { useBookTickerQuotes } from "@/hooks/use-book-ticker-quotes";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { explainAddHoldingFields } from "@/lib/journey/density";
-import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { INVEST_EMPTY_BOOK } from "@/lib/journey/empty-states";
 import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
 import { buildBookRows, formatBookCacheLine } from "@/lib/ticker/book";
@@ -83,11 +82,7 @@ export function InvestHomeContent() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex min-h-[12rem] items-center justify-center">
-        <RefreshCw className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoading label="Loading Invest…" />;
   }
 
   return (
@@ -118,30 +113,18 @@ export function InvestHomeContent() {
           isSubmitting={creating}
         />
       ) : rows.length === 0 ? (
-        <div className="surface-card" data-empty-state="invest">
-          <BrandStill
-            src={BRAND.emptyInvest}
-            alt=""
-            width={BRAND_SIZE.emptyInvest.width}
-            height={BRAND_SIZE.emptyInvest.height}
-            className="rounded-b-none border-0 border-b"
-            imageClassName="h-44 object-cover object-center sm:h-52"
-            sizes="(min-width: 640px) 40rem, 100vw"
-          />
+        <div data-empty-state="invest">
           <RetireEmptyState
-            icon={<TrendingUp className="size-5" />}
             title={INVEST_EMPTY_BOOK.title}
             description={INVEST_EMPTY_BOOK.description}
             actions={
-              <>
-                <Button
-                  onClick={() => void onAddClick()}
-                  disabled={creating}
-                >
-                  <Plus className="size-4" />
-                  {INVEST_EMPTY_BOOK.addLabel}
-                </Button>
-              </>
+              <Button
+                onClick={() => void onAddClick()}
+                disabled={creating}
+              >
+                <Plus className="size-4" />
+                {INVEST_EMPTY_BOOK.addLabel}
+              </Button>
             }
           />
         </div>

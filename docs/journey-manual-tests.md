@@ -1,54 +1,44 @@
-# Journey manual tests
+# Product manual tests
 
-Slice E check. Use a real signed-in account. Apply `supabase/migrations/012_user_money_profiles.sql` first. Do not invent leftover, income, holdings, or a Retire date while testing.
+Use a real signed-in account. Do not invent leftover, income, holdings, or a Retire date while testing.
 
-## 1. New user, all beginner, skip money amounts → wizard → Journey Home → Budget Learn → Do
+## 1. New user lands in Budget
 
-1. Sign in as a user with **no** Money Profile (or delete the `user_money_profiles` row).
-2. You should land on the **3-step wizard**, not Journey Home and not a guessed profile.
-3. Leave pay / income / age blank (skip money amounts). Finish as beginner knowledge.
-4. You land on **Journey Home** (`/home`). Next should be **Create a budget** (not Continue). Budget metric **No budget yet**. Freedom metric **Needs leftover and a book**. Invest metric **No holdings**.
-5. Open Budget **Learn**, then **Do**. Empty Do offers the first-run kit. Accepting the kit must not invent leftover.
+1. Sign in as a user with no budget plan.
+2. You land on **Budget**, not Journey Home and not a Money Profile wizard.
+3. Empty Budget offers the first-run kit. Accepting the kit must not invent leftover.
+4. Nav is only Budget, Invest, Retire. No Learn/Do. No Freedom label.
 
-## 2. Same user cannot open Invest Do until leftover / month close OR “I budget elsewhere.”
+## 2. Invest stays honest
 
-1. Stay beginner. Do not assign leftover, close a month, or add a book.
-2. Journey Home Invest station is **Not started**. `/invest?tab=do` shows the skip warning, not an invented book.
-3. Confirm **I budget elsewhere** **or** assign leftover / close a month. Invest Do then opens.
-4. Soft lock is client-side. Middleware must not 404 or bounce `/invest?tab=do` after they have a book or `budgetElsewhere`.
+1. Open Invest with no book. The first-book wizard names the book. No holdings are invented.
+2. Search a public ticker. Score is above Past / Now / Future.
+3. Missing FMP figures stay Unknown. Future is street estimates, not a house forecast.
 
-## 3. Existing user who already has leftover + book: Journey Home shows a real Retire date
+## 3. Existing leftover + book: Retire shows a real date
 
-1. Sign in as a user who already has leftover assigned (or present) **and** a primary book with at least one visible holding.
-2. Open Journey Home.
-3. Retire date is the leftover + book date (or the honest “no crossing yet” label from that path). It is **not** blank and **not** a guessed year.
-4. Existing leftover and the existing book stay visible. Nothing is deleted.
+1. Sign in as a user who already has leftover assigned **and** a primary book with at least one visible holding.
+2. Open Retire.
+3. The date is the leftover + book date (or the honest “no crossing yet” label). It is **not** blank and **not** a guessed year.
+4. Existing leftover and the existing book stay visible.
 
-## 4. Tools-only flag: lessons available but not forced
+## 4. Budget bank and cards
 
-1. In Settings → Money Profile, check **I just want the tools** (`flags.toolsOnly`).
-2. Track becomes **Tools**. Pillars default to **Do**. Learn is collapsed to Key ideas.
-3. Learn tabs still open. Lessons are not required before Do. All Do unlocked.
+1. Accounts includes Plaid Connect. Envelopes stay the source of truth.
+2. A credit card can be paid from an on-budget account into its payment envelope.
 
-## 5. Edit profile in Settings; track updates
+## 5. Settings and sign-out
 
-1. Open Settings → Money Profile → Edit.
-2. Change knowledge / goal / risk / tools-only. Save.
-3. The one-line summary and track update. Working flags still come from live leftover / book / saved Retire plan — not from the wizard.
+1. Account menu opens Settings and Sign out.
+2. Settings has account, display currency, data, and plan — not Money Profile.
+3. Sign out returns to the public marketing page.
 
 ## 6. Signed-out public page still works. Chat still gone.
 
-1. Sign out. `/` is the public marketing page (Freedom, engineered). One **Sign in** button — no Continue, no hero still, no Start today section.
-2. `/chat` and `/assistant` redirect (chat stays unshipped). Do not remount chat.
-3. Signed-in `/` is Journey Home, not marketing. Header is Logo, Budget | Invest | Freedom, and the account menu. Sign out returns to marketing `/`.
+1. Open `/` signed out. Marketing loads. Sign in is the CTA.
+2. `/chat` and `/assistant` redirect to Invest. No assistant FAB.
+3. `/freedom` redirects to Retire. `/home` and `/money-profile` redirect to Budget.
 
-## 7. Typecheck passes
+## 7. Typecheck and units
 
-From the repo root:
-
-```bash
-npx tsc --noEmit
-npm run test:journey
-```
-
-Both must pass. No secrets in the branch.
+`npx tsc --noEmit` and the journey / invest / ticker / budget / retire unit scripts pass.

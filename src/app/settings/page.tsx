@@ -17,7 +17,8 @@ export default function SettingsPage() {
           <PillarBackLink href={BUDGET_PATH} label="Back to Budget" />
           <h1 className="page-title mt-2">Settings</h1>
           <p className="page-description">
-            Manage account and cloud sync for your portfolio data.
+            Account, display currency, and cloud sync for Budget, Invest, and
+            Retire.
           </p>
         </div>
         <AccountSettings />

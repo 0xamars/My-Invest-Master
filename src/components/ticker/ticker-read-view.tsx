@@ -9,10 +9,7 @@ import { TickerPastSection } from "@/components/ticker/ticker-past-section";
 import { TickerScoreGraphic } from "@/components/ticker/ticker-score";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  RetirePageHeader,
-  RetirePanel,
-} from "@/components/retirement/retire-ui";
+import { RetirePanel } from "@/components/retirement/retire-ui";
 import {
   formatTickerCacheAge,
   formatTickerField,
@@ -60,13 +57,14 @@ export function TickerReadView({
         <TickerLookup className="sm:max-w-sm sm:flex-1" placeholder="Another name or ticker…" />
       </div>
 
-      <RetirePageHeader
-        title={name}
-        description={`${snapshot.symbol}${profile.exchange ? ` · ${profile.exchange}` : ""}`}
-      />
-
-      <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <section>
+        <h1 className="page-title">{name}</h1>
+        <p className="page-description mt-0">
+          {snapshot.symbol}
+          {profile.exchange ? ` · ${profile.exchange}` : ""}
+          {profile.sector ? ` · ${profile.sector}` : ""}
+        </p>
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <p className="budget-hero-value">{formatTickerPrice(quote.price)}</p>
           {change != null ? (
             <p className={cn("text-sm font-medium tabular-nums", profitLossClass(change))}>
@@ -124,7 +122,7 @@ export function TickerReadView({
       ) : null}
 
       {collapsed ? null : (
-      <RetirePanel className="px-5 py-4">
+      <RetirePanel className="px-5 py-5">
         <h2 className="text-sm font-semibold">Score</h2>
         <p className="mt-1 text-sm text-muted-foreground">{SCORE_NOT_A_BUY}</p>
         <div className="mt-4">
@@ -135,10 +133,16 @@ export function TickerReadView({
 
       {collapsed ? null : (
         <Tabs defaultValue="past" className="gap-4" data-ticker-tabs="past-now-future">
-          <TabsList className="grid h-auto w-full grid-cols-3 sm:w-fit">
-            <TabsTrigger value="past">Past</TabsTrigger>
-            <TabsTrigger value="now">Now</TabsTrigger>
-            <TabsTrigger value="future">Future</TabsTrigger>
+          <TabsList className="segmented h-auto w-full bg-muted p-[0.2rem] sm:w-fit">
+            <TabsTrigger value="past" className="rounded-md px-4 py-1.5">
+              Past
+            </TabsTrigger>
+            <TabsTrigger value="now" className="rounded-md px-4 py-1.5">
+              Now
+            </TabsTrigger>
+            <TabsTrigger value="future" className="rounded-md px-4 py-1.5">
+              Future
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="past" className="mt-1">
             <TickerPastSection snapshot={snapshot} />

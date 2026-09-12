@@ -13,11 +13,11 @@ export function BudgetPageHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-1">
-        <h1 className="text-[1.45rem] font-semibold tracking-tight text-foreground">
+        <h1 className="page-title">
           {title}
         </h1>
         {description ? (
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <p className="page-description mt-0">
             {description}
           </p>
         ) : null}
@@ -38,26 +38,22 @@ export function BudgetPanel({
 }
 
 export function BudgetEmptyState({
-  icon,
   title,
   description,
   actions,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   description: string;
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center px-6 py-14 text-center">
-      <div className="mb-4 flex size-12 items-center justify-center rounded-[var(--radius)] border border-border bg-muted text-[var(--brand-green)]">
-        {icon}
-      </div>
-      <p className="text-base font-semibold tracking-tight">{title}</p>
+    <div className="premium-empty">
+      <p className="text-[0.975rem] font-semibold tracking-tight">{title}</p>
       <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
         {description}
       </p>
-      {actions ? <div className="mt-5 flex flex-wrap justify-center gap-2">{actions}</div> : null}
+      {actions ? <div className="mt-4 flex flex-wrap gap-2">{actions}</div> : null}
     </div>
   );
 }

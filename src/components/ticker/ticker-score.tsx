@@ -101,11 +101,10 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
             );
           })}
         </svg>
-        <p className="mt-1 text-xs text-muted-foreground">Score</p>
       </div>
 
       <div className="space-y-4">
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className="grid gap-2">
           {ORDER.map((key) => {
             const axis = axisAt(key, score);
             const mark = formatScoreMark(axis);

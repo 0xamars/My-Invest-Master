@@ -2,6 +2,8 @@
  * Journey rails: Money Profile, Learn/Do tabs, derived working flags, soft locks.
  *   npx tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts
  */
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
@@ -1113,6 +1115,24 @@ assert(
 const emptyCopy = emptyStateCopyText();
 for (const word of forbidden) {
   assert(!emptyCopy.includes(word), `empty-state copy does not name ${word}`);
+}
+
+const leftoverUi = [
+  "src/components/journey/journey-home-content.tsx",
+  "src/components/journey/pillar-learn-do.tsx",
+  "src/components/journey/learn-panel.tsx",
+  "src/components/journey/money-profile-wizard.tsx",
+  "src/components/settings/money-profile-settings-card.tsx",
+  "src/components/layout/app-sidebar.tsx",
+  "src/components/assistant/assistant-chat.tsx",
+  "src/components/brand/launch-still.tsx",
+  "src/components/brand/brand-still.tsx",
+];
+for (const file of leftoverUi) {
+  assert(
+    !existsSync(join(process.cwd(), file)),
+    `leftover UI is gone: ${file}`,
+  );
 }
 
 if (failed > 0) {

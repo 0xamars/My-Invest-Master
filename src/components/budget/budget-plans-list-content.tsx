@@ -1,29 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Loader2,
   Plus,
   Trash2,
-  Wallet,
 } from "lucide-react";
+import { PageLoading } from "@/components/layout/page-loading";
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-dialog";
 import { BudgetEmptyState, BudgetPageHeader } from "@/components/budget/budget-ui";
-import { BrandStill } from "@/components/brand/brand-still";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
-import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { BUDGET_EMPTY } from "@/lib/journey/empty-states";
 import {
   budgetCurrencyFromProfile,
   shouldOfferBudgetFirstRunKit,
-  STARTER_ENVELOPE_NAMES,
 } from "@/lib/journey/first-run";
 import { cn } from "@/lib/utils";
 import type { BudgetPlan } from "@/types/budget";
@@ -90,12 +85,7 @@ export function BudgetPlansListContent() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading budget plans…
-      </div>
-    );
+    return <PageLoading label="Loading Budget…" />;
   }
 
   return (
@@ -122,48 +112,20 @@ export function BudgetPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <div className="surface-card" data-budget-first-run-kit="1" data-empty-state="budget">
-          <BrandStill
-            src={BRAND.emptyBudget}
-            alt=""
-            width={BRAND_SIZE.emptyBudget.width}
-            height={BRAND_SIZE.emptyBudget.height}
-            className="rounded-b-none border-0 border-b"
-            imageClassName="h-44 object-cover object-center sm:h-52"
-            sizes="(min-width: 640px) 40rem, 100vw"
-          />
+        <div data-budget-first-run-kit="1" data-empty-state="budget">
           <BudgetEmptyState
-            icon={<Wallet className="size-5" />}
             title={BUDGET_EMPTY.title}
             description={BUDGET_EMPTY.description}
             actions={
-              <>
-                <Button
-                  onClick={() => void handleStartKit()}
-                  disabled={isCreating || !isPlanReady}
-                >
-                  <Plus className="size-4" />
-                  {BUDGET_EMPTY.kitLabel}
-                </Button>
-                <Button
-                  variant="outline"
-                  render={<Link href={BUDGET_EMPTY.learnHref} />}
-                >
-                  {BUDGET_EMPTY.learnLabel}
-                </Button>
-              </>
+              <Button
+                onClick={() => void handleStartKit()}
+                disabled={isCreating || !isPlanReady}
+              >
+                <Plus className="size-4" />
+                {BUDGET_EMPTY.kitLabel}
+              </Button>
             }
           />
-          <ul className="mx-auto mb-8 grid max-w-md grid-cols-2 gap-2 px-6 text-sm text-muted-foreground sm:grid-cols-3">
-            {STARTER_ENVELOPE_NAMES.map((envelope) => (
-              <li
-                key={envelope}
-                className="rounded-xl border border-border/60 bg-background/40 px-3 py-2 text-center font-medium text-foreground"
-              >
-                {envelope}
-              </li>
-            ))}
-          </ul>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -247,7 +209,7 @@ export function BudgetPlansListContent() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         title="Create Budget Plan"
-        description="Give your plan a name so you can find it easily in the sidebar and overview."
+        description="Give your plan a name so you can find it on Budget."
         confirmLabel="Create plan"
         onConfirm={handleCreate}
         isSubmitting={isCreating}

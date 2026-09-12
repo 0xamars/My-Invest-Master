@@ -97,14 +97,14 @@ export function TickerFutureSection({ snapshot }: { snapshot: TickerSnapshot }) 
 
       {future.years.length > 0 ? (
         <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[32rem] text-left text-sm">
+          <table className="desk-table min-w-[32rem]">
             <thead>
-              <tr className="text-xs text-muted-foreground">
-                <th className="py-2 pr-3 font-medium">Year</th>
-                <th className="py-2 pr-3 font-medium">Street revenue (estimate)</th>
-                <th className="py-2 pr-3 font-medium">Street EPS (estimate)</th>
-                <th className="py-2 pr-3 font-medium">Street net income (estimate)</th>
-                <th className="py-2 pr-3 font-medium">Street analysts (estimate)</th>
+              <tr>
+                <th>Year</th>
+                <th>Street revenue (estimate)</th>
+                <th>Street EPS (estimate)</th>
+                <th>Street net income (estimate)</th>
+                <th>Street analysts (estimate)</th>
               </tr>
             </thead>
             <tbody>

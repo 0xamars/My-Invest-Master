@@ -23,24 +23,24 @@ export function SignedInHeaderNav() {
   return (
     <nav
       aria-label="Budget, Invest, Retire"
-      className="flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto"
+      className="flex min-w-0 flex-1 items-center justify-center"
     >
-      {SIGNED_IN_PRIMARY_NAV.map((item) => {
-        const active = isPrimaryActive(pathname, item.category);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-              active && "bg-muted text-foreground",
-            )}
-            aria-current={active ? "page" : undefined}
-          >
-            {item.title}
-          </Link>
-        );
-      })}
+      <div className="segmented">
+        {SIGNED_IN_PRIMARY_NAV.map((item) => {
+          const active = isPrimaryActive(pathname, item.category);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn("segmented-item", active && "text-foreground")}
+              data-active={active ? "true" : "false"}
+              aria-current={active ? "page" : undefined}
+            >
+              {item.title}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }
