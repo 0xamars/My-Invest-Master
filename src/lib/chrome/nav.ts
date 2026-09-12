@@ -6,6 +6,7 @@ export const FREEDOM_PATH = RETIRE_PATH;
 export const FREEDOM_LEGACY_PATH = "/freedom";
 export const RETIRE_LEGACY_PATH = "/retire";
 export const SETTINGS_PATH = "/settings";
+/** Signed-in Home / hub. Not a fourth nav pillar. */
 export const JOURNEY_HOME_PATH = "/home";
 export const MONEY_PROFILE_PATH = "/money-profile";
 
@@ -135,7 +136,7 @@ export function pillarHomePath(pathname: string): string {
   if (pillar === "budget") return BUDGET_PATH;
   if (pillar === "invest") return INVEST_PATH;
   if (pillar === "retire") return RETIRE_PATH;
-  return BUDGET_PATH;
+  return JOURNEY_HOME_PATH;
 }
 
 export function pillarLabel(pathname: string): string {
@@ -232,8 +233,8 @@ export function resolvePageTitle(
 
   const pageTitles: Record<string, string> = {
     "/": "InvestSalsa",
-    "/home": "Budget",
-    "/money-profile": "Budget",
+    "/home": "Home",
+    "/money-profile": "Home",
     "/invest": "Invest",
     "/invest/assess": "Assess",
     "/invest/options": "Options",

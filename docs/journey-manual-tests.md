@@ -2,12 +2,13 @@
 
 Use a real signed-in account. Do not invent leftover, income, holdings, or a Retire date while testing.
 
-## 1. New user lands in Budget
+## 1. New user lands on Home
 
 1. Sign in as a user with no budget plan.
-2. You land on **Budget**, not Journey Home and not a Money Profile wizard.
-3. Empty Budget offers the first-run kit. Accepting the kit must not invent leftover.
-4. Nav is only Budget, Invest, Retire. No Learn/Do. No Freedom label.
+2. You land on **Home**, not Budget and not a Money Profile wizard.
+3. Home shows labeled empties: “No budget yet”, “No holdings”, “Needs leftover and a book”. No invented leftover, book, or date.
+4. Open Budget from Home. Empty Budget offers the first-run kit. Accepting the kit must not invent leftover.
+5. Nav is only Budget, Invest, Retire. No Learn/Do. No Freedom label. Home is not a fourth tab.
 
 ## 2. Invest stays honest
 
@@ -37,7 +38,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 1. Open `/` signed out. Marketing loads. Sign in is the CTA.
 2. `/chat` and `/assistant` redirect to Invest. No assistant FAB.
-3. `/freedom` redirects to Retire. `/home` and `/money-profile` redirect to Budget.
+3. `/freedom` redirects to Retire. `/money-profile` redirects to Home. Signed-out `/home` asks for sign-in.
 
 ## 7. Typecheck and units
 

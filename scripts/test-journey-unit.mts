@@ -18,6 +18,7 @@ import {
 } from "../src/lib/journey/empty-states.ts";
 import {
   MIDDLEWARE_HARD_BLOCKS_INVEST_DO,
+  isBypassedJourneyPath,
   isMissingMoneyProfileTable,
   middlewareShouldHardBlockInvestDo,
   moneyProfilePresenceFromQuery,
@@ -85,6 +86,11 @@ import {
   stationCardHref,
   JOURNEY_HOME_METRIC_EMPTY,
 } from "../src/lib/journey/command-center.ts";
+import {
+  buildSignedInHomeCards,
+  signedInHomeNextAction,
+} from "../src/lib/journey/signed-in-home.ts";
+import { APP_HOME_PATH } from "../src/lib/routes.ts";
 import { journeyStations, primaryNextAction } from "../src/lib/journey/stations.ts";
 import {
   defaultPillarTab,
@@ -751,18 +757,20 @@ assert(
   "Slice C lock stays: toolsOnly Invest Do is unlocked",
 );
 
-assert(signedInLandingPath(true) === "/budget", "signed-in landing with a profile is Journey Home");
+assert(!isBypassedJourneyPath("/home"), "signed-in Home is not a leftover bypass");
+assert(isBypassedJourneyPath("/money-profile"), "Money Profile still folds away");
+assert(signedInLandingPath(true) === "/home", "signed-in landing with a profile is Home");
 assert(
-  signedInLandingPath(false) === "/budget",
-  "signed-in landing with no profile is the wizard",
+  signedInLandingPath(false) === "/home",
+  "signed-in landing with no profile is Home",
 );
 assert(
-  signedInAuthRedirectPath(true) === "/budget",
-  "returning signed-in login bounce is Journey Home",
+  signedInAuthRedirectPath(true) === "/home",
+  "returning signed-in login bounce is Home",
 );
 assert(
-  signedInAuthRedirectPath(false) === "/budget",
-  "first-login bounce is the Money Profile wizard",
+  signedInAuthRedirectPath(false) === "/home",
+  "first-login bounce is Home",
 );
 
 assert(
@@ -786,7 +794,7 @@ assert(
     signedIn: true,
     pathname: "/",
   }),
-  "signed-in `/` leaves marketing for Journey Home",
+  "signed-in `/` leaves marketing for Home",
 );
 assert(
   !shouldRedirectSignedInFromMarketing({
@@ -1116,6 +1124,72 @@ const emptyCopy = emptyStateCopyText();
 for (const word of forbidden) {
   assert(!emptyCopy.includes(word), `empty-state copy does not name ${word}`);
 }
+
+assert(APP_HOME_PATH === "/home", "signed-in app home is /home");
+assert(
+  signedInHomeNextAction(commandLive())?.label === "Create a budget",
+  "signed-in Home next with no plan is Create a budget",
+);
+assert(
+  signedInHomeNextAction(
+    commandLive({
+      hasBudgetPlan: true,
+      leftover: leftoverPresent,
+      budgetPlanId: leftoverPresent.budgetPlanId,
+      budgetWorking: true,
+    }),
+  )?.href === `/budget/plans/${leftoverPresent.budgetPlanId}`,
+  "signed-in Home leftover CTA opens the live plan",
+);
+assert(
+  signedInHomeNextAction(
+    commandLive({
+      hasBudgetPlan: true,
+      leftover: { status: "none", budgetPlanId: plan.id, currency: "USD" },
+      budgetWorking: true,
+      hasHoldings: true,
+      hasFreedomPlan: true,
+    }),
+  ) === null,
+  "signed-in Home invents no next step when leftover, book, and Retire exist",
+);
+
+const emptyHomeCards = buildSignedInHomeCards({
+  leftover: { status: "missing-budget" },
+  book: { status: "missing" },
+  freedom: { status: "needs-inputs", label: FREEDOM_DATE_NEEDS_INPUTS },
+});
+assert(
+  emptyHomeCards.map((card) => card.title).join("|") === "Budget|Invest|Retire",
+  "signed-in Home cards are Budget, Invest, Retire",
+);
+assert(
+  emptyHomeCards.every((card) => card.empty) &&
+    emptyHomeCards[0]?.metric === "No budget yet" &&
+    emptyHomeCards[1]?.metric === "No holdings" &&
+    emptyHomeCards[2]?.metric === FREEDOM_DATE_NEEDS_INPUTS,
+  "signed-in Home empty cards stay labeled",
+);
+
+const liveHomeCards = buildSignedInHomeCards({
+  leftover: leftoverPresent,
+  book: bookOnly,
+  freedom: dated,
+});
+assert(
+  liveHomeCards[0]?.metric.includes("2,000") ||
+    liveHomeCards[0]?.metric.includes("2000"),
+  "signed-in Home leftover is the real Ready to Assign",
+);
+assert(
+  liveHomeCards[1]?.metric.includes("4,000") ||
+    liveHomeCards[1]?.metric.includes("4000"),
+  "signed-in Home book is cost basis",
+);
+assert(
+  liveHomeCards[2]?.empty === false && liveHomeCards[2]?.metric === dated.label,
+  "signed-in Home Retire uses leftover + book, not a guessed year",
+);
 
 const leftoverUi = [
   "src/components/journey/journey-home-content.tsx",

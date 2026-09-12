@@ -11,6 +11,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { APP_HOME_PATH } from "@/lib/routes";
 
 interface AuthContextValue {
   user: User | null;
@@ -87,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/budget`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${APP_HOME_PATH}`,
         },
       });
 

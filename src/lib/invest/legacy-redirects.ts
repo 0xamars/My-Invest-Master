@@ -35,8 +35,7 @@ export const INVEST_LEGACY_REDIRECTS = [
     destination: "/retire/plans/:id",
     permanent: false,
   },
-  { source: "/home", destination: "/budget", permanent: false },
-  { source: "/money-profile", destination: "/budget", permanent: false },
+  { source: "/money-profile", destination: "/home", permanent: false },
 ] as const;
 
 export function destinationForLegacyInvestPath(
@@ -87,11 +86,8 @@ export function destinationForLegacyInvestPath(
   if (pathname.startsWith("/freedom/")) {
     return `/retire${pathname.slice("/freedom".length)}`;
   }
-  if (pathname === "/home" || pathname.startsWith("/home/")) {
-    return "/budget";
-  }
   if (pathname === "/money-profile" || pathname.startsWith("/money-profile/")) {
-    return "/budget";
+    return "/home";
   }
   return null;
 }

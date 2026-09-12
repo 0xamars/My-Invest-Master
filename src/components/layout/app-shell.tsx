@@ -38,7 +38,7 @@ function AppShellHeader() {
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   const isAuthPublic =
     pathname === LOGIN_PATH ||
@@ -46,7 +46,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     pathname === SIGNIN_PATH ||
     pathname === AUTH_RESET_PATH ||
     pathname.startsWith(`${AUTH_RESET_PATH}/`);
-  const isMarketingPublic = pathname === "/" && !user;
+  const isMarketingPublic = pathname === "/";
   const isPublicChrome = isAuthPublic || isMarketingPublic;
 
   if (isPublicChrome) {

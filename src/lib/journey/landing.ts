@@ -1,5 +1,4 @@
-import { BUDGET_PATH } from "@/lib/chrome/nav";
-import { MONEY_PROFILE_PATH } from "@/lib/routes";
+import { APP_HOME_PATH, MONEY_PROFILE_PATH } from "@/lib/routes";
 
 function isMoneyProfilePath(pathname: string): boolean {
   return (
@@ -13,9 +12,9 @@ function isMoneyProfilePath(pathname: string): boolean {
  */
 export const MIDDLEWARE_HARD_BLOCKS_INVEST_DO = false;
 
-/** Signed-in landing is Budget — not a quiz, not Journey Home. */
+/** Signed-in landing is the Home hub — not Budget, not a quiz. */
 export function signedInLandingPath(_hasProfile?: boolean): string {
-  return BUDGET_PATH;
+  return APP_HOME_PATH;
 }
 
 /** Signed-in visitors do not stay on the public marketing homepage. */
@@ -60,12 +59,9 @@ export function shouldRedirectToMoneyProfile(_input: {
   return false;
 }
 
+/** Unshipped Money Profile only. `/home` is the signed-in hub. */
 export function isBypassedJourneyPath(pathname: string): boolean {
-  return (
-    pathname === "/home" ||
-    pathname.startsWith("/home/") ||
-    isMoneyProfilePath(pathname)
-  );
+  return isMoneyProfilePath(pathname);
 }
 
 /** Login / signup bounce for an already-signed-in visitor. */

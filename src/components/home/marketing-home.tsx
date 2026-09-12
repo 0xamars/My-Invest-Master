@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
-import { LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
+import { useAuth } from "@/hooks/use-auth";
+import { signOutThenGoHome } from "@/lib/layout/sign-out-home";
+import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
+import { APP_HOME_PATH, LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
 
 const PILLARS = [
   {
@@ -21,20 +25,57 @@ const PILLARS = [
 ] as const;
 
 export function MarketingHomePage() {
+  const { user, signOut } = useAuth();
+  const goToMarketingHome = useGoToMarketingHome();
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOutThenGoHome(signOut, goToMarketingHome);
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
   return (
     <div className="marketing-home relative min-h-svh overflow-x-hidden bg-background text-foreground">
       <header className="portal-header sticky top-0 z-20">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-6 sm:h-16 sm:px-8">
           <BrandLogo variant="lockup" asLink priority />
           <nav className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="lg"
-              className="border border-border bg-muted"
-              render={<Link href={LOGIN_PATH} />}
-            >
-              Sign in
-            </Button>
+            {user ? (
+              <>
+                <Button
+                  size="lg"
+                  className="premium-cta"
+                  render={<Link href={APP_HOME_PATH} />}
+                >
+                  Open Home
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border border-border bg-muted"
+                  disabled={signingOut}
+                  onClick={() => {
+                    void handleSignOut();
+                  }}
+                >
+                  Sign out
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                size="lg"
+                className="border border-border bg-muted"
+                render={<Link href={LOGIN_PATH} />}
+              >
+                Sign in
+              </Button>
+            )}
           </nav>
         </div>
       </header>
@@ -49,13 +90,23 @@ export function MarketingHomePage() {
             and Retire — one product. Not investment advice.
           </p>
           <div className="mt-10">
-            <Button
-              size="lg"
-              className="premium-cta"
-              render={<Link href={LOGIN_PATH} />}
-            >
-              Sign in
-            </Button>
+            {user ? (
+              <Button
+                size="lg"
+                className="premium-cta"
+                render={<Link href={APP_HOME_PATH} />}
+              >
+                Open Home
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                className="premium-cta"
+                render={<Link href={LOGIN_PATH} />}
+              >
+                Sign in
+              </Button>
+            )}
           </div>
         </section>
 
@@ -85,9 +136,22 @@ export function MarketingHomePage() {
             <Link href={PRIVACY_PATH} className="hover:text-white/70">
               Privacy
             </Link>
-            <Link href={LOGIN_PATH} className="hover:text-white/70">
-              Sign in
-            </Link>
+            {user ? (
+              <button
+                type="button"
+                className="hover:text-white/70"
+                disabled={signingOut}
+                onClick={() => {
+                  void handleSignOut();
+                }}
+              >
+                Sign out
+              </button>
+            ) : (
+              <Link href={LOGIN_PATH} className="hover:text-white/70">
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </footer>
