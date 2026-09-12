@@ -1,6 +1,6 @@
 # Journey
 
-InvestSalsa is one product with three pillars: **Budget**, **Invest**, and **Retire**. Chrome is Budget | Invest | Retire. Home is not a fourth nav item. The user-facing word is **Retire**, never Freedom.
+InvestSalsa is one product with three pillars: **Budget**, **Invest**, and **Retire**. Chrome is Budget | Invest | Retire. Home is not a fourth nav item. The user-facing product word is **Retire**, never Freedom. Marketing `/` hero is **Freedom, Engineered.** — brand title only.
 
 Educational footer, everywhere it is shown:
 
@@ -30,7 +30,7 @@ Learn/Do tabs and the Money Profile quiz are unshipped. `/money-profile` redirec
 
 ## Middleware and landing
 
-- Signed-out public marketing (`/`) is one hero (Budget → Invest → Retire), three short pillars, Login / Sign up only. After logout, marketing shows Login.
+- Signed-out public marketing (`/`) is one hero (**Freedom, Engineered.**), subtitle Budget → Invest → Retire, three short pillars, Login / Sign up only. After logout, marketing shows Login.
 - Signed-in `/` goes to Home (`/home`).
 - Logo click when signed in goes to Home. Logo when signed out goes to `/`.
 - Signed-in header is Logo, Budget | Invest | Retire, and an account menu with Settings and Sign out. Home is not a nav pillar.

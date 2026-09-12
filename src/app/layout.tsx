@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://investsalsa.com"),
-  title: "InvestSalsa — Retire, engineered.",
+  title: "InvestSalsa — Freedom, Engineered.",
   description:
     "Budget, Invest, and Retire. Ready to Assign leftover that carries, a portfolio book and checkup, and a Retire plan you can refresh from the book. Not investment advice.",
   icons: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     apple: BRAND.logoMark,
   },
   openGraph: {
-    title: "InvestSalsa — Retire, engineered.",
+    title: "InvestSalsa — Freedom, Engineered.",
     description:
       "Budget leftover that carries, an Invest book, and a Retire plan you can refresh from the book.",
     images: [
@@ -33,13 +33,13 @@ export const metadata: Metadata = {
         url: BRAND.logoLockup,
         width: BRAND_SIZE.logoLockup.width,
         height: BRAND_SIZE.logoLockup.height,
-        alt: "InvestSalsa — Retire, engineered.",
+        alt: "InvestSalsa — Freedom, Engineered.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "InvestSalsa — Retire, engineered.",
+    title: "InvestSalsa — Freedom, Engineered.",
     description:
       "Budget leftover that carries, an Invest book, and a Retire plan you can refresh from the book.",
     images: [BRAND.logoLockup],

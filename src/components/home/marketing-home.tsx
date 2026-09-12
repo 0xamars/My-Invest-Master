@@ -40,8 +40,11 @@ export function MarketingHomePage() {
       <main>
         <section className="mx-auto max-w-5xl px-6 pb-12 pt-20 sm:px-8 sm:pb-16 sm:pt-28">
           <h1 className="max-w-3xl text-balance text-[2.5rem] font-semibold leading-[1.08] tracking-tight sm:text-6xl">
-            Budget → Invest → Retire
+            Freedom, Engineered.
           </h1>
+          <p className="mt-6 text-pretty text-lg leading-relaxed text-white/60">
+            Budget → Invest → Retire
+          </p>
           <div className="mt-10 flex flex-wrap gap-2">
             <Button
               size="lg"

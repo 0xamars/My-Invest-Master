@@ -36,7 +36,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 ## 6. Signed-out public page still works. Chat still gone.
 
-1. Open `/` signed out. Marketing loads. Sign in is the CTA.
+1. Open `/` signed out. Marketing loads. Hero is **Freedom, Engineered.** Subtitle/pillars stay Budget → Invest → Retire. Login and Sign up are the CTAs.
 2. `/chat` and `/assistant` redirect to Invest. No assistant FAB.
 3. `/freedom` redirects to Retire. `/money-profile` redirects to Home. Signed-out `/home` asks for sign-in.
 
