@@ -48,26 +48,22 @@ export function RetirePanel({
 }
 
 export function RetireEmptyState({
-  icon,
   title,
   description,
   actions,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   description: string;
   actions?: ReactNode;
 }) {
   return (
     <div className="premium-empty">
-      <div className="premium-empty-icon">{icon}</div>
       <p className="text-[0.975rem] font-semibold tracking-tight">{title}</p>
       <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
         {description}
       </p>
-      {actions ? (
-        <div className="mt-5 flex flex-wrap justify-center gap-2">{actions}</div>
-      ) : null}
+      {actions ? <div className="mt-4 flex flex-wrap gap-2">{actions}</div> : null}
     </div>
   );
 }

@@ -1,15 +1,9 @@
 import { formatScoreMark } from "@/lib/ticker/score";
 import { TICKER_UNKNOWN } from "@/lib/ticker/format";
-import type { ScoreAxis, ScoreAxisKey, TickerScore } from "@/lib/ticker/score-types";
+import type { ScoreAxis, TickerScore } from "@/lib/ticker/score-types";
 import { cn } from "@/lib/utils";
 
-const ORDER = ["past", "health", "future"] as const;
-
-const AXIS_FILL: Record<(typeof ORDER)[number], string> = {
-  past: "color-mix(in srgb, var(--brand-green) 78%, transparent)",
-  health: "color-mix(in srgb, var(--brand-orange) 78%, transparent)",
-  future: "color-mix(in srgb, var(--brand-green-deep) 78%, transparent)",
-};
+const ORDER: ScoreAxis["key"][] = ["past", "health", "future"];
 
 const SIZE = 220;
 const CX = SIZE / 2;
@@ -53,13 +47,6 @@ function fillRatio(axis: ScoreAxis | null): number {
   return Math.min(1, Math.max(0, (axis.passed ?? 0) / axis.scored));
 }
 
-function axisTone(key: ScoreAxisKey): string {
-  if (key === "past") return "text-[var(--brand-green)]";
-  if (key === "health") return "text-[var(--brand-orange)]";
-  if (key === "future") return "text-[var(--brand-green-deep)]";
-  return "text-foreground";
-}
-
 export function TickerScoreGraphic({ score }: { score: TickerScore }) {
   const scoredAxes = ORDER.map((key) => axisAt(key, score)).filter(
     (axis): axis is ScoreAxis =>
@@ -71,19 +58,11 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
       <div className="flex flex-col items-center">
         <svg
           viewBox={`0 0 ${SIZE} ${SIZE}`}
-          className="h-52 w-52"
+          className="h-56 w-56"
           role="img"
           aria-label="Score"
         >
           <title>Score</title>
-          <circle
-            cx={CX}
-            cy={CY}
-            r={RADIUS + 10}
-            fill="none"
-            stroke="color-mix(in srgb, var(--brand-muted) 22%, transparent)"
-            strokeWidth="1"
-          />
           {ORDER.map((key, index) => {
             const axis = axisAt(key, score);
             const fill = fillRatio(axis);
@@ -92,18 +71,21 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
                 <path
                   d={outlinePath(index)}
                   fill="none"
-                  stroke="color-mix(in srgb, var(--brand-muted) 38%, transparent)"
-                  strokeWidth="1.1"
+                  stroke="color-mix(in srgb, var(--brand-muted) 45%, transparent)"
+                  strokeWidth="1.2"
                 />
                 {fill > 0 ? (
-                  <path d={petalPath(index, fill)} fill={AXIS_FILL[key]} />
+                  <path
+                    d={petalPath(index, fill)}
+                    fill="color-mix(in srgb, var(--brand-green) 72%, transparent)"
+                  />
                 ) : null}
               </g>
             );
           })}
           {ORDER.map((key, index) => {
             const axis = axisAt(key, score);
-            const tip = point(index * (360 / ORDER.length), RADIUS + 24);
+            const tip = point(index * (360 / ORDER.length), RADIUS + 22);
             return (
               <text
                 key={`${key}-label`}
@@ -113,7 +95,6 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
                 dominantBaseline="middle"
                 fill="currentColor"
                 fontSize="11"
-                fontWeight="600"
               >
                 {axis?.label ?? key}
               </text>
@@ -123,26 +104,23 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
       </div>
 
       <div className="space-y-4">
-        <ul className="grid gap-2 sm:grid-cols-3">
+        <ul className="grid gap-2">
           {ORDER.map((key) => {
             const axis = axisAt(key, score);
             const mark = formatScoreMark(axis);
             return (
-              <li
-                key={key}
-                className="rounded-[calc(var(--radius)*0.85)] border border-border/70 bg-white/[0.025] px-3 py-2.5"
-              >
-                <p className="budget-metric-label">{axis?.label ?? key}</p>
-                <p
+              <li key={key} className="flex items-baseline justify-between gap-3 text-sm">
+                <span>{axis?.label ?? key}</span>
+                <span
                   className={cn(
-                    "mt-1 text-base font-semibold tabular-nums tracking-tight",
+                    "tabular-nums",
                     mark === TICKER_UNKNOWN
                       ? "text-muted-foreground"
-                      : axisTone(key),
+                      : "font-medium",
                   )}
                 >
                   {mark}
-                </p>
+                </span>
               </li>
             );
           })}

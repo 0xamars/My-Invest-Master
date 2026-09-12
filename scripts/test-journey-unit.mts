@@ -1124,6 +1124,9 @@ const leftoverUi = [
   "src/components/journey/money-profile-wizard.tsx",
   "src/components/settings/money-profile-settings-card.tsx",
   "src/components/layout/app-sidebar.tsx",
+  "src/components/assistant/assistant-chat.tsx",
+  "src/components/brand/launch-still.tsx",
+  "src/components/brand/brand-still.tsx",
 ];
 for (const file of leftoverUi) {
   assert(

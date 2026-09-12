@@ -255,5 +255,52 @@ assert(
 assert(!retireHome.includes("FREEDOM_EMPTY.learnHref"), "Retire empty has no Learn self-link");
 assert(!retireHome.includes("Open Retire"), "Retire empty has no self-link");
 assert(!retireHome.includes(">Freedom<"), "Retire home does not label Freedom");
+assert(!retireHome.includes("BrandStill"), "Retire empty has no decorative still");
+
+const budgetHome = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-plans-list-content.tsx"),
+  "utf8",
+);
+assert(budgetHome.includes("kitLabel"), "Budget empty keeps the starter-kit action");
+assert(!budgetHome.includes("learnLabel"), "Budget empty has no Open Budget self-link");
+assert(!budgetHome.includes("BrandStill"), "Budget empty has no decorative still");
+assert(
+  !budgetHome.includes("STARTER_ENVELOPE_NAMES"),
+  "Budget empty does not render envelope chrome cards",
+);
+
+const investHome = readFileSync(
+  join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
+  "utf8",
+);
+assert(!investHome.includes("BrandStill"), "Invest empty has no decorative still");
+
+const firstBook = readFileSync(
+  join(process.cwd(), "src/components/journey/first-book-wizard.tsx"),
+  "utf8",
+);
+assert(firstBook.includes("Create the book"), "first book keeps the create action");
+assert(!firstBook.includes("learnLabel"), "first book has no Open Invest self-link");
+assert(!firstBook.includes("BrandStill"), "first book has no decorative still");
+
+const marketing = readFileSync(
+  join(process.cwd(), "src/components/home/marketing-home.tsx"),
+  "utf8",
+);
+assert(!marketing.includes("BrandStill"), "marketing has no hero still");
+assert(!marketing.includes("surface-card"), "marketing pillars are not cards");
+assert(!marketing.includes("Learn"), "marketing does not revive Learn");
+assert(!marketing.includes("Freedom"), "marketing does not label Freedom");
+
+const headerNav = readFileSync(
+  join(process.cwd(), "src/components/layout/signed-in-header-nav.tsx"),
+  "utf8",
+);
+assert(
+  headerNav.includes("Budget, Invest, Retire"),
+  "header nav stays three pillars",
+);
+assert(!headerNav.includes("Learn"), "header nav has no Learn");
+assert(!headerNav.includes("Freedom"), "header nav has no Freedom");
 
 console.log("budget plaid unit tests passed");

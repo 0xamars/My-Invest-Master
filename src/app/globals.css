@@ -83,7 +83,7 @@
   --secondary: #1a1b1f;
   --secondary-foreground: #f2f3f5;
   --muted: #1a1b1f;
-  --muted-foreground: #8b8e97;
+  --muted-foreground: #9a9da6;
   --accent: #1a1b1f;
   --accent-foreground: #f2f3f5;
   --destructive: #e5484d;
@@ -246,9 +246,6 @@
     background-color: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 3.5%),
-      0 18px 40px -28px rgb(0 0 0 / 70%);
   }
 
   .stat-card {
@@ -286,10 +283,6 @@
   .glass-field {
     background-color: var(--muted);
     border: 1px solid var(--border);
-  }
-
-  .field-grain {
-    background: var(--background);
   }
 
   .stat-label {
@@ -352,11 +345,7 @@
   }
 
   .premium-empty {
-    @apply flex flex-col items-center px-6 py-12 text-center sm:py-14;
-  }
-
-  .premium-empty-icon {
-    @apply mb-4 flex size-11 items-center justify-center rounded-[var(--radius)] border border-border bg-muted text-[var(--brand-green)];
+    @apply flex flex-col items-start px-0 py-2 text-left;
   }
 
   .desk-table {
@@ -397,26 +386,6 @@
   .segmented-item[aria-current="page"] {
     background: var(--background);
     color: var(--foreground);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 4%) inset;
-  }
-
-  .progress-track {
-    margin-top: 1rem;
-    height: 0.35rem;
-    overflow: hidden;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--muted-foreground) 16%, transparent);
-  }
-
-  .progress-track-fill {
-    display: block;
-    height: 100%;
-    border-radius: 999px;
-    background: var(--brand-green);
-  }
-
-  .progress-track-fill--low {
-    background: var(--brand-orange);
   }
 
   .page-spinner {
@@ -424,7 +393,7 @@
   }
 
   .chart-unknown {
-    @apply mt-3 flex h-[140px] items-center rounded-[calc(var(--radius)*0.85)] border border-dashed border-border/80 bg-muted/20 px-3 text-sm text-muted-foreground;
+    @apply mt-3 text-sm text-muted-foreground;
   }
 
   .nav-item {
@@ -690,112 +659,6 @@
     @apply flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold tabular-nums text-muted-foreground;
   }
 
-  /* InvestSalsa assistant floating action button */
-  .assistant-fab {
-    position: fixed;
-    right: 1.5rem;
-    bottom: 1.5rem;
-    z-index: 50;
-    display: grid;
-    place-items: center;
-    width: 3.75rem;
-    height: 3.75rem;
-    border: 0;
-    border-radius: 9999px;
-    cursor: pointer;
-    background: transparent;
-    padding: 0;
-    isolation: isolate;
-    transition: transform 200ms ease, filter 200ms ease;
-  }
-
-  .assistant-fab:hover {
-    transform: translateY(-2px) scale(1.04);
-    filter: brightness(1.06);
-  }
-
-  .assistant-fab:active {
-    transform: translateY(0) scale(0.98);
-  }
-
-  .assistant-fab:focus-visible {
-    outline: 2px solid color-mix(in oklch, var(--brand-green) 70%, white);
-    outline-offset: 3px;
-  }
-
-  .assistant-fab-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(
-      140deg,
-      var(--brand-green) 0%,
-      color-mix(in oklch, var(--brand-green) 55%, var(--brand-orange)) 48%,
-      var(--brand-orange) 100%
-    );
-    padding: 1.5px;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.95;
-  }
-
-  .assistant-fab-glow {
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: radial-gradient(
-      circle at 35% 30%,
-      color-mix(in oklch, var(--brand-green) 45%, transparent),
-      color-mix(in oklch, var(--brand-orange) 22%, transparent) 55%,
-      transparent 72%
-    );
-    filter: blur(10px);
-    opacity: 0.55;
-    z-index: -1;
-    animation: assistant-fab-pulse 3.2s ease-in-out infinite;
-  }
-
-  .assistant-fab-core {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: calc(100% - 3px);
-    height: calc(100% - 3px);
-    border-radius: inherit;
-    background:
-      radial-gradient(
-        circle at 30% 25%,
-        color-mix(in oklch, var(--brand-green) 18%, transparent),
-        transparent 55%
-      ),
-      linear-gradient(
-        160deg,
-        color-mix(in oklch, var(--card) 92%, black),
-        color-mix(in oklch, var(--background) 88%, black)
-      );
-    box-shadow:
-      0 1px 0 color-mix(in oklch, white 8%, transparent) inset,
-      0 14px 36px -12px oklch(0 0 0 / 55%),
-      0 0 0 1px color-mix(in oklch, var(--border) 80%, transparent);
-  }
-
-  .assistant-fab-icon {
-    width: 1.35rem;
-    height: 1.35rem;
-    color: var(--brand-green);
-    filter: drop-shadow(0 0 8px color-mix(in oklch, var(--brand-green) 45%, transparent));
-  }
-
-  .assistant-fab:hover .assistant-fab-icon {
-    color: color-mix(in oklch, var(--brand-green) 70%, var(--brand-orange));
-  }
-
   /* Budget product chrome — scoped so Invest/Freedom stay untouched */
   .budget-app {
     letter-spacing: -0.014em;
@@ -822,9 +685,6 @@
     border-radius: var(--radius);
     background-color: var(--card);
     border: 1px solid var(--border);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 3.5%),
-      0 18px 40px -28px rgb(0 0 0 / 70%);
   }
 
   .budget-metric {
@@ -1142,79 +1002,6 @@
     opacity: 1;
   }
 
-  .launch-still-frame {
-    position: relative;
-    overflow: hidden;
-    border-radius: 1.15rem;
-    border: 1px solid color-mix(in srgb, var(--brand-exhaust) 16%, var(--border));
-    background: var(--brand-space);
-  }
-
-  .launch-still-media {
-    position: absolute;
-    inset: 0;
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-  }
-
-  .launch-still-scrim {
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--brand-space) 18%, transparent) 0%,
-        color-mix(in srgb, var(--brand-space) 72%, transparent) 46%,
-        var(--brand-space) 100%
-      );
-  }
-
-  .launch-still-scrim--center {
-    background:
-      radial-gradient(
-        ellipse 70% 80% at 50% 45%,
-        color-mix(in srgb, var(--brand-space) 28%, transparent) 0%,
-        var(--brand-space) 78%
-      );
-  }
-
-  .launch-still-scrim--left {
-    background:
-      linear-gradient(
-        90deg,
-        var(--brand-space) 0%,
-        color-mix(in srgb, var(--brand-space) 70%, transparent) 42%,
-        color-mix(in srgb, var(--brand-space) 22%, transparent) 100%
-      );
-  }
-
-  .launch-atmosphere {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    opacity: 0.14;
-  }
-
-  .launch-atmosphere img {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-    object-position: center top;
-  }
-
-  .launch-atmosphere::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--brand-space) 35%, transparent) 0%,
-      var(--background) 72%
-    );
-  }
-
   @media (hover: none) {
     .budget-register-row .budget-row-actions {
       opacity: 1;
@@ -1225,16 +1012,4 @@
 
 [data-slot="dialog-content"].budget-dialog {
   border-radius: var(--radius);
-}
-
-@keyframes assistant-fab-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(0.96);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.05);
-  }
 }

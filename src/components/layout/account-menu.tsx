@@ -95,7 +95,7 @@ export function AccountMenu() {
           id={menuId}
           role="menu"
           aria-label="Account"
-          className="absolute right-0 z-50 mt-2 min-w-52 rounded-[var(--radius)] border border-border bg-card p-1 text-popover-foreground shadow-[0_18px_40px_-24px_rgb(0_0_0_/_70%)]"
+          className="absolute right-0 z-50 mt-2 min-w-52 rounded-[var(--radius)] border border-border bg-card p-1 text-popover-foreground shadow-none"
         >
           {label ? (
             <p className="truncate px-3 py-2 text-xs text-muted-foreground">

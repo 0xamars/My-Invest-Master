@@ -63,7 +63,7 @@ export function RequireAuth({
 
   if (!user) {
     return (
-      <Card className="mx-auto max-w-lg shadow-[0_18px_40px_-28px_rgb(0_0_0_/_70%)]">
+      <Card className="mx-auto max-w-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="size-5" />

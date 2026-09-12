@@ -9,10 +9,7 @@ import { TickerPastSection } from "@/components/ticker/ticker-past-section";
 import { TickerScoreGraphic } from "@/components/ticker/ticker-score";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  RetirePageHeader,
-  RetirePanel,
-} from "@/components/retirement/retire-ui";
+import { RetirePanel } from "@/components/retirement/retire-ui";
 import {
   formatTickerCacheAge,
   formatTickerField,
@@ -60,44 +57,35 @@ export function TickerReadView({
         <TickerLookup className="sm:max-w-sm sm:flex-1" placeholder="Another name or ticker…" />
       </div>
 
-      <RetirePageHeader
-        title={name}
-        description={`${snapshot.symbol}${profile.exchange ? ` · ${profile.exchange}` : ""}${
-          profile.sector ? ` · ${profile.sector}` : ""
-        }`}
-      />
-
-      <section className="budget-panel px-5 py-5 sm:px-6 sm:py-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="budget-metric-label">Last</p>
-            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <p className="budget-hero-value">{formatTickerPrice(quote.price)}</p>
-              {change != null ? (
-                <p className={cn("text-sm font-medium tabular-nums", profitLossClass(change))}>
-                  {quote.change != null
-                    ? `${quote.change >= 0 ? "+" : ""}${formatTickerPrice(quote.change)}`
-                    : null}
-                  {quote.change != null ? " · " : null}
-                  {formatTickerField({
-                    label: "Day change",
-                    value: change,
-                    kind: "percent",
-                  })}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">Day change · {TICKER_UNKNOWN}</p>
-              )}
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="budget-metric-label">Market cap</p>
-            <p className="mt-1.5 text-sm font-medium tabular-nums">
-              {formatTickerMarketCap(quote.marketCap)}
-              {profile.currency ? ` · ${profile.currency}` : ""}
+      <section>
+        <h1 className="page-title">{name}</h1>
+        <p className="page-description mt-0">
+          {snapshot.symbol}
+          {profile.exchange ? ` · ${profile.exchange}` : ""}
+          {profile.sector ? ` · ${profile.sector}` : ""}
+        </p>
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <p className="budget-hero-value">{formatTickerPrice(quote.price)}</p>
+          {change != null ? (
+            <p className={cn("text-sm font-medium tabular-nums", profitLossClass(change))}>
+              {quote.change != null
+                ? `${quote.change >= 0 ? "+" : ""}${formatTickerPrice(quote.change)}`
+                : null}
+              {quote.change != null ? " · " : null}
+              {formatTickerField({
+                label: "Day change",
+                value: change,
+                kind: "percent",
+              })}
             </p>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Day change · {TICKER_UNKNOWN}</p>
+          )}
         </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Market cap {formatTickerMarketCap(quote.marketCap)}
+          {profile.currency ? ` · ${profile.currency}` : ""}
+        </p>
         <CacheLine snapshot={snapshot} />
       </section>
 
@@ -189,7 +177,7 @@ function CacheLine({ snapshot }: { snapshot: TickerSnapshot }) {
           ? "Loaded from FMP"
           : "Cache miss";
   return (
-    <p className="mt-4 text-xs text-muted-foreground" data-ticker-cache={status}>
+    <p className="mt-3 text-xs text-muted-foreground" data-ticker-cache={status}>
       Cached {formatTickerCacheAge(snapshot.fetchedAt)} · {label}
       {snapshot.cache.fromCache ? " · first paint from cache" : ""}
     </p>
