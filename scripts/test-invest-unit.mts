@@ -554,8 +554,8 @@ assert(isPublicRoute("/auth/reset"), "/auth/reset is public");
 assert(!isProtectedRoute("/auth/callback"), "/auth/callback stays public");
 assert(!isProtectedRoute("/auth/reset"), "/auth/reset stays public");
 assert(!isProtectedRoute("/api/prices"), "/api/prices is not a page gate");
-assert(safeAuthNextPath("https://evil.test") === "/budget", "rejects absolute next");
-assert(safeAuthNextPath("//evil.test") === "/budget", "rejects protocol-relative next");
+assert(safeAuthNextPath("https://evil.test") === "/home", "rejects absolute next");
+assert(safeAuthNextPath("//evil.test") === "/home", "rejects protocol-relative next");
 assert(safeAuthNextPath("/home") === "/home", "/home next is still a relative path");
 assert(safeAuthNextPath("/invest") === "/invest", "keeps a relative next");
 
@@ -674,12 +674,13 @@ assert(
   "Market and Analysis are not Invest children",
 );
 assert(pillarForPath("/home") === null, "Journey Home is not a product pillar");
-assert(destinationForLegacyInvestPath("/home") === "/budget", "/home folds into Budget");
+assert(destinationForLegacyInvestPath("/home") === null, "/home is the signed-in hub");
+assert(destinationForLegacyInvestPath("/money-profile") === "/home", "/money-profile folds into Home");
 assert(isJourneyHomePath("/home"), "/home is Journey Home");
 assert(isMoneyProfilePath("/money-profile"), "/money-profile is the wizard");
 assert(isPillarHub("/home"), "Journey Home has no up-link");
-assert(resolvePageTitle("/home") === "Budget", "Journey Home title");
-assert(pillarHomePath("/settings") === "/budget", "Settings up-link is Journey");
+assert(resolvePageTitle("/home") === "Home", "signed-in Home title");
+assert(pillarHomePath("/settings") === "/home", "Settings up-link is Home");
 assert(destinationForLegacyInvestPath("/chat") === "/invest", "/chat is unshipped");
 assert(destinationForLegacyInvestPath("/chat/thread") === "/invest", "/chat/* is unshipped");
 assert(destinationForLegacyInvestPath("/assistant") === "/invest", "/assistant is unshipped");

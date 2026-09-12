@@ -12,7 +12,7 @@ type BrandHomeLinkProps = {
 } & Omit<ComponentPropsWithoutRef<"a">, "href" | "children" | "className">;
 
 /**
- * Signed-in chrome mark lands on Budget.
+ * Signed-in chrome mark lands on Home.
  * Marketing / signed-out mark still lands on `/`.
  */
 export function BrandHomeLink({

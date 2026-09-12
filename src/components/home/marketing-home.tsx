@@ -3,21 +3,12 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
-import { LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
+import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
 
 const PILLARS = [
-  {
-    title: "Budget",
-    body: "See cash first. Ready to Assign, leftover that carries, a register, and bank connect.",
-  },
-  {
-    title: "Invest",
-    body: "Put leftover to work. Track the book, mix, and concentration — no broker trading.",
-  },
-  {
-    title: "Retire",
-    body: "See when you are free. Target nest egg, on-track verdict, and the lever to pull.",
-  },
+  { title: "Budget", body: "See cash." },
+  { title: "Invest", body: "Put it to work." },
+  { title: "Retire", body: "Know when you are free." },
 ] as const;
 
 export function MarketingHomePage() {
@@ -33,33 +24,44 @@ export function MarketingHomePage() {
               className="border border-border bg-muted"
               render={<Link href={LOGIN_PATH} />}
             >
-              Sign in
+              Login
+            </Button>
+            <Button
+              size="lg"
+              className="premium-cta"
+              render={<Link href={SIGNUP_PATH} />}
+            >
+              Sign up
             </Button>
           </nav>
         </div>
       </header>
 
       <main>
-        <section className="mx-auto max-w-5xl px-6 pb-16 pt-16 sm:px-8 sm:pb-20 sm:pt-24">
-          <h1 className="max-w-xl text-balance text-[2.75rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Retire, engineered.
+        <section className="mx-auto max-w-5xl px-6 pb-12 pt-20 sm:px-8 sm:pb-16 sm:pt-28">
+          <h1 className="max-w-3xl text-balance text-[2.5rem] font-semibold leading-[1.08] tracking-tight sm:text-6xl">
+            Budget → Invest → Retire
           </h1>
-          <p className="mt-6 max-w-lg text-pretty text-lg leading-relaxed text-white/60">
-            See cash. Put it to work. Know when you are free. Budget, Invest,
-            and Retire — one product. Not investment advice.
-          </p>
-          <div className="mt-10">
+          <div className="mt-10 flex flex-wrap gap-2">
             <Button
               size="lg"
               className="premium-cta"
+              render={<Link href={SIGNUP_PATH} />}
+            >
+              Sign up
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border border-border bg-muted"
               render={<Link href={LOGIN_PATH} />}
             >
-              Sign in
+              Login
             </Button>
           </div>
         </section>
 
-        <section className="mx-auto max-w-5xl px-6 pb-24 sm:px-8">
+        <section className="mx-auto max-w-5xl px-6 pb-20 sm:px-8">
           <div className="grid gap-8 sm:grid-cols-3">
             {PILLARS.map((item) => (
               <div key={item.title}>
@@ -86,7 +88,7 @@ export function MarketingHomePage() {
               Privacy
             </Link>
             <Link href={LOGIN_PATH} className="hover:text-white/70">
-              Sign in
+              Login
             </Link>
           </div>
         </div>
