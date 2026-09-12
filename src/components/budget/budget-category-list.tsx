@@ -47,6 +47,7 @@ function EnvelopeRowMenu({
   onCoverOverspend,
   onMoveMoney,
   onSetGoal,
+  onPayCard,
   onRename,
   onDelete,
   className,
@@ -58,6 +59,7 @@ function EnvelopeRowMenu({
   onCoverOverspend: () => void;
   onMoveMoney: () => void;
   onSetGoal: () => void;
+  onPayCard?: () => void;
   onRename: () => void;
   onDelete: () => void;
   className?: string;
@@ -81,6 +83,11 @@ function EnvelopeRowMenu({
         {overspent && !monthClosed ? (
           <DropdownMenuItem onClick={onCoverOverspend}>
             Cover overspend
+          </DropdownMenuItem>
+        ) : null}
+        {isPaymentCategory && onPayCard ? (
+          <DropdownMenuItem onClick={onPayCard}>
+            Pay card
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem disabled={monthClosed} onClick={onMoveMoney}>
@@ -117,6 +124,7 @@ interface BudgetCategoryListProps {
   onAssign: (categoryId: string, amount: number) => void;
   onMoveMoney: (fromCategoryId: string) => void;
   onCoverOverspend: (categoryId: string) => void;
+  onPayCard?: (creditCardAccountId: string) => void;
   onAutoAssignUnderfunded: () => void;
   onResetAvailable: () => void;
   onSetGoal: (categoryId: string) => void;
@@ -137,6 +145,7 @@ export function BudgetCategoryList({
   onAssign,
   onMoveMoney,
   onCoverOverspend,
+  onPayCard,
   onAutoAssignUnderfunded,
   onResetAvailable,
   onSetGoal,
@@ -397,6 +406,11 @@ export function BudgetCategoryList({
                           onCoverOverspend={() => onCoverOverspend(row.category.id)}
                           onMoveMoney={() => onMoveMoney(row.category.id)}
                           onSetGoal={() => onSetGoal(row.category.id)}
+                          onPayCard={
+                            row.category.creditCardAccountId && onPayCard
+                              ? () => onPayCard(row.category.creditCardAccountId!)
+                              : undefined
+                          }
                           onRename={() => onEditCategory(row.category.id)}
                           onDelete={() => onDeleteCategory(row.category.id)}
                         />
@@ -469,6 +483,11 @@ export function BudgetCategoryList({
                         onCoverOverspend={() => onCoverOverspend(row.category.id)}
                         onMoveMoney={() => onMoveMoney(row.category.id)}
                         onSetGoal={() => onSetGoal(row.category.id)}
+                        onPayCard={
+                          row.category.creditCardAccountId && onPayCard
+                            ? () => onPayCard(row.category.creditCardAccountId!)
+                            : undefined
+                        }
                         onRename={() => onEditCategory(row.category.id)}
                         onDelete={() => onDeleteCategory(row.category.id)}
                         className="budget-row-actions"

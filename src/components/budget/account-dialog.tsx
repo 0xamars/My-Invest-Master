@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ACCOUNT_TYPE_LABELS,
   defaultOnBudgetForType,
+  isCreditCardPaymentAccount,
   isOnBudgetAccount,
 } from "@/lib/budget/accounts";
 import type { BudgetAccount, BudgetAccountType } from "@/types/budget";
@@ -113,9 +114,11 @@ export function AccountDialog({
               </TabsList>
             </Tabs>
             <p className="text-xs text-muted-foreground">
-              {onBudget
-                ? "Inflows go to leftover. Spending hits envelope Activity."
-                : "Off-budget. Activity does not change leftover or envelope Activity. Transfers in or out of the budget do."}
+              {onBudget && isCreditCardPaymentAccount({ type, onBudget })
+                ? "A payment envelope is created automatically. Card spend moves dollars there; paying the card uses that envelope."
+                : onBudget
+                  ? "Inflows go to leftover. Spending hits envelope Activity."
+                  : "Off-budget. Activity does not change leftover or envelope Activity. Transfers in or out of the budget do."}
             </p>
           </div>
 

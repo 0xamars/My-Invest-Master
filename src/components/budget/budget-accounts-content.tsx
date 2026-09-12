@@ -13,6 +13,7 @@ import {
 import { AccountDialog } from "@/components/budget/account-dialog";
 import { BudgetBankLink } from "@/components/budget/budget-bank-link";
 import { BudgetReconcileDialog } from "@/components/budget/budget-reconcile-dialog";
+import { PayCardDialog } from "@/components/budget/pay-card-dialog";
 import { DeleteAccountDialog } from "@/components/budget/delete-account-dialog";
 import {
   BudgetEmptyState,
@@ -33,14 +34,17 @@ import {
   formatAccountBalanceLabel,
   getAccountBalance,
   getAccountTransactions,
+  isCreditCardPaymentAccount,
   isLiabilityAccount,
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
+import { getCurrentMonthKey } from "@/lib/budget/calculations";
+import { cardPaymentSnapshot } from "@/lib/budget/pay-card";
 import { isUnclearedState } from "@/lib/budget/cleared";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { cn } from "@/lib/utils";
-import type { BudgetAccount, BudgetTransaction } from "@/types/budget";
+import type { BudgetAccount, BudgetPlan, BudgetTransaction } from "@/types/budget";
 
 function formatReconciledDate(iso?: string): string | null {
   if (!iso) return null;
@@ -59,7 +63,9 @@ export function BudgetAccountsContent() {
     deleteAccount,
     cycleTransactionCleared,
     finishAccountReconciliation,
+    addTransaction,
   } = useBudget();
+  const monthKey = getCurrentMonthKey();
 
   const accounts = useMemo(
     () => sortedAccounts(budget.accounts),
@@ -83,6 +89,7 @@ export function BudgetAccountsContent() {
   );
   const [reconcilingAccount, setReconcilingAccount] =
     useState<BudgetAccount | null>(null);
+  const [payingAccount, setPayingAccount] = useState<BudgetAccount | null>(null);
 
   const deleteTransactionCount = deletingAccount
     ? getAccountTransactions(deletingAccount.id, budget.transactions).length
@@ -132,9 +139,12 @@ export function BudgetAccountsContent() {
             empty="No on-budget accounts."
             accounts={onBudgetAccounts}
             allAccounts={accounts}
+            budget={budget}
+            monthKey={monthKey}
             transactions={budget.transactions}
             currency={budget.currency}
             onReconcile={setReconcilingAccount}
+            onPayCard={setPayingAccount}
             onEdit={setEditingAccount}
             onDelete={setDeletingAccount}
           />
@@ -143,9 +153,12 @@ export function BudgetAccountsContent() {
             empty="No tracking accounts yet. Add a brokerage, mortgage, or convert an account."
             accounts={trackingAccounts}
             allAccounts={accounts}
+            budget={budget}
+            monthKey={monthKey}
             transactions={budget.transactions}
             currency={budget.currency}
             onReconcile={setReconcilingAccount}
+            onPayCard={setPayingAccount}
             onEdit={setEditingAccount}
             onDelete={setDeletingAccount}
           />
@@ -192,6 +205,28 @@ export function BudgetAccountsContent() {
         onToggleCleared={cycleTransactionCleared}
         onFinish={finishAccountReconciliation}
       />
+
+      <PayCardDialog
+        open={Boolean(payingAccount)}
+        onOpenChange={(open) => !open && setPayingAccount(null)}
+        budget={budget}
+        cardAccountId={payingAccount?.id ?? null}
+        monthKey={monthKey}
+        currency={budget.currency}
+        onPay={({ fromAccountId, amount, date }) => {
+          if (!payingAccount) return;
+          addTransaction({
+            date,
+            payee: `Payment · ${payingAccount.name}`,
+            accountId: fromAccountId,
+            transferAccountId: payingAccount.id,
+            categoryId: null,
+            amount,
+            type: "transfer",
+            cleared: "cleared",
+          });
+        }}
+      />
     </div>
   );
 }
@@ -201,9 +236,12 @@ function AccountSection({
   empty,
   accounts,
   allAccounts,
+  budget,
+  monthKey,
   transactions,
   currency,
   onReconcile,
+  onPayCard,
   onEdit,
   onDelete,
 }: {
@@ -211,9 +249,12 @@ function AccountSection({
   empty: string;
   accounts: BudgetAccount[];
   allAccounts: BudgetAccount[];
+  budget: BudgetPlan;
+  monthKey: string;
   transactions: BudgetTransaction[];
   currency?: string;
   onReconcile: (account: BudgetAccount) => void;
+  onPayCard: (account: BudgetAccount) => void;
   onEdit: (account: BudgetAccount) => void;
   onDelete: (account: BudgetAccount) => void;
 }) {
@@ -240,6 +281,9 @@ function AccountSection({
             const lastReconciled = formatReconciledDate(account.lastReconciledAt);
             const liability = isLiabilityAccount(account.type);
             const onBudget = isOnBudgetAccount(account);
+            const cardPay = isCreditCardPaymentAccount(account)
+              ? cardPaymentSnapshot(budget, account.id, monthKey)
+              : null;
 
             return (
               <div
@@ -261,6 +305,9 @@ function AccountSection({
                     )}
                     {unclearedCount > 0
                       ? ` · ${unclearedCount} uncleared`
+                      : ""}
+                    {cardPay
+                      ? ` · Available to pay ${formatBudgetMoney(cardPay.paymentAvailable, currency)}`
                       : ""}
                   </p>
                 </div>
@@ -305,6 +352,12 @@ function AccountSection({
                       }
                     />
                     <DropdownMenuContent align="end" className="min-w-40">
+                      {cardPay ? (
+                        <DropdownMenuItem onClick={() => onPayCard(account)}>
+                          <Landmark className="size-4" />
+                          Pay card
+                        </DropdownMenuItem>
+                      ) : null}
                       <DropdownMenuItem onClick={() => onReconcile(account)}>
                         <Scale className="size-4" />
                         Reconcile
