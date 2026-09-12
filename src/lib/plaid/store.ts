@@ -46,7 +46,7 @@ export async function listPlaidItemsForPlan(
     )
     .eq("user_id", userId)
     .eq("plan_id", planId)
-    .eq("status", "active")
+    .neq("status", "disconnected")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return ((data ?? []) as ItemRow[]).map(toSummary);
@@ -146,6 +146,7 @@ export async function markPlaidItemSynced(input: {
     .update({
       transactions_cursor: input.cursor,
       last_synced_at: input.lastSyncedAt,
+      status: "active",
       updated_at: input.lastSyncedAt,
     })
     .eq("id", input.id);
@@ -159,6 +160,28 @@ export async function markPlaidWebhook(itemId: string): Promise<void> {
     .from("user_plaid_items")
     .update({ updated_at: new Date().toISOString() })
     .eq("item_id", itemId);
+}
+
+export async function markPlaidItemStatus(input: {
+  id?: string;
+  itemId?: string;
+  status: string;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const patch = { status: input.status, updated_at: now };
+  if (input.id) {
+    const admin = requireAdmin();
+    const { error } = await admin
+      .from("user_plaid_items")
+      .update(patch)
+      .eq("id", input.id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  if (!input.itemId) throw new Error("id or itemId is required");
+  const admin = createAdminClient();
+  if (!admin) return;
+  await admin.from("user_plaid_items").update(patch).eq("item_id", input.itemId);
 }
 
 export async function deletePlaidItemRow(input: {

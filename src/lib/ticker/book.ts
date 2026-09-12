@@ -1,5 +1,5 @@
 import { formatScoreMark, scoreAxis } from "@/lib/ticker/score";
-import { TICKER_UNKNOWN } from "@/lib/ticker/format";
+import { formatTickerCacheAge, TICKER_UNKNOWN } from "@/lib/ticker/format";
 import { investTickerPath, normalizeTickerSymbol } from "@/lib/ticker/symbol";
 import type { TickerCacheStatus, TickerSnapshot } from "@/lib/ticker/types";
 import type { PortfolioHolding } from "@/types/portfolio";
@@ -65,6 +65,27 @@ function holdingPrice(
   if (!symbol) return null;
   const price = quotes[symbol]?.price;
   return price != null && Number.isFinite(price) ? price : null;
+}
+
+export function formatBookCacheLine(
+  quotes: Iterable<BookTickerQuote>,
+  options?: { isLoaded?: boolean },
+): string | null {
+  if (options?.isLoaded === false) return "Loading prices…";
+  const list = [...quotes];
+  if (!list.length) return null;
+  const allMiss = list.every(
+    (quote) => quote.cacheStatus === "miss" || !quote.fetchedAt,
+  );
+  if (allMiss) return "Prices · cache miss";
+  const stale = list.some((quote) => quote.cacheStatus === "stale");
+  const fetched = list
+    .map((quote) => quote.fetchedAt)
+    .filter((value): value is string => Boolean(value));
+  const oldest = fetched.reduce((min, at) =>
+    Date.parse(at) < Date.parse(min) ? at : min,
+  );
+  return `Prices cached ${formatTickerCacheAge(oldest)}${stale ? " · stale, refreshing" : ""}`;
 }
 
 export function buildBookRows(

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, LogIn } from "lucide-react";
+import { Loader2, Lock, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,7 +31,12 @@ export function RequireAuth({
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
+      <div
+        className="flex flex-1 items-center justify-center gap-2 py-24 text-sm text-muted-foreground"
+        role="status"
+        aria-live="polite"
+      >
+        <Loader2 className="size-4 animate-spin" />
         Checking account…
       </div>
     );

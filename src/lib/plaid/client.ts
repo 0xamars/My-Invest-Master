@@ -49,16 +49,22 @@ async function plaidPost<T>(path: string, body: Record<string, unknown>): Promis
 export async function createPlaidLinkToken(input: {
   userId: string;
   config?: PlaidConfig | null;
+  /** Update mode: omit products, pass the existing item access token. */
+  accessToken?: string;
 }): Promise<string> {
   const config = input.config ?? readPlaidConfig();
   if (!config) throw new Error("Bank linking is not configured");
   const body: Record<string, unknown> = {
     user: { client_user_id: input.userId },
     client_name: "InvestSalsa",
-    products: ["transactions"],
     country_codes: ["US", "CA"],
     language: "en",
   };
+  if (input.accessToken) {
+    body.access_token = input.accessToken;
+  } else {
+    body.products = ["transactions"];
+  }
   if (config.webhookUrl) body.webhook = config.webhookUrl;
   if (config.redirectUri) body.redirect_uri = config.redirectUri;
   const data = await plaidPost<{ link_token: string }>(
