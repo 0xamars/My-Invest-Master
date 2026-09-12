@@ -84,17 +84,9 @@ export function primaryNextAction(
   const stations = journeyStations(profile, live);
   const next =
     stations.find((station) => station.status !== "working") ?? stations[0];
-  if (next.status === "locked") {
-    return {
-      pillar: next.pillar,
-      href: next.learnHref,
-      label: `Learn ${next.title}`,
-    };
-  }
-  const verb = next.status === "learn" ? "Learn" : "Open";
   return {
     pillar: next.pillar,
-    href: next.status === "learn" ? next.learnHref : next.doHref,
-    label: `${verb} ${next.title}`,
+    href: next.doHref,
+    label: `Open ${next.title}`,
   };
 }

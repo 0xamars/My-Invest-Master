@@ -6,6 +6,7 @@ import {
   webhookUrlFromEnv,
 } from "@/lib/plaid/config";
 import { listPlaidItemsForPlan } from "@/lib/plaid/store";
+import type { PlaidItemSummary } from "@/lib/plaid/types";
 import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
 
 export async function GET(request: Request) {
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   const configured = isPlaidConfigured();
   const storageReady = isPlaidStorageReady();
 
-  let items = [];
+  let items: PlaidItemSummary[] = [];
   if (configured && storageReady && planId && auth.user) {
     try {
       items = await listPlaidItemsForPlan(auth.user.id, planId);

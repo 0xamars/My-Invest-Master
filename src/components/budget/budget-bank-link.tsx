@@ -20,11 +20,12 @@ function PlaidOpen({
   const { open, ready } = usePlaidLink({
     token,
     onSuccess: (publicToken, metadata) => {
+      if (!publicToken) return;
       onSuccess(publicToken, {
         institution: metadata.institution
           ? {
-              institution_id: metadata.institution.institution_id,
-              name: metadata.institution.name,
+              institution_id: metadata.institution.institution_id ?? undefined,
+              name: metadata.institution.name ?? undefined,
             }
           : undefined,
       });

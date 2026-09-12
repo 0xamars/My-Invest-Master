@@ -242,8 +242,8 @@ assert(
 const beginnerStations = journeyStations(draft);
 assert(beginnerStations[0].status === "learn", "Beginner Budget starts as Learn");
 assert(
-  beginnerStations[1].status === "locked",
-  "Beginner Invest Do is locked until Budget is working",
+  beginnerStations[1].status === "learn",
+  "Beginner Invest is not locked",
 );
 assert(
   beginnerStations[2].status === "learn",
