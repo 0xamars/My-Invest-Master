@@ -2,7 +2,7 @@
  * Journey rails: Money Profile, Learn/Do tabs, derived working flags, soft locks.
  *   npx tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
@@ -87,8 +87,10 @@ import {
   JOURNEY_HOME_METRIC_EMPTY,
 } from "../src/lib/journey/command-center.ts";
 import {
+  HOME_EMPTY,
+  bookTopWeight,
   buildSignedInHomeCards,
-  signedInHomeNextAction,
+  formatHomeShare,
 } from "../src/lib/journey/signed-in-home.ts";
 import { APP_HOME_PATH } from "../src/lib/routes.ts";
 import { journeyStations, primaryNextAction } from "../src/lib/journey/stations.ts";
@@ -1126,69 +1128,70 @@ for (const word of forbidden) {
 }
 
 assert(APP_HOME_PATH === "/home", "signed-in app home is /home");
+assert(formatHomeShare(0.42) === "42%", "home share is a whole percent");
+assert(bookTopWeight({ status: "missing" }) === null, "missing book has no top weight");
 assert(
-  signedInHomeNextAction(commandLive())?.label === "Create a budget",
-  "signed-in Home next with no plan is Create a budget",
-);
-assert(
-  signedInHomeNextAction(
-    commandLive({
-      hasBudgetPlan: true,
-      leftover: leftoverPresent,
-      budgetPlanId: leftoverPresent.budgetPlanId,
-      budgetWorking: true,
-    }),
-  )?.href === `/budget/plans/${leftoverPresent.budgetPlanId}`,
-  "signed-in Home leftover CTA opens the live plan",
-);
-assert(
-  signedInHomeNextAction(
-    commandLive({
-      hasBudgetPlan: true,
-      leftover: { status: "none", budgetPlanId: plan.id, currency: "USD" },
-      budgetWorking: true,
-      hasHoldings: true,
-      hasFreedomPlan: true,
-    }),
-  ) === null,
-  "signed-in Home invents no next step when leftover, book, and Retire exist",
+  bookTopWeight(bookOnly)?.weight === 1,
+  "a single holding is 100% top weight",
 );
 
 const emptyHomeCards = buildSignedInHomeCards({
   leftover: { status: "missing-budget" },
   book: { status: "missing" },
-  freedom: { status: "needs-inputs", label: FREEDOM_DATE_NEEDS_INPUTS },
 });
 assert(
   emptyHomeCards.map((card) => card.title).join("|") === "Budget|Invest|Retire",
   "signed-in Home cards are Budget, Invest, Retire",
 );
 assert(
-  emptyHomeCards.every((card) => card.empty) &&
-    emptyHomeCards[0]?.metric === "No budget yet" &&
-    emptyHomeCards[1]?.metric === "No holdings" &&
-    emptyHomeCards[2]?.metric === FREEDOM_DATE_NEEDS_INPUTS,
-  "signed-in Home empty cards stay labeled",
+  emptyHomeCards.every((card) => card.empty && card.spark === null) &&
+    emptyHomeCards[0]?.metric === HOME_EMPTY.budget &&
+    emptyHomeCards[1]?.metric === HOME_EMPTY.invest &&
+    emptyHomeCards[2]?.metric === HOME_EMPTY.retire,
+  "signed-in Home empty cards stay labeled with no spark",
+);
+assert(
+  !emptyHomeCards.some((card) => /freedom/i.test(`${card.title} ${card.metric} ${card.caption}`)),
+  "signed-in Home does not say Freedom",
 );
 
 const liveHomeCards = buildSignedInHomeCards({
   leftover: leftoverPresent,
   book: bookOnly,
-  freedom: dated,
+  assigned: 0,
+  assumptions,
+  currentYear: 2026,
 });
 assert(
   liveHomeCards[0]?.metric.includes("2,000") ||
     liveHomeCards[0]?.metric.includes("2000"),
-  "signed-in Home leftover is the real Ready to Assign",
+  "signed-in Home leftover is the real to-assign",
+);
+assert(liveHomeCards[0]?.caption === "To assign", "Budget block is to-assign");
+assert(liveHomeCards[0]?.spark === 1, "all leftover and no assigned fills the Budget spark");
+assert(liveHomeCards[1]?.metric === "100%", "Invest block is top weight, not a quote");
+assert(
+  liveHomeCards[1]?.caption.includes("VOO"),
+  "Invest spark names the real top holding",
 );
 assert(
-  liveHomeCards[1]?.metric.includes("4,000") ||
-    liveHomeCards[1]?.metric.includes("4000"),
-  "signed-in Home book is cost basis",
+  liveHomeCards[2]?.empty === false &&
+    liveHomeCards[2]?.caption === "Path to target" &&
+    liveHomeCards[2]?.spark != null,
+  "signed-in Home Retire is path progress from leftover + book",
 );
+
+const marketingSrc = readFileSync(
+  join(process.cwd(), "src/components/home/marketing-home.tsx"),
+  "utf8",
+);
+assert(marketingSrc.includes("Budget → Invest → Retire"), "marketing hero is Budget → Invest → Retire");
+assert(marketingSrc.includes("Login") && marketingSrc.includes("Sign up"), "marketing CTAs are Login and Sign up");
+assert(!marketingSrc.includes("Open Home"), "marketing has no Open Home CTA");
 assert(
-  liveHomeCards[2]?.empty === false && liveHomeCards[2]?.metric === dated.label,
-  "signed-in Home Retire uses leftover + book, not a guessed year",
+  !marketingSrc.includes("Learn/Do") &&
+    !/testimonial|gallery/i.test(marketingSrc),
+  "marketing has no Learn/Do or gallery chrome",
 );
 
 const leftoverUi = [

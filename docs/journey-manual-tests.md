@@ -6,7 +6,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 1. Sign in as a user with no budget plan.
 2. You land on **Home**, not Budget and not a Money Profile wizard.
-3. Home shows labeled empties: “No budget yet”, “No holdings”, “Needs leftover and a book”. No invented leftover, book, or date.
+3. Home shows three blocks only: Budget to-assign, Invest top weight, Retire path to target. Empties stay labeled. No invented leftover, book, or percent.
 4. Open Budget from Home. Empty Budget offers the first-run kit. Accepting the kit must not invent leftover.
 5. Nav is only Budget, Invest, Retire. No Learn/Do. No Freedom label. Home is not a fourth tab.
 
