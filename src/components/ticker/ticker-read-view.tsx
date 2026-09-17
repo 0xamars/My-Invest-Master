@@ -6,6 +6,7 @@ import { TickerLookup } from "@/components/ticker/ticker-lookup";
 import { TickerFutureSection } from "@/components/ticker/ticker-future-section";
 import { TickerNowSection } from "@/components/ticker/ticker-now-section";
 import { TickerPastSection } from "@/components/ticker/ticker-past-section";
+import { TickerRatingEngine } from "@/components/ticker/ticker-rating-engine";
 import { TickerScoreGraphic } from "@/components/ticker/ticker-score";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -120,6 +121,10 @@ export function TickerReadView({
           </p>
         </RetirePanel>
       ) : null}
+
+      {collapsed ? null : (
+        <TickerRatingEngine symbol={snapshot.symbol} price={quote.price} />
+      )}
 
       {collapsed ? null : (
       <RetirePanel className="px-5 py-5">

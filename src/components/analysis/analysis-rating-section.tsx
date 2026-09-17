@@ -160,6 +160,7 @@ export function AnalysisRatingSection({
   forecast,
   price,
   isLoading,
+  includeNarrative = true,
 }: {
   rating: InvestSalsaRating | null;
   symbol?: string;
@@ -169,6 +170,8 @@ export function AnalysisRatingSection({
   forecast?: AnalysisForecast | null;
   price?: number | null;
   isLoading?: boolean;
+  /** AI summary/outlook. Off when the narrative route is unshipped. */
+  includeNarrative?: boolean;
 }) {
   const {
     bundle: narrative,
@@ -176,7 +179,7 @@ export function AnalysisRatingSection({
     error: narrativeError,
     retry: retryNarrative,
   } = useAnalysisNarrative({
-    symbol,
+    symbol: includeNarrative ? symbol : undefined,
     name,
     description,
     rating,
@@ -320,7 +323,8 @@ export function AnalysisRatingSection({
           </Card>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={includeNarrative ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"}>
+          {includeNarrative ? (
           <div className="space-y-4">
             <Card className="surface-card shadow-none">
               <CardHeader className="pb-2">
@@ -416,12 +420,13 @@ export function AnalysisRatingSection({
               </CardContent>
             </Card>
           </div>
+          ) : null}
 
           <div className="space-y-4">
           <AnalysisFundamentalPanel
             fundamental={fundamental}
-            narrative={narrative}
-            narrativeLoading={narrativeLoading}
+            narrative={includeNarrative ? narrative : null}
+            narrativeLoading={includeNarrative && narrativeLoading}
           />
 
           <Card className="surface-card shadow-none">
@@ -429,17 +434,17 @@ export function AnalysisRatingSection({
               <CardTitle className="text-base">Technical Assessment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {narrativeLoading && !narrative?.technicalOverview ? (
+              {includeNarrative && narrativeLoading && !narrative?.technicalOverview ? (
                 <NarrativeSkeleton label="Generating…" />
-              ) : narrative?.technicalOverview ? (
+              ) : includeNarrative && narrative?.technicalOverview ? (
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {narrative.technicalOverview}
                 </p>
-              ) : (
+              ) : includeNarrative ? (
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   Overview unavailable. Technical scores below are unchanged.
                 </p>
-              )}
+              ) : null}
               <div className="rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">

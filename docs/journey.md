@@ -14,7 +14,7 @@ This is not advice. The app will not invent leftover, income, holdings, cash, or
 
 1. **Home** (`/home`) — signed-in hub. Three blocks only: Budget to-assign, Invest top weight, Retire path to target. One number + one spark each. Missing values stay labeled. Not a fourth nav item.
 2. **Budget** (`/budget`) — leftover, envelopes, register, Plaid Connect, credit-card payment envelopes. Empty offers the first-run kit.
-3. **Invest** (`/invest`) — the public-stock book. Search a name or ticker. Score sits above Past / Now / Future. Empty offers the first-book wizard. An existing book is never hidden or deleted.
+3. **Invest** (`/invest`) — the public-stock book. Search a name or ticker. Rating Engine (section scores, spider/radar, street forecast) sits above Score and Past / Now / Future. Empty offers the first-book wizard. An existing book is never hidden or deleted.
 4. **Retire** (`/retire`) — one date from leftover and the book. Target, on-track, and the lever. A date still needs leftover and the book.
 
 Learn/Do tabs and the Money Profile quiz are unshipped. `/money-profile` redirects to Home. `/freedom` redirects to Retire. `/chat` and `/assistant` redirect to Invest. Chat is unshipped. Do not remount it.
