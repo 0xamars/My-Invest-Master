@@ -6,12 +6,24 @@ import { useAnalysisRating } from "@/hooks/use-analysis-rating";
 export function TickerRatingEngine({
   symbol,
   price,
+  name,
+  description,
 }: {
   symbol: string;
   price?: number | null;
+  name?: string | null;
+  description?: string | null;
 }) {
-  const { rating, forecast, price: ratedPrice, isLoading, error } =
-    useAnalysisRating(symbol);
+  const {
+    rating,
+    forecast,
+    price: ratedPrice,
+    name: ratedName,
+    description: ratedDescription,
+    recentEvents,
+    isLoading,
+    error,
+  } = useAnalysisRating(symbol);
 
   return (
     <section data-ticker-rating-engine="1" className="space-y-3">
@@ -28,10 +40,14 @@ export function TickerRatingEngine({
       ) : (
         <AnalysisRatingSection
           rating={rating}
+          symbol={symbol}
+          name={ratedName ?? name}
+          description={ratedDescription ?? description}
+          recentEvents={recentEvents}
           forecast={forecast}
           price={ratedPrice ?? price}
           isLoading={isLoading}
-          includeNarrative={false}
+          includeNarrative
         />
       )}
     </section>
