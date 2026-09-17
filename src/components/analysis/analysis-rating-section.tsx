@@ -170,7 +170,7 @@ export function AnalysisRatingSection({
   forecast?: AnalysisForecast | null;
   price?: number | null;
   isLoading?: boolean;
-  /** AI summary/outlook. Off when the narrative route is unshipped. */
+  /** AI summary/outlook grounded in FMP/rating context. */
   includeNarrative?: boolean;
 }) {
   const {
@@ -329,6 +329,9 @@ export function AnalysisRatingSection({
             <Card className="surface-card shadow-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">InvestSalsa Summary</CardTitle>
+                <CardDescription>
+                  Generated from FMP and rating context — not part of the score.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {narrativeLoading && summaryBullets.length === 0 ? (
@@ -369,6 +372,9 @@ export function AnalysisRatingSection({
             <Card className="surface-card shadow-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Future outlook</CardTitle>
+                <CardDescription>
+                  Generated opportunities and risks — not part of the score.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {narrativeLoading && !narrative ? (

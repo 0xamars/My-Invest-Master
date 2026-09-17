@@ -123,7 +123,12 @@ export function TickerReadView({
       ) : null}
 
       {collapsed ? null : (
-        <TickerRatingEngine symbol={snapshot.symbol} price={quote.price} />
+        <TickerRatingEngine
+          symbol={snapshot.symbol}
+          price={quote.price}
+          name={profile.name}
+          description={profile.description}
+        />
       )}
 
       {collapsed ? null : (

@@ -17,6 +17,7 @@ import {
   isOutlookShallow,
   isWikiOverview,
   limitFilingBullets,
+  fallbackNarrativeBundle,
   parseNarrativeBundle,
   stripUnhookedSectorGenericItems,
 } from "../src/lib/analysis/narrative/parse.ts";
@@ -987,6 +988,42 @@ if (!process.env.AI_MODEL_OVERRIDE && !process.env.NARRATIVE_MODEL && !process.e
 }
 if (!process.env.NARRATIVE_TIMEOUT_MS) {
   assert(getNarrativeTimeoutMs() === 90_000, "narrative timeout default is 90s");
+}
+
+const fallbackSmoke = [
+  [
+    "NVDA",
+    "NVIDIA Corporation",
+    "Semiconductors",
+    "NVIDIA designs GPUs and accelerated computing platforms for data centers.",
+  ],
+  [
+    "TSLA",
+    "Tesla, Inc.",
+    "Auto Manufacturers",
+    "Tesla designs electric vehicles and energy generation and storage systems.",
+  ],
+  [
+    "PLTR",
+    "Palantir Technologies",
+    "Software - Infrastructure",
+    "Palantir builds data analytics software for government and commercial customers.",
+  ],
+] as const;
+for (const [symbol, name, industry, description] of fallbackSmoke) {
+  const bundle = fallbackNarrativeBundle(
+    "AI not configured. Scores above are unchanged.",
+    { symbol, name, industry, description },
+  );
+  assert(bundle.summaryBullets.length > 0, `${symbol} fallback summary populates`);
+  assert(
+    bundle.futureOutlook.opportunities.length >= 2,
+    `${symbol} fallback opportunities populate`,
+  );
+  assert(
+    bundle.futureOutlook.risks.length >= 2,
+    `${symbol} fallback risks populate`,
+  );
 }
 
 if (failed) {

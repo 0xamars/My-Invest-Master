@@ -346,9 +346,21 @@ assert(
   !/AnalysisCompanyBlurb|company-blurb/.test(leftoverPage),
   "ticker leftover must not mount a generated blurb",
 );
+const narrativeRoute = readFileSync(
+  join(process.cwd(), "src/app/api/analysis/narrative/route.ts"),
+  "utf8",
+);
 assert(
-  !existsSync(join(process.cwd(), "src/app/api/analysis/narrative/route.ts")),
-  "narrative route is gone",
+  existsSync(join(process.cwd(), "src/app/api/analysis/narrative/route.ts")),
+  "narrative route is restored",
+);
+assert(
+  narrativeRoute.includes("export async function POST"),
+  "narrative route accepts POST",
+);
+assert(
+  narrativeRoute.includes("getNarrativeBundle"),
+  "narrative route generates from FMP/rating context",
 );
 assert(
   !existsSync(join(process.cwd(), "src/app/api/analysis/company-blurb/route.ts")),
@@ -373,6 +385,14 @@ assert(
   "ticker mounts the Rating Engine",
 );
 assert(
+  tickerView.includes("name={profile.name}"),
+  "ticker passes FMP name into narrative context",
+);
+assert(
+  tickerView.includes("description={profile.description}"),
+  "ticker passes FMP description into narrative context",
+);
+assert(
   tickerView.indexOf("TickerRatingEngine") < tickerView.indexOf("TickerScoreGraphic"),
   "Rating Engine sits above house Score",
 );
@@ -390,8 +410,16 @@ assert(
   "Rating Engine reuses the house rating section",
 );
 assert(
-  ratingEngine.includes("includeNarrative={false}"),
-  "Rating Engine does not call the unshipped narrative route",
+  ratingEngine.includes("includeNarrative"),
+  "Rating Engine enables the Analysis narrative left pane",
+);
+assert(
+  !ratingEngine.includes("includeNarrative={false}"),
+  "Rating Engine no longer leaves narrative unshipped",
+);
+assert(
+  ratingEngine.includes("symbol={symbol}"),
+  "Rating Engine passes the ticker into narrative context",
 );
 assert(!/Simply Wall|GuruFocus|YNAB|Snowflake/i.test(ratingEngine), "Rating Engine UI does not name leftovers");
 
@@ -410,6 +438,22 @@ assert(
 assert(
   ratingSection.includes("Profitability"),
   "Rating Engine still names Profitability",
+);
+assert(
+  ratingSection.includes("InvestSalsa Summary"),
+  "Rating Engine still mounts the AI summary pane",
+);
+assert(
+  ratingSection.includes("Future opportunities"),
+  "Rating Engine still mounts future opportunities",
+);
+assert(
+  ratingSection.includes("Key risks"),
+  "Rating Engine still mounts key risks",
+);
+assert(
+  /Generated from FMP and rating context/.test(ratingSection),
+  "Summary is labeled generated / not part of the score",
 );
 
 const tickerPageFiles = [
