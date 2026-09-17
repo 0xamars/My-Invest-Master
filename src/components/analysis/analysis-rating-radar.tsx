@@ -104,6 +104,7 @@ export function AnalysisRatingRadar({ axes }: { axes: RadarAxis[] }) {
   return (
     <ChartContainer
       config={chartConfig}
+      data-rating-radar="1"
       className="mx-auto aspect-square h-[320px] w-full max-w-[360px] overflow-visible [&_.recharts-surface]:overflow-visible"
       initialDimension={{ width: 360, height: 320 }}
     >

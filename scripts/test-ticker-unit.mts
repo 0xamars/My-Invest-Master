@@ -369,8 +369,47 @@ assert(
   "ticker page has no Market/Watchlist blurbs",
 );
 assert(
+  tickerView.includes("TickerRatingEngine"),
+  "ticker mounts the Rating Engine",
+);
+assert(
+  tickerView.indexOf("TickerRatingEngine") < tickerView.indexOf("TickerScoreGraphic"),
+  "Rating Engine sits above house Score",
+);
+assert(
   tickerView.indexOf("TickerScoreGraphic") < tickerView.indexOf("data-ticker-tabs"),
   "Score sits above Past/Now/Future tabs",
+);
+
+const ratingEngine = readFileSync(
+  join(process.cwd(), "src/components/ticker/ticker-rating-engine.tsx"),
+  "utf8",
+);
+assert(
+  ratingEngine.includes("AnalysisRatingSection"),
+  "Rating Engine reuses the house rating section",
+);
+assert(
+  ratingEngine.includes("includeNarrative={false}"),
+  "Rating Engine does not call the unshipped narrative route",
+);
+assert(!/Simply Wall|GuruFocus|YNAB|Snowflake/i.test(ratingEngine), "Rating Engine UI does not name leftovers");
+
+const ratingSection = readFileSync(
+  join(process.cwd(), "src/components/analysis/analysis-rating-section.tsx"),
+  "utf8",
+);
+assert(
+  ratingSection.includes("AnalysisRatingRadar"),
+  "Rating Engine still mounts the spider/radar",
+);
+assert(
+  ratingSection.includes("AnalysisForecastPanel"),
+  "Rating Engine still mounts street forecast",
+);
+assert(
+  ratingSection.includes("Profitability"),
+  "Rating Engine still names Profitability",
 );
 
 const tickerPageFiles = [
@@ -380,6 +419,7 @@ const tickerPageFiles = [
   "src/components/ticker/ticker-future-section.tsx",
   "src/components/ticker/ticker-health-section.tsx",
   "src/components/ticker/ticker-score.tsx",
+  "src/components/ticker/ticker-rating-engine.tsx",
 ].map((path) => readFileSync(join(process.cwd(), path), "utf8"));
 const tickerPageText = tickerPageFiles.join("\n");
 assert(!/Snowflake/i.test(tickerPageText), "ticker files do not name Snowflake");

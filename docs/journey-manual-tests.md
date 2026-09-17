@@ -13,7 +13,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 ## 2. Invest stays honest
 
 1. Open Invest with no book. The first-book wizard names the book. No holdings are invented.
-2. Search a public ticker. Score is above Past / Now / Future.
+2. Search a public ticker. Rating Engine (section scores + radar + street forecast) is above Score and Past / Now / Future.
 3. Missing FMP figures stay Unknown. Future is street estimates, not a house forecast.
 
 ## 3. Existing leftover + book: Retire shows a real date
