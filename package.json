@@ -13,6 +13,7 @@
     "test:invest": "npx --yes tsx --tsconfig tsconfig.json scripts/test-invest-unit.mts",
     "test:assess": "npx --yes tsx --tsconfig tsconfig.json scripts/test-assess-unit.mts",
     "test:early-opp": "npx --yes tsx --tsconfig tsconfig.json scripts/test-early-opp-unit.mts",
+    "smoke:early-opp": "npx --yes tsx --tsconfig tsconfig.json scripts/smoke-early-opp.mts",
     "test:journey": "npx --yes tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts",
     "test:ticker": "npx --yes tsx --tsconfig tsconfig.json scripts/test-ticker-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-ticker-score-unit.mts"
   },
