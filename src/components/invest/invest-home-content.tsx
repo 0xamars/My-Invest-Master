@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PageLoading } from "@/components/layout/page-loading";
+import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
@@ -19,6 +21,7 @@ import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { explainAddHoldingFields } from "@/lib/journey/density";
 import { INVEST_EMPTY_BOOK } from "@/lib/journey/empty-states";
+import { INVEST_EARLY_OPP_PATH } from "@/lib/chrome/nav";
 import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
 import { buildBookRows, formatBookCacheLine } from "@/lib/ticker/book";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
@@ -87,6 +90,7 @@ export function InvestHomeContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-5">
+      <InvestToolsNav />
       <RetirePageHeader
         title="Invest"
         description="The public-stock book. Search a name or ticker."
@@ -106,6 +110,19 @@ export function InvestHomeContent() {
       />
 
       <TickerLookup />
+
+      <Link href={INVEST_EARLY_OPP_PATH} className="block">
+        <RetirePanel className="px-5 py-4 transition-colors hover:bg-muted/20">
+          <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+            Decision aid
+          </p>
+          <h2 className="mt-1 text-sm font-semibold">16-step framework</h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Early Opp — secular trend, financials, moat, then timing. Search a
+            ticker and see pass, soft, fail, or unknown on each step.
+          </p>
+        </RetirePanel>
+      </Link>
 
       {offerFirstBook ? (
         <FirstBookWizard

@@ -12,7 +12,9 @@ import {
 } from "../src/lib/invest/leftover.ts";
 import {
   INVEST_CHILD_NAV,
+  INVEST_EARLY_OPP_PATH,
   PRIMARY_NAV_TITLES,
+  investEarlyOppPath,
   SIGNED_IN_FOOTER_NAV,
   SIGNED_IN_PRIMARY_NAV,
   investPortfolioPath,
@@ -666,8 +668,8 @@ assert(
 );
 assert(
   INVEST_CHILD_NAV.map((item) => item.href).join(",") ===
-    "/invest/assess,/invest/portfolio,/invest/watchlist,/invest/options",
-  "Invest children include Assess plus book, queue, and options under /invest",
+    "/invest/assess,/invest/early-opp,/invest/portfolio,/invest/watchlist,/invest/options",
+  "Invest children include Assess, Early Opp, book, queue, and options under /invest",
 );
 assert(
   !INVEST_CHILD_NAV.some((item) => item.href === "/market" || item.href === "/analysis"),
@@ -708,6 +710,13 @@ assert(
 assert(isInvestPath("/invest/options") === true, "options under Invest is Invest");
 assert(investPortfolioPath("abc") === "/invest/portfolio/abc", "book path is nested");
 assert(resolvePageTitle("/invest/options") === "Options", "options title");
+assert(INVEST_EARLY_OPP_PATH === "/invest/early-opp", "early opp path constant");
+assert(investEarlyOppPath("nvda") === "/invest/early-opp/NVDA", "early opp symbol path");
+assert(resolvePageTitle("/invest/early-opp") === "Early Opp", "early opp title");
+assert(
+  resolvePageTitle("/invest/early-opp/NVDA") === "NVDA · Early Opp",
+  "early opp symbol title",
+);
 assert(resolvePageTitle("/") === "InvestSalsa", "marketing title");
 assert(isPortfolioDetailPath("/invest/portfolio/abc") === true, "nested book is a detail path");
 assert(isPortfolioDetailPath("/invest/portfolio") === false, "book list is not a detail path");

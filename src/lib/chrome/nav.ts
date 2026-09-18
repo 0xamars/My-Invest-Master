@@ -14,6 +14,7 @@ export const MONEY_PROFILE_PATH = "/money-profile";
 export const INVEST_PORTFOLIO_PATH = "/invest/portfolio";
 export const INVEST_WATCHLIST_PATH = "/invest/watchlist";
 export const INVEST_OPTIONS_PATH = "/invest/options";
+export const INVEST_EARLY_OPP_PATH = "/invest/early-opp";
 
 /** Signed-in primary chrome — three products. Home is not a pillar. Settings is the account menu. */
 export const SIGNED_IN_PRIMARY_NAV = [
@@ -27,6 +28,7 @@ export const INVEST_ASSESS_PATH = "/invest/assess";
 
 export const INVEST_CHILD_NAV = [
   { title: "Assess", href: INVEST_ASSESS_PATH },
+  { title: "Early Opp", href: INVEST_EARLY_OPP_PATH },
   { title: "Portfolio", href: INVEST_PORTFOLIO_PATH },
   { title: "Watchlist", href: INVEST_WATCHLIST_PATH },
   { title: "Options", href: INVEST_OPTIONS_PATH },
@@ -61,6 +63,11 @@ export { investTickerPath } from "@/lib/ticker/symbol";
 export function investAssessPath(id?: string): string {
   if (!id?.trim()) return INVEST_ASSESS_PATH;
   return `${INVEST_ASSESS_PATH}/${encodeURIComponent(id.toUpperCase())}`;
+}
+
+export function investEarlyOppPath(id?: string): string {
+  if (!id?.trim()) return INVEST_EARLY_OPP_PATH;
+  return `${INVEST_EARLY_OPP_PATH}/${encodeURIComponent(id.toUpperCase())}`;
 }
 
 export function retirePlansPath(id?: string): string {
@@ -231,12 +238,23 @@ export function resolvePageTitle(
     return symbol ? `${symbol.toUpperCase()} · Assess` : "Assess";
   }
 
+  if (pathname === INVEST_EARLY_OPP_PATH) {
+    return "Early Opp";
+  }
+  if (pathname.startsWith(`${INVEST_EARLY_OPP_PATH}/`)) {
+    const symbol = decodeURIComponent(
+      pathname.slice(`${INVEST_EARLY_OPP_PATH}/`.length),
+    ).split("/")[0];
+    return symbol ? `${symbol.toUpperCase()} · Early Opp` : "Early Opp";
+  }
+
   const pageTitles: Record<string, string> = {
     "/": "InvestSalsa",
     "/home": "Home",
     "/money-profile": "Home",
     "/invest": "Invest",
     "/invest/assess": "Assess",
+    "/invest/early-opp": "Early Opp",
     "/invest/options": "Options",
     "/options": "Options",
     "/settings": "Settings",

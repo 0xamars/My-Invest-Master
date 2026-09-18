@@ -52,7 +52,7 @@ Built with Next.js, Supabase, and Tailwind CSS.
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
-| `FMP_API_KEY` | Yes (Analysis equities) | [Financial Modeling Prep](https://financialmodelingprep.com/) API key — primary source for company profile, statements, ratios, quotes, and historical prices used by Analysis / InvestSalsa Rating |
+| `FMP_API_KEY` | Yes (Analysis equities) | [Financial Modeling Prep](https://financialmodelingprep.com/) API key — primary source for company profile, statements, ratios, quotes, and historical prices used by Analysis / InvestSalsa Rating / Early Opp |
 | `FMP_API_BASE` | No | Override FMP API base (default `https://financialmodelingprep.com/stable`) |
 | `MARKET_DATA_YAHOO_FALLBACK` | No | `0` disables Yahoo secondary fallback. Default: FMP first, Yahoo if FMP fails |
 | `PLAID_CLIENT_ID` | No | Plaid client id. Budget Connect bank stays disabled until set |
