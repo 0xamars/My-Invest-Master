@@ -15,6 +15,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 1. Open Invest with no book. The first-book wizard names the book. No holdings are invented.
 2. Search a public ticker. Rating Engine (section scores + radar + street forecast) is above Score and Past / Now / Future.
 3. Missing FMP figures stay Unknown. Future is street estimates, not a house forecast.
+4. Open Early Opp from Invest tools or the 16-step card. Search NVDA. All 16 steps render with pass / soft / fail / unknown. Missing FMP figures stay unknown. No leftover bar.
 
 ## 3. Existing leftover + book: Retire shows a real date
 
@@ -42,4 +43,4 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 ## 7. Typecheck and units
 
-`npx tsc --noEmit` and the journey / invest / ticker / budget / retire unit scripts pass.
+`npx tsc --noEmit` and the journey / invest / ticker / budget / retire / early-opp unit scripts pass.

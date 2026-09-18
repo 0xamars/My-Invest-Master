@@ -71,6 +71,21 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
     };
   }
   if (
+    pathname === "/invest/early-opp" ||
+    pathname.startsWith("/invest/early-opp/") ||
+    pathname === "/invest/assess" ||
+    pathname.startsWith("/invest/assess/")
+  ) {
+    return {
+      id: "invest",
+      path: pathname,
+      title: pathname.includes("early-opp") ? "Early Opp" : "Assess",
+      description: pathname.includes("early-opp")
+        ? "16-step Early Opportunity framework — a decision aid, not advice."
+        : "One-note assessment and annual cash-and-earnings tape.",
+    };
+  }
+  if (
     pathname === "/invest/watchlist" ||
     pathname.startsWith("/invest/watchlist/")
   ) {

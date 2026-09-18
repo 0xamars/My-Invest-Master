@@ -26,6 +26,11 @@ export const AI_FEATURES: Record<AiFeatureId, AiFeatureConfig> = {
     temperature: 0.35,
     maxTokens: 900,
   },
+  "analysis.early_opp": {
+    model: "google/gemini-2.5-flash-lite",
+    temperature: 0.3,
+    maxTokens: 900,
+  },
   "chat.assistant": {
     model: "google/gemini-2.5-flash-lite",
     temperature: 0.35,
