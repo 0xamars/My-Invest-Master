@@ -2,6 +2,7 @@
 
 import { Trash2 } from "lucide-react";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
+import { CurrencyAmountInput } from "@/components/retirement/currency-amount-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -105,16 +106,17 @@ export function RetirementPlanAssetsTable({
                     {isLoading ? (
                       <Skeleton className="ml-auto h-8 w-24" />
                     ) : canEditPrice || !isLivePricedAsset(asset.type) ? (
-                      <Input
-                        type="number"
+                      <CurrencyAmountInput
                         min="0"
                         step="any"
+                        fractionDigits={asset.type === "crypto" ? 6 : 2}
                         className="ml-auto h-8 w-28 text-right tabular-nums"
-                        value={asset.unitPrice}
-                        onChange={(event) =>
-                          onUpdateAsset(asset.id, {
-                            unitPrice: Number(event.target.value) || 0,
-                          })
+                        usdValue={asset.unitPrice}
+                        currency={currency}
+                        rates={rates}
+                        aria-label={`${asset.symbol} price in ${currency}`}
+                        onUsdChange={(unitPrice) =>
+                          onUpdateAsset(asset.id, { unitPrice })
                         }
                       />
                     ) : (
@@ -135,6 +137,7 @@ export function RetirementPlanAssetsTable({
                       step="any"
                       className="ml-auto h-8 w-24 text-right tabular-nums"
                       value={asset.quantity}
+                      aria-label={`${asset.symbol} quantity`}
                       onChange={(event) =>
                         onUpdateAsset(asset.id, {
                           quantity: Number(event.target.value) || 0,
@@ -148,6 +151,7 @@ export function RetirementPlanAssetsTable({
                       step="0.1"
                       className="ml-auto h-8 w-20 text-right tabular-nums"
                       value={asset.expectedCagr}
+                      aria-label={`${asset.symbol} expected growth percent`}
                       onChange={(event) =>
                         onUpdateAsset(asset.id, {
                           expectedCagr: Number(event.target.value) || 0,

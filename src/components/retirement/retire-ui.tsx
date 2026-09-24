@@ -48,6 +48,7 @@ export function RetirePanel({
 }
 
 export function RetireEmptyState({
+  icon,
   title,
   description,
   actions,
@@ -59,6 +60,11 @@ export function RetireEmptyState({
 }) {
   return (
     <div className="premium-empty">
+      {icon ? (
+        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+          {icon}
+        </div>
+      ) : null}
       <p className="text-[0.975rem] font-semibold tracking-tight">{title}</p>
       <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
         {description}

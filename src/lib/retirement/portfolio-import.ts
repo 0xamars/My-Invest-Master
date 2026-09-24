@@ -1,4 +1,6 @@
-import type { PortfolioHolding } from "@/types/portfolio";
+import { convertToUsd } from "@/lib/portfolio/prices/fx";
+import { DEFAULT_FX_RATES, type FxRates } from "@/types/currency";
+import { getCashCurrency, type PortfolioHolding } from "@/types/portfolio";
 import {
   DEFAULT_CAGR_BY_TYPE,
   type RetirementPlanAsset,
@@ -24,8 +26,11 @@ export function portfolioHoldingToPlanAsset(
 export function resolveHoldingUnitPrice(
   holding: PortfolioHolding,
   livePrices: Record<string, number>,
+  rates: FxRates = DEFAULT_FX_RATES,
 ): number {
-  if (holding.type === "cash") return 1;
+  if (holding.type === "cash") {
+    return convertToUsd(1, getCashCurrency(holding), rates);
+  }
   if (holding.type === "custom") {
     return holding.manualCurrentPrice ?? holding.costPrice;
   }
@@ -45,6 +50,7 @@ export function refreshAssetsFromPortfolio(
   existing: RetirementPlanAsset[],
   holdings: PortfolioHolding[],
   livePrices: Record<string, number>,
+  rates: FxRates = DEFAULT_FX_RATES,
 ): RetirementPlanAsset[] {
   const bySymbolType = new Map<string, PortfolioHolding>();
   const bySymbol = new Map<string, PortfolioHolding[]>();
@@ -69,7 +75,7 @@ export function refreshAssetsFromPortfolio(
       priceId: holding.priceId ?? asset.priceId,
       logoUrl: holding.logoUrl ?? asset.logoUrl,
       quantity: holding.quantity,
-      unitPrice: resolveHoldingUnitPrice(holding, livePrices),
+      unitPrice: resolveHoldingUnitPrice(holding, livePrices, rates),
     };
   });
 }

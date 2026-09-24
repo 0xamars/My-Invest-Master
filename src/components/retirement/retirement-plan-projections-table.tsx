@@ -158,6 +158,16 @@ export function RetirementPlanProjectionsTable({
               </div>
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
                 <div>
+                  <dt className="text-muted-foreground">Saved</dt>
+                  <dd className="tabular-nums">
+                    {formatProjectionMoney(
+                      projection.contribution,
+                      currency,
+                      rates,
+                    )}
+                  </dd>
+                </div>
+                <div>
                   <dt className="text-muted-foreground">Close</dt>
                   <dd className="font-semibold tabular-nums">
                     {formatProjectionMoney(

@@ -63,9 +63,9 @@ export function RetireHomeContent() {
       : createEmptyPlan("Retire");
     return {
       assumptions: latest ? assumptions : null,
-      path: bindFreedomPathPlan(assumptions, leftover, book, prices),
+      path: bindFreedomPathPlan(assumptions, leftover, book, prices, rates),
     };
-  }, [latest, leftover, book, prices]);
+  }, [latest, leftover, book, prices, rates]);
 
   const displayed = preview ?? basePath.path;
   const dashboard = useMemo(

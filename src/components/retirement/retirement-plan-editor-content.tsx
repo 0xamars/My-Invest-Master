@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -35,22 +35,18 @@ import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-gua
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useFxRate } from "@/hooks/use-fx-rate";
-import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { useRetirementPlanPrices } from "@/hooks/use-retirement-plan-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { useUserPlan } from "@/hooks/use-user-preferences";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
 import { canOpenRetirementPlanOnPlan } from "@/lib/plans/free-access";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
-import {
-  bindFreedomPathPlan,
-  bookPresenceFromPortfolio,
-  pickFreedomLever,
-} from "@/lib/retirement/freedom-path";
+import { bookPresenceFromPortfolio } from "@/lib/retirement/freedom-path";
 import { runRetirementMonteCarlo } from "@/lib/retirement/monte-carlo";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
-import { computeRetirementProjections } from "@/lib/retirement/projections";
+import { projectionsForSavedPlan } from "@/lib/retirement/plan-chart";
+import { nominalTargetNestEgg } from "@/lib/retirement/target";
 import { cn } from "@/lib/utils";
 import type { RetirementPlan, RetirementPlanAsset } from "@/types/retirement";
 import { isLivePricedAsset } from "@/types/portfolio";
@@ -108,44 +104,40 @@ export function RetirementPlanEditorContent({
     () => bookPresenceFromPortfolio(primaryPortfolio),
     [primaryPortfolio],
   );
-  const { prices: bookPrices } = usePortfolioPrices(
-    primaryPortfolio?.holdings ?? [],
-  );
-
-  const pathPlan = useMemo(
-    () =>
-      workingPlan
-        ? bindFreedomPathPlan(workingPlan, leftover, book, bookPrices)
-        : null,
-    [workingPlan, leftover, book, bookPrices],
-  );
 
   const projections = useMemo(
-    () => (pathPlan ? computeRetirementProjections(pathPlan) : []),
-    [pathPlan],
+    () => (workingPlan ? projectionsForSavedPlan(workingPlan) : []),
+    [workingPlan],
   );
 
+  const deferredPlan = useDeferredValue(workingPlan);
   const monteCarlo = useMemo(
     () =>
-      pathPlan && pathPlan.assets.length > 0
-        ? runRetirementMonteCarlo(pathPlan, { paths: 750, seed: 17 })
+      deferredPlan && deferredPlan.assets.length > 0
+        ? runRetirementMonteCarlo(deferredPlan, { paths: 750, seed: 17 })
         : null,
-    [pathPlan],
+    [deferredPlan],
   );
 
   const dashboard = useMemo(
     () =>
-      pathPlan
-        ? computeRetirementDashboard(pathPlan, {
+      workingPlan
+        ? computeRetirementDashboard(workingPlan, {
             projections,
             monteCarlo,
           })
         : null,
-    [pathPlan, projections, monteCarlo],
+    [workingPlan, projections, monteCarlo],
   );
-  const lever = dashboard
-    ? pickFreedomLever(leftover, book, dashboard)
-    : undefined;
+
+  const targetNominal = workingPlan
+    ? nominalTargetNestEgg(
+        workingPlan.annualLifestyleSpending,
+        workingPlan.withdrawalRate,
+        workingPlan.inflationRate,
+        Math.max(0, workingPlan.retirementAge - workingPlan.currentAge),
+      )
+    : 0;
 
   const persistPlan = useCallback(
     (next: RetirementPlan) => {
@@ -230,7 +222,7 @@ export function RetirementPlanEditorContent({
     );
   }
 
-  if (!workingPlan || !dashboard || !pathPlan) {
+  if (!workingPlan || !dashboard) {
     return (
       <Card className="mx-auto max-w-lg">
         <CardHeader>
@@ -275,7 +267,8 @@ export function RetirementPlanEditorContent({
               ariaLabel="Retire plan name"
             />
             <p className="text-sm text-muted-foreground">
-              One date from leftover and the book. What-ifs stay on this plan.
+              Assets, savings, and income on this plan. The chart and target
+              date update as soon as they change.
             </p>
           </div>
         </div>
@@ -292,9 +285,11 @@ export function RetirementPlanEditorContent({
           currency={currency}
           rates={rates}
           planName={workingPlan.name}
-          leftover={leftover}
-          book={book}
-          lever={lever}
+          leftover={workingPlan.assets.length > 0 ? leftover : undefined}
+          book={workingPlan.assets.length > 0 ? book : undefined}
+          portfolioLabel="Plan assets"
+          emptyTitle="This plan has no assets yet"
+          emptyDescription="Add a holding or refresh from Invest. The chart, totals, and target date follow what you save here."
           emptyActions={
             <>
               <Button render={<Link href="/budget" />}>Open Budget</Button>
@@ -308,16 +303,22 @@ export function RetirementPlanEditorContent({
           }
         />
 
-        <RetirementPlanLevers plan={workingPlan} onChange={persistPlan} />
+        <RetirementPlanLevers
+          plan={workingPlan}
+          rates={rates}
+          onChange={persistPlan}
+        />
         <RetirementIncomeStreams
           streams={workingPlan.incomeStreams}
+          currency={currency}
+          rates={rates}
           onChange={(incomeStreams) =>
             persistPlan({ ...workingPlan, incomeStreams })
           }
         />
 
         <RetirementMonteCarloPanel
-          plan={pathPlan}
+          plan={workingPlan}
           result={monteCarlo}
           currency={currency}
           rates={rates}
@@ -328,7 +329,7 @@ export function RetirementPlanEditorContent({
               retirementAge: next.retirementAge,
               retirementYear: next.retirementYear,
               planEndAge: next.planEndAge,
-              annualContribution: 0,
+              annualContribution: next.annualContribution,
             })
           }
         />
@@ -383,11 +384,12 @@ export function RetirementPlanEditorContent({
 
         <RetirementPlanProjectionsChart
           projections={projections}
-          assets={pathPlan.assets}
+          assets={workingPlan.assets}
           currency={currency}
           rates={rates}
-          retirementYear={pathPlan.retirementYear}
+          retirementYear={workingPlan.retirementYear}
           percentiles={monteCarlo?.percentiles}
+          targetNominal={targetNominal}
         />
 
         <div className="space-y-4">
@@ -399,10 +401,10 @@ export function RetirementPlanEditorContent({
           </div>
           <RetirementPlanProjectionsTable
             projections={projections}
-            assets={pathPlan.assets}
+            assets={workingPlan.assets}
             currency={currency}
             rates={rates}
-            retirementYear={pathPlan.retirementYear}
+            retirementYear={workingPlan.retirementYear}
           />
         </div>
 
@@ -411,6 +413,8 @@ export function RetirementPlanEditorContent({
           onOpenChange={setAddAssetOpen}
           onAdd={handleAddAsset}
           existingSymbols={assets.map((asset) => asset.symbol)}
+          currency={currency}
+          rates={rates}
         />
         <CreateRetirementFromPortfolioDialog
           open={refreshOpen}

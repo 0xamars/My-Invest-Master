@@ -21,3 +21,18 @@ export function presentValue(
   if (!Number.isFinite(inflation) || inflation <= -1) return futureValue;
   return futureValue / (1 + inflation) ** years;
 }
+
+/** Nest egg the plan must hold at the target age, in future dollars. */
+export function nominalTargetNestEgg(
+  annualSpending: number,
+  withdrawalRate: number,
+  inflationRatePercent: number,
+  yearsToRetirement: number,
+): number {
+  const today = computeTargetNestEgg(annualSpending, withdrawalRate);
+  if (today <= 0) return 0;
+  if (!Number.isFinite(yearsToRetirement) || yearsToRetirement <= 0) return today;
+  const inflation = inflationRatePercent / 100;
+  if (!Number.isFinite(inflation) || inflation <= -1) return today;
+  return today * (1 + inflation) ** yearsToRetirement;
+}

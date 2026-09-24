@@ -13,6 +13,7 @@ import {
 } from "@/lib/chrome/nav";
 import { bindFreedomPathPlan, type BookPresence } from "@/lib/retirement/freedom-path";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
+import type { FxRates } from "@/types/currency";
 import { createEmptyPlan, type RetirementPlan } from "@/types/retirement";
 import type { BudgetPlan } from "@/types/budget";
 import type { PortfolioHolding } from "@/types/portfolio";
@@ -134,6 +135,7 @@ export function signedInHomeRetireInsight(input: {
   book: BookPresence;
   assumptions?: RetirementPlan | null;
   currentYear?: number;
+  rates?: FxRates;
 }): SignedInHomeCard {
   if (input.leftover.status !== "present" || input.book.status !== "present") {
     return {
@@ -148,7 +150,13 @@ export function signedInHomeRetireInsight(input: {
   }
 
   const assumptions = input.assumptions ?? createEmptyPlan("Retire");
-  const path = bindFreedomPathPlan(assumptions, input.leftover, input.book);
+  const path = bindFreedomPathPlan(
+    assumptions,
+    input.leftover,
+    input.book,
+    {},
+    input.rates,
+  );
   const dashboard = computeRetirementDashboard(path, {
     currentYear: input.currentYear,
   });
@@ -203,6 +211,7 @@ export function buildSignedInHomeCards(input: {
   budgetPlanId?: string | null;
   assumptions?: RetirementPlan | null;
   currentYear?: number;
+  rates?: FxRates;
 }): SignedInHomeCard[] {
   return [
     signedInHomeBudgetInsight(
@@ -216,6 +225,7 @@ export function buildSignedInHomeCards(input: {
       book: input.book,
       assumptions: input.assumptions,
       currentYear: input.currentYear,
+      rates: input.rates,
     }),
   ];
 }

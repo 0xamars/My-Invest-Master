@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import {
@@ -81,6 +82,7 @@ export function CreateRetirementFromPortfolioDialog({
 
   const { prices, isLoading: isPricesLoading } =
     usePortfolioPrices(visibleHoldings);
+  const { rates } = useFxRate();
 
   const holdingCount = visibleHoldings.length;
   const matchedCount = useMemo(() => {
@@ -100,11 +102,11 @@ export function CreateRetirementFromPortfolioDialog({
     if (!selectedPortfolio || holdingCount === 0) return;
 
     const assets = isRefresh
-      ? refreshAssetsFromPortfolio(existingAssets, visibleHoldings, prices)
+      ? refreshAssetsFromPortfolio(existingAssets, visibleHoldings, prices, rates)
       : visibleHoldings.map((holding) =>
           portfolioHoldingToPlanAsset(
             holding,
-            resolveHoldingUnitPrice(holding, prices),
+            resolveHoldingUnitPrice(holding, prices, rates),
           ),
         );
 

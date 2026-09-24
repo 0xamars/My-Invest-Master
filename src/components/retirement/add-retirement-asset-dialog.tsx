@@ -25,6 +25,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { useAssetPrice } from "@/hooks/use-asset-price";
 import { useAssetSearch } from "@/hooks/use-asset-search";
+import { convertFromUsd, convertToUsd } from "@/lib/portfolio/prices/fx";
+import type { DisplayCurrency, FxRates } from "@/types/currency";
 import {
   DEFAULT_CAGR_BY_TYPE,
   type RetirementPlanAsset,
@@ -38,6 +40,8 @@ interface AddRetirementAssetDialogProps {
   onOpenChange: (open: boolean) => void;
   onAdd: (asset: RetirementPlanAsset) => void;
   existingSymbols: string[];
+  currency: DisplayCurrency;
+  rates: FxRates;
 }
 
 export function AddRetirementAssetDialog({
@@ -45,6 +49,8 @@ export function AddRetirementAssetDialog({
   onOpenChange,
   onAdd,
   existingSymbols,
+  currency,
+  rates,
 }: AddRetirementAssetDialogProps) {
   const [mode, setMode] = useState<DialogMode>("stock");
   const [query, setQuery] = useState("");
@@ -84,8 +90,8 @@ export function AddRetirementAssetDialog({
 
   useEffect(() => {
     if (priceTouched || !livePrice) return;
-    setUnitPrice(livePrice.toFixed(2));
-  }, [livePrice, priceTouched]);
+    setUnitPrice(convertFromUsd(livePrice, currency, rates).toFixed(2));
+  }, [livePrice, priceTouched, currency, rates]);
 
   useEffect(() => {
     setExpectedCagr(String(DEFAULT_CAGR_BY_TYPE[mode]));
@@ -112,10 +118,14 @@ export function AddRetirementAssetDialog({
     }
 
     const price = Number(unitPrice);
-    if (!Number.isFinite(price) || price < 0) {
+    if (mode !== "cash" && (!Number.isFinite(price) || price < 0)) {
       setSubmitError("Enter a valid price.");
       return;
     }
+    const usdPrice =
+      mode === "cash" || !Number.isFinite(price)
+        ? 0
+        : convertToUsd(price, currency, rates);
 
     const cagr = Number(expectedCagr);
     if (!Number.isFinite(cagr)) {
@@ -129,9 +139,9 @@ export function AddRetirementAssetDialog({
       asset = {
         id: crypto.randomUUID(),
         symbol: "CASH",
-        name: "Cash (USD)",
+        name: `Cash (${currency})`,
         type: "cash",
-        unitPrice: 1,
+        unitPrice: convertToUsd(1, currency, rates),
         quantity: qty,
         expectedCagr: cagr,
       };
@@ -151,7 +161,7 @@ export function AddRetirementAssetDialog({
         symbol,
         name,
         type: "custom",
-        unitPrice: price,
+        unitPrice: usdPrice,
         quantity: qty,
         expectedCagr: cagr,
       };
@@ -171,7 +181,7 @@ export function AddRetirementAssetDialog({
         type: mode,
         priceId: selectedAsset.priceId,
         logoUrl: selectedAsset.logoUrl,
-        unitPrice: price,
+        unitPrice: usdPrice,
         quantity: qty,
         expectedCagr: cagr,
       };
@@ -332,7 +342,7 @@ export function AddRetirementAssetDialog({
             {mode !== "cash" && (
               <div className="space-y-2">
                 <Label htmlFor="unit-price">
-                  Asset price (USD)
+                  Asset price ({currency})
                   {isPriceLoading && (
                     <Loader2 className="ml-1 inline size-3 animate-spin" />
                   )}

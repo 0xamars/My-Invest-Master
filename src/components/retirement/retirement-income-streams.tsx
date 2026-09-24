@@ -1,9 +1,11 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
+import { CurrencyAmountInput } from "@/components/retirement/currency-amount-input";
 import { RetireField, RetirePanel } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { DisplayCurrency, FxRates } from "@/types/currency";
 import {
   createIncomeStream,
   RETIREMENT_INCOME_KIND_LABELS,
@@ -15,9 +17,13 @@ const QUICK_KINDS: RetirementIncomeKind[] = ["cpp", "oas", "pension", "other"];
 
 export function RetirementIncomeStreams({
   streams,
+  currency,
+  rates,
   onChange,
 }: {
   streams: RetirementIncomeStream[];
+  currency: DisplayCurrency;
+  rates: FxRates;
   onChange: (streams: RetirementIncomeStream[]) => void;
 }) {
   function patch(id: string, next: Partial<RetirementIncomeStream>) {
@@ -66,30 +72,36 @@ export function RetirementIncomeStreams({
               key={stream.id}
               className="grid gap-3 rounded-xl border border-border/60 p-3 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_auto] sm:items-end"
             >
-              <RetireField label="Name">
+              <RetireField id={`${stream.id}-name`} label="Name">
                 <Input
+                  id={`${stream.id}-name`}
                   value={stream.name}
                   onChange={(event) =>
                     patch(stream.id, { name: event.target.value })
                   }
                 />
               </RetireField>
-              <RetireField label="Annual amount today">
-                <Input
-                  type="number"
+              <RetireField
+                id={`${stream.id}-amount`}
+                label={`Annual amount today (${currency})`}
+              >
+                <CurrencyAmountInput
+                  id={`${stream.id}-amount`}
                   min="0"
                   step="100"
-                  value={stream.annualAmount}
-                  onChange={(event) =>
-                    patch(stream.id, {
-                      annualAmount: Number(event.target.value) || 0,
-                    })
+                  usdValue={stream.annualAmount}
+                  currency={currency}
+                  rates={rates}
+                  onUsdChange={(annualAmount) =>
+                    patch(stream.id, { annualAmount })
                   }
+                  aria-label={`${stream.name} annual amount in ${currency}`}
                   className="tabular-nums"
                 />
               </RetireField>
-              <RetireField label="Start age">
+              <RetireField id={`${stream.id}-start`} label="Start age">
                 <Input
+                  id={`${stream.id}-start`}
                   type="number"
                   min="0"
                   max="120"
@@ -102,9 +114,11 @@ export function RetirementIncomeStreams({
                   className="tabular-nums"
                 />
               </RetireField>
-              <RetireField label="COLA">
+              <RetireField id={`${stream.id}-cola`} label="COLA">
                 <Button
+                  id={`${stream.id}-cola`}
                   type="button"
+                  aria-pressed={stream.colaWithInflation}
                   variant={stream.colaWithInflation ? "default" : "outline"}
                   onClick={() =>
                     patch(stream.id, {
