@@ -386,6 +386,7 @@ export function filterTransactions(
     rows = rows.filter(
       (tx) =>
         tx.payee.toLowerCase().includes(query) ||
+        (tx.originalPayee?.toLowerCase().includes(query) ?? false) ||
         (tx.memo?.toLowerCase().includes(query) ?? false),
     );
   }

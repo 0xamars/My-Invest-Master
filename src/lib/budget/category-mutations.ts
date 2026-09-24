@@ -60,6 +60,9 @@ export function removeCategoryFromBudget(
       categoryId: schedule.categoryId === categoryId ? null : schedule.categoryId,
       splits: clearCategoryOnSplits(schedule.splits, categoryId),
     })),
+    payeeRules: budget.payeeRules?.map((rule) =>
+      rule.categoryId === categoryId ? { ...rule, categoryId: null } : rule,
+    ),
     monthBudgets,
   };
 }

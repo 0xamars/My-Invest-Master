@@ -93,6 +93,27 @@ export interface BudgetTransactionSplit {
   memo?: string;
 }
 
+export type PayeeRuleMatchType = "contains" | "starts-with" | "exact";
+
+/**
+ * Cleans a bank payee on import. First enabled rule whose pattern matches
+ * the imported text wins (lowest priority number, then id).
+ */
+export interface PayeeRule {
+  id: string;
+  /** Text compared to the imported or typed payee. */
+  match: string;
+  matchType: PayeeRuleMatchType;
+  /** Payee name to store when this rule matches. Existing or new. */
+  renameTo: string;
+  /** Spending category to assign. Omitted means leave the category alone. */
+  categoryId?: string | null;
+  memo?: string;
+  /** Lower numbers run first. */
+  priority: number;
+  enabled: boolean;
+}
+
 export interface BudgetTransaction {
   id: string;
   date: string;
@@ -123,6 +144,17 @@ export interface BudgetTransaction {
   importId?: string;
   /** Set when an imported row was matched onto this already-entered transaction. */
   matchedTransactionId?: string;
+  /**
+   * Payee text the bank or the user typed before a rule renamed it.
+   * Rules re-run against this so a cleaned name does not hide the import.
+   */
+  originalPayee?: string;
+  /**
+   * True when the user picked the category. Rules must not replace it.
+   * False when a rule or last-used category filled it in.
+   * Missing on older rows: a set category is treated as chosen.
+   */
+  categoryManual?: boolean;
 }
 
 export interface MonthOpening {
@@ -164,6 +196,8 @@ export interface BudgetPlan {
   scheduledTransactions: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
+  /** Rename and categorize rules for imported payee text. */
+  payeeRules?: PayeeRule[];
   /**
    * Last month the user closed.
    * `null` = explicit close mode, nothing closed yet.
@@ -185,6 +219,7 @@ export interface BudgetData {
   scheduledTransactions?: BudgetScheduledTransaction[];
   monthBudgets: Record<string, MonthBudget>;
   goals: CategoryGoal[];
+  payeeRules?: PayeeRule[];
   closedThrough?: string | null;
   currency?: BudgetCurrency;
   updatedAt: string;
@@ -244,6 +279,7 @@ export function createEmptyBudgetPlan(name = "New Budget Plan"): BudgetPlan {
     scheduledTransactions: [],
     monthBudgets: {},
     goals: [],
+    payeeRules: [],
     closedThrough: null,
     currency: "USD",
     createdAt: now,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   CalendarClock,
@@ -10,8 +11,10 @@ import {
   Pencil,
   Plus,
   Search,
+  Tags,
   Trash2,
   Upload,
+  WandSparkles,
   X,
 } from "lucide-react";
 import { BudgetBankLink } from "@/components/budget/budget-bank-link";
@@ -50,6 +53,8 @@ import {
   todayDateKey,
 } from "@/lib/budget/scheduled";
 import { isReconciledState, isUnclearedState } from "@/lib/budget/cleared";
+import { normalizePayeeName } from "@/lib/budget/payees";
+import { payeeRuleCreateSearch } from "@/lib/budget/payee-rules";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
 import {
   filterTransactions,
@@ -70,6 +75,7 @@ import {
 export function BudgetTransactionsContent() {
   const {
     budget,
+    planId,
     deleteTransaction,
     importFromCsv,
     setTransactionApproved,
@@ -299,6 +305,14 @@ export function BudgetTransactionsContent() {
         }
         action={
           <>
+            <Button
+              type="button"
+              variant="outline"
+              render={<Link href={`/budget/plans/${planId}/payee-rules`} />}
+            >
+              <Tags className="size-4" />
+              Payee rules
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -712,7 +726,8 @@ export function BudgetTransactionsContent() {
                         {formatBudgetDate(tx.date)}
                       </TableCell>
                       <TableCell className="py-2">
-                        <div className="flex items-center gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
                           <span className="font-medium">{display.payee}</span>
                           {tx.scheduledTransactionId ? (
                             <BudgetKindBadge kind="scheduled" />
@@ -726,6 +741,14 @@ export function BudgetTransactionsContent() {
                           ) : null}
                           {tx.matchedTransactionId ? (
                             <BudgetKindBadge kind="matched" />
+                          ) : null}
+                          </div>
+                          {tx.originalPayee &&
+                          normalizePayeeName(tx.originalPayee) !==
+                            normalizePayeeName(display.payee) ? (
+                            <p className="truncate text-xs text-muted-foreground">
+                              Bank: {tx.originalPayee}
+                            </p>
                           ) : null}
                         </div>
                       </TableCell>
@@ -776,6 +799,19 @@ export function BudgetTransactionsContent() {
                               type="button"
                               variant="ghost"
                               size="icon-sm"
+                              aria-label={`Create rule from ${display.payee}`}
+                              render={
+                                <Link
+                                  href={`/budget/plans/${planId}/payee-rules?${payeeRuleCreateSearch(tx)}`}
+                                />
+                              }
+                            >
+                              <WandSparkles className="size-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => openEditTransaction(tx.id)}
                               aria-label={`Edit ${display.payee}`}
                             >
@@ -808,6 +844,7 @@ export function BudgetTransactionsContent() {
         accounts={budget.accounts}
         categories={budget.categories}
         transactions={budget.transactions}
+        payeeRules={budget.payeeRules ?? []}
         defaultAccountId={
           accountFilter === "all" ? budget.accounts[0]?.id : accountFilter
         }

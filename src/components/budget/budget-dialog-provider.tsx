@@ -136,6 +136,8 @@ export function BudgetDialogProvider({ children }: { children: ReactNode }) {
         defaultAccountId={budget.accounts[0]?.id}
         transaction={editingTransaction}
         payees={derivePayees(budget.transactions)}
+        payeeRules={budget.payeeRules ?? []}
+        ruleHistory={budget.transactions}
         currency={budget.currency}
       />
       <BudgetScheduledDialog

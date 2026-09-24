@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +29,8 @@ import {
 } from "@/lib/budget/accounts";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
-import { suggestPayees, type DerivedPayee } from "@/lib/budget/payees";
+import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
+import { normalizePayeeName, suggestPayees, type DerivedPayee } from "@/lib/budget/payees";
 import { buildTransferPayee, isSplitTransaction } from "@/lib/budget/transactions";
 import { cn } from "@/lib/utils";
 import type { AddBudgetTransactionInput } from "@/hooks/use-budget-plan-mutations";
@@ -39,6 +40,7 @@ import type {
   BudgetCategoryGroup,
   BudgetTransaction,
   BudgetTransactionType,
+  PayeeRule,
 } from "@/types/budget";
 
 interface BudgetTransactionDialogProps {
@@ -52,6 +54,9 @@ interface BudgetTransactionDialogProps {
   defaultAccountId?: string;
   transaction?: BudgetTransaction | null;
   payees?: DerivedPayee[];
+  payeeRules?: PayeeRule[];
+  /** Register rows used for last-used category when no rule matches. */
+  ruleHistory?: BudgetTransaction[];
   currency?: string;
 }
 
@@ -90,6 +95,8 @@ export function BudgetTransactionDialog({
   defaultAccountId,
   transaction,
   payees = [],
+  payeeRules = [],
+  ruleHistory = [],
   currency,
 }: BudgetTransactionDialogProps) {
   const isEdit = Boolean(transaction);
@@ -113,6 +120,8 @@ export function BudgetTransactionDialog({
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [payeeSuggestionsOpen, setPayeeSuggestionsOpen] = useState(false);
   const [payeeHighlight, setPayeeHighlight] = useState(0);
+  const [bankPayee, setBankPayee] = useState<string | undefined>(undefined);
+  const payeeBlurTimer = useRef<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -127,6 +136,7 @@ export function BudgetTransactionDialog({
       setCategoryId(transaction.categoryId ?? "none");
       setMemo(transaction.memo ?? "");
       setCategoryTouched(false);
+      setBankPayee(transaction.originalPayee);
       setPayeeSuggestionsOpen(false);
       setPayeeHighlight(0);
       if (isSplitTransaction(transaction) && transaction.splits) {
@@ -165,6 +175,7 @@ export function BudgetTransactionDialog({
     setSplitLines([newSplitLine(), newSplitLine()]);
     setMemo("");
     setCategoryTouched(false);
+    setBankPayee(undefined);
     setPayeeSuggestionsOpen(false);
     setPayeeHighlight(0);
   }, [open, transaction, defaultMonthKey, fallbackAccountId, accounts]);
@@ -174,13 +185,79 @@ export function BudgetTransactionDialog({
     [payees, payee],
   );
 
+  const priorTransactions = useMemo(
+    () => ruleHistory.filter((tx) => tx.id !== transaction?.id),
+    [ruleHistory, transaction?.id],
+  );
+
+  function legacyCategoryLocked(): boolean {
+    if (categoryTouched || !transaction) return false;
+    if (transaction.categoryManual === true) return true;
+    return transaction.categoryManual !== false && Boolean(transaction.categoryId);
+  }
+
+  function resolveTypedPayee(typed: string, categoryManual: boolean, startingCategory: string | null) {
+    const trimmed = typed.trim();
+    const keptOriginal =
+      bankPayee &&
+      (normalizePayeeName(trimmed) === normalizePayeeName(bankPayee) ||
+        normalizePayeeName(trimmed) === normalizePayeeName(payee))
+        ? bankPayee
+        : undefined;
+    const usingSplits = type === "outflow" && splitEnabled;
+    return applyPayeeRulesToTransaction(
+      {
+        id: transaction?.id ?? "draft",
+        date,
+        payee: trimmed,
+        originalPayee: keptOriginal,
+        accountId: accountId || "draft",
+        categoryId: categoryManual ? startingCategory : startingCategory,
+        amount: 1,
+        type,
+        cleared: "uncleared",
+        memo: memo.trim() || undefined,
+        categoryManual,
+        splits: usingSplits
+          ? splitLines.map((line) => ({
+              id: line.key,
+              categoryId: line.categoryId === "none" ? null : line.categoryId,
+              amount: Number.parseFloat(line.amount) || 0,
+            }))
+          : undefined,
+      },
+      payeeRules,
+      priorTransactions,
+      {
+        categories,
+        matchText: trimmed,
+        allowLastUsed: !categoryManual,
+      },
+    );
+  }
+
+  function applyResolvedPayee(typed: string, suggestionCategory?: string | null) {
+    if (type === "transfer") return null;
+    const manual = categoryTouched || legacyCategoryLocked();
+    const starting = manual
+      ? categoryId === "none"
+        ? null
+        : categoryId
+      : (suggestionCategory ?? null);
+    const resolved = resolveTypedPayee(typed, manual, starting);
+    setPayee(resolved.payee);
+    if (resolved.originalPayee) setBankPayee(resolved.originalPayee);
+    if (!manual && !(type === "outflow" && splitEnabled)) {
+      setCategoryId(resolved.categoryId ?? "none");
+    }
+    if (!memo.trim() && resolved.memo) setMemo(resolved.memo);
+    return resolved;
+  }
+
   function applyPayee(next: DerivedPayee) {
-    setPayee(next.name);
     setPayeeSuggestionsOpen(false);
     setPayeeHighlight(0);
-    if (!categoryTouched && next.lastCategoryId) {
-      setCategoryId(next.lastCategoryId);
-    }
+    applyResolvedPayee(next.name, categoryTouched ? null : next.lastCategoryId);
   }
 
   const assignableCategories = userAssignableCategories(categories);
@@ -252,6 +329,10 @@ export function BudgetTransactionDialog({
   }
 
   function handleSubmit() {
+    if (payeeBlurTimer.current != null) {
+      window.clearTimeout(payeeBlurTimer.current);
+      payeeBlurTimer.current = null;
+    }
     if (!accountId || !hasValidAmount) return;
 
     if (type === "transfer") {
@@ -276,14 +357,18 @@ export function BudgetTransactionDialog({
 
     if (type === "outflow" && splitEnabled && selectedOnBudget) {
       if (!payee.trim() || !splitsBalanced || !splitLinesValid) return;
+      const resolved = applyResolvedPayee(payee);
       onSave({
         date,
-        payee,
+        payee: resolved?.payee ?? payee.trim(),
+        originalPayee: resolved?.originalPayee,
         accountId,
         amount: parsedAmount,
         type: "outflow",
         categoryId: null,
-        memo: memo.trim() || undefined,
+        categoryManual: categoryTouched || legacyCategoryLocked(),
+        rulesApplied: true,
+        memo: (resolved?.memo ?? memo).trim() || undefined,
         cleared: transaction?.cleared ?? "uncleared",
         splits: splitLines.map((line) => ({
           id: line.key,
@@ -297,15 +382,26 @@ export function BudgetTransactionDialog({
 
     if (!payee.trim()) return;
 
+    const resolved = applyResolvedPayee(payee);
+    const manual = categoryTouched || legacyCategoryLocked();
+    const resolvedCategory = !selectedOnBudget
+      ? null
+      : manual
+        ? categoryId === "none"
+          ? null
+          : categoryId
+        : (resolved?.categoryId ?? null);
     onSave({
       date,
-      payee,
+      payee: resolved?.payee ?? payee.trim(),
+      originalPayee: resolved?.originalPayee,
       accountId,
       amount: parsedAmount,
       type,
-      categoryId:
-        !selectedOnBudget || categoryId === "none" ? null : categoryId,
-      memo: memo.trim() || undefined,
+      categoryId: resolvedCategory,
+      categoryManual: manual ? true : resolved?.categoryManual === false ? false : undefined,
+      rulesApplied: true,
+      memo: (resolved?.memo ?? memo).trim() || undefined,
       cleared: transaction?.cleared ?? "uncleared",
     });
     onOpenChange(false);
@@ -537,7 +633,15 @@ export function BudgetTransactionDialog({
                 }}
                 onFocus={() => setPayeeSuggestionsOpen(true)}
                 onBlur={() => {
-                  window.setTimeout(() => setPayeeSuggestionsOpen(false), 120);
+                  const typed = payee;
+                  if (payeeBlurTimer.current != null) {
+                    window.clearTimeout(payeeBlurTimer.current);
+                  }
+                  payeeBlurTimer.current = window.setTimeout(() => {
+                    payeeBlurTimer.current = null;
+                    setPayeeSuggestionsOpen(false);
+                    if (typed.trim()) applyResolvedPayee(typed);
+                  }, 120);
                 }}
                 onKeyDown={(event) => {
                   if (!payeeSuggestionsOpen || payeeSuggestions.length === 0) return;
@@ -563,6 +667,9 @@ export function BudgetTransactionDialog({
                 aria-expanded={payeeSuggestionsOpen}
                 aria-autocomplete="list"
               />
+              {bankPayee && normalizePayeeName(bankPayee) !== normalizePayeeName(payee) ? (
+                <p className="text-xs text-muted-foreground">Bank sent {bankPayee}</p>
+              ) : null}
               {payeeSuggestionsOpen && payeeSuggestions.length > 0 ? (
                 <div className="budget-payee-menu" role="listbox" aria-label="Payees">
                   {payeeSuggestions.map((suggestion, index) => (

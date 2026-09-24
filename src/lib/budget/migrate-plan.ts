@@ -3,6 +3,7 @@ import { normalizeClearedState } from "@/lib/budget/cleared";
 import { ensureCreditCardPaymentCategories } from "@/lib/budget/credit-card-payments";
 import { resolveBudgetCurrency } from "@/lib/budget/format";
 import { isCategoryGoalType } from "@/lib/budget/goals";
+import { normalizePayeeRules } from "@/lib/budget/payee-rules";
 import {
   createDefaultAccount,
   type BudgetAccount,
@@ -34,6 +35,8 @@ type LegacyTransaction = BudgetTransaction & {
   approved?: boolean;
   importId?: string;
   matchedTransactionId?: string;
+  originalPayee?: string;
+  categoryManual?: boolean;
 };
 
 type LegacyScheduled = Partial<BudgetScheduledTransaction> & {
@@ -65,6 +68,7 @@ type LegacyPlan = BudgetPlan & {
   currency?: BudgetCurrency | string;
   closedThrough?: string | null;
   monthBudgets?: Record<string, MonthBudget>;
+  payeeRules?: unknown;
 };
 
 const FREQUENCIES = new Set<RecurringFrequency>([
@@ -337,6 +341,16 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
       legacyTx.matchedTransactionId.length > 0
         ? legacyTx.matchedTransactionId
         : undefined;
+    const originalPayee =
+      typeof legacyTx.originalPayee === "string" && legacyTx.originalPayee.trim()
+        ? legacyTx.originalPayee.trim()
+        : undefined;
+    const categoryManual =
+      legacyTx.categoryManual === true
+        ? true
+        : legacyTx.categoryManual === false
+          ? false
+          : undefined;
 
     return {
       ...tx,
@@ -351,6 +365,8 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
       approved: legacyTx.approved === false ? false : true,
       importId,
       matchedTransactionId,
+      originalPayee,
+      categoryManual,
     };
   });
 
@@ -369,6 +385,7 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
     scheduledTransactions,
     monthBudgets: normalizeMonthBudgets(plan.monthBudgets),
     goals: normalizeGoals(legacy.goals),
+    payeeRules: normalizePayeeRules(legacy.payeeRules, plan.categories),
     currency: resolveBudgetCurrency(legacy.currency),
     ...(closedThrough !== undefined ? { closedThrough } : {}),
   });
