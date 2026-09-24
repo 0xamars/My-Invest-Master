@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useUserPlan } from "@/hooks/use-user-preferences";
 import { computeMonthSummary } from "@/lib/budget/calculations";
 import { normalizeBudgetPlans } from "@/lib/budget/migrate-plan";
+import { isBudgetPlanConflict } from "@/lib/budget/plan-version";
 import { materializeDueSchedules } from "@/lib/budget/scheduled";
 import {
   canCreateLimitedResource,
@@ -54,6 +55,8 @@ export function useBudgetPlansStorage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const loadVersionRef = useRef(0);
   const pendingSaveRef = useRef<Map<string, BudgetPlan>>(new Map());
+  const baseVersionRef = useRef<Map<string, number>>(new Map());
+  const saveTailRef = useRef<Map<string, Promise<void>>>(new Map());
 
   const queueSave = useCallback((plan: BudgetPlan) => {
     pendingSaveRef.current.set(plan.id, plan);
@@ -95,7 +98,8 @@ export function useBudgetPlansStorage() {
       try {
         const remote = await loadBudgetPlansFromCloud(user.id);
         if (!cancelled && version === loadVersionRef.current) {
-          const opened = normalizeBudgetPlans(remote).map((plan) => {
+          baseVersionRef.current = new Map(Object.entries(remote.versions));
+          const opened = normalizeBudgetPlans(remote.plans).map((plan) => {
             const next = materializeDueSchedules(plan);
             if (next !== plan) queueSave(next);
             return next;
@@ -123,6 +127,54 @@ export function useBudgetPlansStorage() {
     };
   }, [user, isAuthLoading, queueSave]);
 
+  const enqueuePlanSave = useCallback(
+    (plan: BudgetPlan) => {
+      if (!user || !isSupabaseConfigured()) {
+        return Promise.reject(new Error("Could not save the budget plan."));
+      }
+      const userId = user.id;
+      const prev = saveTailRef.current.get(plan.id) ?? Promise.resolve();
+      const job = prev.catch(() => undefined).then(async () => {
+        const expectedVersion = baseVersionRef.current.has(plan.id)
+          ? (baseVersionRef.current.get(plan.id) ?? null)
+          : null;
+        const saved = await saveBudgetPlanToCloud(userId, plan, {
+          expectedVersion,
+        });
+        baseVersionRef.current.set(plan.id, saved.version);
+        setSyncError(null);
+      });
+      const tail = job.then(
+        () => undefined,
+        () => undefined,
+      );
+      saveTailRef.current.set(plan.id, tail);
+      return job.catch((error: unknown) => {
+        setSyncError(
+          isBudgetPlanConflict(error)
+            ? error instanceof Error
+              ? error.message
+              : "This budget was updated in another tab or device. This tab did not overwrite it. Reload to see the latest version."
+            : error instanceof Error
+              ? error.message
+              : "Failed to save budget plan.",
+        );
+        throw error;
+      });
+    },
+    [user],
+  );
+
+  const flushPlanSave = useCallback(
+    async (planId: string) => {
+      const plan = pendingSaveRef.current.get(planId);
+      if (!plan) return;
+      pendingSaveRef.current.delete(planId);
+      await enqueuePlanSave(plan);
+    },
+    [enqueuePlanSave],
+  );
+
   useEffect(() => {
     if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) {
       return;
@@ -136,18 +188,15 @@ export function useBudgetPlansStorage() {
 
       for (const plan of toSave.values()) {
         try {
-          await saveBudgetPlanToCloud(user.id, plan);
-          setSyncError(null);
-        } catch (error) {
-          setSyncError(
-            error instanceof Error ? error.message : "Failed to save budget plan.",
-          );
+          await enqueuePlanSave(plan);
+        } catch {
+          // enqueuePlanSave records syncError and keeps the server row intact.
         }
       }
     }, SAVE_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [plans, isLoaded, isAuthLoading, user]);
+  }, [plans, isLoaded, isAuthLoading, user, enqueuePlanSave]);
 
   const createPlan = useCallback(
     (name?: string): BudgetPlan => {
@@ -167,18 +216,15 @@ export function useBudgetPlansStorage() {
 
       if (user && isSupabaseConfigured()) {
         try {
-          await saveBudgetPlanToCloud(user.id, plan);
-          setSyncError(null);
-        } catch (error) {
-          setSyncError(
-            error instanceof Error ? error.message : "Failed to save budget plan.",
-          );
+          await enqueuePlanSave(plan);
+        } catch {
+          // enqueuePlanSave records syncError. A new plan that loses the insert stays local.
         }
       }
 
       return plan;
     },
-    [user],
+    [user, enqueuePlanSave],
   );
 
   const createPlanAndSave = useCallback(
@@ -244,6 +290,7 @@ export function useBudgetPlansStorage() {
     async (id: string) => {
       setPlans((prev) => prev.filter((plan) => plan.id !== id));
       pendingSaveRef.current.delete(id);
+      baseVersionRef.current.delete(id);
 
       if (!user || !isSupabaseConfigured()) return;
 
@@ -280,5 +327,6 @@ export function useBudgetPlansStorage() {
     syncError,
     isCloudSynced: Boolean(user && isSupabaseConfigured()),
     isPlanReady: isPlanLoaded,
+    flushPlanSave,
   };
 }

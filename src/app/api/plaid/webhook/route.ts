@@ -4,19 +4,32 @@ import {
   resolvePlaidWebhookItemStatus,
 } from "@/lib/plaid/item-status";
 import { markPlaidItemStatus, markPlaidWebhook } from "@/lib/plaid/store";
+import { verifyPlaidWebhookRequest } from "@/lib/plaid/webhook-verify";
 
 /**
  * Plaid dashboard URL:
  *   https://<production-domain>/api/plaid/webhook
  * ITEM_LOGIN_REQUIRED / ITEM ERROR marks the item so Budget can Reconnect.
  * Transaction webhooks only stamp updated_at; users still tap Sync.
+ * The Plaid-Verification JWT is checked before any item row is touched.
  */
 export async function POST(request: Request) {
+  const rawBody = await request.text();
+  const verified = await verifyPlaidWebhookRequest({
+    rawBody,
+    verificationJwt: request.headers.get("plaid-verification"),
+  });
+  if (!verified.ok) {
+    return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+  }
+
   let body: unknown = {};
-  try {
-    body = await request.json();
-  } catch {
-    body = {};
+  if (rawBody.trim()) {
+    try {
+      body = JSON.parse(rawBody) as unknown;
+    } catch {
+      return NextResponse.json({ received: true });
+    }
   }
   const parsed = parsePlaidWebhookBody(body);
   if (parsed.itemId) {

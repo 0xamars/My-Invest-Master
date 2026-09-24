@@ -138,18 +138,21 @@ export interface Database {
           user_id: string;
           data: BudgetPlan;
           updated_at: string;
+          version: number;
         };
         Insert: {
           id?: string;
           user_id: string;
           data: BudgetPlan;
           updated_at?: string;
+          version?: number;
         };
         Update: {
           id?: string;
           user_id?: string;
           data?: BudgetPlan;
           updated_at?: string;
+          version?: number;
         };
         Relationships: [];
       };

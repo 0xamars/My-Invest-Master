@@ -5,6 +5,11 @@ import {
 } from "@/lib/account/export";
 import { preferencesCloudWrite } from "@/lib/account/preferences-write";
 import { createClient } from "@/lib/supabase/client";
+import {
+  BudgetPlanConflictError,
+  nextBudgetPlanVersion,
+  readBudgetPlanVersion,
+} from "@/lib/budget/plan-version";
 import type { BudgetData, BudgetPlan } from "@/types/budget";
 import { createDefaultAccount } from "@/types/budget";
 import { normalizeBudgetPlan } from "@/lib/budget/migrate-plan";
@@ -421,28 +426,40 @@ export async function deleteRetirementPlanFromCloud(planId: string): Promise<voi
   if (error) throw error;
 }
 
+export type CloudBudgetPlans = {
+  plans: BudgetPlan[];
+  /** Server version each plan was loaded at. Saves must send this back. */
+  versions: Record<string, number>;
+};
+
 export async function loadBudgetPlansFromCloud(
   userId: string,
-): Promise<BudgetPlan[]> {
+): Promise<CloudBudgetPlans> {
   await waitForSupabaseSession();
   const supabase = getClient();
   const { data, error } = await supabase
     .from("user_budget_plans")
-    .select("data")
+    .select("id, data, version")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
 
+  const versions: Record<string, number> = {};
   const plans = (data ?? [])
-    .map((row) => row.data as BudgetPlan)
-    .filter((plan) => plan && typeof plan.id === "string")
-    .map(normalizeBudgetPlan);
+    .map((row) => {
+      const plan = row.data as BudgetPlan;
+      if (!plan || typeof plan.id !== "string") return null;
+      const normalized = normalizeBudgetPlan(plan);
+      versions[normalized.id] = readBudgetPlanVersion(row.version) ?? 1;
+      return normalized;
+    })
+    .filter((plan): plan is BudgetPlan => plan !== null);
 
-  if (plans.length > 0) return plans;
+  if (plans.length > 0) return { plans, versions };
 
   const legacy = await loadBudgetFromCloud(userId);
-  if (!legacy) return [];
+  if (!legacy) return { plans: [], versions: {} };
 
   const now = new Date().toISOString();
   const defaultAccount = createDefaultAccount();
@@ -464,27 +481,66 @@ export async function loadBudgetPlansFromCloud(
     updatedAt: legacy.updatedAt || now,
   });
 
-  await saveBudgetPlanToCloud(userId, migrated);
-  return [migrated];
+  const saved = await saveBudgetPlanToCloud(userId, migrated, {
+    expectedVersion: null,
+  });
+  return { plans: [migrated], versions: { [migrated.id]: saved.version } };
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "23505"
+  );
 }
 
 export async function saveBudgetPlanToCloud(
   userId: string,
   plan: BudgetPlan,
-): Promise<void> {
+  options?: { expectedVersion?: number | null },
+): Promise<{ version: number }> {
   await waitForSupabaseSession();
   const supabase = getClient();
-  const { error } = await supabase.from("user_budget_plans").upsert(
-    {
-      id: plan.id,
-      user_id: userId,
+  const expectedVersion = options?.expectedVersion ?? null;
+
+  if (expectedVersion == null) {
+    const { data, error } = await supabase
+      .from("user_budget_plans")
+      .insert({
+        id: plan.id,
+        user_id: userId,
+        data: plan,
+        updated_at: plan.updatedAt,
+        version: 1,
+      })
+      .select("version")
+      .single();
+    if (error) {
+      if (isUniqueViolation(error)) throw new BudgetPlanConflictError();
+      throw error;
+    }
+    return { version: readBudgetPlanVersion(data?.version) ?? 1 };
+  }
+
+  const nextVersion = nextBudgetPlanVersion(expectedVersion);
+  const { data, error } = await supabase
+    .from("user_budget_plans")
+    .update({
       data: plan,
       updated_at: plan.updatedAt,
-    },
-    { onConflict: "id" },
-  );
+      version: nextVersion,
+    })
+    .eq("id", plan.id)
+    .eq("user_id", userId)
+    .eq("version", expectedVersion)
+    .select("version");
 
   if (error) throw error;
+  const row = data?.[0];
+  if (!row) throw new BudgetPlanConflictError();
+  return { version: readBudgetPlanVersion(row.version) ?? nextVersion };
 }
 
 export async function deleteBudgetPlanFromCloud(planId: string): Promise<void> {

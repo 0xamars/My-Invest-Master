@@ -3,6 +3,10 @@ import {
   readPlaidConfig,
   type PlaidConfig,
 } from "@/lib/plaid/config";
+import {
+  foldPlaidSyncPages,
+  type PlaidSyncPage,
+} from "@/lib/plaid/sync-delta";
 import type {
   PlaidImportedTransaction,
   PlaidLinkedAccount,
@@ -25,7 +29,7 @@ export class PlaidRequestError extends Error {
   }
 }
 
-async function plaidPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
+export async function plaidPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const config = readPlaidConfig();
   if (!config) {
     throw new Error("Bank linking is not configured");
@@ -145,51 +149,49 @@ export async function fetchPlaidAccounts(
   }));
 }
 
+/** Stop a runaway `has_more` loop. The last page's cursor is still returned. */
+const MAX_PLAID_SYNC_PAGES = 20;
+
+export type PlaidTransactionSync = {
+  /** New transactions. Same array as `added`. */
+  transactions: PlaidImportedTransaction[];
+  added: PlaidImportedTransaction[];
+  modified: PlaidImportedTransaction[];
+  removed: string[];
+  nextCursor: string;
+};
+
 export async function syncPlaidTransactions(input: {
   accessToken: string;
   cursor: string | null;
-}): Promise<{
-  transactions: PlaidImportedTransaction[];
-  nextCursor: string;
-}> {
+  /** Test seam. Production uses the Plaid HTTP client. */
+  post?: <T>(path: string, body: Record<string, unknown>) => Promise<T>;
+}): Promise<PlaidTransactionSync> {
+  const post = input.post ?? plaidPost;
   let cursor = input.cursor ?? "";
-  const added: PlaidImportedTransaction[] = [];
-  let nextCursor = cursor;
-  let hasMore = true;
+  const pages: PlaidSyncPage[] = [];
+  const seenCursors = new Set<string>();
 
-  while (hasMore) {
-    const data = await plaidPost<{
-      added?: Array<{
-        transaction_id: string;
-        account_id: string;
-        date: string;
-        name?: string;
-        merchant_name?: string | null;
-        amount: number;
-        pending?: boolean;
-      }>;
-      next_cursor?: string;
-      has_more?: boolean;
-    }>("/transactions/sync", {
+  while (pages.length < MAX_PLAID_SYNC_PAGES) {
+    if (seenCursors.has(cursor)) break;
+    seenCursors.add(cursor);
+    const data = await post<PlaidSyncPage>("/transactions/sync", {
       access_token: input.accessToken,
       cursor: cursor || undefined,
       count: 500,
     });
-    for (const row of data.added ?? []) {
-      added.push({
-        transactionId: row.transaction_id,
-        plaidAccountId: row.account_id,
-        date: row.date,
-        name: row.name ?? "Bank transaction",
-        merchantName: row.merchant_name ?? null,
-        amount: row.amount,
-        pending: row.pending === true,
-      });
-    }
-    nextCursor = data.next_cursor ?? nextCursor;
-    cursor = nextCursor;
-    hasMore = data.has_more === true;
+    pages.push(data);
+    const next = data.next_cursor ?? cursor;
+    cursor = next;
+    if (data.has_more !== true) break;
   }
 
-  return { transactions: added, nextCursor };
+  const delta = foldPlaidSyncPages(pages, input.cursor ?? "");
+  return {
+    transactions: delta.added,
+    added: delta.added,
+    modified: delta.modified,
+    removed: delta.removed,
+    nextCursor: delta.nextCursor,
+  };
 }

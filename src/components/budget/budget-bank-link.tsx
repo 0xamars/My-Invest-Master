@@ -6,10 +6,12 @@ import { usePlaidLink } from "react-plaid-link";
 import { Button } from "@/components/ui/button";
 import { BudgetPanel } from "@/components/budget/budget-ui";
 import { useBudget } from "@/contexts/budget-context";
+import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import {
   formatPlaidItemSyncLine,
   plaidItemNeedsUserReconnect,
 } from "@/lib/plaid/item-status";
+import { commitPlaidCursorAfterSave } from "@/lib/plaid/cursor";
 import type { PlaidItemSummary, PlaidStatusResponse, PlaidSyncPayload } from "@/lib/plaid/types";
 
 function PlaidOpen({
@@ -49,6 +51,7 @@ export function BudgetBankLink({
   primary?: boolean;
 }) {
   const { planId, importFromPlaid, unlinkPlaidItem } = useBudget();
+  const { flushPlanSave } = useBudgetPlans();
   const [status, setStatus] = useState<PlaidStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -88,10 +91,35 @@ export function BudgetBankLink({
   }, [refreshStatus]);
 
   const applyPayload = useCallback(
-    (payload: PlaidSyncPayload) => {
+    async (payload: PlaidSyncPayload) => {
       importFromPlaid(payload);
+      await commitPlaidCursorAfterSave({
+        save: () => flushPlanSave(planId),
+        commit: async () => {
+          const nextCursor = payload.cursor?.next?.trim() ?? "";
+          if (!nextCursor) return;
+          const response = await fetch("/api/plaid/sync/commit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              itemId: payload.itemId,
+              previousCursor: payload.cursor?.previous ?? null,
+              nextCursor,
+            }),
+          });
+          if (!response.ok) {
+            const data = (await response.json().catch(() => ({}))) as {
+              error?: string;
+            };
+            throw new Error(
+              data.error ??
+                "Saved transactions, but the bank bookmark did not update. Sync again.",
+            );
+          }
+        },
+      });
     },
-    [importFromPlaid],
+    [flushPlanSave, importFromPlaid, planId],
   );
 
   const startLink = async (itemId?: string) => {
@@ -139,7 +167,7 @@ export function BudgetBankLink({
         if (!response.ok || !data.payload) {
           throw new Error(data.error ?? "Could not reconnect bank");
         }
-        applyPayload(data.payload);
+        await applyPayload(data.payload);
         await refreshStatus();
         return;
       }
@@ -160,7 +188,7 @@ export function BudgetBankLink({
       if (!response.ok || !data.payload) {
         throw new Error(data.error ?? "Could not connect bank");
       }
-      applyPayload(data.payload);
+      await applyPayload(data.payload);
       await refreshStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect bank");
@@ -185,7 +213,7 @@ export function BudgetBankLink({
       if (!response.ok || !data.payload) {
         throw new Error(data.error ?? "Could not sync bank");
       }
-      applyPayload(data.payload);
+      await applyPayload(data.payload);
       await refreshStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sync bank");
