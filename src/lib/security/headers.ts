@@ -1,7 +1,7 @@
 /**
  * Practical security headers. CSP lists origins this app actually talks to
  * in the browser: self, Supabase auth/realtime, logo CDNs, and Vercel preview
- * toolbar. Server-only providers (FMP, Yahoo, CoinGecko fetch, OpenRouter)
+ * toolbar. Server-only providers (FMP, CoinGecko fetch, OpenRouter)
  * stay off connect-src.
  */
 

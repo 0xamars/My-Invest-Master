@@ -1,12 +1,10 @@
 import type { AnalysisAssetType, AnalysisChartRange } from "@/lib/analysis/types";
 import type { OhlcBar } from "@/lib/analysis/rating/types";
-import { allowYahooFallback, isFmpConfigured } from "@/lib/market-data/config";
 import {
-  fetchFmpAth,
-  fetchFmpDailyBars,
-  fetchFmpHourlyBars,
-} from "@/lib/market-data/fmp/history";
-import { isFmpRateLimited } from "@/lib/market-data/fmp/client";
+  toEquityHistorySymbol,
+  toFmpCryptoSymbol,
+} from "@/lib/market-data/fmp/symbols";
+import { getCachedOhlcBars } from "@/lib/market-data/warehouse/cached-history";
 
 export type AnalysisChartPoint = {
   time: number;
@@ -26,66 +24,8 @@ export function resolveHistorySymbol(
   symbol: string,
   type: AnalysisAssetType,
 ): string {
-  const upper = symbol.toUpperCase().replace(/[^A-Z0-9.-]/g, "");
-  if (type === "crypto") {
-    if (upper.endsWith("-USD") || upper.endsWith("-USDT")) return upper;
-    return `${upper}-USD`;
-  }
-  return upper;
-}
-
-/** @deprecated Use resolveHistorySymbol */
-export const resolveYahooHistorySymbol = resolveHistorySymbol;
-
-async function fetchYahooOhlcBars(input: {
-  symbol: string;
-  interval: "1d" | "1h";
-  period1: Date;
-}): Promise<OhlcBar[]> {
-  try {
-    const YahooFinance = (await import("yahoo-finance2")).default;
-    const yahooFinance = new YahooFinance({
-      suppressNotices: ["yahooSurvey"],
-    });
-    const result = await yahooFinance.chart(input.symbol, {
-      period1: input.period1,
-      period2: new Date(),
-      interval: input.interval,
-    });
-    const bars: OhlcBar[] = [];
-    for (const quote of result.quotes ?? []) {
-      const close = quote.close;
-      const open = quote.open ?? close;
-      const high = quote.high ?? close;
-      const low = quote.low ?? close;
-      const time = quote.date?.getTime();
-      if (
-        time == null ||
-        close == null ||
-        open == null ||
-        high == null ||
-        low == null ||
-        !Number.isFinite(close) ||
-        close <= 0
-      ) {
-        continue;
-      }
-      bars.push({
-        time,
-        open,
-        high,
-        low,
-        close,
-        volume:
-          typeof quote.volume === "number" && Number.isFinite(quote.volume)
-            ? quote.volume
-            : null,
-      });
-    }
-    return bars.sort((a, b) => a.time - b.time);
-  } catch {
-    return [];
-  }
+  if (type === "crypto") return toFmpCryptoSymbol(symbol);
+  return toEquityHistorySymbol(symbol);
 }
 
 export async function fetchOhlcBars(input: {
@@ -100,29 +40,14 @@ export async function fetchOhlcBars(input: {
       ? new Date(input.period1)
       : input.period1;
 
-  if (isFmpConfigured() && input.type !== "crypto" && !isFmpRateLimited()) {
-    if (input.interval === "1h") {
-      const hourly = await fetchFmpHourlyBars(symbol);
-      if (hourly.length > 0) {
-        return hourly.filter((b) => b.time >= period1.getTime());
-      }
-    } else {
-      const daily = await fetchFmpDailyBars(symbol, {
-        from: period1.toISOString().slice(0, 10),
-      });
-      if (daily.length > 0) return daily;
-    }
-  }
+  const historySymbol = resolveHistorySymbol(symbol, input.type ?? "stock");
+  if (!historySymbol) return [];
 
-  if (allowYahooFallback() || input.type === "crypto") {
-    return fetchYahooOhlcBars({
-      symbol: resolveHistorySymbol(symbol, input.type ?? "stock"),
-      interval: input.interval,
-      period1,
-    });
-  }
-
-  return [];
+  const bars = await getCachedOhlcBars(
+    historySymbol,
+    input.interval === "1h" ? "hourly" : "daily",
+  );
+  return bars.filter((bar) => bar.time >= period1.getTime());
 }
 
 export async function fetchAthPrice(
@@ -138,36 +63,9 @@ export async function fetchAthPrice(
     return fromBars;
   }
 
-  if (isFmpConfigured() && !isFmpRateLimited()) {
-    const ath = await fetchFmpAth(symbol);
-    if (ath != null) {
-      return Math.max(ath, fromBars);
-    }
-  }
-
-  if (allowYahooFallback()) {
-    try {
-      const YahooFinance = (await import("yahoo-finance2")).default;
-      const yahooFinance = new YahooFinance({
-        suppressNotices: ["yahooSurvey"],
-      });
-      const monthly = await yahooFinance.chart(symbol, {
-        period1: "1970-01-01",
-        interval: "1mo",
-      });
-      let ath = fromBars;
-      for (const quote of monthly.quotes ?? []) {
-        const high = quote.high ?? quote.close;
-        if (typeof high === "number" && high > ath) ath = high;
-      }
-      return ath > 0 ? ath : null;
-    } catch {
-      return null;
-    }
-  }
-
-  let ath = 0;
-  for (const bar of recentDaily ?? []) {
+  const bars = await getCachedOhlcBars(toEquityHistorySymbol(symbol), "daily");
+  let ath = fromBars;
+  for (const bar of bars) {
     if (bar.high > ath) ath = bar.high;
   }
   return ath > 0 ? ath : null;
@@ -213,14 +111,13 @@ export async function fetchTechnicalSeries(input: {
   dailyBars: OhlcBar[];
   hourlyBars: OhlcBar[];
 }> {
-  const symbol = resolveHistorySymbol(input.symbol, input.type);
+  const historySymbol = resolveHistorySymbol(input.symbol, input.type);
   const now = Date.now();
   const includeHourly = input.includeHourly !== false;
-  const stockSym = input.type === "crypto" ? symbol : input.symbol;
 
   // One canonical daily pull covers technicals + all daily chart ranges (through 5Y).
   const dailyPromise = fetchOhlcBars({
-    symbol: stockSym,
+    symbol: historySymbol,
     type: input.type,
     interval: "1d",
     period1: new Date(now - CHART_RANGE_MS["5Y"]),
@@ -228,7 +125,7 @@ export async function fetchTechnicalSeries(input: {
 
   const hourlyPromise = includeHourly
     ? fetchOhlcBars({
-        symbol: stockSym,
+        symbol: historySymbol,
         type: input.type,
         interval: "1h",
         period1: new Date(now - 90 * 24 * 60 * 60 * 1000),
@@ -240,7 +137,7 @@ export async function fetchTechnicalSeries(input: {
     hourlyPromise,
   ]);
 
-  const ath = await fetchAthPrice(stockSym, dailyBars);
+  const ath = await fetchAthPrice(historySymbol, dailyBars);
 
-  return { yahooSymbol: symbol, ath, dailyBars, hourlyBars };
+  return { yahooSymbol: historySymbol, ath, dailyBars, hourlyBars };
 }

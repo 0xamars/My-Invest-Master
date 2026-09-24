@@ -1,5 +1,5 @@
 import { fetchSp500Constituents } from "@/lib/market/sp500-constituents";
-import { parseCsvLine, toYahooSymbol } from "@/lib/market/csv";
+import { parseCsvLine, toQuoteSymbol } from "@/lib/market/csv";
 import { inferIndexSector } from "@/lib/market/infer-sector";
 import type { IndexConstituent } from "@/lib/market/index-config";
 import {
@@ -63,7 +63,7 @@ async function downloadNasdaq100(): Promise<IndexConstituent[]> {
 
     return {
       symbol: row.symbol,
-      yahooSymbol: toYahooSymbol(row.symbol),
+      quoteSymbol: toQuoteSymbol(row.symbol),
       name: row.name,
       sector: sp500Entry?.sector ?? inferIndexSector(row.name),
       industry: sp500Entry?.industry ?? "Diversified",
@@ -90,7 +90,7 @@ export function getNasdaq100Metadata(symbol: string): {
 } {
   const normalized = symbol.trim().toUpperCase();
   const entry = constituentsCache?.data.find(
-    (item) => item.symbol === normalized || item.yahooSymbol === normalized,
+    (item) => item.symbol === normalized || item.quoteSymbol === normalized,
   );
 
   return entry

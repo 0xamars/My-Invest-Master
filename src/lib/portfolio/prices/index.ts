@@ -1,6 +1,5 @@
 import { resolvePriceId } from "@/lib/portfolio/asset-catalog";
-import { fetchCryptoPrices } from "@/lib/portfolio/prices/coingecko";
-import { fetchStockPrices } from "@/lib/portfolio/prices/yahoo-finance";
+import { fetchLivePrices } from "@/lib/portfolio/prices/fmp";
 import type { PriceRequestAsset } from "@/types/portfolio";
 
 export async function fetchAssetPrices(assets: PriceRequestAsset[]) {
@@ -14,15 +13,12 @@ export async function fetchAssetPrices(assets: PriceRequestAsset[]) {
     (asset) => asset.type === "stock" || asset.type === "crypto",
   );
 
-  const [stockResult, cryptoResult] = await Promise.all([
-    fetchStockPrices(liveAssets),
-    fetchCryptoPrices(liveAssets),
-  ]);
+  const result = await fetchLivePrices(liveAssets);
 
   return {
-    prices: { ...stockResult.prices, ...cryptoResult.prices },
-    changes: { ...stockResult.changes, ...cryptoResult.changes },
-    errors: { ...stockResult.errors, ...cryptoResult.errors },
+    prices: result.prices,
+    changes: result.changes,
+    errors: result.errors,
     fetchedAt: new Date().toISOString(),
   };
 }

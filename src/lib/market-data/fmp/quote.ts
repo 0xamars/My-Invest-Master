@@ -16,7 +16,48 @@ export type FmpQuote = {
   currency: string | null;
 };
 
-type FmpQuoteRow = Record<string, unknown>;
+export type FmpQuoteRow = Record<string, unknown>;
+
+/** Map one stable `/quote` or `/batch-quote` object. Null when price is missing. */
+export function mapFmpQuoteRow(
+  row: FmpQuoteRow,
+  fallbackSymbol: string,
+): FmpQuote | null {
+  const price = num(row.price);
+  if (price == null || price <= 0) return null;
+  return {
+    symbol: str(row.symbol)?.toUpperCase() ?? fallbackSymbol.toUpperCase(),
+    name: str(row.name),
+    price,
+    change: num(row.change),
+    changePercent:
+      num(row.changesPercentage) ??
+      num(row.changePercentage) ??
+      num(row.changePercent),
+    marketCap: num(row.marketCap) ?? num(row.mktCap),
+    volume: num(row.volume),
+    averageVolume: num(row.avgVolume) ?? num(row.avVolume),
+    dayLow: num(row.dayLow),
+    dayHigh: num(row.dayHigh),
+    week52Low: num(row.yearLow) ?? num(row.week52Low),
+    week52High: num(row.yearHigh) ?? num(row.week52High),
+    currency: str(row.currency),
+  };
+}
+
+export function mapFmpQuotePayload(
+  data: unknown,
+  fallbackSymbol: string,
+): FmpQuote[] {
+  const rows = Array.isArray(data) ? data : data ? [data] : [];
+  const quotes: FmpQuote[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const quote = mapFmpQuoteRow(row as FmpQuoteRow, fallbackSymbol);
+    if (quote) quotes.push(quote);
+  }
+  return quotes;
+}
 
 export async function fetchFmpQuote(symbol: string): Promise<FmpQuote | null> {
   const upper = symbol.toUpperCase();
@@ -26,30 +67,7 @@ export async function fetchFmpQuote(symbol: string): Promise<FmpQuote | null> {
       query: { symbol: upper },
       revalidate: 30,
     });
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!row || typeof row !== "object") return null;
-
-    const price = num(row.price);
-    if (price == null) return null;
-
-    return {
-      symbol: str(row.symbol)?.toUpperCase() ?? upper,
-      name: str(row.name),
-      price,
-      change: num(row.change),
-      changePercent:
-        num(row.changesPercentage) ??
-        num(row.changePercentage) ??
-        num(row.changePercent),
-      marketCap: num(row.marketCap) ?? num(row.mktCap),
-      volume: num(row.volume),
-      averageVolume: num(row.avgVolume) ?? num(row.avVolume),
-      dayLow: num(row.dayLow),
-      dayHigh: num(row.dayHigh),
-      week52Low: num(row.yearLow),
-      week52High: num(row.yearHigh),
-      currency: str(row.currency),
-    };
+    return mapFmpQuotePayload(data, upper)[0] ?? null;
   } catch {
     return null;
   }

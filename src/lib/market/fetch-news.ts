@@ -1,42 +1,11 @@
-import YahooFinance from "yahoo-finance2";
+import {
+  fetchFmpLatestCryptoNews,
+  fetchFmpLatestStockNews,
+  fetchFmpStockNews,
+} from "@/lib/market-data/fmp/news";
+import { toQuoteSymbol } from "@/lib/market-data/fmp/symbols";
+import { loadCachedFeed } from "@/lib/market-data/warehouse/feed-cache";
 import type { MarketNewsItem } from "@/types/market";
-
-const yahooFinance = new YahooFinance({
-  suppressNotices: ["yahooSurvey"],
-});
-
-interface YahooNewsItem {
-  uuid: string;
-  title: string;
-  publisher: string;
-  link: string;
-  providerPublishTime: string | Date;
-  thumbnail?: {
-    resolutions?: Array<{ url: string; width: number; height: number }>;
-  };
-  relatedTickers?: string[];
-}
-
-function mapNewsItem(item: YahooNewsItem): MarketNewsItem {
-  const thumbnailUrl = item.thumbnail?.resolutions?.find(
-    (resolution) => resolution.width >= 200,
-  )?.url;
-
-  const publishedAt =
-    item.providerPublishTime instanceof Date
-      ? item.providerPublishTime.toISOString()
-      : item.providerPublishTime;
-
-  return {
-    id: item.uuid,
-    title: item.title,
-    publisher: item.publisher,
-    link: item.link,
-    publishedAt,
-    thumbnailUrl,
-    relatedTickers: item.relatedTickers,
-  };
-}
 
 function dedupeNews(items: MarketNewsItem[]): MarketNewsItem[] {
   const seen = new Set<string>();
@@ -66,22 +35,21 @@ export function newsForBookSymbols(
 export async function fetchNewsForSymbols(
   symbols: string[],
 ): Promise<MarketNewsItem[]> {
-  const unique = [...new Set(symbols.map((symbol) => symbol.trim().toUpperCase()))]
-    .filter(Boolean)
-    .slice(0, 8);
+  const unique = [
+    ...new Set(symbols.map((symbol) => toQuoteSymbol(symbol)).filter(Boolean)),
+  ].slice(0, 8);
   if (unique.length === 0) return [];
 
   const batches = await Promise.all(
-    unique.map(async (symbol) => {
-      try {
-        const result = await yahooFinance.search(symbol, { newsCount: 3 });
-        return (result.news ?? []).map((item) =>
-          mapNewsItem(item as YahooNewsItem),
-        );
-      } catch {
-        return [];
-      }
-    }),
+    unique.map((symbol) =>
+      loadCachedFeed({
+        cacheKey: symbol,
+        dataset: "symbol_news",
+        emptyValue: [] as MarketNewsItem[],
+        isEmpty: (items) => items.length === 0,
+        fetchFmp: () => fetchFmpStockNews(symbol, 3),
+      }),
+    ),
   );
 
   return newsForBookSymbols(dedupeNews(batches.flat()), unique, 6);
@@ -98,22 +66,25 @@ export async function fetchMarketNews(): Promise<{
   stockNews: MarketNewsItem[];
   cryptoNews: MarketNewsItem[];
 }> {
-  const [stockResult, cryptoResult] = await Promise.all([
-    yahooFinance.search("stock market", { newsCount: 10 }),
-    yahooFinance.search("bitcoin cryptocurrency", { newsCount: 10 }),
+  const [stockNews, cryptoNews] = await Promise.all([
+    loadCachedFeed({
+      cacheKey: "latest",
+      dataset: "news_stock",
+      emptyValue: [] as MarketNewsItem[],
+      isEmpty: (items) => items.length === 0,
+      fetchFmp: async () => (await fetchFmpLatestStockNews(20)).slice(0, 8),
+    }),
+    loadCachedFeed({
+      cacheKey: "latest",
+      dataset: "news_crypto",
+      emptyValue: [] as MarketNewsItem[],
+      isEmpty: (items) => items.length === 0,
+      fetchFmp: async () => (await fetchFmpLatestCryptoNews(20)).slice(0, 8),
+    }),
   ]);
 
-  const stockNews = dedupeNews(
-    (stockResult.news ?? []).map((item) =>
-      mapNewsItem(item as YahooNewsItem),
-    ),
-  ).slice(0, 8);
-
-  const cryptoNews = dedupeNews(
-    (cryptoResult.news ?? []).map((item) =>
-      mapNewsItem(item as YahooNewsItem),
-    ),
-  ).slice(0, 8);
-
-  return { stockNews, cryptoNews };
+  return {
+    stockNews: dedupeNews(stockNews).slice(0, 8),
+    cryptoNews: dedupeNews(cryptoNews).slice(0, 8),
+  };
 }

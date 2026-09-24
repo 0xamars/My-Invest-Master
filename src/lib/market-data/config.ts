@@ -16,12 +16,3 @@ export function isFmpConfigured(): boolean {
 export const FMP_API_BASE =
   process.env.FMP_API_BASE?.trim() ||
   "https://financialmodelingprep.com/stable";
-
-/**
- * Yahoo secondary fallback after FMP / warehouse is tried first.
- * Default: disabled for equities fundamentals (FMP warehouse is primary).
- * Set MARKET_DATA_YAHOO_FALLBACK=1 to enable last-resort Yahoo fill.
- */
-export function allowYahooFallback(): boolean {
-  return process.env.MARKET_DATA_YAHOO_FALLBACK === "1";
-}

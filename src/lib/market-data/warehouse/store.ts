@@ -388,6 +388,228 @@ export async function writePriceHistory(input: {
   );
 }
 
+const WRITE_CHUNK = 100;
+
+function chunkList<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    batches.push(items.slice(index, index + size));
+  }
+  return batches;
+}
+
+export type StoredQuoteRow = {
+  symbol: string;
+  price: number | null;
+  change: number | null;
+  change_percent: number | null;
+  market_cap: number | null;
+  raw_payload: JsonRow | null;
+  as_of: string | null;
+  updated_at: string | null;
+};
+
+export async function ensureMarketSymbols(
+  rows: Array<{ symbol: string; assetType?: string; name?: string | null }>,
+): Promise<void> {
+  const sb = adminOrNull();
+  if (!sb || rows.length === 0) return;
+  const now = new Date().toISOString();
+  for (const batch of chunkList(rows, WRITE_CHUNK)) {
+    const { error } = await sb.from("market_symbols").upsert(
+      batch.map((row) => ({
+        symbol: row.symbol.toUpperCase(),
+        ...(row.name ? { name: row.name } : {}),
+        asset_type: row.assetType ?? "stock",
+        updated_at: now,
+      })),
+      { onConflict: "symbol" },
+    );
+    logStoreError("ensureMarketSymbols", error);
+  }
+}
+
+export async function readQuotes(symbols: string[]): Promise<StoredQuoteRow[]> {
+  const sb = adminOrNull();
+  const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()))].filter(
+    Boolean,
+  );
+  if (!sb || unique.length === 0) return [];
+  const rows: StoredQuoteRow[] = [];
+  for (const batch of chunkList(unique, WRITE_CHUNK)) {
+    const { data, error } = await sb
+      .from("market_quotes")
+      .select(
+        "symbol, price, change, change_percent, market_cap, raw_payload, as_of, updated_at",
+      )
+      .in("symbol", batch);
+    logStoreError("readQuotes", error);
+    if (data) rows.push(...(data as StoredQuoteRow[]));
+  }
+  return rows;
+}
+
+export async function writeQuotes(
+  rows: Array<{
+    symbol: string;
+    name?: string | null;
+    assetType?: string;
+    currency?: string | null;
+    price: number | null;
+    change: number | null;
+    changePercent: number | null;
+    marketCap: number | null;
+    raw: JsonRow | null;
+  }>,
+): Promise<void> {
+  const sb = adminOrNull();
+  if (!sb || rows.length === 0) return;
+  const now = new Date().toISOString();
+  for (const batch of chunkList(rows, WRITE_CHUNK)) {
+    const { error: symbolError } = await sb.from("market_symbols").upsert(
+      batch.map((row) => ({
+        symbol: row.symbol.toUpperCase(),
+        ...(row.name ? { name: row.name } : {}),
+        asset_type: row.assetType ?? "stock",
+        ...(row.currency ? { currency: row.currency } : {}),
+        updated_at: now,
+      })),
+      { onConflict: "symbol" },
+    );
+    logStoreError("writeQuotes symbols", symbolError);
+    if (symbolError) continue;
+    const { error } = await sb.from("market_quotes").upsert(
+      batch.map((row) => ({
+        symbol: row.symbol.toUpperCase(),
+        price: row.price,
+        change: row.change,
+        change_percent: row.changePercent,
+        market_cap: row.marketCap,
+        raw_payload: row.raw,
+        as_of: now,
+        updated_at: now,
+      })),
+      { onConflict: "symbol" },
+    );
+    logStoreError("writeQuotes", error);
+  }
+}
+
+export type StoredRefreshRow = {
+  symbol: string;
+  last_success_at: string | null;
+  last_attempt_at: string | null;
+  status: string;
+  error_message: string | null;
+};
+
+export async function readRefreshStates(
+  symbols: string[],
+  dataset: string,
+): Promise<StoredRefreshRow[]> {
+  const sb = adminOrNull();
+  const unique = [...new Set(symbols.map((symbol) => symbol.toUpperCase()))].filter(
+    Boolean,
+  );
+  if (!sb || unique.length === 0) return [];
+  const rows: StoredRefreshRow[] = [];
+  for (const batch of chunkList(unique, WRITE_CHUNK)) {
+    const { data, error } = await sb
+      .from("data_refresh_state")
+      .select(
+        "symbol, last_success_at, last_attempt_at, status, error_message",
+      )
+      .eq("dataset", dataset)
+      .in("symbol", batch);
+    logStoreError(`readRefreshStates ${dataset}`, error);
+    if (data) rows.push(...(data as StoredRefreshRow[]));
+  }
+  return rows;
+}
+
+export async function writeRefreshStates(
+  rows: Array<{
+    symbol: string;
+    dataset: string;
+    status: "ok" | "stale" | "error" | "empty";
+    errorMessage?: string | null;
+    success?: boolean;
+  }>,
+): Promise<void> {
+  const sb = adminOrNull();
+  if (!sb || rows.length === 0) return;
+  const now = new Date().toISOString();
+  for (const batch of chunkList(rows, WRITE_CHUNK)) {
+    const payload = batch.map((row) => {
+      const entry: Record<string, unknown> = {
+        symbol: row.symbol.toUpperCase(),
+        dataset: row.dataset,
+        last_attempt_at: now,
+        status: row.status,
+        error_message:
+          row.status === "empty"
+            ? row.errorMessage ?? "fmp_empty"
+            : (row.errorMessage ?? null),
+      };
+      if (row.success || row.status === "empty") {
+        entry.last_success_at = now;
+      }
+      return entry;
+    });
+    let { error } = await sb.from("data_refresh_state").upsert(payload, {
+      onConflict: "symbol,dataset",
+    });
+    if (error && batch.some((row) => row.status === "empty")) {
+      const retry = await sb.from("data_refresh_state").upsert(
+        payload.map((entry) =>
+          entry.status === "empty"
+            ? { ...entry, status: "ok", error_message: "fmp_empty" }
+            : entry,
+        ),
+        { onConflict: "symbol,dataset" },
+      );
+      error = retry.error;
+    }
+    logStoreError("writeRefreshStates", error);
+  }
+}
+
+export async function readMarketCache(
+  cacheKey: string,
+  dataset: string,
+): Promise<{ data: unknown; updatedAt: string | null } | null> {
+  const sb = adminOrNull();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("market_cache")
+    .select("data, updated_at")
+    .eq("cache_key", cacheKey)
+    .eq("dataset", dataset)
+    .maybeSingle();
+  logStoreError(`readMarketCache ${dataset}`, error);
+  if (!data) return null;
+  return { data: data.data, updatedAt: data.updated_at as string | null };
+}
+
+export async function writeMarketCache(input: {
+  cacheKey: string;
+  dataset: string;
+  data: unknown;
+}): Promise<void> {
+  const sb = adminOrNull();
+  if (!sb) return;
+  const { error } = await sb.from("market_cache").upsert(
+    {
+      cache_key: input.cacheKey,
+      dataset: input.dataset,
+      data: input.data,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "cache_key,dataset" },
+  );
+  logStoreError(`writeMarketCache ${input.dataset}`, error);
+}
+
 export function isWarehouseWritable(): boolean {
   return adminOrNull() != null;
 }

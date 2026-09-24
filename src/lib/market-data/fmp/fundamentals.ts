@@ -327,7 +327,7 @@ export async function fetchFmpFundamentals(
       ? (totalDebt / totalEquity) * 100
       : null);
 
-  // Normalize: FMP ratios often as 0.78 not 78; Yahoo used percent-like. Keep percent-like if > 5.
+  // Normalize: FMP ratios often as 0.78 not 78. Keep percent-like if > 5.
   const debtToEquityPct =
     debtToEquity != null && Math.abs(debtToEquity) < 5
       ? debtToEquity * 100

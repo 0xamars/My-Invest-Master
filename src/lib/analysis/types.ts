@@ -51,6 +51,7 @@ export type AnalysisRatingPayload = {
     points: AnalysisChartPoint[];
   };
   meta: {
+    /** Provider symbol used for history. Name kept so existing clients keep parsing. */
     yahooSymbol: string;
     ath: number | null;
     dailyBars: number;

@@ -97,7 +97,7 @@ export function MarketNewsSection() {
         <div>
           <CardTitle className="text-sm">Headlines</CardTitle>
           <CardDescription>
-            Stocks and crypto from Yahoo Finance.
+            Stocks and crypto headlines.
           </CardDescription>
         </div>
         <Button

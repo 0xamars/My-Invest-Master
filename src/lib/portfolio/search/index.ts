@@ -1,5 +1,5 @@
 import { searchCrypto } from "@/lib/portfolio/search/coingecko-search";
-import { searchStocks } from "@/lib/portfolio/search/yahoo-search";
+import { searchStocks } from "@/lib/portfolio/search/fmp-search";
 import type { AssetCatalogItem, AssetType } from "@/types/portfolio";
 
 export async function searchAssets(

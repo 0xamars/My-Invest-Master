@@ -54,9 +54,8 @@ Built with Next.js, Supabase, and Tailwind CSS.
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
-| `FMP_API_KEY` | Yes (Analysis equities) | [Financial Modeling Prep](https://financialmodelingprep.com/) API key — primary source for company profile, statements, ratios, quotes, and historical prices used by Analysis / InvestSalsa Rating / Early Opp |
+| `FMP_API_KEY` | Yes | [Financial Modeling Prep](https://financialmodelingprep.com/) API key — quotes, batch quotes, history, news, symbol search, crypto prices, and Analysis fundamentals. Results are cached in the Supabase warehouse |
 | `FMP_API_BASE` | No | Override FMP API base (default `https://financialmodelingprep.com/stable`) |
-| `MARKET_DATA_YAHOO_FALLBACK` | No | `0` disables Yahoo secondary fallback. Default: FMP first, Yahoo if FMP fails |
 | `PLAID_CLIENT_ID` | No | Plaid client id. Budget Connect bank stays disabled until set |
 | `PLAID_SECRET` | No | Plaid secret. Server-only |
 | `PLAID_ENV` | No | `sandbox` (default), `development`, or `production` |
@@ -79,13 +78,12 @@ Apply `supabase/migrations/013_user_plaid_items.sql` before the first bank link.
 
 The app boots without Plaid credentials. Connect bank is visible and disabled until env + service role are set.
 
-CoinGecko remains the crypto price source (no FMP key needed for crypto). Set `FMP_API_KEY` in Vercel project settings for production.
+Crypto prices, charts, and headlines come from FMP (cached). CoinGecko remains for crypto search and logos, because those responses carry CoinGecko ids the logo route still uses. Set `FMP_API_KEY` in Vercel project settings for production. Apply `supabase/migrations/015_market_cache.sql` so news and symbol search share one warehouse row across users.
 
 Example `.env.local` fragment:
 
 ```bash
 FMP_API_KEY=your_fmp_key_here
-# MARKET_DATA_YAHOO_FALLBACK=0
 ```
 
   Bash

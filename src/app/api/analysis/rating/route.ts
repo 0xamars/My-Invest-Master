@@ -194,7 +194,7 @@ export async function GET(request: Request) {
           };
         }
 
-        // —— Crypto: unchanged (CoinGecko / Yahoo chart path) ——
+        // —— Crypto: FMP quote + warehouse price history ——
         const [quote, techSeries] = await Promise.all([
           fetchAnalysisQuote({ symbol, type, priceId, name }),
           fetchTechnicalSeries({ symbol, type, includeHourly }),
