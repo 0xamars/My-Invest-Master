@@ -8,30 +8,38 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
-async function readSignedInEmail(): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
+async function readSignedInIdentity(): Promise<{
+  email: string | null;
+  emailConfirmed: boolean;
+}> {
+  if (!isSupabaseConfigured()) return { email: null, emailConfirmed: false };
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    return user?.email ?? null;
+    return {
+      email: user?.email ?? null,
+      emailConfirmed: Boolean(user?.email_confirmed_at),
+    };
   } catch {
-    return null;
+    return { email: null, emailConfirmed: false };
   }
 }
 
 /**
  * Gate off: allow, without reading the session.
- * Gate on: allow only a signed-in allowlisted email.
+ * Gate on: allow only a signed-in allowlisted email with
+ * `email_confirmed_at` set. An unconfirmed signup is denied.
  * If auth is not configured, a turned-on gate denies everyone.
  */
 export async function isFmpDisplayAllowed(): Promise<boolean> {
   if (!isFmpDisplayGateEnabled()) return true;
-  const email = await readSignedInEmail();
-  return fmpDisplayAllowsEmail(email, {
+  const identity = await readSignedInIdentity();
+  return fmpDisplayAllowsEmail(identity.email, {
     enabled: true,
     allowlist: parseFmpDisplayAllowlist(process.env.FMP_DISPLAY_ALLOWED_EMAILS),
+    emailConfirmed: identity.emailConfirmed,
   });
 }
 

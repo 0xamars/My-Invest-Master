@@ -56,28 +56,47 @@ assert(
   "gate off allows any email",
 );
 assert(
-  fmpDisplayAllowsEmail("allowed@example.com", { enabled: true, allowlist }) ===
-    true,
-  "gate on allows an allowlisted email",
+  fmpDisplayAllowsEmail("allowed@example.com", {
+    enabled: true,
+    allowlist,
+    emailConfirmed: true,
+  }) === true,
+  "gate on allows a confirmed allowlisted email",
 );
 assert(
-  fmpDisplayAllowsEmail(" Allowed@Example.com ", { enabled: true, allowlist }) ===
-    true,
+  fmpDisplayAllowsEmail(" Allowed@Example.com ", {
+    enabled: true,
+    allowlist,
+    emailConfirmed: true,
+  }) === true,
   "allowlist compare ignores case and surrounding space",
 );
 assert(
-  fmpDisplayAllowsEmail("stranger@example.com", { enabled: true, allowlist }) ===
-    false,
+  fmpDisplayAllowsEmail("allowed@example.com", {
+    enabled: true,
+    allowlist,
+    emailConfirmed: false,
+  }) === false,
+  "gate on denies an unconfirmed allowlisted email",
+);
+assert(
+  fmpDisplayAllowsEmail("stranger@example.com", {
+    enabled: true,
+    allowlist,
+    emailConfirmed: true,
+  }) === false,
   "gate on denies an email that is not listed",
 );
 assert(
-  fmpDisplayAllowsEmail(null, { enabled: true, allowlist }) === false,
+  fmpDisplayAllowsEmail(null, { enabled: true, allowlist, emailConfirmed: true }) ===
+    false,
   "gate on denies a missing email",
 );
 assert(
   fmpDisplayAllowsEmail("allowed@example.com", {
     enabled: true,
     allowlist: parseFmpDisplayAllowlist(""),
+    emailConfirmed: true,
   }) === false,
   "gate on with an empty allowlist denies everyone",
 );

@@ -3,42 +3,48 @@ import { toQuoteSymbol } from "@/lib/market/csv";
 export { toQuoteSymbol };
 
 /**
- * Tickers that already end in USD but are not FMP pairs.
- * FMP quotes these as PYUSDUSD, TUSDUSD, and so on.
+ * FMP pair symbols this app already emits. Base tickers stored on holdings
+ * (BTC, PYUSD, RLUSD) are not in this set, so they still get USD appended.
+ * A second resolve of one of these pairs stays on the pair.
  */
-const STABLECOIN_TICKERS = new Set([
-  "PYUSD",
-  "TUSD",
-  "FDUSD",
-  "BUSD",
-  "GUSD",
-  "USDD",
-  "USDP",
-  "USD1",
+const KNOWN_FMP_PAIRS = new Set([
+  "BTCUSD",
+  "ETHUSD",
+  "SOLUSD",
+  "USDCUSD",
+  "USDTUSD",
+  "PYUSDUSD",
+  "RLUSDUSD",
+  "LUSDUSD",
+  "SUSDUSD",
+  "CUSDUSD",
+  "AUSDUSD",
+  "DUSDUSD",
+  "TUSDUSD",
+  "FDUSDUSD",
+  "BUSDUSD",
+  "GUSDUSD",
+  "USDDUSD",
+  "USDPUSD",
 ]);
 
 /**
- * A compact symbol is already an FMP pair when it ends in USD and is not
- * one of the stablecoin tickers above. BTCUSD and PYUSDUSD stay as-is so a
- * second resolve does not append USD again.
+ * A resolved pair of a base that already ends in USD (PYUSD → PYUSDUSD).
+ * Recognized so a second resolve does not append USD again.
  */
-function isExistingFmpCryptoPair(compact: string): boolean {
-  return (
-    compact.endsWith("USD") &&
-    compact.length > 3 &&
-    !STABLECOIN_TICKERS.has(compact)
-  );
+function isResolvedUsdBasePair(compact: string): boolean {
+  return compact.endsWith("USDUSD") && compact.length > 6;
 }
 
 /**
  * FMP crypto pairs are concatenated USD symbols (BTCUSD), not BTC-USD.
- * Append USD unless the input is already a pair or contains a separator
- * (BTC-USD, BTC/USD). Stablecoin tickers such as PYUSD become PYUSDUSD.
+ * Holdings store the base ticker, so append USD unless the input contains
+ * `-` or `/`, or is a pair in `KNOWN_FMP_PAIRS`.
  */
 export function toFmpCryptoSymbol(symbol: string): string {
   const raw = symbol.trim().toUpperCase();
   if (!raw) return "";
-  const hasSeparator = /[^A-Z0-9]/.test(raw);
+  const hasSeparator = /[-/]/.test(raw);
   const compact = raw.replace(/[^A-Z0-9]/g, "");
   if (!compact) return "";
 
@@ -50,7 +56,9 @@ export function toFmpCryptoSymbol(symbol: string): string {
     return `${compact}USD`;
   }
 
-  if (isExistingFmpCryptoPair(compact)) return compact;
+  if (KNOWN_FMP_PAIRS.has(compact) || isResolvedUsdBasePair(compact)) {
+    return compact;
+  }
   if (compact.endsWith("USDT") && compact.length > 4) {
     return compact.slice(0, -1);
   }

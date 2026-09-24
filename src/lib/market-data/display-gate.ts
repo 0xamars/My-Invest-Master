@@ -27,13 +27,19 @@ export function parseFmpDisplayAllowlist(
 
 /**
  * Gate off: everyone, including signed-out visitors.
- * Gate on: only an allowlisted email. Missing email is denied.
+ * Gate on: only an allowlisted email whose address is confirmed.
+ * Missing email, or an unconfirmed signup, is denied.
  */
 export function fmpDisplayAllowsEmail(
   email: string | null | undefined,
-  options: { enabled: boolean; allowlist: ReadonlySet<string> },
+  options: {
+    enabled: boolean;
+    allowlist: ReadonlySet<string>;
+    emailConfirmed?: boolean;
+  },
 ): boolean {
   if (!options.enabled) return true;
+  if (options.emailConfirmed !== true) return false;
   if (!email) return false;
   return options.allowlist.has(email.trim().toLowerCase());
 }

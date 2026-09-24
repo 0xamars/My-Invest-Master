@@ -115,9 +115,10 @@ export async function fetchTechnicalSeries(input: {
   const now = Date.now();
   const includeHourly = input.includeHourly !== false;
 
-  // One canonical daily pull covers technicals + all daily chart ranges (through 5Y).
+  // Pass the holding ticker once. fetchOhlcBars resolves it; passing the
+  // already-resolved pair would resolve a second time.
   const dailyPromise = fetchOhlcBars({
-    symbol: historySymbol,
+    symbol: input.symbol,
     type: input.type,
     interval: "1d",
     period1: new Date(now - CHART_RANGE_MS["5Y"]),
@@ -125,7 +126,7 @@ export async function fetchTechnicalSeries(input: {
 
   const hourlyPromise = includeHourly
     ? fetchOhlcBars({
-        symbol: historySymbol,
+        symbol: input.symbol,
         type: input.type,
         interval: "1h",
         period1: new Date(now - 90 * 24 * 60 * 60 * 1000),
