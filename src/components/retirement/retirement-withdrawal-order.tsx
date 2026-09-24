@@ -414,7 +414,7 @@ export function RetirementWithdrawalOrder({
             </RetireField>
           </div>
           <ul className="type-small space-y-1.5 leading-relaxed text-muted-foreground">
-            <li>Tax brackets and credits indexed at the plan's inflation rate.</li>
+            <li>{"Tax brackets and credits indexed at the plan's inflation rate."}</li>
             <li>
               Inflation {plan.inflationRate}% from the plan. Each account grows
               at the return saved on that account.
