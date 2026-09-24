@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import type { User } from "@supabase/supabase-js";
+import { explainSignInError, signupOutcome } from "@/lib/auth/confirmation";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { APP_HOME_PATH } from "@/lib/routes";
@@ -24,7 +25,7 @@ interface AuthContextValue {
   signUp: (
     email: string,
     password: string,
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
   requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
 
-      return { error: error?.message ?? null };
+      return { error: explainSignInError(error) };
     },
     [isConfigured],
   );
@@ -80,11 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string) => {
       if (!isConfigured) {
-        return { error: "Cloud sync is not configured." };
+        return {
+          error: "Cloud sync is not configured.",
+          needsEmailConfirmation: false,
+        };
       }
 
       const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -92,7 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
-      return { error: error?.message ?? null };
+      return signupOutcome({
+        user: data.user,
+        session: data.session,
+        errorMessage: error?.message ?? null,
+      });
     },
     [isConfigured],
   );

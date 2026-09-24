@@ -81,10 +81,11 @@ export function PlanSettingsCard() {
               ))}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Stored preference only. Caps are not enforced. Changing this never
-              deletes plans.{" "}
+              Session preview only. The stored plan cannot be changed from the
+              browser. Caps are not enforced. Changing this never deletes
+              plans.{" "}
               <code className="text-[0.7rem]">NEXT_PUBLIC_PLAN_OVERRIDE</code>{" "}
-              still wins over this value.
+              still wins over the stored value.
             </p>
           </div>
         )}

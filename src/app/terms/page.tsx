@@ -42,7 +42,7 @@ export default function TermsPage() {
         </p>
         <p>
           Accounts use email and password through Supabase Auth. Do not share
-          your password. You may export or delete your plan data in Settings.
+          your password. You may export or delete your account data in Settings.
         </p>
         <p>
           We may change or discontinue features. The product is provided as-is.

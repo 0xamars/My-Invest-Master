@@ -103,13 +103,10 @@ export interface Database {
         Insert: {
           user_id: string;
           display_currency?: DisplayCurrency;
-          plan?: UserPlan;
           updated_at?: string;
         };
         Update: {
-          user_id?: string;
           display_currency?: DisplayCurrency;
-          plan?: UserPlan;
           updated_at?: string;
         };
         Relationships: [];
@@ -192,6 +189,84 @@ export interface Database {
           user_id?: string;
           data?: UserWatchlist;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_plaid_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan_id: string;
+          item_id: string;
+          access_token: string;
+          institution_id: string | null;
+          institution_name: string | null;
+          transactions_cursor: string | null;
+          status: string;
+          last_synced_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan_id: string;
+          item_id: string;
+          access_token: string;
+          institution_id?: string | null;
+          institution_name?: string | null;
+          transactions_cursor?: string | null;
+          status?: string;
+          last_synced_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          plan_id?: string;
+          access_token?: string;
+          institution_id?: string | null;
+          institution_name?: string | null;
+          transactions_cursor?: string | null;
+          status?: string;
+          last_synced_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_plaid_accounts: {
+        Row: {
+          id: string;
+          user_id: string;
+          item_row_id: string;
+          plaid_account_id: string;
+          budget_account_id: string | null;
+          name: string | null;
+          official_name: string | null;
+          mask: string | null;
+          type: string | null;
+          subtype: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          item_row_id: string;
+          plaid_account_id: string;
+          budget_account_id?: string | null;
+          name?: string | null;
+          official_name?: string | null;
+          mask?: string | null;
+          type?: string | null;
+          subtype?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          budget_account_id?: string | null;
+          name?: string | null;
+          official_name?: string | null;
+          mask?: string | null;
+          type?: string | null;
+          subtype?: string | null;
         };
         Relationships: [];
       };

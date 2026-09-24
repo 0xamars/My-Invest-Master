@@ -13,6 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  CHECK_YOUR_EMAIL_MESSAGE,
+  signupNextStep,
+} from "@/lib/auth/confirmation";
 
 interface AuthDialogProps {
   open: boolean;
@@ -49,23 +53,27 @@ export function AuthDialog({
     setMessage(null);
     setIsSubmitting(true);
 
-    const result =
-      mode === "sign-in"
-        ? await signIn(email, password)
-        : await signUp(email, password);
-
-    setIsSubmitting(false);
-
-    if (result.error) {
-      setError(result.error);
+    if (mode === "sign-in") {
+      const result = await signIn(email, password);
+      setIsSubmitting(false);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onOpenChange(false);
+      onSuccess?.();
       return;
     }
 
-    if (mode === "sign-up") {
-      setMessage(
-        "Account created. If email confirmation is required, check your inbox, then sign in.",
-      );
-      setMode("sign-in");
+    const result = await signUp(email, password);
+    setIsSubmitting(false);
+    const next = signupNextStep(result);
+    if (next === "show-error") {
+      setError(result.error);
+      return;
+    }
+    if (next === "check-email") {
+      setMessage(CHECK_YOUR_EMAIL_MESSAGE);
       return;
     }
 

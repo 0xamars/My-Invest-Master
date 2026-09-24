@@ -59,9 +59,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const [prefsLoadSucceeded, setPrefsLoadSucceeded] = useState(false);
   const loadVersionRef = useRef(0);
   const currencyRef = useRef(currency);
-  const storedPlanRef = useRef(storedPlan);
   currencyRef.current = currency;
-  storedPlanRef.current = storedPlan;
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -138,7 +136,6 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       try {
         await savePreferencesToCloud(user.id, {
           displayCurrency: currencyRef.current,
-          plan: storedPlanRef.current,
         });
       } catch {
         // Preference save failures are non-blocking for the UI.
@@ -146,7 +143,7 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     }, SAVE_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [currency, storedPlan, isLoaded, prefsLoadSucceeded, isAuthLoading, user]);
+  }, [currency, isLoaded, prefsLoadSucceeded, isAuthLoading, user]);
 
   const plan = useMemo(
     () => resolveEffectivePlan(user?.email, storedPlan),
