@@ -34,12 +34,20 @@ import {
   type CsvImportPreview,
   type ParsedCsvTransaction,
 } from "@/lib/budget/csv";
+import { CSV_PRESET_IDS, CSV_PRESETS, type CsvPresetId } from "@/lib/budget/csv-presets";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
+import { detectBudgetImportKind, parseBudgetOfx } from "@/lib/budget/ofx";
 import { cn } from "@/lib/utils";
 import type { AddBudgetTransactionInput } from "@/hooks/use-budget-plan-mutations";
 import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
 import { normalizePayeeName } from "@/lib/budget/payees";
-import type { BudgetAccount, BudgetCategory, BudgetTransaction, PayeeRule } from "@/types/budget";
+import type {
+  BudgetAccount,
+  BudgetCategory,
+  BudgetCurrency,
+  BudgetTransaction,
+  PayeeRule,
+} from "@/types/budget";
 
 const SAMPLE_LIMIT = 8;
 
@@ -51,6 +59,7 @@ interface BudgetCsvImportDialogProps {
   transactions: BudgetTransaction[];
   payeeRules?: PayeeRule[];
   defaultAccountId?: string;
+  currency?: BudgetCurrency;
   onImport: (
     inputs: AddBudgetTransactionInput[],
     matches: Array<{ transactionId: string; importId: string }>,
@@ -65,6 +74,7 @@ export function BudgetCsvImportDialog({
   transactions,
   payeeRules = [],
   defaultAccountId,
+  currency,
   onImport,
 }: BudgetCsvImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,7 +82,9 @@ export function BudgetCsvImportDialog({
   const fallbackDefault = defaultAccountId ?? orderedAccounts[0]?.id ?? "";
 
   const [fileName, setFileName] = useState("");
-  const [csvText, setCsvText] = useState("");
+  const [fileText, setFileText] = useState("");
+  const [fileKind, setFileKind] = useState<"csv" | "ofx" | null>(null);
+  const [preset, setPreset] = useState<CsvPresetId>("auto");
   const [accountId, setAccountId] = useState(fallbackDefault);
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -81,40 +93,59 @@ export function BudgetCsvImportDialog({
     if (!open) return;
     setAccountId(fallbackDefault);
     setFileName("");
-    setCsvText("");
+    setFileText("");
+    setFileKind(null);
+    setPreset("auto");
     setFileError(null);
     setDragActive(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [open, fallbackDefault]);
 
   const preview = useMemo<CsvImportPreview | null>(() => {
-    if (!csvText) return null;
-    return parseBudgetCsv(csvText, {
+    if (!fileText || !fileKind) return null;
+    const shared = {
       accounts,
       categories,
       existingTransactions: transactions,
       fallbackAccountId: accountId || undefined,
-    });
-  }, [accountId, accounts, categories, csvText, transactions]);
+      currency,
+    };
+    if (fileKind === "ofx") {
+      return parseBudgetOfx(fileText, { ...shared, fileName });
+    }
+    return parseBudgetCsv(fileText, { ...shared, preset });
+  }, [
+    accountId,
+    accounts,
+    categories,
+    currency,
+    fileKind,
+    fileName,
+    fileText,
+    preset,
+    transactions,
+  ]);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".csv") && file.type && file.type !== "text/csv") {
-      setFileError("Choose a .csv file.");
-      setFileName(file.name);
-      setCsvText("");
-      return;
-    }
-
     try {
       const text = await file.text();
+      const detected = detectBudgetImportKind(file.name, text);
       setFileName(file.name);
-      setCsvText(text);
+      if (detected.kind === "rejected") {
+        setFileError(detected.error);
+        setFileText("");
+        setFileKind(null);
+        return;
+      }
+      setFileKind(detected.kind);
+      setFileText(text);
       setFileError(null);
     } catch {
       setFileError("Could not read that file.");
       setFileName(file.name);
-      setCsvText("");
+      setFileText("");
+      setFileKind(null);
     }
   }
 
@@ -168,9 +199,11 @@ export function BudgetCsvImportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import CSV</DialogTitle>
+          <DialogTitle>Import transactions</DialogTitle>
           <DialogDescription>
-            Preview first. New rows land in the inbox unapproved.
+            Pick a CSV, OFX, or QFX file and the account it belongs to. Preview
+            first. New rows land in the inbox unapproved, ready to categorize
+            and reconcile.
           </DialogDescription>
         </DialogHeader>
 
@@ -202,17 +235,17 @@ export function BudgetCsvImportDialog({
               <FileSpreadsheet className="size-5" />
             </span>
             <span className="text-sm font-semibold">
-              {fileName || "Drop a CSV here"}
+              {fileName || "Drop a CSV, OFX, or QFX file"}
             </span>
             <span className="text-xs text-muted-foreground">
-              or click to browse · Date + Amount, Debit/Credit, or Inflow/Outflow
+              or click to browse · Canadian bank CSV, OFX, or QFX
             </span>
           </button>
           <input
             ref={fileInputRef}
-            id="budget-csv-file"
+            id="budget-import-file"
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,.ofx,.qfx,.qbo,text/csv,application/x-ofx,application/vnd.intu.qfx"
             className="sr-only"
             onChange={(event) => void handleFile(event.target.files?.[0])}
           />
@@ -235,10 +268,43 @@ export function BudgetCsvImportDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Used when the file has no Account column. Matching Account names
-              still win per row.
+              Every row imports here unless the file names an account that
+              matches one in this budget.
             </p>
           </div>
+
+          {fileKind === "csv" && (
+            <div className="space-y-1.5">
+              <Label>Bank format</Label>
+              <Select
+                value={preset}
+                onValueChange={(value) => {
+                  if (value && (CSV_PRESET_IDS as readonly string[]).includes(value)) {
+                    setPreset(value as CsvPresetId);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Auto-detect" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto-detect</SelectItem>
+                  {CSV_PRESET_IDS.filter(
+                    (id): id is Exclude<CsvPresetId, "auto"> => id !== "auto",
+                  ).map((id) => (
+                    <SelectItem key={id} value={id}>
+                      {CSV_PRESETS[id].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {preview?.formatLabel
+                  ? `Reading this file as ${preview.formatLabel}.`
+                  : "Auto-detect matches RBC, TD, Scotiabank, BMO, CIBC, Tangerine, Simplii, and common card files. Pick EQ Bank when that export does not name itself."}
+              </p>
+            </div>
+          )}
 
           {fileError && <p className="text-sm text-destructive">{fileError}</p>}
           {preview?.error && (
@@ -281,9 +347,14 @@ export function BudgetCsvImportDialog({
                 Inflows {formatBudgetMoney(preview.inflowTotal)} · Outflows{" "}
                 {formatBudgetMoney(preview.outflowTotal)}
               </p>
+              {preview.formatNote && (
+                <p className="text-xs text-muted-foreground">{preview.formatNote}</p>
+              )}
               <p className="text-xs text-muted-foreground">
-                Exact date + payee + amount + account is skipped. Same amount and
-                close dates match an existing entered row.
+                The same file, or an overlap, is skipped. OFX and QFX use FITID
+                when the bank sends one. A row already imported from a linked
+                account is skipped when the amount, account, and date line up.
+                Close dates on a hand-entered row stay on that row.
                 {payeeRules.some((rule) => rule.enabled)
                   ? " Payee rules rename matching rows and fill an empty category."
                   : ""}

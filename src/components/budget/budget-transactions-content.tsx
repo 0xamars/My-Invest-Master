@@ -301,7 +301,7 @@ export function BudgetTransactionsContent() {
         description={
           lastImportedDate
             ? `Income, spending, and transfers. Latest imported row dated ${formatBudgetDate(lastImportedDate)}.`
-            : "Income, spending, and transfers. Connect a bank, then assign envelopes. File import is a fallback."
+            : "Income, spending, and transfers. Import a CSV, OFX, or QFX file, or connect a bank, then assign envelopes."
         }
         action={
           <>
@@ -580,7 +580,7 @@ export function BudgetTransactionsContent() {
             description={
               hasAnyTransactions || filtersActive
                 ? "Try a different account, month, or search."
-                : "Import a bank CSV or add the first transaction. Uncategorized outflows are fine."
+                : "Import a CSV, OFX, or QFX file, or add the first transaction. Uncategorized outflows are fine."
             }
             actions={
               !hasAnyTransactions && !filtersActive ? (
@@ -591,7 +591,7 @@ export function BudgetTransactionsContent() {
                     onClick={() => setImportOpen(true)}
                   >
                     <Upload className="size-4" />
-                    Import CSV
+                    Import file
                   </Button>
                   <Button type="button" onClick={openAddTransaction}>
                     <Plus className="size-4" />
@@ -845,6 +845,7 @@ export function BudgetTransactionsContent() {
         categories={budget.categories}
         transactions={budget.transactions}
         payeeRules={budget.payeeRules ?? []}
+        currency={budget.currency === "CAD" ? "CAD" : "USD"}
         defaultAccountId={
           accountFilter === "all" ? budget.accounts[0]?.id : accountFilter
         }

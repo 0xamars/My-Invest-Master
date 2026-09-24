@@ -1,0 +1,8 @@
+RBC Activity
+Account,0000
+
+Account Type,Account Number,Transaction Date,Cheque Number,Description 1,Description 2,CAD$,USD$
+Chequing,0000,3/1/2026,,Acme Payroll,,3200.00,
+Chequing,0000,3/2/2026,,"Maple Grocery, Inc.",Toronto,-84.50,
+Chequing,0000,3/3/2026,1001,Cheque payment,,-40.00,
+Chequing,0000,3/4/2026,,Foreign Shop,New York,,-12.00
