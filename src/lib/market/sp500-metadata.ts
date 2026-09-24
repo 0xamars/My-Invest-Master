@@ -2,7 +2,7 @@ export {
   fetchSp500Constituents,
   getStockMetadata as getSp500StockMetadata,
   normalizeSp500Sector,
-  toYahooSymbol,
+  toQuoteSymbol,
 } from "@/lib/market/sp500-constituents";
 export type { Sp500Constituent } from "@/lib/market/sp500-constituents";
 export {

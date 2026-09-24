@@ -174,3 +174,38 @@ export function newestTimestamp(
 export function emptyRetryTtl(dataset: WarehouseDataset): number {
   return EMPTY_RETRY_TTL_MS[dataset] ?? DATASET_TTL_MS[dataset];
 }
+
+/**
+ * Shared feeds that are not part of the per-symbol Analysis Package.
+ * Same freshness helpers (`isFresh`, `isUsableStale`) as warehouse datasets.
+ */
+export type FeedDataset =
+  | "news_stock"
+  | "news_crypto"
+  | "symbol_news"
+  | "symbol_search";
+
+export const FEED_TTL_MS: Record<FeedDataset, number> = {
+  /** Headlines move slower than quotes. */
+  news_stock: 15 * 60_000,
+  news_crypto: 15 * 60_000,
+  symbol_news: 15 * 60_000,
+  /** Symbol search results are stable across a session burst. */
+  symbol_search: 60 * 60_000,
+};
+
+/** Shorter retry when FMP returns an empty feed, so a typo is not sticky. */
+export const FEED_EMPTY_TTL_MS: Partial<Record<FeedDataset, number>> = {
+  news_stock: 5 * 60_000,
+  news_crypto: 5 * 60_000,
+  symbol_news: 15 * 60_000,
+  symbol_search: 5 * 60_000,
+};
+
+export function feedTtl(dataset: FeedDataset): number {
+  return FEED_TTL_MS[dataset];
+}
+
+export function feedEmptyTtl(dataset: FeedDataset): number {
+  return FEED_EMPTY_TTL_MS[dataset] ?? FEED_TTL_MS[dataset];
+}

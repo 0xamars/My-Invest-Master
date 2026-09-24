@@ -1,4 +1,5 @@
-import YahooFinance from "yahoo-finance2";
+import type { FmpQuote } from "@/lib/market-data/fmp/quote";
+import { getCachedQuotes } from "@/lib/market-data/warehouse/cached-quotes";
 import {
   dedupeHeatmapStocks,
   filterHeatmapConstituents,
@@ -13,44 +14,11 @@ import { fetchNasdaq100Constituents } from "@/lib/market/nasdaq100-constituents"
 import { fetchSp500Constituents } from "@/lib/market/sp500-constituents";
 import type { HeatmapStock } from "@/types/market";
 
-const yahooFinance = new YahooFinance({
-  suppressNotices: ["yahooSurvey"],
-});
-
-const BATCH_SIZE = 50;
-const BATCH_CONCURRENCY = 4;
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const batches: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    batches.push(items.slice(index, index + size));
-  }
-  return batches;
-}
-
-async function fetchQuotesForSymbols(symbols: string[]) {
-  const batches = chunk(symbols, BATCH_SIZE);
-  const quoteList = [];
-
-  for (let index = 0; index < batches.length; index += BATCH_CONCURRENCY) {
-    const slice = batches.slice(index, index + BATCH_CONCURRENCY);
-    const results = await Promise.all(
-      slice.map((batch) => yahooFinance.quote(batch)),
-    );
-
-    for (const quotes of results) {
-      quoteList.push(...(Array.isArray(quotes) ? quotes : [quotes]));
-    }
-  }
-
-  return quoteList;
-}
-
 function buildMetadataMap(constituents: IndexConstituent[]) {
   const map = new Map<string, IndexConstituent>();
 
   for (const constituent of constituents) {
-    map.set(constituent.yahooSymbol, constituent);
+    map.set(constituent.quoteSymbol, constituent);
     map.set(constituent.symbol, constituent);
   }
 
@@ -72,6 +40,34 @@ function selectHeatmapStocks(
   return topN ? ranked.slice(0, topN) : ranked;
 }
 
+export function heatmapStockFromQuote(
+  quote: FmpQuote,
+  meta: IndexConstituent | undefined,
+): HeatmapStock | null {
+  if (
+    quote.price == null ||
+    quote.change == null ||
+    quote.changePercent == null
+  ) {
+    return null;
+  }
+
+  const quoteSymbol = quote.symbol.toUpperCase();
+  return {
+    symbol: meta?.symbol ?? quoteSymbol,
+    name: quote.name ?? meta?.name ?? quoteSymbol,
+    sector: meta?.sector ?? "Other",
+    industry: meta?.industry ?? "Diversified",
+    changePercent: quote.changePercent,
+    change: quote.change,
+    price: quote.price,
+    marketCap:
+      typeof quote.marketCap === "number" && quote.marketCap > 0
+        ? quote.marketCap
+        : 0,
+  };
+}
+
 export async function fetchIndexHeatmap(index: MarketIndex): Promise<{
   index: MarketIndex;
   stocks: HeatmapStock[];
@@ -83,43 +79,22 @@ export async function fetchIndexHeatmap(index: MarketIndex): Promise<{
   const allConstituents = await fetchConstituents(index);
   const constituents = filterHeatmapConstituents(allConstituents);
   const metadataBySymbol = buildMetadataMap(allConstituents);
-  const yahooSymbols = constituents.map((item) => item.yahooSymbol);
+  const quotes = await getCachedQuotes(
+    constituents.map((item) => ({
+      symbol: item.quoteSymbol,
+      asset: "stock" as const,
+    })),
+  );
 
-  const quoteList = await fetchQuotesForSymbols(yahooSymbols);
   const stocks: HeatmapStock[] = [];
-
-  for (const quote of quoteList) {
-    if (!quote.symbol) continue;
-
-    const changePercent = quote.regularMarketChangePercent;
-    const change = quote.regularMarketChange;
-    const price = quote.regularMarketPrice;
-    const marketCap =
-      typeof quote.marketCap === "number" && quote.marketCap > 0
-        ? quote.marketCap
-        : 0;
-
-    if (
-      typeof changePercent !== "number" ||
-      typeof change !== "number" ||
-      typeof price !== "number"
-    ) {
-      continue;
-    }
-
-    const yahooSymbol = quote.symbol.toUpperCase();
-    const meta = metadataBySymbol.get(yahooSymbol);
-
-    stocks.push({
-      symbol: meta?.symbol ?? yahooSymbol,
-      name: quote.shortName ?? quote.longName ?? meta?.name ?? yahooSymbol,
-      sector: meta?.sector ?? "Other",
-      industry: meta?.industry ?? "Diversified",
-      changePercent,
-      change,
-      price,
-      marketCap,
-    });
+  for (const constituent of constituents) {
+    const quote = quotes.get(constituent.quoteSymbol.toUpperCase());
+    if (!quote) continue;
+    const meta =
+      metadataBySymbol.get(quote.symbol.toUpperCase()) ??
+      metadataBySymbol.get(constituent.symbol);
+    const stock = heatmapStockFromQuote(quote, meta);
+    if (stock) stocks.push(stock);
   }
 
   const deduped = dedupeHeatmapStocks(stocks);

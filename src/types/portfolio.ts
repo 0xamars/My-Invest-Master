@@ -27,7 +27,7 @@ export interface AssetCatalogItem {
   type: AssetType;
   category: string;
   subCategory: string;
-  /** CoinGecko API id — required for crypto price lookups */
+  /** CoinGecko id — logos and search identity. Prices use the ticker on FMP. */
   priceId?: string;
   /** Logo image URL */
   logoUrl?: string;

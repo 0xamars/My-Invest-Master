@@ -4,7 +4,8 @@ export type { MarketIndex };
 
 export interface IndexConstituent {
   symbol: string;
-  yahooSymbol: string;
+  /** FMP quote symbol (share classes use dashes, e.g. BRK-B). */
+  quoteSymbol: string;
   name: string;
   sector: string;
   industry: string;

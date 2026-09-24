@@ -1,4 +1,4 @@
-import { parseCsvLine, toYahooSymbol } from "@/lib/market/csv";
+import { parseCsvLine, toQuoteSymbol } from "@/lib/market/csv";
 import { inferIndexSector } from "@/lib/market/infer-sector";
 import type { IndexConstituent } from "@/lib/market/index-config";
 import {
@@ -36,7 +36,7 @@ export function normalizeSp500Sector(gicsSector: string): string {
   return GICS_SECTOR_MAP[gicsSector.trim()] ?? gicsSector.trim();
 }
 
-export { toYahooSymbol } from "@/lib/market/csv";
+export { toQuoteSymbol } from "@/lib/market/csv";
 
 function parseUnliftedqCsv(csv: string): { symbol: string; name: string }[] {
   const lines = stripBom(csv).split(/\r?\n/).filter(Boolean);
@@ -107,7 +107,7 @@ async function downloadConstituents(): Promise<Sp500Constituent[]> {
 
     return {
       symbol: row.symbol,
-      yahooSymbol: toYahooSymbol(row.symbol),
+      quoteSymbol: toQuoteSymbol(row.symbol),
       name: gics?.name ?? row.name,
       sector: gics?.sector ?? inferIndexSector(row.name),
       industry: gics?.industry ?? "Diversified",
@@ -134,7 +134,7 @@ export function getStockMetadata(symbol: string): {
 } {
   const normalized = symbol.trim().toUpperCase();
   const entry = constituentsCache?.data.find(
-    (item) => item.symbol === normalized || item.yahooSymbol === normalized,
+    (item) => item.symbol === normalized || item.quoteSymbol === normalized,
   );
 
   return entry

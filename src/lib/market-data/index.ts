@@ -1,11 +1,10 @@
 /**
  * Market-data provider facade.
- * Equities fundamentals/quotes/history: Financial Modeling Prep (primary).
- * Crypto: CoinGecko (via analysis adapters).
+ * Quotes, history, news, search, and crypto prices: Financial Modeling Prep,
+ * cached in the Supabase warehouse. CoinGecko remains for crypto search and logos.
  */
 
 export {
-  allowYahooFallback,
   FMP_API_BASE,
   getFmpApiKey,
   isFmpConfigured,

@@ -1,5 +1,5 @@
-/** Yahoo Finance uses dashes for share classes (e.g. BRK-B). */
-export function toYahooSymbol(symbol: string): string {
+/** FMP quote symbols use dashes for share classes (e.g. BRK-B). */
+export function toQuoteSymbol(symbol: string): string {
   return symbol.trim().toUpperCase().replace(/\./g, "-");
 }
 
