@@ -243,7 +243,7 @@ export function BudgetBankLink({
           <p className="text-sm font-semibold">Connect bank</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {disabledReason ??
-              "Pull transactions into the inbox, then assign envelopes. File import stays as a fallback."}
+              "Pull transactions into the inbox, then assign envelopes. You can also import a CSV, OFX, or QFX file from the register."}
           </p>
         </div>
         <Button

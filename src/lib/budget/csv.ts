@@ -1,8 +1,15 @@
 import { isOnBudgetAccount } from "@/lib/budget/accounts";
 import { clearedStateFromCsvFlag } from "@/lib/budget/cleared";
+import {
+  resolveCsvPreset,
+  type CsvPresetId,
+  type CsvSignMode,
+  type HeaderlessKind,
+} from "@/lib/budget/csv-presets";
 import type {
   BudgetAccount,
   BudgetCategory,
+  BudgetCurrency,
   BudgetTransaction,
   BudgetTransactionType,
 } from "@/types/budget";
@@ -31,6 +38,19 @@ export function budgetImportId(tx: {
   accountId: string;
 }): string {
   return `csv:${budgetImportDedupeKey(tx)}`;
+}
+
+/** FITID when the file has one; otherwise the CSV fallback key. */
+export function fileImportId(tx: {
+  date: string;
+  payee: string;
+  amount: number;
+  accountId: string;
+  externalId?: string;
+}): string {
+  const fit = tx.externalId?.trim();
+  if (fit) return `ofx:${fit}`;
+  return budgetImportId(tx);
 }
 
 export function daysBetweenDateKeys(a: string, b: string): number {
@@ -99,7 +119,8 @@ export type CsvSkipReason =
   | "ambiguous-amount"
   | "missing-payee"
   | "unknown-account"
-  | "missing-account";
+  | "missing-account"
+  | "currency-mismatch";
 
 export interface ParsedCsvTransaction {
   date: string;
@@ -112,6 +133,8 @@ export interface ParsedCsvTransaction {
   memo?: string;
   sourceRow: number;
   importId: string;
+  /** OFX/QFX FITID. Distinct ids are kept even when date, payee, and amount match. */
+  externalId?: string;
   transferAccountId?: string;
 }
 
@@ -140,6 +163,10 @@ export interface CsvImportPreview {
   hasCategoryColumn: boolean;
   detectedColumns: string[];
   notes: string[];
+  /** Preset that parsed a CSV, when one was selected or detected. */
+  presetId?: string;
+  formatLabel: string;
+  formatNote?: string;
   error?: string;
 }
 
@@ -153,6 +180,10 @@ export interface ParseBudgetCsvOptions {
       >
   >;
   fallbackAccountId?: string;
+  /** Bank/card layout. Omit or "auto" to detect from the header. */
+  preset?: CsvPresetId;
+  /** Plan currency. When set, a file in another currency is rejected. */
+  currency?: BudgetCurrency;
 }
 
 const DATE_HEADERS = [
@@ -161,11 +192,23 @@ const DATE_HEADERS = [
   "posted date",
   "posting date",
   "trans date",
+  "date posted",
+  "transfer date",
 ];
-const PAYEE_HEADERS = ["payee", "description", "name", "merchant", "narrative"];
+const PAYEE_HEADERS = [
+  "payee",
+  "description 1",
+  "description",
+  "transaction details",
+  "transaction description",
+  "name",
+  "merchant",
+  "narrative",
+  "transaction",
+];
 const AMOUNT_HEADERS = ["amount", "transaction amount", "amt"];
-const DEBIT_HEADERS = ["debit", "withdrawal", "withdrawals"];
-const CREDIT_HEADERS = ["credit", "deposit", "deposits"];
+const DEBIT_HEADERS = ["debit", "withdrawal", "withdrawals", "funds out"];
+const CREDIT_HEADERS = ["credit", "deposit", "deposits", "funds in"];
 const OUTFLOW_HEADERS = ["outflow"];
 const INFLOW_HEADERS = ["inflow"];
 const MEMO_HEADERS = ["memo", "notes", "note", "comment", "comments"];
@@ -334,7 +377,10 @@ function ymd(year: number, month: number, day: number): string | null {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-export function parseBudgetDate(raw: string): string | null {
+export function parseBudgetDate(
+  raw: string,
+  order: "mdy" | "dmy" = "mdy",
+): string | null {
   const value = raw.trim();
   if (!value) return null;
 
@@ -355,7 +401,18 @@ export function parseBudgetDate(raw: string): string | null {
 
   const us = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(value);
   if (us) {
-    return ymd(expandYear(Number(us[3])), Number(us[1]), Number(us[2]));
+    const first = Number(us[1]);
+    const second = Number(us[2]);
+    let month = order === "dmy" ? second : first;
+    let day = order === "dmy" ? first : second;
+    if (first > 12 && second <= 12) {
+      day = first;
+      month = second;
+    } else if (second > 12 && first <= 12) {
+      month = first;
+      day = second;
+    }
+    return ymd(expandYear(Number(us[3])), month, day);
   }
 
   const named =
@@ -435,9 +492,15 @@ function parseCleared(raw: string): boolean {
   );
 }
 
-function classifyTypeHint(raw: string): "inflow" | "outflow" | null {
+function classifyTypeHint(
+  raw: string,
+  mode: CsvSignMode = "bank",
+): "inflow" | "outflow" | null {
   const value = raw.trim().toLowerCase();
   if (!value) return null;
+  if (mode === "card" && /payment|refund|return/.test(value) && !/debit/.test(value)) {
+    return "inflow";
+  }
   if (
     /debit|withdrawal|purchase|sale|pos|spend|payment(?!\s*received)/.test(value)
   ) {
@@ -510,7 +573,7 @@ function asCsvTransfer(
     categoryId: null,
     type: "transfer",
   };
-  next.importId = budgetImportId(next);
+  next.importId = fileImportId(next);
   return next;
 }
 
@@ -623,13 +686,14 @@ interface ResolvedAmount {
 function resolveAmount(
   row: string[],
   columns: ColumnMap,
+  signMode: CsvSignMode,
 ): { ok: true; value: ResolvedAmount } | { ok: false; reason: CsvSkipReason; message: string } {
   const outflowRaw = cell(row, columns.outflow);
   const inflowRaw = cell(row, columns.inflow);
   const debitRaw = cell(row, columns.debit);
   const creditRaw = cell(row, columns.credit);
   const amountRaw = cell(row, columns.amount);
-  const typeHint = classifyTypeHint(cell(row, columns.type));
+  const typeHint = classifyTypeHint(cell(row, columns.type), signMode);
 
   if (columns.outflow != null || columns.inflow != null) {
     const outflow = outflowRaw ? parseBudgetMoney(outflowRaw) : 0;
@@ -709,6 +773,16 @@ function resolveAmount(
     return { ok: true, value: { amount: Math.abs(parsed), type: typeHint } };
   }
 
+  if (signMode === "card") {
+    return {
+      ok: true,
+      value: {
+        amount: Math.abs(parsed),
+        type: parsed < 0 ? "inflow" : "outflow",
+      },
+    };
+  }
+
   return {
     ok: true,
     value: {
@@ -721,6 +795,7 @@ function resolveAmount(
 interface ColumnMap {
   date?: number;
   payee?: number;
+  payee2?: number;
   description?: number;
   amount?: number;
   debit?: number;
@@ -732,12 +807,16 @@ interface ColumnMap {
   account?: number;
   cleared?: number;
   type?: number;
+  cheque?: number;
+  cad?: number;
+  usd?: number;
 }
 
-function mapColumns(headers: string[]): ColumnMap {
-  return {
+function mapColumns(headers: string[], presetId?: string): ColumnMap {
+  const columns: ColumnMap = {
     date: findColumn(headers, DATE_HEADERS),
     payee: findColumn(headers, PAYEE_HEADERS),
+    payee2: findColumn(headers, ["description 2"]),
     description: findColumn(headers, ["description"]),
     amount: findColumn(headers, AMOUNT_HEADERS),
     debit: findColumn(headers, DEBIT_HEADERS),
@@ -749,7 +828,192 @@ function mapColumns(headers: string[]): ColumnMap {
     account: findColumn(headers, ACCOUNT_HEADERS),
     cleared: findColumn(headers, CLEARED_HEADERS),
     type: findColumn(headers, TYPE_HEADERS),
+    cheque: findColumn(headers, ["cheque number", "check number", "cheque"]),
+    cad: findColumn(headers, ["cad"]),
+    usd: findColumn(headers, ["usd"]),
   };
+  if (presetId === "tangerine") {
+    columns.payee = findColumn(headers, ["name", "memo", "description"]);
+    columns.type = findColumn(headers, ["transaction"]);
+  }
+  return columns;
+}
+
+function headerlessColumns(kind: Exclude<HeaderlessKind, null>): ColumnMap {
+  if (kind === "debit-credit") {
+    return { date: 0, payee: 1, debit: 2, credit: 3 };
+  }
+  return { date: 0, payee: 1, amount: 2 };
+}
+
+function rowLooksLikeHeaderless(row: string[]): HeaderlessKind {
+  if (!parseBudgetDate(row[0] ?? "")) return null;
+  if (row.length >= 4) return "debit-credit";
+  if (row.length >= 3 && parseBudgetMoney(row[2] ?? "") != null) return "amount";
+  return null;
+}
+
+function headersOf(row: string[]): string[] {
+  return row.map(normalizeCsvHeader);
+}
+
+function hasAmountHeaders(headers: string[]): boolean {
+  return (
+    findColumn(headers, AMOUNT_HEADERS) != null ||
+    findColumn(headers, DEBIT_HEADERS) != null ||
+    findColumn(headers, CREDIT_HEADERS) != null ||
+    findColumn(headers, OUTFLOW_HEADERS) != null ||
+    findColumn(headers, INFLOW_HEADERS) != null ||
+    findColumn(headers, ["cad", "usd"]) != null
+  );
+}
+
+function findHeaderIndex(rows: string[][]): number {
+  const limit = Math.min(rows.length, 25);
+  for (let index = 0; index < limit; index += 1) {
+    const headers = headersOf(rows[index] ?? []);
+    if (findColumn(headers, DATE_HEADERS) != null && hasAmountHeaders(headers)) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+const PLAID_MATCH_DAY_WINDOW = 2;
+
+export function payeesLikelyMatch(a: string, b: string): boolean {
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  const left = normalize(a);
+  const right = normalize(b);
+  if (!left || !right) return false;
+  if (left === right || left.includes(right) || right.includes(left)) return true;
+  const stop = new Set([
+    "the",
+    "pos",
+    "debit",
+    "credit",
+    "purchase",
+    "payment",
+    "visa",
+    "mastercard",
+  ]);
+  const tokens = (value: string) =>
+    value.split(" ").filter((word) => word.length > 2 && !stop.has(word));
+  const leftTokens = tokens(left);
+  const rightTokens = new Set(tokens(right));
+  if (leftTokens.length === 0 || rightTokens.size === 0) return false;
+  return leftTokens.some((word) => rightTokens.has(word));
+}
+
+function findPlaidOverlap(
+  row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "payee">,
+  existing: ParseBudgetCsvOptions["existingTransactions"],
+  usedMatchIds: Set<string>,
+): string | undefined {
+  const cents = Math.round(Math.abs(row.amount) * 100);
+  const candidates = existing.filter((tx) => {
+    if (!tx.id || usedMatchIds.has(tx.id)) return false;
+    if (!tx.importId?.startsWith("plaid:")) return false;
+    if (tx.accountId !== row.accountId) return false;
+    if (Math.round(Math.abs(tx.amount) * 100) !== cents) return false;
+    return daysBetweenDateKeys(tx.date, row.date) <= PLAID_MATCH_DAY_WINDOW;
+  });
+  if (candidates.length === 0) return undefined;
+
+  const similar = candidates.filter((tx) => payeesLikelyMatch(tx.payee, row.payee));
+  let pool = similar;
+  if (pool.length === 0) {
+    const sameDay = candidates.filter((tx) => tx.date === row.date);
+    if (sameDay.length === 1) pool = sameDay;
+  }
+  if (pool.length === 0) return undefined;
+
+  pool.sort((a, b) => {
+    const dateDelta =
+      daysBetweenDateKeys(a.date, row.date) - daysBetweenDateKeys(b.date, row.date);
+    if (dateDelta !== 0) return dateDelta;
+    return (a.id ?? "").localeCompare(b.id ?? "");
+  });
+  return pool[0]?.id;
+}
+
+export function classifyImportCandidates(
+  rows: ParsedCsvTransaction[],
+  existing: ParseBudgetCsvOptions["existingTransactions"],
+): {
+  imported: ParsedCsvTransaction[];
+  duplicates: ParsedCsvTransaction[];
+  matched: CsvMatchedTransaction[];
+} {
+  const existingImportIds = new Set(
+    existing
+      .map((tx) => tx.importId)
+      .filter((value): value is string => Boolean(value)),
+  );
+  const seenImportIds = new Set<string>();
+  const seenKeys = new Set<string>();
+  const usedMatchIds = new Set<string>();
+  const imported: ParsedCsvTransaction[] = [];
+  const duplicates: ParsedCsvTransaction[] = [];
+  const matched: CsvMatchedTransaction[] = [];
+
+  for (const parsed of rows) {
+    if (existingImportIds.has(parsed.importId) || seenImportIds.has(parsed.importId)) {
+      duplicates.push(parsed);
+      continue;
+    }
+
+    const key = budgetImportDedupeKey(parsed);
+    const fallbackHit =
+      existing.some((tx) => {
+        if (budgetImportDedupeKey(tx) !== key) return false;
+        if (
+          parsed.externalId &&
+          tx.importId?.startsWith("ofx:") &&
+          tx.importId !== parsed.importId
+        ) {
+          return false;
+        }
+        return true;
+      }) ||
+      (!parsed.externalId && seenKeys.has(key));
+
+    if (fallbackHit) {
+      seenImportIds.add(parsed.importId);
+      duplicates.push(parsed);
+      continue;
+    }
+
+    const plaidId = findPlaidOverlap(parsed, existing, usedMatchIds);
+    if (plaidId) {
+      usedMatchIds.add(plaidId);
+      seenImportIds.add(parsed.importId);
+      duplicates.push(parsed);
+      continue;
+    }
+
+    const matchedId = findImportMatch(parsed, existing, usedMatchIds);
+    if (matchedId) {
+      usedMatchIds.add(matchedId);
+      seenImportIds.add(parsed.importId);
+      matched.push({ ...parsed, matchedTransactionId: matchedId });
+      continue;
+    }
+
+    if (!parsed.externalId) seenKeys.add(key);
+    seenImportIds.add(parsed.importId);
+    imported.push(parsed);
+  }
+
+  return { imported, duplicates, matched };
+}
+
+function currencyMismatchMessage(fileCurrency: string, planCurrency: string): string {
+  return `This file is in ${fileCurrency} and this budget is in ${planCurrency}.`;
 }
 
 export function parseBudgetCsv(
@@ -771,6 +1035,7 @@ export function parseBudgetCsv(
     hasCategoryColumn: false,
     detectedColumns: [],
     notes: [],
+    formatLabel: "",
   };
 
   const rows = parseCsvRows(csvText);
@@ -778,9 +1043,29 @@ export function parseBudgetCsv(
     return { ...empty, error: "The file is empty." };
   }
 
-  const headers = rows[0].map(normalizeCsvHeader);
-  const columns = mapColumns(headers);
-  const dataRows = rows.slice(1);
+  const headerIndex = findHeaderIndex(rows);
+  let headerless: HeaderlessKind = null;
+  let headers: string[] = [];
+  let dataRows: string[][];
+  if (headerIndex >= 0) {
+    headers = headersOf(rows[headerIndex] ?? []);
+    dataRows = rows.slice(headerIndex + 1);
+  } else {
+    headerless = rowLooksLikeHeaderless(rows[0] ?? []);
+    if (!headerless) {
+      return {
+        ...empty,
+        error:
+          "Could not find Date plus Amount, Debit/Credit, or Inflow/Outflow columns.",
+      };
+    }
+    dataRows = rows;
+  }
+
+  const preset = resolveCsvPreset(options.preset, headers, headerless);
+  const columns = headerless
+    ? headerlessColumns(headerless)
+    : mapColumns(headers, preset.id);
   const detectedColumns = Object.entries(columns)
     .filter(([, index]) => index != null)
     .map(([name]) => name);
@@ -790,42 +1075,70 @@ export function parseBudgetCsv(
     columns.debit != null ||
     columns.credit != null ||
     columns.outflow != null ||
-    columns.inflow != null;
+    columns.inflow != null ||
+    columns.cad != null ||
+    columns.usd != null;
 
   if (columns.date == null || !hasAmountShape) {
     return {
       ...empty,
       totalRows: dataRows.length,
       detectedColumns,
+      presetId: preset.id,
+      formatLabel: preset.label,
+      formatNote: preset.note,
       error:
         "Could not find Date plus Amount, Debit/Credit, or Inflow/Outflow columns.",
     };
   }
 
+  let amountColumns = columns;
+  let foreignCurrency: BudgetCurrency | null = null;
+  if (columns.cad != null || columns.usd != null) {
+    const fileCurrency: BudgetCurrency | null =
+      columns.cad != null && columns.usd == null
+        ? "CAD"
+        : columns.usd != null && columns.cad == null
+          ? "USD"
+          : null;
+    if (
+      options.currency &&
+      fileCurrency &&
+      fileCurrency !== options.currency
+    ) {
+      return {
+        ...empty,
+        totalRows: dataRows.length,
+        detectedColumns,
+        presetId: preset.id,
+        formatLabel: preset.label,
+        formatNote: preset.note,
+        error: currencyMismatchMessage(fileCurrency, options.currency),
+      };
+    }
+    const want = options.currency ?? fileCurrency ?? (columns.cad != null ? "CAD" : "USD");
+    if (want === "CAD" && columns.cad != null) {
+      amountColumns = { ...columns, amount: columns.cad };
+      foreignCurrency = columns.usd != null ? "USD" : null;
+    } else if (want === "USD" && columns.usd != null) {
+      amountColumns = { ...columns, amount: columns.usd };
+      foreignCurrency = columns.cad != null ? "CAD" : null;
+    }
+  }
+
   const notes = [
+    preset.note,
     "Transfers between two on-budget accounts are reconstructed when the payee names the other account, or a unique same-date opposite pair is found. Splits stay flattened.",
     "Uncategorized outflows are left uncategorized unless Category exactly matches an existing category name.",
-    "Exact duplicates (date + payee + amount + account) are skipped. Close-date matches stay on the existing row.",
+    "Exact duplicates (date + payee + amount + account) are skipped. Close-date matches stay on the existing row. A bank row already imported from a linked account is skipped when the amount, account, and date line up.",
   ];
 
-  const existingKeys = new Set(
-    options.existingTransactions.map((tx) => budgetImportDedupeKey(tx)),
-  );
-  const existingImportIds = new Set(
-    options.existingTransactions
-      .map((tx) => tx.importId)
-      .filter((value): value is string => Boolean(value)),
-  );
-  const seenKeys = new Set<string>();
-  const usedMatchIds = new Set<string>();
   const candidates: ParsedCsvTransaction[] = [];
-  const duplicates: ParsedCsvTransaction[] = [];
-  const matched: CsvMatchedTransaction[] = [];
   const skipped: CsvSkippedRow[] = [];
   let sawTransferLike = false;
 
   dataRows.forEach((row, index) => {
-    const rowNumber = index + 2;
+    const rowNumber = headerless ? index + 1 : headerIndex + index + 2;
     if (!row.some((value) => value.trim() !== "")) {
       skipped.push({
         rowNumber,
@@ -844,7 +1157,7 @@ export function parseBudgetCsv(
       });
       return;
     }
-    const date = parseBudgetDate(dateRaw);
+    const date = parseBudgetDate(dateRaw, preset.dateOrder);
     if (!date) {
       skipped.push({
         rowNumber,
@@ -854,7 +1167,21 @@ export function parseBudgetCsv(
       return;
     }
 
-    const amountResult = resolveAmount(row, columns);
+    if (foreignCurrency && options.currency) {
+      const foreignIndex = foreignCurrency === "USD" ? columns.usd : columns.cad;
+      const localRaw = cell(row, amountColumns.amount);
+      const foreignRaw = cell(row, foreignIndex);
+      if (!localRaw && foreignRaw) {
+        skipped.push({
+          rowNumber,
+          reason: "currency-mismatch",
+          message: `This amount is in ${foreignCurrency} and this budget is in ${options.currency}.`,
+        });
+        return;
+      }
+    }
+
+    const amountResult = resolveAmount(row, amountColumns, preset.signMode);
     if (!amountResult.ok) {
       skipped.push({
         rowNumber,
@@ -864,10 +1191,14 @@ export function parseBudgetCsv(
       return;
     }
 
-    const payee =
+    const payeeExtra = cell(row, columns.payee2);
+    const payeeBase =
       cell(row, columns.payee) ||
       cell(row, columns.description) ||
       cell(row, columns.memo);
+    const payee = [payeeBase, payeeExtra && payeeExtra !== payeeBase ? payeeExtra : ""]
+      .filter(Boolean)
+      .join(" ");
     if (!payee) {
       skipped.push({
         rowNumber,
@@ -904,7 +1235,11 @@ export function parseBudgetCsv(
       return;
     }
 
-    const memo = cell(row, columns.memo) || undefined;
+    const cheque = cell(row, columns.cheque);
+    const memoText = cell(row, columns.memo);
+    const memo =
+      [memoText, cheque ? `Cheque ${cheque}` : ""].filter(Boolean).join(" · ") ||
+      undefined;
     const categoryId =
       columns.category != null
         ? matchCategoryId(cell(row, columns.category), options.categories)
@@ -922,7 +1257,7 @@ export function parseBudgetCsv(
       sourceRow: rowNumber,
       importId: "",
     };
-    parsed.importId = budgetImportId(parsed);
+    parsed.importId = fileImportId(parsed);
     candidates.push(parsed);
   });
 
@@ -932,30 +1267,10 @@ export function parseBudgetCsv(
     (row) => row.type !== "transfer" && looksLikeTransferPayee(row.payee),
   ).length;
 
-  const imported: ParsedCsvTransaction[] = [];
-
-  for (const parsed of reconstructed) {
-    if (existingImportIds.has(parsed.importId)) {
-      duplicates.push(parsed);
-      continue;
-    }
-
-    const key = budgetImportDedupeKey(parsed);
-    if (existingKeys.has(key) || seenKeys.has(key)) {
-      duplicates.push(parsed);
-      continue;
-    }
-
-    const matchedId = findImportMatch(parsed, options.existingTransactions, usedMatchIds);
-    if (matchedId) {
-      usedMatchIds.add(matchedId);
-      matched.push({ ...parsed, matchedTransactionId: matchedId });
-      continue;
-    }
-
-    seenKeys.add(key);
-    imported.push(parsed);
-  }
+  const { imported, duplicates, matched } = classifyImportCandidates(
+    reconstructed,
+    options.existingTransactions,
+  );
 
   if (reconstructedCount > 0) {
     notes.unshift(
@@ -987,6 +1302,9 @@ export function parseBudgetCsv(
     hasCategoryColumn: columns.category != null,
     detectedColumns,
     notes,
+    presetId: preset.id,
+    formatLabel: preset.label,
+    formatNote: preset.note,
   };
 }
 
