@@ -167,7 +167,7 @@ export function RetirementPlanLevers({
             <RetireField
               id="pension-split"
               label="Pension income split %"
-              hint="Share of pension income assigned to the other person, up to 50%. CPP and OAS stay with the person who receives them. This does not change the household total and it does not calculate tax."
+              hint="Share of pension income assigned to the other person, up to 50%. CPP and OAS stay with the person who receives them. The household total does not change. Withdrawal order also uses this percent for RRIF income when the owner is 65 or older."
             >
               <Input
                 id="pension-split"
