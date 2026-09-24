@@ -1,8 +1,8 @@
 import {
-  accountKindChartColor,
   BRAND_GREEN,
   BRAND_GREEN_DEEP,
   BRAND_ORANGE,
+  getProjectionAssetColor,
 } from "@/lib/portfolio/chart-theme";
 import type { MonteCarloPercentileBand } from "@/lib/retirement/monte-carlo";
 import { findDepletionYear as findDepletionYearFromRows } from "@/lib/retirement/projections";
@@ -165,7 +165,7 @@ export function buildProjectionChartConfig(
       for (const asset of assets) {
         config[`asset_${asset.id}`] = {
           label: asset.symbol,
-          color: accountKindChartColor(asset.accountKind),
+          color: getProjectionAssetColor(asset.id, assets),
         };
       }
       return config;

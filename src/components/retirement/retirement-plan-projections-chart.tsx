@@ -50,7 +50,7 @@ import { ProjectionXAxisLabels } from "@/components/retirement/projection-x-axis
 import {
   CHART_AXIS_COLOR,
   CHART_GRID_COLOR,
-  accountKindChartColor,
+  getProjectionAssetColor,
 } from "@/lib/portfolio/chart-theme";
 import {
   formatProjectionCompactMoney,
@@ -383,7 +383,7 @@ export function RetirementPlanProjectionsChart({
 
               {view === "composition" &&
                 compositionAssets.map((asset) => {
-                  const color = accountKindChartColor(asset.accountKind);
+                  const color = getProjectionAssetColor(asset.id, compositionAssets);
                   return (
                     <linearGradient
                       key={asset.id}
@@ -620,7 +620,7 @@ export function RetirementPlanProjectionsChart({
             {view === "composition" &&
               compositionAssets.map((asset) => {
                 const key = `asset_${asset.id}`;
-                const color = accountKindChartColor(asset.accountKind);
+                const color = getProjectionAssetColor(asset.id, compositionAssets);
                 return (
                   <Area
                     key={key}

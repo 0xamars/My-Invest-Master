@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import {
   LOGIN_PATH,
   PRIVACY_PATH,
@@ -15,8 +16,11 @@ import { cn } from "@/lib/utils";
 
 function PublicHeader({ innerClassName }: { innerClassName?: string }) {
   const pathname = usePathname();
+  const { user } = useAuth();
   const onSignIn = pathname === LOGIN_PATH || pathname === SIGNIN_PATH;
   const onCreateAccount = pathname === SIGNUP_PATH;
+  const showSignIn = !user && !onSignIn;
+  const showCreateAccount = !user && !onCreateAccount;
 
   return (
     <header className="portal-header sticky top-0 z-20">
@@ -27,25 +31,27 @@ function PublicHeader({ innerClassName }: { innerClassName?: string }) {
         )}
       >
         <BrandLogo variant="lockup" asLink priority />
-        <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2" aria-label="Account">
-          {onSignIn ? null : (
-            <Button
-              variant="outline"
-              className="h-10 border border-border bg-muted px-3 sm:px-4"
-              render={<Link href={LOGIN_PATH} />}
-            >
-              Sign in
-            </Button>
-          )}
-          {onCreateAccount ? null : (
-            <Button
-              className="h-10 bg-primary px-3 text-primary-foreground hover:bg-[var(--brand-green-deep)] sm:px-4"
-              render={<Link href={SIGNUP_PATH} />}
-            >
-              Create account
-            </Button>
-          )}
-        </nav>
+        {showSignIn || showCreateAccount ? (
+          <nav className="flex shrink-0 items-center gap-1.5 sm:gap-2" aria-label="Account">
+            {showSignIn ? (
+              <Button
+                variant="outline"
+                className="h-10 border border-border bg-muted px-3 sm:px-4"
+                render={<Link href={LOGIN_PATH} />}
+              >
+                Sign in
+              </Button>
+            ) : null}
+            {showCreateAccount ? (
+              <Button
+                className="h-10 bg-primary px-3 text-primary-foreground hover:bg-[var(--brand-green-deep)] sm:px-4"
+                render={<Link href={SIGNUP_PATH} />}
+              >
+                Create account
+              </Button>
+            ) : null}
+          </nav>
+        ) : null}
       </div>
     </header>
   );
