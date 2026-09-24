@@ -1214,7 +1214,14 @@ assert(
     /title: "Retire"/.test(marketingSrc),
   "marketing pillars stay Budget, Invest, Retire",
 );
-assert(marketingSrc.includes("Login") && marketingSrc.includes("Sign up"), "marketing CTAs are Login and Sign up");
+assert(
+  marketingSrc.includes("Sign in") && marketingSrc.includes("Create account"),
+  "marketing CTAs are Sign in and Create account",
+);
+assert(
+  !marketingSrc.includes("Login") && !marketingSrc.includes("Sign up"),
+  "marketing drops Login and Sign up",
+);
 assert(!marketingSrc.includes("Open Home"), "marketing has no Open Home CTA");
 assert(
   !marketingSrc.includes("Learn/Do") &&

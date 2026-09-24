@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicChrome } from "@/components/layout/public-chrome";
 import { TERMS_PATH } from "@/lib/routes";
 
 export const metadata: Metadata = {
@@ -10,11 +11,10 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <article className="mx-auto flex max-w-2xl flex-col gap-6">
+    <PublicChrome contentClassName="mx-auto w-full max-w-2xl px-6 py-10 sm:py-14">
+    <article className="flex flex-col gap-6">
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">
-          Legal
-        </p>
+        <p className="type-eyebrow text-[var(--brand-green-text)]">Legal</p>
         <h1 className="page-title mt-2">Privacy</h1>
         <p className="page-description">
           Last updated September 24, 2026. What we store, and how you can export or delete it.
@@ -61,5 +61,6 @@ export default function PrivacyPage() {
         </p>
       </section>
     </article>
+    </PublicChrome>
   );
 }

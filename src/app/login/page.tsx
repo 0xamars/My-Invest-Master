@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <AuthPageShell eyebrow="Account">
-      <Suspense fallback={<p className="text-sm text-white/55">Loading…</p>}>
+      <Suspense fallback={<p className="type-small text-[var(--fg-muted)]">Loading…</p>}>
         <LoginForm />
       </Suspense>
     </AuthPageShell>

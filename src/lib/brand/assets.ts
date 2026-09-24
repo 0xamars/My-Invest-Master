@@ -1,12 +1,16 @@
-/** Brand JPGs that exist in public/brand. Skip names that are not on disk. */
+/** Public mark and social image. Raster lockups are generated from these. */
 export const BRAND = {
-  logoMark: "/brand/logo-mark.jpg",
-  logoLockup: "/brand/logo-lockup.jpg",
-  authPanel: "/brand/auth-panel.jpg",
+  logoMark: "/brand/logo-mark.svg",
+  favicon: "/favicon.svg",
+  appIcon: "/brand/app-icon.png",
+  ogImage: "/og.png",
 } as const;
 
 export const BRAND_SIZE = {
-  logoMark: { width: 1408, height: 1408 },
-  logoLockup: { width: 1792, height: 1008 },
-  authPanel: { width: 1008, height: 1792 },
+  ogImage: { width: 1200, height: 630 },
 } as const;
+
+export const SITE_TITLE = "InvestSalsa: Budget, Invest, Retire";
+
+export const SITE_DESCRIPTION =
+  "Plan your budget, investments and retirement in one place. Built for Canadians. Educational, not advice.";

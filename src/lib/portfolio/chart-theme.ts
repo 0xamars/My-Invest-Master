@@ -45,6 +45,23 @@ export function getProjectionAssetColor(
   return getProjectionSeriesColor(getProjectionAssetColorIndex(assetId, assets));
 }
 
+/** One colour per Retire account kind. RRIF shares the RRSP token. */
+export function accountKindChartColor(kind: string | null | undefined): string {
+  switch (kind) {
+    case "rrsp":
+    case "rrif":
+      return "var(--chart-account-rrsp)";
+    case "tfsa":
+      return "var(--chart-account-tfsa)";
+    case "cash":
+      return "var(--chart-account-cash)";
+    case "non_registered":
+      return "var(--chart-account-non-registered)";
+    default:
+      return "var(--chart-neutral)";
+  }
+}
+
 export const CHART_POSITIVE_COLOR = "var(--chart-positive)";
 export const CHART_NEGATIVE_COLOR = "var(--chart-negative)";
 export const CHART_COST_COLOR = "var(--chart-cost)";

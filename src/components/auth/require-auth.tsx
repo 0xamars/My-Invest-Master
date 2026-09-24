@@ -77,7 +77,7 @@ export function RequireAuth({
             Sign in
           </Button>
           <Button variant="outline" render={<Link href={SIGNUP_PATH} />}>
-            Start
+            Create account
           </Button>
         </CardContent>
       </Card>

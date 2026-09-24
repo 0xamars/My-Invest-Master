@@ -37,7 +37,7 @@ export function ResetPasswordForm() {
 
   if (isLoading) {
     return (
-      <p className="flex items-center gap-2 text-sm text-white/55">
+      <p className="type-small flex items-center gap-2 text-[var(--fg-muted)]">
         <Loader2 className="size-4 animate-spin" />
         Checking reset link…
       </p>
@@ -46,7 +46,7 @@ export function ResetPasswordForm() {
 
   if (!isConfigured) {
     return (
-      <p className="text-sm text-white/55">
+      <p className="type-small text-[var(--fg-muted)]">
         Cloud auth is not configured.
       </p>
     );
@@ -55,8 +55,8 @@ export function ResetPasswordForm() {
   if (!user) {
     return (
       <div className="space-y-4">
-        <h1 className="text-3xl font-semibold tracking-tight">Reset link expired</h1>
-        <p className="text-sm text-white/60">
+        <h1 className="type-h1">Reset link expired</h1>
+        <p className="type-small text-[var(--fg-muted)]">
           Request a new password reset from the sign-in page. The email link
           lands here after `/auth/callback` exchanges the code.
         </p>
@@ -68,8 +68,8 @@ export function ResetPasswordForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Set a new password</h1>
-        <p className="text-sm text-white/60">
+        <h1 className="type-h1">Set a new password</h1>
+        <p className="type-small text-[var(--fg-muted)]">
           Signed in as {user.email}. Choose a new password, then continue to Home.
         </p>
       </div>
@@ -84,7 +84,7 @@ export function ResetPasswordForm() {
             onChange={(event) => setPassword(event.target.value)}
             required
             minLength={6}
-            className="h-11 text-white"
+            className="h-11 text-foreground"
           />
         </div>
         <div className="space-y-2">
@@ -97,10 +97,10 @@ export function ResetPasswordForm() {
             onChange={(event) => setConfirm(event.target.value)}
             required
             minLength={6}
-            className="h-11 text-white"
+            className="h-11 text-foreground"
           />
         </div>
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {error ? <p className="type-small text-[var(--fg-danger)]">{error}</p> : null}
         <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           Update password
