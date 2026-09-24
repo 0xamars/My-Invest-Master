@@ -1,3 +1,4 @@
+import { retirementPlanReady } from "@/lib/retirement/inputs";
 import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
 import { findFreedomCrossing } from "@/lib/retirement/freedom-path";
 import {
@@ -52,6 +53,7 @@ export function defaultExtraAnnualSavings(currentContribution: number): number {
 }
 
 export function buildWhatIfScenarios(plan: RetirementPlan): RetirementScenario[] {
+  if (plan.currentAge == null || plan.annualLifestyleSpending == null) return [];
   const extra = defaultExtraAnnualSavings(plan.annualContribution);
   const earlierAge = Math.max(plan.currentAge, plan.retirementAge - 2);
   const laterAge = Math.min(plan.planEndAge, plan.retirementAge + 2);
@@ -120,6 +122,7 @@ export function compareRetirementScenarios(
     includeBase?: boolean;
   },
 ): ScenarioComparison[] {
+  if (!retirementPlanReady(plan)) return [];
   const currentYear = options?.currentYear ?? new Date().getFullYear();
   const scenarios: RetirementScenario[] = [
     ...(options?.includeBase === false

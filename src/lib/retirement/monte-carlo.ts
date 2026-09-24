@@ -3,6 +3,7 @@ import {
   type RetirementPlan,
   type YearProjection,
 } from "@/types/retirement";
+import { retirementPlanReady } from "@/lib/retirement/inputs";
 import {
   computeRetirementProjections,
   type ComputeProjectionOptions,
@@ -82,7 +83,7 @@ export function runRetirementMonteCarlo(
 ): MonteCarloResult {
   const paths = Math.max(1, options?.paths ?? DEFAULT_MONTE_CARLO_PATHS);
 
-  if (plan.assets.length === 0) {
+  if (!retirementPlanReady(plan) || plan.assets.length === 0) {
     return {
       paths,
       successCount: 0,

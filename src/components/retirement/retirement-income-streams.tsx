@@ -100,9 +100,10 @@ export function RetirementIncomeStreams({
                   usdValue={stream.annualAmount}
                   currency={currency}
                   rates={rates}
-                  onUsdChange={(annualAmount) =>
-                    patch(stream.id, { annualAmount })
-                  }
+                  onUsdChange={(annualAmount) => {
+                    if (annualAmount == null) return;
+                    patch(stream.id, { annualAmount });
+                  }}
                   aria-label={`${stream.name} annual amount in ${currency}`}
                   className="tabular-nums"
                 />

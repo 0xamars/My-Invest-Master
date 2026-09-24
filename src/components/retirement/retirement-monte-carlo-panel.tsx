@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { RetirementOutlookChart } from "@/components/retirement/retirement-outlook-chart";
 import { RetirementWhatIf } from "@/components/retirement/retirement-what-if";
-import { RetirePanel } from "@/components/retirement/retire-ui";
+import { RetireEmptyState, RetirePanel } from "@/components/retirement/retire-ui";
+import {
+  missingRetirementInputs,
+  retirementInputPrompt,
+} from "@/lib/retirement/inputs";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_MONTE_CARLO_PATHS,
@@ -66,27 +70,30 @@ export function RetirementMonteCarloPanel({
 
   const displayed = preview ?? plan;
   const dirty = preview != null && outlookLeversDirty(plan, preview);
+  const inputGaps = missingRetirementInputs(displayed);
+  const inputPrompt = retirementInputPrompt(inputGaps);
 
   const whatIf = useMemo(
     () =>
-      plan.assets.length > 0
+      inputGaps.length === 0 && plan.assets.length > 0
         ? compareRetirementScenarios(plan, {
             includeBase: false,
             paths: 400,
             seed: 17,
           })
         : [],
-    [plan],
+    [plan, inputGaps.length],
   );
 
   const displayedResult = useMemo(() => {
+    if (inputGaps.length > 0) return null;
     if (!preview) return result;
     if (preview.assets.length === 0) return null;
     return runRetirementMonteCarlo(preview, {
       paths: result?.paths ?? DEFAULT_MONTE_CARLO_PATHS,
       seed: OUTLOOK_SEED,
     });
-  }, [preview, result]);
+  }, [preview, result, inputGaps.length]);
 
   const lives = outlookLivesFromResult(displayedResult, displayed.planEndAge);
   const sentence = outlookSentence(lives, displayed.planEndAge);
@@ -94,6 +101,17 @@ export function RetirementMonteCarloPanel({
     () => outlookChartRows(displayedResult?.percentiles ?? []),
     [displayedResult],
   );
+
+  if (inputPrompt) {
+    return (
+      <RetirePanel className="px-5 py-5 sm:px-6 sm:py-6">
+        <RetireEmptyState
+          title={inputPrompt.title}
+          description={inputPrompt.description}
+        />
+      </RetirePanel>
+    );
+  }
 
   return (
     <RetirePanel className="px-5 py-5 sm:px-6 sm:py-6">

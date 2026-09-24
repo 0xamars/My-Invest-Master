@@ -50,7 +50,7 @@ export function DeleteRetirementPlanDialog({
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
           <p className="font-semibold">{plan.name}</p>
           <p className="text-sm text-muted-foreground">
-            Target {plan.retirementYear} ·{" "}
+            {plan.retirementYear != null ? `Target ${plan.retirementYear} · ` : ""}
             {formatDisplayMoney(totalValue, currency, rates)} ·{" "}
             {plan.assets.length} assets
           </p>

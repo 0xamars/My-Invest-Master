@@ -36,9 +36,9 @@ export interface AssistantOptionsSummary {
 export interface AssistantRetirementPlanSummary {
   id: string;
   name: string;
-  retirementYear: number;
+  retirementYear: number | null;
   totalPortfolioValue: number;
-  annualLifestyleSpending: number;
+  annualLifestyleSpending: number | null;
   inflationRate: number;
   assetCount: number;
   projectedDepletionYear: number | null;

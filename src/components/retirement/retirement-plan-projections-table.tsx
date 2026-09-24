@@ -25,8 +25,9 @@ interface RetirementPlanProjectionsTableProps {
   assets: RetirementPlanAsset[];
   currency: DisplayCurrency;
   rates: FxRates;
-  retirementYear: number;
+  retirementYear: number | null;
   personLabels?: { person1: string; person2: string };
+  emptyMessage?: string;
 }
 
 type MetricKey = keyof Pick<
@@ -155,6 +156,7 @@ export function RetirementPlanProjectionsTable({
   rates,
   retirementYear,
   personLabels = { person1: "You", person2: "Spouse" },
+  emptyMessage = "Add assets to see year-by-year projections.",
 }: RetirementPlanProjectionsTableProps) {
   const [showAssetBreakdown, setShowAssetBreakdown] = useState(false);
   const rows = METRIC_ROWS.filter(
@@ -166,7 +168,7 @@ export function RetirementPlanProjectionsTable({
   if (projections.length === 0) {
     return (
       <div className="flex min-h-[160px] items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center text-sm text-muted-foreground">
-        Add assets to see year-by-year projections.
+        {emptyMessage}
       </div>
     );
   }

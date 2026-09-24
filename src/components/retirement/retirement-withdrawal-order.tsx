@@ -34,6 +34,7 @@ import {
   CA_TAX_LIMITATIONS,
   CA_TAX_SOURCES,
 } from "@/lib/retirement/tax-ca";
+import { missingRetirementInputs } from "@/lib/retirement/inputs";
 import {
   compareWithdrawalOrders,
   resolveWithdrawalAssumptions,
@@ -90,10 +91,10 @@ export function RetirementWithdrawalOrder({
   onChange: (plan: RetirementPlan) => void;
 }) {
   const missingAccounts = plan.assets.length === 0;
-  const missingSpending = !(plan.annualLifestyleSpending > 0);
-  const missingAge =
-    !(plan.currentAge > 0) ||
-    (plan.spouse != null && !(plan.spouse.currentAge > 0));
+  const gaps = missingRetirementInputs(plan);
+  const missingAge = gaps.includes("age");
+  const missingSpending =
+    gaps.includes("spending") || !(plan.annualLifestyleSpending != null && plan.annualLifestyleSpending > 0);
   const blocked = missingAccounts || missingSpending || missingAge;
   const cadPerUsd = getFxRate("CAD", rates);
 
@@ -101,13 +102,11 @@ export function RetirementWithdrawalOrder({
     () => resolveWithdrawalAssumptions(plan, cadPerUsd, currentYear),
     [plan, cadPerUsd, currentYear],
   );
-  const comparison = useMemo(
-    () =>
-      blocked
-        ? null
-        : compareWithdrawalOrders(plan, { currentYear, cadPerUsd }),
-    [blocked, plan, currentYear, cadPerUsd],
-  );
+  const comparison = useMemo(() => {
+    if (blocked) return null;
+    const result = compareWithdrawalOrders(plan, { currentYear, cadPerUsd });
+    return result.status === "needs-input" ? null : result;
+  }, [blocked, plan, currentYear, cadPerUsd]);
 
   const [viewer, setViewer] = useState<Viewer>("household");
   const selected =
@@ -336,7 +335,7 @@ export function RetirementWithdrawalOrder({
                 onUsdChange={(usd) =>
                   onChange(
                     patchAssumptions(plan, {
-                      meltdownTargetIncome: Math.max(0, usd),
+                      meltdownTargetIncome: Math.max(0, usd ?? 0),
                     }),
                   )
                 }
@@ -356,7 +355,9 @@ export function RetirementWithdrawalOrder({
                 rates={rates}
                 onUsdChange={(usd) =>
                   onChange(
-                    patchAssumptions(plan, { annualTfsaRoom: Math.max(0, usd) }),
+                    patchAssumptions(plan, {
+                      annualTfsaRoom: Math.max(0, usd ?? 0),
+                    }),
                   )
                 }
               />

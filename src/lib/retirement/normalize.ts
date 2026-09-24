@@ -1,5 +1,4 @@
 import {
-  DEFAULT_CURRENT_AGE,
   DEFAULT_PLAN_CURRENCY,
   DEFAULT_PLAN_END_AGE,
   DEFAULT_RETIREMENT_AGE,
@@ -46,6 +45,18 @@ function optionalString(value: unknown, fallback: string): string {
 function clampAge(value: number, fallback: number): number {
   if (!Number.isFinite(value)) return fallback;
   return Math.min(120, Math.max(0, value));
+}
+
+/** A stored age, or null when the field was never entered. */
+function optionalAge(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.min(120, Math.max(0, value));
+}
+
+/** A stored spending amount, including zero. Null when the field is absent. */
+function optionalSpending(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.max(0, value);
 }
 
 function normalizeAssetType(value: unknown): AssetType {
@@ -137,7 +148,7 @@ function normalizeSpouse(raw: unknown): RetirementSpouse | null {
 
   return {
     name: optionalString(raw.name, ""),
-    currentAge: clampAge(finiteNumber(raw.currentAge, DEFAULT_CURRENT_AGE), DEFAULT_CURRENT_AGE),
+    currentAge: optionalAge(raw.currentAge),
     retirementAge: clampAge(
       finiteNumber(raw.retirementAge, DEFAULT_RETIREMENT_AGE),
       DEFAULT_RETIREMENT_AGE,
@@ -165,17 +176,6 @@ function normalizeIncomeStream(
   };
 }
 
-function resolveCurrentAge(raw: UnknownRecord): number {
-  if (typeof raw.currentAge === "number" && Number.isFinite(raw.currentAge)) {
-    return clampAge(raw.currentAge, DEFAULT_CURRENT_AGE);
-  }
-
-  // Prefer an explicit currentAge (default 40). Inferring from
-  // retirementYear − 20 is a last resort and is intentionally unused
-  // while the calendar year is present — retirementAge is derived instead.
-  return DEFAULT_CURRENT_AGE;
-}
-
 export function normalizeRetirementPlan(
   raw: unknown,
   options?: { currentYear?: number },
@@ -190,31 +190,35 @@ export function normalizeRetirementPlan(
         .filter((asset): asset is RetirementPlanAsset => asset !== null)
     : [];
 
-  const currentAge = resolveCurrentAge(source);
-  const retirementYear = Math.round(
-    finiteNumber(source.retirementYear, currentYear + 20),
-  );
+  const currentAge = optionalAge(source.currentAge);
+  const storedRetirementYear =
+    typeof source.retirementYear === "number" && Number.isFinite(source.retirementYear)
+      ? Math.round(source.retirementYear)
+      : null;
+  const storedRetirementAge = optionalAge(source.retirementAge);
 
-  const retirementAge = clampAge(
-    typeof source.retirementAge === "number" && Number.isFinite(source.retirementAge)
-      ? source.retirementAge
-      : retirementAgeFromYear(currentAge, retirementYear, currentYear),
-    DEFAULT_RETIREMENT_AGE,
-  );
+  const retirementAge =
+    storedRetirementAge != null
+      ? storedRetirementAge
+      : currentAge != null && storedRetirementYear != null
+        ? clampAge(
+            retirementAgeFromYear(currentAge, storedRetirementYear, currentYear),
+            DEFAULT_RETIREMENT_AGE,
+          )
+        : DEFAULT_RETIREMENT_AGE;
 
-  const syncedRetirementYear =
-    typeof source.retirementAge === "number" && Number.isFinite(source.retirementAge)
+  // A target year needs a real current age. A stored year is kept as-is
+  // when age is still missing, and is never invented from a default age.
+  const retirementYear =
+    currentAge != null
       ? retirementYearFromAges(currentAge, retirementAge, currentYear)
-      : retirementYear;
+      : storedRetirementYear;
 
   return {
     id: optionalString(source.id, crypto.randomUUID()),
     name: optionalString(source.name, "New Retire plan"),
-    retirementYear: syncedRetirementYear,
-    annualLifestyleSpending: Math.max(
-      0,
-      finiteNumber(source.annualLifestyleSpending, 60_000),
-    ),
+    retirementYear,
+    annualLifestyleSpending: optionalSpending(source.annualLifestyleSpending),
     inflationRate: finiteNumber(source.inflationRate, 3),
     priceProjectionScenario: "expected",
     assets,
@@ -259,16 +263,21 @@ export function applyRetirementPlanPatch(
 ): RetirementPlan {
   const next: RetirementPlan = { ...plan, ...patch };
 
-  if (patch.currentAge != null || patch.retirementAge != null) {
+  if (patch.currentAge === null) {
+    next.retirementYear = null;
+  } else if (
+    (patch.currentAge != null || patch.retirementAge != null) &&
+    next.currentAge != null
+  ) {
     next.retirementYear = retirementYearFromAges(
       next.currentAge,
       next.retirementAge,
       currentYear,
     );
-  } else if (patch.retirementYear != null) {
+  } else if (patch.retirementYear != null && next.currentAge != null) {
     next.retirementAge = retirementAgeFromYear(
       next.currentAge,
-      next.retirementYear,
+      patch.retirementYear,
       currentYear,
     );
   }

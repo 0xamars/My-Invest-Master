@@ -9,11 +9,26 @@ export function impliedPathSentence(
   dashboard: RetirementDashboard,
   formatMoney: (value: number) => string,
 ): string {
+  if (
+    dashboard.missingInputs.includes("age") &&
+    dashboard.missingInputs.includes("spending")
+  ) {
+    return "Enter your age to see your plan. Enter your yearly spending in retirement.";
+  }
+  if (dashboard.missingInputs.includes("age")) {
+    return "Enter your age to see your plan.";
+  }
+  if (dashboard.missingInputs.includes("spending")) {
+    return "Enter your yearly spending in retirement.";
+  }
   if (dashboard.verdict === "empty") {
     return "Leftover or the book is missing. Retire will not invent cash.";
   }
 
-  const target = `Target ${formatMoney(dashboard.targetNestEgg)}.`;
+  const target =
+    dashboard.targetNestEgg == null
+      ? ""
+      : `Target ${formatMoney(dashboard.targetNestEgg)}.`;
 
   if (dashboard.yearsToFreedom === 0) {
     return `Retire this year. ${target}`;

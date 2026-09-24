@@ -38,7 +38,7 @@ interface RetirementPlanAssetsTableProps {
   loadingSymbols: Set<string>;
   hasSpouse: boolean;
   ownerLabels: Record<RetirementPersonId, string>;
-  ownerAges: Record<RetirementPersonId, number>;
+  ownerAges: Record<RetirementPersonId, number | null>;
   onUpdateAsset: (
     id: string,
     patch: Partial<
@@ -191,9 +191,10 @@ export function RetirementPlanAssetsTable({
                         currency={currency}
                         rates={rates}
                         aria-label={`${asset.symbol} price in ${currency}`}
-                        onUsdChange={(unitPrice) =>
-                          onUpdateAsset(asset.id, { unitPrice })
-                        }
+                        onUsdChange={(unitPrice) => {
+                          if (unitPrice == null) return;
+                          onUpdateAsset(asset.id, { unitPrice });
+                        }}
                       />
                     ) : (
                       <span className="text-muted-foreground">
@@ -244,9 +245,10 @@ export function RetirementPlanAssetsTable({
                       currency={currency}
                       rates={rates}
                       aria-label={`${asset.symbol} annual contribution in ${currency}`}
-                      onUsdChange={(annualContribution) =>
-                        onUpdateAsset(asset.id, { annualContribution })
-                      }
+                      onUsdChange={(annualContribution) => {
+                        if (annualContribution == null) return;
+                        onUpdateAsset(asset.id, { annualContribution });
+                      }}
                     />
                   </TableCell>
                   <TableCell

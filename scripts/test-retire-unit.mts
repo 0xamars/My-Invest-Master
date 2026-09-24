@@ -35,6 +35,7 @@ import {
   outlookSentence,
 } from "../src/lib/retirement/outlook.ts";
 import { normalizeRetirementPlan } from "../src/lib/retirement/normalize.ts";
+import { compareWithdrawalOrders } from "../src/lib/retirement/withdrawal-orders.ts";
 import {
   refreshAssetsFromPortfolio,
   resolveHoldingUnitPrice,
@@ -64,11 +65,12 @@ import {
 import { computeTargetNestEgg, presentValue } from "../src/lib/retirement/target.ts";
 import type { PortfolioHolding } from "../src/types/portfolio.ts";
 import {
-  DEFAULT_CURRENT_AGE,
   DEFAULT_PLAN_CURRENCY,
   DEFAULT_PLAN_END_AGE,
+  DEFAULT_RETIREMENT_AGE,
   DEFAULT_VOLATILITY_BY_TYPE,
   createEmptyPlan,
+  createEmptySpouse,
   type RetirementPlan,
   type RetirementPlanAsset,
 } from "../src/types/retirement.ts";
@@ -382,9 +384,9 @@ assert(legacy.assets[0].symbol === "VOO", "migrate keeps symbol");
 assert(legacy.assets[0].quantity === 10, "migrate keeps quantity");
 assert(legacy.assets[0].unitPrice === 500, "migrate keeps unit price");
 assert(legacy.assets[0].expectedCagr === 7, "migrate keeps custom CAGR");
-assert(legacy.currentAge === DEFAULT_CURRENT_AGE, "missing currentAge defaults to 40");
-assert(legacy.retirementAge === 60, "retirementAge is derived from the saved year");
-assert(legacy.retirementYear === CURRENT_YEAR + 20, "retirementYear is preserved");
+assert(legacy.currentAge == null, "missing currentAge stays missing");
+assert(legacy.retirementAge === DEFAULT_RETIREMENT_AGE, "missing target age stays the generic 65");
+assert(legacy.retirementYear === CURRENT_YEAR + 20, "stored retirementYear is preserved");
 assert(legacy.planEndAge === DEFAULT_PLAN_END_AGE, "plan end age defaults to 90");
 assert(legacy.currency === DEFAULT_PLAN_CURRENCY, "display currency defaults to CAD");
 assert(legacy.withdrawalRate === 4, "withdrawal rate defaults to 4%");
@@ -418,7 +420,23 @@ assert(
 
 const again = normalizeRetirementPlan(legacy, { currentYear: CURRENT_YEAR });
 assert(again.assets[0].quantity === 10, "re-normalize does not invent or drop balances");
-assert(again.currentAge === 40, "re-normalize keeps the filled currentAge");
+assert(again.currentAge == null, "re-normalize keeps a missing currentAge missing");
+assert(again.annualLifestyleSpending === 60_000, "re-normalize keeps stored spending");
+
+const derivedTarget = normalizeRetirementPlan(
+  {
+    id: "derived-target",
+    name: "Stored age",
+    retirementYear: CURRENT_YEAR + 20,
+    annualLifestyleSpending: 60_000,
+    assets: [],
+    currentAge: 40,
+  },
+  { currentYear: CURRENT_YEAR },
+);
+assert(derivedTarget.currentAge === 40, "stored age is kept");
+assert(derivedTarget.retirementAge === 60, "target age is derived from a stored age and year");
+assert(derivedTarget.annualLifestyleSpending === 60_000, "stored spending is kept while deriving the target age");
 
 // --- Refresh from portfolio preserves CAGR --------------------------------
 
@@ -1080,6 +1098,137 @@ assert(
   cadLeftover != null &&
     Math.abs(cadLeftover.unitPrice * cadLeftover.quantity - 136 / DEFAULT_FX_RATES.CAD) < 1e-6,
   "CAD leftover is converted to USD instead of treated as USD",
+);
+
+// --- Age and spending stay unset until entered -----------------------------
+
+const fresh = createEmptyPlan("New Retire plan");
+assert(fresh.currentAge == null, "new plan has no age");
+assert(fresh.annualLifestyleSpending == null, "new plan has no spending");
+assert(fresh.retirementYear == null, "new plan does not invent a retire year");
+const partner = createEmptySpouse();
+assert(partner.currentAge == null, "a new spouse has no age");
+
+const bare = normalizeRetirementPlan(
+  { id: "bare", name: "Bare", assets: [] },
+  { currentYear: CURRENT_YEAR },
+);
+assert(bare.currentAge == null, "normalize keeps a missing age missing");
+assert(bare.annualLifestyleSpending == null, "normalize keeps missing spending missing");
+assert(bare.spouse == null, "normalize does not invent a spouse");
+
+const bareRows = computeRetirementProjections(
+  {
+    ...bare,
+    assets: [
+      asset({
+        id: "cash-bare",
+        symbol: "CASH",
+        unitPrice: 1,
+        quantity: 25_000,
+        type: "cash",
+      }),
+    ],
+  },
+  { currentYear: CURRENT_YEAR },
+);
+assert(bareRows.length === 0, "projection without age and spending is empty");
+assert(
+  bareRows.every((row) => Number.isFinite(row.closingBalance)),
+  "an empty projection has no NaN balances",
+);
+
+const bareOrders = compareWithdrawalOrders(bare, {
+  currentYear: CURRENT_YEAR,
+  cadPerUsd: 1,
+});
+assert(bareOrders.status === "needs-input", "withdrawal order without inputs needs input");
+assert(bareOrders.orders.length === 0, "needs-input withdrawal order has no numeric orders");
+assert(bareOrders.missing.includes("age"), "withdrawal order reports a missing age");
+assert(bareOrders.missing.includes("spending"), "withdrawal order reports missing spending");
+
+const spouseUnset = normalizeRetirementPlan(
+  {
+    id: "spouse-unset",
+    name: "Couples",
+    currentAge: 52,
+    retirementAge: 65,
+    annualLifestyleSpending: 48_000,
+    spouse: { name: "Ari", retirementAge: 63 },
+    assets: [
+      asset({
+        id: "tfsa",
+        symbol: "TFSA",
+        unitPrice: 1,
+        quantity: 10_000,
+        type: "cash",
+      }),
+    ],
+  },
+  { currentYear: CURRENT_YEAR },
+);
+assert(spouseUnset.spouse?.currentAge == null, "a spouse added without an age keeps it missing");
+assert(
+  computeRetirementProjections(spouseUnset, { currentYear: CURRENT_YEAR }).length === 0,
+  "projection waits for the spouse age",
+);
+const spouseOrders = compareWithdrawalOrders(spouseUnset, {
+  currentYear: CURRENT_YEAR,
+  cadPerUsd: 1,
+});
+assert(spouseOrders.status === "needs-input", "withdrawal order waits for the spouse age");
+assert(spouseOrders.missing.includes("age"), "spouse age is the missing input");
+assert(!spouseOrders.missing.includes("spending"), "entered spending is not reported missing");
+
+const storedPlan = normalizeRetirementPlan(
+  {
+    id: "stored-values",
+    name: "Already entered",
+    currentAge: 47,
+    retirementAge: 64,
+    retirementYear: CURRENT_YEAR + 17,
+    annualLifestyleSpending: 54_000,
+    inflationRate: 2,
+    withdrawalRate: 3.5,
+    spouse: { name: "Ari", currentAge: 44, retirementAge: 62 },
+    assets: [
+      asset({
+        id: "rrsp",
+        symbol: "RRSP",
+        unitPrice: 100,
+        quantity: 10,
+        type: "custom",
+      }),
+    ],
+  },
+  { currentYear: CURRENT_YEAR },
+);
+assert(storedPlan.currentAge === 47, "an existing plan keeps its age");
+assert(storedPlan.annualLifestyleSpending === 54_000, "an existing plan keeps its spending");
+assert(storedPlan.spouse?.currentAge === 44, "an existing spouse age is unchanged");
+assert(storedPlan.retirementAge === 64, "an existing target age is unchanged");
+assert(storedPlan.retirementYear === CURRENT_YEAR + 17, "an existing retire year is unchanged");
+const storedRows = computeRetirementProjections(storedPlan, { currentYear: CURRENT_YEAR });
+assert(storedRows.length > 0, "an existing plan with values still projects");
+assert(
+  storedRows.every(
+    (row) => Number.isFinite(row.closingBalance) && Number.isFinite(row.lifestyleSpending),
+  ),
+  "an existing plan's projection is finite",
+);
+const storedOrders = compareWithdrawalOrders(storedPlan, {
+  currentYear: CURRENT_YEAR,
+  cadPerUsd: 1,
+});
+assert(storedOrders.status === "ready", "an existing plan can compare withdrawal orders");
+assert(storedOrders.orders.length === 4, "an existing plan still gets four orders");
+assert(
+  storedOrders.orders.every((order) =>
+    order.householdRows.every(
+      (row) => Number.isFinite(row.totalTax) && Number.isFinite(row.closingBalance),
+    ),
+  ),
+  "an existing plan's withdrawal orders are finite",
 );
 
 if (failed > 0) {

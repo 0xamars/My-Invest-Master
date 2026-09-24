@@ -1,3 +1,4 @@
+import { retirementPlanReady } from "@/lib/retirement/inputs";
 import { computeRetirementProjections, nestEggAtRetirement } from "@/lib/retirement/projections";
 import { computeTargetNestEgg, presentValue } from "@/lib/retirement/target";
 import { getPlanTotalValue, type RetirementPlan } from "@/types/retirement";
@@ -5,7 +6,8 @@ import { getPlanTotalValue, type RetirementPlan } from "@/types/retirement";
 const MIN_RATE = 0;
 const MAX_RATE = 40;
 
-function yearsToRetirement(plan: RetirementPlan): number {
+function yearsToRetirement(plan: RetirementPlan): number | null {
+  if (plan.currentAge == null || !Number.isFinite(plan.currentAge)) return null;
   return Math.max(0, plan.retirementAge - plan.currentAge);
 }
 
@@ -19,6 +21,7 @@ export function requiredGrowthRate(
   plan: RetirementPlan,
   options?: { currentYear?: number },
 ): number | null {
+  if (!retirementPlanReady(plan)) return null;
   const currentYear = options?.currentYear ?? new Date().getFullYear();
   const target = computeTargetNestEgg(
     plan.annualLifestyleSpending,
@@ -28,6 +31,7 @@ export function requiredGrowthRate(
   if (getPlanTotalValue(plan) <= 0 && plan.annualContribution <= 0) return null;
 
   const years = yearsToRetirement(plan);
+  if (years == null) return null;
 
   const surplusAt = (rate: number): number => {
     const growthRates = Object.fromEntries(

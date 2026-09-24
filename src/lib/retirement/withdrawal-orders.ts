@@ -1,3 +1,4 @@
+import { missingRetirementInputs } from "@/lib/retirement/inputs";
 import { findDepletionYear, computeRetirementProjections } from "@/lib/retirement/projections";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import {
@@ -640,6 +641,9 @@ export interface WithdrawalOrderComparison {
 }
 
 export interface WithdrawalComparisonResult {
+  /** `needs-input` when age or spending was never entered. Orders are empty. */
+  status: "ready" | "needs-input";
+  missing: Array<"age" | "spending">;
   orders: WithdrawalOrderComparison[];
   assumptions: ResolvedWithdrawalAssumptions;
 }
@@ -911,6 +915,7 @@ function compareOneOrder(
  * Compare the four withdrawal orders. Calls `normalizeRetirementPlan` and
  * `computeRetirementProjections` for each order. Same inputs return the same
  * output. An empty account list returns empty rows and zero totals.
+ * A missing age or spending amount returns `needs-input` and no order rows.
  */
 export function compareWithdrawalOrders(
   raw: unknown,
@@ -922,8 +927,12 @@ export function compareWithdrawalOrders(
     options.cadPerUsd ?? 1,
     options.currentYear,
   );
+  const missing = missingRetirementInputs(plan);
+  if (missing.length > 0) {
+    return { status: "needs-input", missing, orders: [], assumptions };
+  }
   const orders = WITHDRAWAL_ORDER_DETAILS.map((detail) =>
     compareOneOrder(plan, detail.id, assumptions, options),
   );
-  return { orders, assumptions };
+  return { status: "ready", missing: [], orders, assumptions };
 }

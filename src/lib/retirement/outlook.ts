@@ -157,9 +157,10 @@ export function nudgeRetirementAge(
   delta: number,
   currentYear?: number,
 ): RetirementPlan {
+  const floor = plan.currentAge ?? plan.retirementAge;
   const nextAge = Math.min(
     plan.planEndAge,
-    Math.max(plan.currentAge, plan.retirementAge + delta),
+    Math.max(floor, plan.retirementAge + delta),
   );
   return applyRetirementPlanPatch(plan, { retirementAge: nextAge }, currentYear);
 }
@@ -169,6 +170,7 @@ export function nudgeAnnualSpending(
   direction: 1 | -1,
   currentYear?: number,
 ): RetirementPlan {
+  if (plan.annualLifestyleSpending == null) return plan;
   const current = Math.max(0, plan.annualLifestyleSpending);
   const next =
     current === 0

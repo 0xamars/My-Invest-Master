@@ -1,6 +1,5 @@
 import { inflateFromToday } from "@/lib/retirement/inflate";
 import {
-  DEFAULT_CURRENT_AGE,
   DEFAULT_PLAN_END_AGE,
   RRSP_CONVERSION_AGE,
   emptyPersonIncome,
@@ -27,16 +26,33 @@ export function modeledPeople(
   >,
   currentYear: number,
 ): ModeledPerson[] {
+  if (
+    plan.currentAge == null ||
+    !Number.isFinite(plan.currentAge) ||
+    plan.currentAge <= 0 ||
+    plan.retirementYear == null ||
+    !Number.isFinite(plan.retirementYear)
+  ) {
+    return [];
+  }
+
   const people: ModeledPerson[] = [
     {
       id: "person1",
-      currentAge: plan.currentAge ?? DEFAULT_CURRENT_AGE,
+      currentAge: plan.currentAge,
       retirementAge: plan.retirementAge,
       retirementYear: plan.retirementYear,
     },
   ];
 
   if (plan.spouse) {
+    if (
+      plan.spouse.currentAge == null ||
+      !Number.isFinite(plan.spouse.currentAge) ||
+      plan.spouse.currentAge <= 0
+    ) {
+      return [];
+    }
     people.push({
       id: "person2",
       currentAge: plan.spouse.currentAge,
@@ -75,11 +91,15 @@ export function householdEndYear(
   currentYear: number,
 ): number {
   const endAge = plan.planEndAge ?? DEFAULT_PLAN_END_AGE;
-  const person1End =
-    currentYear + Math.max(0, endAge - (plan.currentAge ?? DEFAULT_CURRENT_AGE));
+  if (plan.currentAge == null || !Number.isFinite(plan.currentAge)) {
+    return currentYear;
+  }
+  const person1End = currentYear + Math.max(0, endAge - plan.currentAge);
   if (!plan.spouse) return person1End;
-  const spouseEnd =
-    currentYear + Math.max(0, endAge - plan.spouse.currentAge);
+  if (plan.spouse.currentAge == null || !Number.isFinite(plan.spouse.currentAge)) {
+    return person1End;
+  }
+  const spouseEnd = currentYear + Math.max(0, endAge - plan.spouse.currentAge);
   return Math.max(person1End, spouseEnd);
 }
 
@@ -104,6 +124,8 @@ export function activeSurvivor(
       ? plan.spouse.currentAge
       : plan.currentAge;
   // Death at or before the person's current age is not a future year.
+  // A missing age is not a year either.
+  if (currentAge == null || !Number.isFinite(currentAge)) return null;
   if (scenario.deathAge <= currentAge) return null;
   return scenario;
 }
@@ -243,8 +265,11 @@ function personIncomeTotal(income: PersonYearIncome): number {
   return income.cpp + income.oas + income.pension + income.other;
 }
 
-export function rrifProjectionNote(accountIsRrsp: boolean, ownerAge: number): string | null {
-  if (!accountIsRrsp) return null;
+export function rrifProjectionNote(
+  accountIsRrsp: boolean,
+  ownerAge: number | null,
+): string | null {
+  if (!accountIsRrsp || ownerAge == null || !Number.isFinite(ownerAge)) return null;
   const attained = Math.floor(ownerAge);
   if (attained > RRSP_CONVERSION_AGE) return "Projected as a RRIF";
   if (attained === RRSP_CONVERSION_AGE) return "Converts to a RRIF at year-end";
