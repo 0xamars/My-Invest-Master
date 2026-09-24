@@ -95,10 +95,48 @@ export interface RetirementPlan {
   /**
    * Percent of pension-stream income assigned to the other person while both
    * are alive. 0–50. CPP and OAS are not split. Does not change the household
-   * total and does not calculate tax. Default 0.
+   * total. The Withdrawal order section also uses it for RRIF income when the
+   * owner is 65 or older. Default 0.
    */
   pensionSplitPercent: number;
   incomeStreams: RetirementIncomeStream[];
+  /**
+   * Settings for the Withdrawal order comparison. Missing on old plans;
+   * normalize fills the defaults. Null money fields mean "use the published
+   * tax-year figure" and are converted from Canadian dollars at comparison time.
+   */
+  withdrawalAssumptions: RetirementWithdrawalAssumptions;
+}
+
+/** Which withdrawal order the year-by-year table is showing. Not a recommendation. */
+export type WithdrawalOrderId =
+  | "rrsp-first"
+  | "tfsa-last"
+  | "non-registered-first"
+  | "meltdown";
+
+export interface RetirementWithdrawalAssumptions {
+  selectedOrder: WithdrawalOrderId;
+  /**
+   * Share of a non-registered withdrawal treated as unrealized capital gain.
+   * 0–1. Cash is not a gain. Default 0.5, a generic assumption.
+   */
+  unrealizedGainShare: number;
+  /**
+   * Taxable fraction of a capital gain. The 2026 inclusion rate used here is 0.5.
+   */
+  capitalGainsInclusionRate: number;
+  /**
+   * Per retired person, in stored plan dollars. Null uses the top of the lowest
+   * federal bracket for the tax year, converted from Canadian dollars.
+   */
+  meltdownTargetIncome: number | null;
+  /**
+   * TFSA deposits allowed per living person per year, in stored plan dollars.
+   * Null uses the TFSA dollar limit, converted from Canadian dollars. This is
+   * not that person's real contribution room.
+   */
+  annualTfsaRoom: number | null;
 }
 
 export interface PersonYearIncome {
@@ -271,6 +309,14 @@ export function createIncomeStream(
   };
 }
 
+export const DEFAULT_WITHDRAWAL_ASSUMPTIONS: RetirementWithdrawalAssumptions = {
+  selectedOrder: "rrsp-first",
+  unrealizedGainShare: 0.5,
+  capitalGainsInclusionRate: 0.5,
+  meltdownTargetIncome: null,
+  annualTfsaRoom: null,
+};
+
 export function createEmptySpouse(): RetirementSpouse {
   return {
     name: "",
@@ -300,6 +346,7 @@ export function createEmptyPlan(name = "New Retire plan"): RetirementPlan {
     annualContribution: 0,
     pensionSplitPercent: 0,
     incomeStreams: [],
+    withdrawalAssumptions: { ...DEFAULT_WITHDRAWAL_ASSUMPTIONS },
     annualLifestyleSpending: 60_000,
     inflationRate: 3,
     priceProjectionScenario: "expected",

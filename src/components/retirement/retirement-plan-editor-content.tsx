@@ -23,6 +23,7 @@ import { RetirementPlanAssetsTable } from "@/components/retirement/retirement-pl
 import { RetirementPlanLevers } from "@/components/retirement/retirement-plan-levers";
 import { RetirementPlanProjectionsChart } from "@/components/retirement/retirement-plan-projections-chart";
 import { RetirementPlanProjectionsTable } from "@/components/retirement/retirement-plan-projections-table";
+import { RetirementWithdrawalOrder } from "@/components/retirement/retirement-withdrawal-order";
 import { RetirementVerdictHero } from "@/components/retirement/retirement-verdict-hero";
 import { Button } from "@/components/ui/button";
 import {
@@ -454,6 +455,14 @@ export function RetirementPlanEditorContent({
             }}
           />
         </div>
+
+        <RetirementWithdrawalOrder
+          plan={workingPlan}
+          currency={currency}
+          rates={rates}
+          currentYear={new Date().getFullYear()}
+          onChange={persistPlan}
+        />
 
         <AddRetirementAssetDialog
           open={addAssetOpen}

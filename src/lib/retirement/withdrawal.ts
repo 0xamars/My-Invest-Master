@@ -4,9 +4,9 @@ import type {
 } from "@/types/retirement";
 
 /**
- * One year of withdrawals. A later tax-aware order (RRSP-first, TFSA-last,
- * meltdown) can replace `applyProRataWithdrawal` without rewriting growth,
- * contributions, or RRIF minimums.
+ * One year of withdrawals. Tax-aware orders in `withdrawal-orders.ts` replace
+ * `applyProRataWithdrawal` without rewriting growth, contributions, or RRIF
+ * minimums. Optional `people` and `year` are ignored by the pro-rata engine.
  */
 export interface WithdrawalAccountInput {
   id: string;
@@ -19,6 +19,18 @@ export interface WithdrawalAccountInput {
   rrifMinimum: number;
 }
 
+export interface WithdrawalPersonInput {
+  id: RetirementPersonId;
+  age: number;
+  retired: boolean;
+  deceased: boolean;
+  cpp: number;
+  oas: number;
+  pension: number;
+  pensionAfterSplit: number;
+  other: number;
+}
+
 export interface WithdrawalYearInput {
   /**
    * Lifestyle spending plus tax, minus non-portfolio income. Zero during
@@ -26,6 +38,13 @@ export interface WithdrawalYearInput {
    */
   spendingGap: number;
   accounts: WithdrawalAccountInput[];
+  /** Calendar year. Ordered engines record their last result for this year. */
+  year?: number;
+  /**
+   * Non-portfolio income for the year. Ordered engines use it to choose which
+   * spouse to draw from. The pro-rata engine ignores it.
+   */
+  people?: WithdrawalPersonInput[];
 }
 
 export interface WithdrawalYearResult {

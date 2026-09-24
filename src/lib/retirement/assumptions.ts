@@ -10,12 +10,12 @@ export const RETIRE_ENGINE_ASSUMPTIONS: readonly string[] = [
   "If the plan starts after the owner has already turned 71, that RRSP is treated as a RRIF from the first year.",
   "A younger spouse's age does not reduce a minimum unless the survivor view has already transferred that account.",
   "RRIF minimums are withdrawn from that account and count toward the spending gap. Any minimum above the gap is reinvested into non-registered or cash accounts, or into a TFSA if that is the only account that can receive it. If neither exists, the surplus leaves the plan and is shown on its own.",
-  "Withdrawals above the RRIF minimum are taken pro-rata from every account that still has a balance. This is not a tax calculation and not a withdrawal order. A later engine can replace this step.",
-  "Tax is not calculated. Each year calls a tax hook that currently returns zero.",
+  "The chart and the year-by-year balance table withdraw anything above the RRIF minimum pro-rata across accounts that still have a balance. The Withdrawal order section replaces that step with four orders.",
+  "The chart and the balance table do not add income tax. The Withdrawal order section estimates federal tax, Ontario tax, and the OAS recovery tax for each order. That estimate is an illustration, not a return.",
   "Household lifestyle spending starts the first year either person reaches their own target age. It is one household number: it is not reduced at death and it is not split into two budgets.",
   "Savings stop when that person reaches their target age. The plan-level savings amount is spread across your accounts until your target age. An account's own annual contribution is added to that account until its owner reaches their target age. Contributions are not inflated.",
   "CPP, OAS, pension, and other income are only the amounts you enter. A stream pays once that person has reached both their target age and the stream's start age. CPP and OAS stop at death. A pension or other stream continues only at the survivor percent you set, which defaults to zero.",
-  "Pension income split assigns up to 50% of pension streams to the other person while both are alive. CPP and OAS are not split. The household total does not change. Tax on the split is not calculated, and RRIF withdrawals are not split in this version.",
+  "Pension income split assigns up to 50% of pension streams to the other person while both are alive. CPP and OAS are not split. The household total does not change. The Withdrawal order section also splits RRIF income with that percent when both people are alive and the owner is 65 or older. RRSP withdrawals are not split.",
   "With a spouse, the projection runs until the later plan-end age. Monte Carlo uses that same household path: 750 draws, normal returns, and the existing fixed volatility by asset type.",
   "In the survivor view, death takes effect at the start of the year that person reaches the age you enter, and that age has to be after their current age. Their accounts transfer to the survivor before growth in every year they are already dead. Later RRIF minimums use the survivor's age at the start of the year. The view does not model a CPP survivor pension, the OAS allowance for the survivor, or a smaller household budget.",
   "Existing assets without an account type migrate to non-registered, or to cash when the holding is already cash. The owner defaults to you. Balances, quantities, and growth rates stay. No income and no retire date are added.",
@@ -23,4 +23,4 @@ export const RETIRE_ENGINE_ASSUMPTIONS: readonly string[] = [
 ];
 
 export const RETIRE_DISCLAIMER =
-  "Educational illustration only. Not financial, tax, or retirement advice. This Retire view does not calculate income tax or choose a withdrawal order between RRSP, TFSA, and non-registered accounts.";
+  "Educational illustration only. Not financial, tax, or retirement advice. The Withdrawal order section estimates federal and Ontario tax from published brackets and the assumptions listed there. It is not a tax return and it is not a recommendation.";

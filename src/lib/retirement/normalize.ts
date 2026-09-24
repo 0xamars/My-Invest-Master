@@ -8,6 +8,7 @@ import {
   isAccountKind,
   retirementAgeFromYear,
   retirementYearFromAges,
+  DEFAULT_WITHDRAWAL_ASSUMPTIONS,
   type RetirementIncomeKind,
   type RetirementIncomeStream,
   type RetirementPersonId,
@@ -15,6 +16,8 @@ import {
   type RetirementPlanAsset,
   type RetirementPlanCurrency,
   type RetirementSpouse,
+  type RetirementWithdrawalAssumptions,
+  type WithdrawalOrderId,
 } from "@/types/retirement";
 import type { AssetType } from "@/types/portfolio";
 
@@ -49,6 +52,47 @@ function normalizeAssetType(value: unknown): AssetType {
   return typeof value === "string" && ASSET_TYPES.has(value as AssetType)
     ? (value as AssetType)
     : "custom";
+}
+
+const WITHDRAWAL_ORDERS = new Set<WithdrawalOrderId>([
+  "rrsp-first",
+  "tfsa-last",
+  "non-registered-first",
+  "meltdown",
+]);
+
+function normalizeWithdrawalOrder(value: unknown): WithdrawalOrderId {
+  return typeof value === "string" && WITHDRAWAL_ORDERS.has(value as WithdrawalOrderId)
+    ? (value as WithdrawalOrderId)
+    : DEFAULT_WITHDRAWAL_ASSUMPTIONS.selectedOrder;
+}
+
+function clampUnit(value: unknown, fallback: number): number {
+  const number = finiteNumber(value, fallback);
+  return Math.min(1, Math.max(0, number));
+}
+
+function optionalNonNegative(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.max(0, value);
+}
+
+function normalizeWithdrawalAssumptions(raw: unknown): RetirementWithdrawalAssumptions {
+  const source = isRecord(raw) ? raw : {};
+  return {
+    selectedOrder: normalizeWithdrawalOrder(source.selectedOrder),
+    unrealizedGainShare: clampUnit(
+      source.unrealizedGainShare,
+      DEFAULT_WITHDRAWAL_ASSUMPTIONS.unrealizedGainShare,
+    ),
+    capitalGainsInclusionRate: clampUnit(
+      source.capitalGainsInclusionRate,
+      DEFAULT_WITHDRAWAL_ASSUMPTIONS.capitalGainsInclusionRate,
+    ),
+    meltdownTargetIncome: optionalNonNegative(source.meltdownTargetIncome),
+    annualTfsaRoom: optionalNonNegative(source.annualTfsaRoom),
+  };
 }
 
 function normalizeIncomeKind(value: unknown): RetirementIncomeKind {
@@ -195,6 +239,7 @@ export function normalizeRetirementPlan(
           .map((stream, index) => normalizeIncomeStream(stream, index))
           .filter((stream): stream is RetirementIncomeStream => stream !== null)
       : [],
+    withdrawalAssumptions: normalizeWithdrawalAssumptions(source.withdrawalAssumptions),
   };
 }
 
