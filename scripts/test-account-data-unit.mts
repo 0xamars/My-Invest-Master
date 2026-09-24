@@ -16,6 +16,11 @@ import {
 } from "../src/lib/account/export.ts";
 import { preferencesCloudWrite } from "../src/lib/account/preferences-write.ts";
 import {
+  PlaidRequestError,
+  plaidItemRemoveAlreadyGone,
+  removePlaidItemForDeletion,
+} from "../src/lib/plaid/client.ts";
+import {
   CLIENT_DELETABLE_USER_TABLES,
   PLAID_ITEM_EXPORT_COLUMNS,
   USER_OWNED_TABLES,
@@ -216,25 +221,130 @@ assert(!("plan" in preferenceWrite), "preference writes do not include plan");
 assert(preferenceWrite.display_currency === "USD", "preference writes still save currency");
 
 const migration = readFileSync(
-  "supabase/migrations/015_lock_user_plan_writes.sql",
+  "supabase/migrations/017_lock_user_plan_writes.sql",
   "utf8",
 );
+const compactMigration = migration.replace(/\s+/g, " ");
 assert(
-  migration.includes(
-    "revoke insert, update on table public.user_preferences from public, anon, authenticated",
+  compactMigration.includes(
+    "revoke insert, update on table public.user_preferences from public, anon, authenticated;",
   ),
   "migration revokes table-level insert and update before column grants",
 );
 assert(
-  migration.includes("grant update (display_currency, updated_at)"),
-  "authenticated users can still update currency",
+  compactMigration.includes(
+    "grant insert (user_id, display_currency, updated_at) on table public.user_preferences to authenticated;",
+  ),
+  "authenticated users can still insert a preferences row without plan",
 );
 assert(
-  migration.includes("grant insert (user_id, display_currency, updated_at)"),
-  "authenticated users can still insert a preferences row without plan",
+  compactMigration.includes(
+    "grant update (user_id, display_currency, updated_at) on table public.user_preferences to authenticated;",
+  ),
+  "UPDATE grant includes user_id so ON CONFLICT DO UPDATE can set it",
 );
 assert(!/grant\s+(insert|update)\s+\([^)]*\bplan\b/.test(migration), "migration does not grant plan writes");
 assert(!migration.toLowerCase().includes("stripe"), "migration does not add payment code");
+
+const updateGrant = migration.match(/grant update \(([^)]+)\)/i);
+const updateColumns = (updateGrant?.[1] ?? "")
+  .split(",")
+  .map((column) => column.trim())
+  .filter(Boolean);
+for (const column of Object.keys(preferenceWrite)) {
+  assert(
+    updateColumns.includes(column),
+    `upsert column ${column} is covered by the UPDATE grant`,
+  );
+}
+
+assert(
+  plaidItemRemoveAlreadyGone(
+    new PlaidRequestError(400, {
+      error_code: "ITEM_NOT_FOUND",
+      error_message: "previously removed via /item/remove",
+    }),
+  ),
+  "ITEM_NOT_FOUND counts as already removed",
+);
+assert(
+  plaidItemRemoveAlreadyGone(
+    new PlaidRequestError(400, {
+      error_code: "INVALID_ACCESS_TOKEN",
+      error_message: "could not find matching access token",
+    }),
+  ),
+  "INVALID_ACCESS_TOKEN counts as an unusable token",
+);
+assert(
+  !plaidItemRemoveAlreadyGone(
+    new PlaidRequestError(400, {
+      error_code: "ITEM_LOGIN_REQUIRED",
+      error_message: "login required",
+    }),
+  ),
+  "a live item error is not treated as success",
+);
+assert(!plaidItemRemoveAlreadyGone(new Error("network")), "a non-Plaid error is not success");
+
+const previousFetch = globalThis.fetch;
+const previousClientId = process.env.PLAID_CLIENT_ID;
+const previousSecret = process.env.PLAID_SECRET;
+const previousEnv = process.env.PLAID_ENV;
+process.env.PLAID_CLIENT_ID = "fixture-client";
+process.env.PLAID_SECRET = "fixture-secret";
+process.env.PLAID_ENV = "sandbox";
+const removeCalls: { url: string; body: string }[] = [];
+globalThis.fetch = async (url, init) => {
+  removeCalls.push({ url: String(url), body: String(init?.body ?? "") });
+  const code = removeCalls.length === 1 ? "ITEM_NOT_FOUND" : "INVALID_ACCESS_TOKEN";
+  return new Response(
+    JSON.stringify({
+      error_code: code,
+      error_message:
+        code === "ITEM_NOT_FOUND"
+          ? "previously removed"
+          : "could not find matching access token",
+    }),
+    { status: 400, headers: { "Content-Type": "application/json" } },
+  );
+};
+let retryDeleteThrew = false;
+try {
+  await removePlaidItemForDeletion("access-sandbox-already-removed");
+  await removePlaidItemForDeletion("access-sandbox-invalid");
+} catch {
+  retryDeleteThrew = true;
+}
+globalThis.fetch = async () =>
+  new Response(
+    JSON.stringify({
+      error_code: "ITEM_LOGIN_REQUIRED",
+      error_message: "login required",
+    }),
+    { status: 400, headers: { "Content-Type": "application/json" } },
+  );
+let liveItemThrew = false;
+try {
+  await removePlaidItemForDeletion("access-sandbox-still-linked");
+} catch {
+  liveItemThrew = true;
+}
+globalThis.fetch = previousFetch;
+if (previousClientId === undefined) delete process.env.PLAID_CLIENT_ID;
+else process.env.PLAID_CLIENT_ID = previousClientId;
+if (previousSecret === undefined) delete process.env.PLAID_SECRET;
+else process.env.PLAID_SECRET = previousSecret;
+if (previousEnv === undefined) delete process.env.PLAID_ENV;
+else process.env.PLAID_ENV = previousEnv;
+
+assert(!retryDeleteThrew, "a retry succeeds when the item is already gone or the token is invalid");
+assert(
+  removeCalls.length === 2 &&
+    removeCalls.every((call) => call.url.endsWith("/item/remove")),
+  "retry still calls /item/remove",
+);
+assert(liveItemThrew, "a still-linked item does not count as removed");
 
 const caps = readFileSync("src/lib/plans/access.ts", "utf8");
 assert(

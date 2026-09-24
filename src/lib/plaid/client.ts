@@ -93,14 +93,31 @@ export async function removePlaidItem(accessToken: string): Promise<void> {
   }
 }
 
-/** Account deletion: /item/remove must succeed (or the item is already gone) before tokens are dropped. */
+/**
+ * /item/remove errors that mean the token is already unusable.
+ * ITEM_NOT_FOUND: previously removed, or the user revoked it.
+ * INVALID_ACCESS_TOKEN: no matching token (already removed or otherwise invalid).
+ * A partial account delete can retry past these instead of staying stuck.
+ */
+const PLAID_ITEM_ALREADY_GONE_CODES = new Set([
+  "ITEM_NOT_FOUND",
+  "INVALID_ACCESS_TOKEN",
+]);
+
+export function plaidItemRemoveAlreadyGone(error: unknown): boolean {
+  return (
+    error instanceof PlaidRequestError &&
+    error.errorCode != null &&
+    PLAID_ITEM_ALREADY_GONE_CODES.has(error.errorCode)
+  );
+}
+
+/** Account deletion: /item/remove must succeed, or the token must already be gone, before rows are dropped. */
 export async function removePlaidItemForDeletion(accessToken: string): Promise<void> {
   try {
     await plaidPost("/item/remove", { access_token: accessToken });
   } catch (error) {
-    if (error instanceof PlaidRequestError && error.errorCode === "ITEM_NOT_FOUND") {
-      return;
-    }
+    if (plaidItemRemoveAlreadyGone(error)) return;
     throw error;
   }
 }

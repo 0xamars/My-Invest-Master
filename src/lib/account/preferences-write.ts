@@ -2,7 +2,8 @@ import type { DisplayCurrency } from "@/types/currency";
 
 /**
  * Columns a signed-in user may write on user_preferences.
- * `plan` is omitted on purpose: migration 015 revokes insert/update on that column.
+ * `plan` is omitted on purpose: migration 017 revokes insert/update on that column.
+ * The keys here are the upsert column list and must stay inside the UPDATE grant.
  */
 export function preferencesCloudWrite(input: {
   userId: string;
