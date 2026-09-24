@@ -1,4 +1,6 @@
-# My Invest Master
+# InvestSalsa
+
+Product direction is in [ROADMAP.md](ROADMAP.md). Read that first and follow its product rules.
 
 A modern, beautiful web app for tracking your investment portfolio and planning your retirement.
 
