@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { uiErrorMessage } from "@/lib/market-data/display-gate";
 import { searchAssetsFromApi } from "@/lib/portfolio/asset-search-client";
 import type { AssetCatalogItem, AssetType } from "@/types/portfolio";
 
@@ -30,9 +31,9 @@ export function useAssetSearch(query: string, type: AssetType, enabled: boolean)
         if (!cancelled) {
           setResults(data);
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
-          setError("Search failed. Please try again.");
+          setError(uiErrorMessage(err, "Search failed. Please try again."));
           setResults([]);
         }
       } finally {

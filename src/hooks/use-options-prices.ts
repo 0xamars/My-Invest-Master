@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { uiErrorMessage } from "@/lib/market-data/display-gate";
 import { fetchPricesFromApi } from "@/lib/portfolio/price-client";
 import type { OptionsPosition } from "@/types/options";
 
@@ -65,8 +66,8 @@ export function useOptionsPrices(positions: OptionsPosition[]) {
         ) {
           setError("Unable to fetch stock prices.");
         }
-      } catch {
-        setError("Unable to fetch stock prices.");
+      } catch (err) {
+        setError(uiErrorMessage(err, "Unable to fetch stock prices."));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);

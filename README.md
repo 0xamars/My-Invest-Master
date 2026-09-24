@@ -56,6 +56,8 @@ Built with Next.js, Supabase, and Tailwind CSS.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
 | `FMP_API_KEY` | Yes | [Financial Modeling Prep](https://financialmodelingprep.com/) API key — quotes, batch quotes, history, news, symbol search, crypto prices, and Analysis fundamentals. Results are cached in the Supabase warehouse |
 | `FMP_API_BASE` | No | Override FMP API base (default `https://financialmodelingprep.com/stable`) |
+| `FMP_DISPLAY_GATE_ENABLED` | No | `1` or `true` limits FMP-backed market data to `FMP_DISPLAY_ALLOWED_EMAILS`. Unset or `0` leaves every surface unchanged |
+| `FMP_DISPLAY_ALLOWED_EMAILS` | No | Comma-separated emails that may see FMP data while the display gate is on. Do not commit a real address |
 | `PLAID_CLIENT_ID` | No | Plaid client id. Budget Connect bank stays disabled until set |
 | `PLAID_SECRET` | No | Plaid secret. Server-only |
 | `PLAID_ENV` | No | `sandbox` (default), `development`, or `production` |
@@ -78,12 +80,16 @@ Apply `supabase/migrations/013_user_plaid_items.sql` before the first bank link.
 
 The app boots without Plaid credentials. Connect bank is visible and disabled until env + service role are set.
 
-Crypto prices, charts, and headlines come from FMP (cached). CoinGecko remains for crypto search and logos, because those responses carry CoinGecko ids the logo route still uses. Set `FMP_API_KEY` in Vercel project settings for production. Apply `supabase/migrations/015_market_cache.sql` so news and symbol search share one warehouse row across users.
+Crypto prices, charts, and headlines come from FMP (cached). CoinGecko remains for crypto search and logos, because those responses carry CoinGecko ids the logo route still uses. Set `FMP_API_KEY` in Vercel project settings for production. Apply `supabase/migrations/015_market_cache.sql` so news and symbol search share one warehouse row. That table has row level security and no anon or authenticated policies, so only the server (service role) reads and writes it. Search and news rows older than 7 days are deleted opportunistically on later writes.
+
+When `FMP_DISPLAY_GATE_ENABLED` is `1`, stock pages, portfolio live prices, the heatmap, market news, stock ticker search, and analysis quote and fundamentals are served only to a signed-in email listed in `FMP_DISPLAY_ALLOWED_EMAILS`. Everyone else sees “Market data is not available on your account yet”, and those API routes return 403. Crypto ticker search stays on CoinGecko and is not part of this gate. Leave the flag unset until you choose to turn the gate on.
 
 Example `.env.local` fragment:
 
 ```bash
 FMP_API_KEY=your_fmp_key_here
+# FMP_DISPLAY_GATE_ENABLED=1
+# FMP_DISPLAY_ALLOWED_EMAILS=allowed@example.com
 ```
 
   Bash

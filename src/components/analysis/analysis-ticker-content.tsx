@@ -23,6 +23,7 @@ import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { buildAnalysisQuoteStats } from "@/lib/analysis/format-stats";
+import { readFailureMessage, uiErrorMessage } from "@/lib/market-data/display-gate";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
 import type { AnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
@@ -78,7 +79,9 @@ async function fetchRatingPayload(params: {
 
   const response = await fetch(`/api/analysis/rating?${search.toString()}`);
   if (!response.ok) {
-    throw new Error("Unable to load analysis rating");
+    throw new Error(
+      await readFailureMessage(response, "Unable to load analysis rating"),
+    );
   }
   const payload = (await response.json()) as Partial<AnalysisRatingPayload> & {
     chart: AnalysisRatingPayload["chart"];
@@ -185,14 +188,16 @@ export function AnalysisTickerContent({
             setError(payload.quote.error);
           }
         }
-      } catch {
+      } catch (err) {
         if (!soft) {
           setQuote(null);
           setRating(null);
           setForecast(null);
           setRecentEvents([]);
           setChartPoints([]);
-          setError("Unable to load analysis data for this ticker.");
+          setError(
+            uiErrorMessage(err, "Unable to load analysis data for this ticker."),
+          );
         }
       } finally {
         setIsLoading(false);

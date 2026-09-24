@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readFailureMessage } from "@/lib/market-data/display-gate";
 import type { HoldingExpandFacts } from "@/lib/portfolio/holding-expand";
 import type { AssetType } from "@/types/portfolio";
 
@@ -42,7 +43,9 @@ export function useHoldingExpand(
     })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error("Could not load holding facts");
+          throw new Error(
+            await readFailureMessage(response, "Could not load holding facts"),
+          );
         }
         return (await response.json()) as HoldingExpandFacts;
       })

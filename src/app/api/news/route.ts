@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import {
   fetchMarketNews,
   fetchNewsForSymbols,
@@ -10,6 +11,13 @@ export async function GET(request: Request) {
   if (limited) return limited;
 
   try {
+    const denied = await fmpDisplayDeniedResponse({
+      stockNews: [],
+      cryptoNews: [],
+      fetchedAt: new Date().toISOString(),
+    });
+    if (denied) return denied;
+
     const { searchParams } = new URL(request.url);
     const symbols = searchParams
       .get("symbols")

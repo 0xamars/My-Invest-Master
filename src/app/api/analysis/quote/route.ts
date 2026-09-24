@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchAnalysisQuote } from "@/lib/analysis/quote";
 import { parseAnalysisAssetType } from "@/lib/analysis/types";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
 export async function GET(request: Request) {
@@ -20,6 +21,26 @@ export async function GET(request: Request) {
         { status: 400 },
       );
     }
+
+    const denied = await fmpDisplayDeniedResponse({
+      symbol: symbol.toUpperCase(),
+      name: name?.trim() || symbol.toUpperCase(),
+      type,
+      priceId,
+      price: null,
+      change: null,
+      changePercent: null,
+      marketCap: null,
+      volume: null,
+      averageVolume: null,
+      dayLow: null,
+      dayHigh: null,
+      week52Low: null,
+      week52High: null,
+      currency: "USD",
+      fetchedAt: new Date().toISOString(),
+    });
+    if (denied) return denied;
 
     const quote = await fetchAnalysisQuote({
       symbol,

@@ -1,3 +1,4 @@
+import { readFailureMessage } from "@/lib/market-data/display-gate";
 import type { AssetCatalogItem, AssetType } from "@/types/portfolio";
 
 export async function searchAssetsFromApi(
@@ -8,7 +9,7 @@ export async function searchAssetsFromApi(
   const response = await fetch(`/api/assets/search?${params.toString()}`);
 
   if (!response.ok) {
-    throw new Error("Failed to search assets");
+    throw new Error(await readFailureMessage(response, "Failed to search assets"));
   }
 
   const data = (await response.json()) as { results: AssetCatalogItem[] };

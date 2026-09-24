@@ -5,6 +5,7 @@ import { TickerReadView } from "@/components/ticker/ticker-read-view";
 import { TickerSkeleton } from "@/components/ticker/ticker-skeleton";
 import { TickerLookup } from "@/components/ticker/ticker-lookup";
 import { INVEST_PATH } from "@/lib/chrome/nav";
+import { readFailureMessage, uiErrorMessage } from "@/lib/market-data/display-gate";
 import type { TickerSnapshot } from "@/lib/ticker/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,12 @@ export function TickerReadScreen({
     void fetch(`/api/analysis/ticker?symbol=${encodeURIComponent(symbol)}`)
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error("Unable to load ticker");
+          throw new Error(
+            await readFailureMessage(
+              response,
+              "Unable to load this ticker from Financial Modeling Prep.",
+            ),
+          );
         }
         return (await response.json()) as TickerSnapshot;
       })
@@ -44,9 +50,14 @@ export function TickerReadScreen({
           setError(null);
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (!cancelled) {
-          setError("Unable to load this ticker from Financial Modeling Prep.");
+          setError(
+            uiErrorMessage(
+              err,
+              "Unable to load this ticker from Financial Modeling Prep.",
+            ),
+          );
         }
       })
       .finally(() => {

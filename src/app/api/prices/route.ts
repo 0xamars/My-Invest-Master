@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { fetchAssetPrices } from "@/lib/portfolio/prices";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 import type { PriceRequestAsset } from "@/types/portfolio";
@@ -15,6 +16,19 @@ export async function POST(request: Request) {
         { error: "No assets provided" },
         { status: 400 },
       );
+    }
+
+    const asksForLivePrice = body.assets.some(
+      (asset) => asset?.type === "stock" || asset?.type === "crypto",
+    );
+    if (asksForLivePrice) {
+      const denied = await fmpDisplayDeniedResponse({
+        prices: {},
+        changes: {},
+        errors: {},
+        fetchedAt: new Date().toISOString(),
+      });
+      if (denied) return denied;
     }
 
     const result = await fetchAssetPrices(body.assets);

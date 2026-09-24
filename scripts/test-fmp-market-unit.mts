@@ -42,6 +42,22 @@ assert(toFmpCryptoSymbol("BTC-USD") === "BTCUSD", "dashed crypto pair compacts")
 assert(toFmpCryptoSymbol("BTCUSD") === "BTCUSD", "FMP crypto pair is idempotent");
 assert(toFmpCryptoSymbol("BTCUSDT") === "BTCUSD", "USDT quote maps to the USD pair");
 assert(toFmpCryptoSymbol("usdt") === "USDTUSD", "stablecoin ticker still gets USD");
+assert(toFmpCryptoSymbol("PYUSD") === "PYUSDUSD", "PYUSD is not already an FMP pair");
+assert(toFmpCryptoSymbol("tusd") === "TUSDUSD", "TUSD becomes TUSDUSD");
+assert(toFmpCryptoSymbol("FDUSD") === "FDUSDUSD", "FDUSD becomes FDUSDUSD");
+assert(toFmpCryptoSymbol("BUSD") === "BUSDUSD", "BUSD becomes BUSDUSD");
+assert(toFmpCryptoSymbol("PYUSDUSD") === "PYUSDUSD", "resolved stablecoin pair stays put");
+assert(
+  toFmpCryptoSymbol(toFmpCryptoSymbol("PYUSD")) === "PYUSDUSD",
+  "stablecoin resolve is idempotent",
+);
+assert(toFmpCryptoSymbol("ETHUSD") === "ETHUSD", "ETHUSD is already an FMP pair");
+assert(
+  toFmpCryptoSymbol(toFmpCryptoSymbol("eth")) === "ETHUSD",
+  "a second crypto resolve does not append USD again",
+);
+assert(toFmpCryptoSymbol("BTC-USDT") === "BTCUSD", "dashed USDT pair compacts to USD");
+assert(toFmpCryptoSymbol("BTC/USD") === "BTCUSD", "slashed pair is already a pair");
 assert(toEquityHistorySymbol("brk.b") === "BRK.B", "history key keeps the package form");
 
 assert(

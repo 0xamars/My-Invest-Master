@@ -3,6 +3,8 @@ import { after } from "next/server";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { TickerLookup } from "@/components/ticker/ticker-lookup";
 import { TickerReadScreen } from "@/components/ticker/ticker-read-screen";
+import { FMP_DISPLAY_UNAVAILABLE } from "@/lib/market-data/display-gate";
+import { isFmpDisplayAllowed } from "@/lib/market-data/display-gate-server";
 import {
   getTickerSnapshot,
   peekTickerSnapshot,
@@ -41,6 +43,17 @@ export default async function AnalysisTickerPage({
           </p>
           <TickerLookup />
         </div>
+      </RequireAuth>
+    );
+  }
+
+  if (!(await isFmpDisplayAllowed())) {
+    return (
+      <RequireAuth
+        title="Sign in to open a ticker"
+        description="Public-stock reads are tied to your account."
+      >
+        <p className="text-sm text-muted-foreground">{FMP_DISPLAY_UNAVAILABLE}</p>
       </RequireAuth>
     );
   }
