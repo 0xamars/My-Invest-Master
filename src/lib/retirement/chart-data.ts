@@ -193,7 +193,7 @@ export function buildProjectionChartConfig(
         },
         portfolioWithdrawal: {
           label: "Portfolio withdrawal",
-          color: "var(--brand-red)",
+          color: "var(--chart-negative)",
         },
       };
     case "net-change":
@@ -220,11 +220,11 @@ export function buildProjectionChartConfig(
 }
 
 export const PROJECTION_RETIREMENT_LINE_COLOR = BRAND_ORANGE;
-export const PROJECTION_DEPLETION_LINE_COLOR = "var(--brand-red)";
-export const PROJECTION_PRIMARY_LINE = BRAND_GREEN;
+export const PROJECTION_DEPLETION_LINE_COLOR = "var(--chart-negative)";
+export const PROJECTION_PRIMARY_LINE = "var(--chart-positive)";
 export const PROJECTION_SECONDARY_LINE = BRAND_ORANGE;
-export const PROJECTION_POSITIVE = BRAND_GREEN;
-export const PROJECTION_NEGATIVE = BRAND_ORANGE;
+export const PROJECTION_POSITIVE = "var(--chart-positive)";
+export const PROJECTION_NEGATIVE = "var(--chart-negative)";
 export const PROJECTION_ACCENT_DEEP = BRAND_GREEN_DEEP;
 
 /** First year the portfolio closing balance reaches zero (within projections). */

@@ -7,11 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    system-ui, "Segoe UI", sans-serif;
-  --font-mono: var(--font-geist-mono);
-  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display",
-    system-ui, "Segoe UI", sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -50,9 +48,8 @@
   --radius-4xl: calc(var(--radius) * 2);
 }
 
-:root,
-.dark {
-  /* InvestSalsa mark — sampled from the locked logo board. */
+:root {
+  /* Independent of .dark. next-themes removes that class in Light. */
   --brand-charcoal: #0b0c0e;
   --brand-surface: #141518;
   --brand-surface-2: #1a1b1f;
@@ -72,6 +69,24 @@
   --brand-ember: var(--brand-orange);
   --brand-smoke: var(--brand-muted);
   --brand-lime: var(--brand-green);
+  --radius: 0.7rem;
+  --type-display: 2.5rem;
+  --type-h1: 1.875rem;
+  --type-h2: 1.5rem;
+  --type-body: 1rem;
+  --type-small: 0.875rem;
+  --type-eyebrow: 0.75rem;
+}
+
+:root,
+.dark {
+  /* Text on dark surfaces. Footer and eyebrows stay above 4.5:1. */
+  --fg-muted: #9a9da6;
+  --fg-footer: #85888f;
+  --fg-eyebrow: #9a9da6;
+  --fg-danger: #e5484d;
+  --brand-green-text: #64b860;
+  --brand-orange-text: #f28c33;
   --background: #0b0c0e;
   --foreground: #f2f3f5;
   --card: #141518;
@@ -92,10 +107,9 @@
   --ring: color-mix(in srgb, #64b860 50%, transparent);
   --chart-1: #64b860;
   --chart-2: #f28c33;
-  --chart-3: #e5484d;
+  --chart-3: #4c8ed6;
   --chart-4: #8b8e97;
   --chart-5: #4d9a4a;
-  --radius: 0.7rem;
   --sidebar: #141518;
   --sidebar-foreground: #8b8e97;
   --sidebar-primary: #64b860;
@@ -112,24 +126,29 @@
   --chart-slice-stroke: #0b0c0e;
   --chart-positive: #64b860;
   --chart-negative: #e5484d;
+  --chart-neutral: #8b8e97;
   --chart-cost: #8b8e97;
   --chart-current: #64b860;
   --chart-type-stock: #64b860;
   --chart-type-crypto: #f28c33;
   --chart-type-cash: #8b8e97;
-  --chart-type-custom: #e5484d;
+  --chart-type-custom: #7d8cc4;
+  --chart-account-rrsp: #4c8ed6;
+  --chart-account-tfsa: #3aaa84;
+  --chart-account-non-registered: #e0a04a;
+  --chart-account-cash: #8b8e97;
   --chart-series-1: #64b860;
-  --chart-series-2: #f28c33;
-  --chart-series-3: #e5484d;
+  --chart-series-2: #4c8ed6;
+  --chart-series-3: #f28c33;
   --chart-series-4: #8b8e97;
   --chart-series-5: #4d9a4a;
-  --chart-series-6: #c46a38;
-  --chart-series-7: #8b8e97;
-  --chart-series-8: #f28c33;
-  --chart-series-9: #64b860;
-  --chart-series-10: #e5484d;
+  --chart-series-6: #c48a3a;
+  --chart-series-7: #7d8cc4;
+  --chart-series-8: #d4a24a;
+  --chart-series-9: #3aaa84;
+  --chart-series-10: #6a8fbf;
   --chart-series-11: #8b8e97;
-  --chart-series-12: #f28c33;
+  --chart-series-12: #5aa0b4;
 }
 
 .light {
@@ -148,14 +167,21 @@
   --accent: #ececee;
   --accent-foreground: #121212;
   --destructive: #e5484d;
+  --fg-muted: #3c3f46;
+  --fg-footer: #5c5f69;
+  --fg-eyebrow: #454850;
+  --fg-danger: #b42318;
+  --brand-green-text: #3e723c;
+  --brand-orange-text: #8f5418;
+  --brand-green-deep: #4d9a4a;
   --border: rgb(18 18 18 / 10%);
   --input: #e4e4e7;
   --ring: color-mix(in srgb, #64b860 55%, transparent);
-  --chart-1: #64b860;
-  --chart-2: #f28c33;
-  --chart-3: #e5484d;
+  --chart-1: #3e8a3c;
+  --chart-2: #d67a22;
+  --chart-3: #2f6ea8;
   --chart-4: #5c5f69;
-  --chart-5: #4d9a4a;
+  --chart-5: #2f7a32;
   --sidebar: #ffffff;
   --sidebar-foreground: #5c5f69;
   --sidebar-primary: #64b860;
@@ -170,26 +196,31 @@
   --chart-axis: #5c5f69;
   --chart-grid: color-mix(in srgb, #121212 8%, transparent);
   --chart-slice-stroke: #ffffff;
-  --chart-positive: #64b860;
-  --chart-negative: #e5484d;
+  --chart-positive: #2f6b34;
+  --chart-negative: #c4363a;
+  --chart-neutral: #5c5f69;
   --chart-cost: #5c5f69;
-  --chart-current: #64b860;
-  --chart-type-stock: #64b860;
-  --chart-type-crypto: #f28c33;
+  --chart-current: #2f6b34;
+  --chart-type-stock: #3e8a3c;
+  --chart-type-crypto: #d67a22;
   --chart-type-cash: #5c5f69;
-  --chart-type-custom: #e5484d;
-  --chart-series-1: #64b860;
-  --chart-series-2: #f28c33;
-  --chart-series-3: #e5484d;
+  --chart-type-custom: #5c6aa3;
+  --chart-account-rrsp: #2f6ea8;
+  --chart-account-tfsa: #1f7a5c;
+  --chart-account-non-registered: #b5741e;
+  --chart-account-cash: #5c5f69;
+  --chart-series-1: #3e8a3c;
+  --chart-series-2: #2f6ea8;
+  --chart-series-3: #d67a22;
   --chart-series-4: #5c5f69;
-  --chart-series-5: #4d9a4a;
-  --chart-series-6: #c46a38;
-  --chart-series-7: #5c5f69;
-  --chart-series-8: #f28c33;
-  --chart-series-9: #64b860;
-  --chart-series-10: #e5484d;
+  --chart-series-5: #2f7a32;
+  --chart-series-6: #a86a28;
+  --chart-series-7: #5c6aa3;
+  --chart-series-8: #b8862a;
+  --chart-series-9: #1f7a5c;
+  --chart-series-10: #4d739e;
   --chart-series-11: #5c5f69;
-  --chart-series-12: #f28c33;
+  --chart-series-12: #3d8498;
 }
 
 @layer base {
@@ -208,11 +239,81 @@
 
   body {
     @apply bg-background font-sans text-foreground antialiased;
-    letter-spacing: -0.018em;
+    letter-spacing: -0.011em;
+  }
+
+  /* Body tracking is slightly tight. Below 14px, keep it at zero so tables stay readable. */
+  :where(
+    .text-xs,
+    .type-small,
+    .type-eyebrow,
+    .stat-label,
+    .page-description,
+    .text-\[10px\],
+    .text-\[11px\],
+    .text-\[0\.65rem\],
+    .text-\[0\.6875rem\],
+    .text-\[0\.7rem\],
+    .text-\[0\.8125rem\]
+  ) {
+    letter-spacing: 0;
+  }
+
+  table {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @layer utilities {
+  .type-display {
+    font-family: var(--font-heading);
+    font-size: var(--type-display);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+  }
+
+  @media (min-width: 40rem) {
+    .type-display {
+      font-size: 3.75rem;
+    }
+  }
+
+  .type-h1 {
+    font-family: var(--font-heading);
+    font-size: var(--type-h1);
+    font-weight: 600;
+    letter-spacing: -0.028em;
+    line-height: 1.15;
+  }
+
+  .type-h2 {
+    font-family: var(--font-heading);
+    font-size: var(--type-h2);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .type-body {
+    font-size: var(--type-body);
+    line-height: 1.6;
+  }
+
+  .type-small {
+    font-size: var(--type-small);
+    line-height: 1.5;
+    letter-spacing: 0;
+  }
+
+  .type-eyebrow {
+    font-size: var(--type-eyebrow);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
   .page-shell {
     @apply mx-auto flex w-full max-w-[1400px] flex-1 flex-col;
   }
@@ -222,12 +323,18 @@
   }
 
   .page-title {
-    @apply text-[1.5rem] font-semibold tracking-tight text-foreground;
+    font-family: var(--font-heading);
+    font-size: var(--type-h2);
+    font-weight: 600;
     letter-spacing: -0.032em;
+    line-height: 1.25;
+    color: var(--foreground);
   }
 
   .page-description {
-    @apply mt-1 max-w-xl text-[0.8125rem] leading-relaxed text-muted-foreground;
+    @apply mt-1 max-w-xl leading-relaxed text-muted-foreground;
+    font-size: var(--type-small);
+    letter-spacing: 0;
   }
 
   /* Solid desk surfaces — no blur, frost, or specular rims. */
@@ -286,12 +393,22 @@
   }
 
   .stat-label {
-    @apply text-[0.6875rem] font-medium uppercase tracking-[0.08em] text-muted-foreground;
+    font-size: var(--type-eyebrow);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
   }
 
   .stat-value {
-    @apply text-[1.5rem] font-semibold tabular-nums tracking-tight text-foreground;
+    font-family: var(--font-heading);
+    font-size: var(--type-h2);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.028em;
+    line-height: 1.2;
+    color: var(--foreground);
   }
 
   .stat-sub {
@@ -329,19 +446,17 @@
     background-color: var(--card);
   }
 
-  .brand-wordmark,
-  .brand-text-invest,
+  .brand-wordmark {
+    background-image: none;
+    color: inherit;
+  }
+
+  .brand-text-invest {
+    color: var(--brand-green-text);
+  }
+
   .brand-text-salsa {
-    background-image: linear-gradient(
-      90deg,
-      #64b860 0%,
-      #b4c44e 42%,
-      #f28c33 72%,
-      #d6452a 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--brand-orange-text);
   }
 
   .premium-empty {
@@ -353,7 +468,9 @@
   }
 
   .desk-table thead th {
-    @apply py-2.5 pr-3 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground;
+    @apply py-2.5 pr-3 font-semibold uppercase text-muted-foreground;
+    font-size: var(--type-eyebrow);
+    letter-spacing: 0.07em;
   }
 
   .desk-table tbody tr {
@@ -375,7 +492,9 @@
   }
 
   .segmented-item {
-    @apply rounded-md px-3.5 py-1.5 text-[0.8125rem] font-medium text-muted-foreground transition-colors;
+    @apply rounded-md px-3.5 py-1.5 font-medium text-muted-foreground transition-colors;
+    font-size: var(--type-small);
+    letter-spacing: 0;
   }
 
   .segmented-item:hover {
@@ -397,7 +516,8 @@
   }
 
   .nav-item {
-    @apply rounded-lg text-[0.9375rem] font-medium text-muted-foreground;
+    @apply rounded-lg font-medium text-muted-foreground;
+    font-size: var(--type-body);
     transition:
       background-color 150ms ease,
       color 150ms ease;
@@ -419,7 +539,9 @@
   }
 
   .nav-category-label {
-    @apply flex items-center gap-2.5 text-[0.8125rem] font-semibold tracking-tight text-foreground/85;
+    @apply flex items-center gap-2.5 font-semibold text-foreground/85;
+    font-size: var(--type-small);
+    letter-spacing: 0;
   }
 
   .nav-category-icon {
@@ -475,7 +597,9 @@
   }
 
   .category-soon-badge {
-    @apply inline-flex rounded-full border border-border/70 bg-muted/40 px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground;
+    @apply inline-flex rounded-full border border-border/70 bg-muted/40 px-2.5 py-0.5 font-semibold uppercase text-muted-foreground;
+    font-size: var(--type-eyebrow);
+    letter-spacing: 0.08em;
   }
 
   .category-coming-soon {
@@ -503,7 +627,8 @@
   }
 
   .nav-item-nested {
-    @apply text-[0.8125rem];
+    font-size: var(--type-small);
+    letter-spacing: 0;
   }
 
   .table-shell,

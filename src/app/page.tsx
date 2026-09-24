@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RefreshCw } from "lucide-react";
 import { RootHomeContent } from "@/components/home/root-home-content";
+import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/brand/assets";
 
 export const metadata: Metadata = {
-  title: "InvestSalsa — Freedom, Engineered.",
-  description:
-    "Budget, Invest, and Retire. Ready to Assign leftover that carries, a register, and CSV import. Portfolio checkup for concentration and mix, plus a Retire plan with target, on-track verdict, and what-ifs. Not investment advice.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
 };
 
 function HomeLoading() {

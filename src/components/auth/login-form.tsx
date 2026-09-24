@@ -62,14 +62,14 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
-        <p className="text-sm text-white/60">
+        <h1 className="type-h1">Sign in</h1>
+        <p className="type-small text-[var(--fg-muted)]">
           Email and password. After you sign in you land on Home. Budget, Invest, and Retire are in the nav.
         </p>
       </div>
 
       {!isConfigured ? (
-        <p className="text-sm text-white/55">
+        <p className="type-small text-[var(--fg-muted)]">
           Cloud auth is not configured. Add Supabase credentials to{" "}
           <code className="text-xs">.env.local</code>.
         </p>
@@ -84,7 +84,7 @@ export function LoginForm() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="h-11 text-white"
+              className="h-11 text-foreground"
             />
           </div>
           <div className="space-y-2">
@@ -97,21 +97,21 @@ export function LoginForm() {
               onChange={(event) => setPassword(event.target.value)}
               required
               minLength={6}
-              className="h-11 text-white"
+              className="h-11 text-foreground"
             />
           </div>
 
           {confirmEmailNotice && !error ? (
-            <p className="text-sm text-white/70" role="status">
+            <p className="type-small text-[var(--fg-muted)]" role="status">
               {CHECK_YOUR_EMAIL_MESSAGE}
             </p>
           ) : null}
           {error ? (
-            <p className="text-sm text-red-300" role="alert">
+            <p className="type-small text-[var(--fg-danger)]" role="alert">
               {error}
             </p>
           ) : null}
-          {message ? <p className="text-sm text-white/70">{message}</p> : null}
+          {message ? <p className="type-small text-[var(--fg-muted)]">{message}</p> : null}
 
           <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -129,10 +129,10 @@ export function LoginForm() {
         </form>
       )}
 
-      <p className="text-sm text-white/50">
+      <p className="type-small text-[var(--fg-muted)]">
         Need an account?{" "}
-        <Link href={SIGNUP_PATH} className="text-primary hover:underline">
-          Start
+        <Link href={SIGNUP_PATH} className="text-[var(--brand-green-text)] hover:underline">
+          Create account
         </Link>
       </p>
     </div>

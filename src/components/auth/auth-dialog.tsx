@@ -149,7 +149,7 @@ export function AuthDialog({
                 }}
               >
                 {mode === "sign-in"
-                  ? "Need an account? Sign up"
+                  ? "Need an account? Create account"
                   : "Already have an account? Sign in"}
               </Button>
             </div>

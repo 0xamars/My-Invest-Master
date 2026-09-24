@@ -7,10 +7,21 @@ export function getChartSeriesColor(index: number): string {
 
 /** Golden-angle stepping for additional hues beyond the base series palette. */
 const GOLDEN_ANGLE = 137.508;
+/** OKLCH hue of brand / destructive red (#e5484d). Series hues stay outside this wedge. */
+const DESTRUCTIVE_RED_HUE = 25;
+const DESTRUCTIVE_RED_HALF_SPAN = 18;
+
+function seriesHue(hue: number): number {
+  const wrapped = ((hue % 360) + 360) % 360;
+  const delta = Math.abs(((wrapped - DESTRUCTIVE_RED_HUE + 540) % 360) - 180);
+  if (delta >= DESTRUCTIVE_RED_HALF_SPAN) return wrapped;
+  return (wrapped + DESTRUCTIVE_RED_HALF_SPAN * 2) % 360;
+}
 
 /**
  * Distinct series colors for projection charts — theme-aware for the first 12 assets,
- * then evenly spaced OKLCH hues for additional assets.
+ * then evenly spaced OKLCH hues for additional assets. The 12 series tokens and the
+ * extension both stay off brand red and destructive red.
  */
 export function getProjectionSeriesColor(index: number): string {
   if (index < CHART_SERIES_COUNT) {
@@ -19,7 +30,7 @@ export function getProjectionSeriesColor(index: number): string {
 
   const extension = index - CHART_SERIES_COUNT;
   const band = Math.floor(extension / CHART_SERIES_COUNT);
-  const hue = (GOLDEN_ANGLE * (index + 1)) % 360;
+  const hue = seriesHue(GOLDEN_ANGLE * (index + 1));
   const lightness = band % 2 === 0 ? 0.66 : 0.58;
   const chroma = 0.1 + (extension % 4) * 0.012;
 
@@ -43,6 +54,23 @@ export function getProjectionAssetColor(
   assets: Array<{ id: string; symbol: string }>,
 ): string {
   return getProjectionSeriesColor(getProjectionAssetColorIndex(assetId, assets));
+}
+
+/** One colour per Retire account kind. RRIF shares the RRSP token. */
+export function accountKindChartColor(kind: string | null | undefined): string {
+  switch (kind) {
+    case "rrsp":
+    case "rrif":
+      return "var(--chart-account-rrsp)";
+    case "tfsa":
+      return "var(--chart-account-tfsa)";
+    case "cash":
+      return "var(--chart-account-cash)";
+    case "non_registered":
+      return "var(--chart-account-non-registered)";
+    default:
+      return "var(--chart-neutral)";
+  }
 }
 
 export const CHART_POSITIVE_COLOR = "var(--chart-positive)";

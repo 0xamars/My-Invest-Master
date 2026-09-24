@@ -1,8 +1,14 @@
-import Image from "next/image";
-import Link from "next/link";
-import { BrandLogo } from "@/components/layout/brand-logo";
-import { BRAND, BRAND_SIZE } from "@/lib/brand/assets";
-import { LOGIN_PATH, PRIVACY_PATH, SIGNUP_PATH, TERMS_PATH } from "@/lib/routes";
+import { BrandWordmark, SalsaMark } from "@/components/layout/brand-logo";
+import { PublicFooter, PublicHeader } from "@/components/layout/public-chrome";
+
+function AuthPanelMark() {
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <SalsaMark className="size-28" size={112} priority />
+      <BrandWordmark className="type-h1" />
+    </div>
+  );
+}
 
 export function AuthPageShell({
   children,
@@ -12,69 +18,22 @@ export function AuthPageShell({
   eyebrow?: string;
 }) {
   return (
-    <div className="marketing-home relative min-h-svh overflow-x-hidden bg-background text-foreground lg:grid lg:grid-cols-[minmax(16rem,28rem)_minmax(0,1fr)]">
-      <div className="relative hidden min-h-svh overflow-hidden bg-card lg:block">
-        <Image
-          src={BRAND.authPanel}
-          alt=""
-          width={BRAND_SIZE.authPanel.width}
-          height={BRAND_SIZE.authPanel.height}
-          priority
-          sizes="28rem"
-          className="h-full w-full object-cover"
-        />
+    <div className="marketing-home relative min-h-svh bg-background text-foreground lg:grid lg:grid-cols-[minmax(16rem,28rem)_minmax(0,1fr)]">
+      <div className="relative hidden min-h-svh items-center justify-center bg-card lg:flex">
+        <AuthPanelMark />
       </div>
 
       <div className="relative flex min-h-svh flex-col">
-        <header className="portal-header sticky top-0 z-20">
-          <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-6 sm:h-16">
-            <BrandLogo variant="lockup" asLink priority />
-            <Link
-              href={LOGIN_PATH}
-              className="inline-flex h-11 items-center rounded-[var(--radius)] border border-border bg-muted px-4 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
-            >
-              Sign in
-            </Link>
-          </div>
-        </header>
+        <PublicHeader innerClassName="max-w-lg" />
 
-        <div className="relative z-10 mx-6 mt-6 h-40 overflow-hidden rounded-[var(--radius)] border border-border bg-card lg:hidden">
-          <Image
-            src={BRAND.authPanel}
-            alt=""
-            width={BRAND_SIZE.authPanel.width}
-            height={BRAND_SIZE.authPanel.height}
-            priority
-            sizes="100vw"
-            className="h-full w-full object-cover"
-          />
-        </div>
-
-        <main className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col px-6 py-12">
+        <main className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col px-6 py-8 sm:py-12">
           <div className="surface-card px-6 py-8 sm:px-8">
-            {eyebrow ? (
-              <p className="mb-3 text-sm text-white/45">{eyebrow}</p>
-            ) : null}
+            {eyebrow ? <p className="type-eyebrow mb-3 text-[var(--fg-eyebrow)]">{eyebrow}</p> : null}
             {children}
           </div>
         </main>
 
-        <footer className="relative z-10 py-6">
-          <div className="mx-auto flex max-w-lg flex-wrap items-center justify-between gap-3 px-6 text-xs text-white/35">
-            <p>Not investment advice.</p>
-            <div className="flex gap-5">
-              <Link href={SIGNUP_PATH} className="hover:text-white/70">
-                Start
-              </Link>
-              <Link href={TERMS_PATH} className="hover:text-white/70">
-                Terms
-              </Link>
-              <Link href={PRIVACY_PATH} className="hover:text-white/70">
-                Privacy
-              </Link>
-            </div>
-          </div>
-        </footer>
+        <PublicFooter innerClassName="max-w-lg" />
       </div>
     </div>
   );

@@ -42,18 +42,18 @@ export function SignupForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Create your account</h1>
-        <p className="text-sm text-white/60">
+        <h1 className="type-h1">Create your account</h1>
+        <p className="type-small text-[var(--fg-muted)]">
           Budget, Invest, and Retire are included. Not investment advice.
         </p>
       </div>
 
       {needsEmailConfirmation ? (
         <div className="space-y-4" data-signup-state="check-email">
-          <h2 className="text-xl font-semibold tracking-tight">Check your email</h2>
-          <p className="text-sm text-white/70">{CHECK_YOUR_EMAIL_MESSAGE}</p>
-          <p className="text-sm text-white/70">
-            We sent the link to <span className="text-white">{email}</span>.
+          <h2 className="type-h2">Check your email</h2>
+          <p className="type-small text-[var(--fg-muted)]">{CHECK_YOUR_EMAIL_MESSAGE}</p>
+          <p className="type-small text-[var(--fg-muted)]">
+            We sent the link to <span className="text-foreground">{email}</span>.
           </p>
           <Button
             render={<Link href={`${LOGIN_PATH}?notice=confirm-email`} />}
@@ -63,7 +63,7 @@ export function SignupForm() {
           </Button>
         </div>
       ) : !isConfigured ? (
-        <p className="text-sm text-white/55">
+        <p className="type-small text-[var(--fg-muted)]">
           Cloud auth is not configured. Add Supabase credentials to{" "}
           <code className="text-xs">.env.local</code>.
         </p>
@@ -78,7 +78,7 @@ export function SignupForm() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="h-11 text-white"
+              className="h-11 text-foreground"
             />
           </div>
           <div className="space-y-2">
@@ -91,11 +91,11 @@ export function SignupForm() {
               onChange={(event) => setPassword(event.target.value)}
               required
               minLength={6}
-              className="h-11 text-white"
+              className="h-11 text-foreground"
             />
           </div>
 
-          {error ? <p className="text-sm text-red-300">{error}</p> : null}
+          {error ? <p className="type-small text-[var(--fg-danger)]">{error}</p> : null}
 
           <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -104,19 +104,19 @@ export function SignupForm() {
         </form>
       )}
 
-      <p className="text-sm text-white/50">
+      <p className="type-small text-[var(--fg-muted)]">
         Already have an account?{" "}
-        <Link href={LOGIN_PATH} className="text-primary hover:underline">
+        <Link href={LOGIN_PATH} className="text-[var(--brand-green-text)] hover:underline">
           Sign in
         </Link>
       </p>
-      <p className="text-xs text-white/40">
+      <p className="type-small text-[var(--fg-footer)]">
         By creating an account you agree to the{" "}
-        <Link href={TERMS_PATH} className="hover:text-white/70">
+        <Link href={TERMS_PATH} className="hover:text-foreground">
           Terms
         </Link>{" "}
         and{" "}
-        <Link href={PRIVACY_PATH} className="hover:text-white/70">
+        <Link href={PRIVACY_PATH} className="hover:text-foreground">
           Privacy
         </Link>{" "}
         pages. This is not investment advice.

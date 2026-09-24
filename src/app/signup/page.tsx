@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function SignupPage() {
   return (
-    <AuthPageShell eyebrow="Start">
+    <AuthPageShell>
       <SignupForm />
     </AuthPageShell>
   );

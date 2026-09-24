@@ -47,7 +47,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     pathname === AUTH_RESET_PATH ||
     pathname.startsWith(`${AUTH_RESET_PATH}/`);
   const isMarketingPublic = pathname === "/";
-  const isPublicChrome = isAuthPublic || isMarketingPublic;
+  const isLegalPublic = pathname === PRIVACY_PATH || pathname === TERMS_PATH;
+  const isPublicChrome = isAuthPublic || isMarketingPublic || isLegalPublic;
 
   if (isPublicChrome) {
     return (

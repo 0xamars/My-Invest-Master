@@ -307,7 +307,7 @@ export function RetirementPlanProjectionsChart({
         <p className="text-sm text-muted-foreground">
           {projections.length} years projected · {assets.length} assets
           {depletionYear !== null && (
-            <span className="ml-2 text-xs text-[var(--brand-red)]">
+            <span className="ml-2 text-xs text-[var(--chart-negative)]">
               Depletes {depletionYear}
             </span>
           )}
@@ -383,7 +383,7 @@ export function RetirementPlanProjectionsChart({
 
               {view === "composition" &&
                 compositionAssets.map((asset) => {
-                  const color = getProjectionAssetColor(asset.id, assets);
+                  const color = getProjectionAssetColor(asset.id, compositionAssets);
                   return (
                     <linearGradient
                       key={asset.id}
@@ -620,7 +620,7 @@ export function RetirementPlanProjectionsChart({
             {view === "composition" &&
               compositionAssets.map((asset) => {
                 const key = `asset_${asset.id}`;
-                const color = getProjectionAssetColor(asset.id, assets);
+                const color = getProjectionAssetColor(asset.id, compositionAssets);
                 return (
                   <Area
                     key={key}

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { MarketingHomeLink } from "@/components/layout/marketing-home-link";
 import { BRAND } from "@/lib/brand/assets";
 import { cn } from "@/lib/utils";
@@ -25,16 +24,16 @@ export function SalsaMark({
   priority?: boolean;
 }) {
   return (
-    <Image
+    // next/image rejects SVG sources. The mark is a few-KB transparent file.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={ICON}
       alt=""
       width={size}
       height={size}
-      priority={priority}
-      className={cn(
-        "brand-logo-icon size-8 shrink-0 object-contain",
-        className,
-      )}
+      decoding="async"
+      fetchPriority={priority ? "high" : "auto"}
+      className={cn("brand-logo-icon size-8 shrink-0 object-contain", className)}
     />
   );
 }
@@ -52,18 +51,19 @@ export function BrandWordmark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "brand-wordmark inline-flex items-center whitespace-nowrap font-semibold tracking-tight",
+        "brand-wordmark inline-flex items-baseline whitespace-nowrap font-semibold",
         className,
       )}
     >
-      InvestSalsa
+      <span className="brand-text-invest">Invest</span>
+      <span className="brand-text-salsa">Salsa</span>
     </span>
   );
 }
 
 export function BrandTagline({ className }: { className?: string }) {
   return (
-    <span className={cn("font-normal text-white/55", className)}>
+    <span className={cn("type-small font-normal text-[var(--fg-muted)]", className)}>
       {TAGLINE}
     </span>
   );
@@ -86,7 +86,7 @@ export function BrandLogo({
       content = (
         <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
           <SalsaMark priority={priority} />
-          <BrandWordmark className="text-[1.05rem] leading-none" />
+          <BrandWordmark className="type-body leading-none" />
         </div>
       );
       break;
@@ -94,9 +94,9 @@ export function BrandLogo({
     case "hero":
       content = (
         <div className={cn("flex items-center gap-3", className)}>
-          <SalsaMark className="size-11" size={44} priority={priority} />
+          <SalsaMark className="size-16" size={64} priority={priority} />
           <div className="flex flex-col items-start gap-1">
-            <BrandWordmark className="text-2xl leading-none" />
+            <BrandWordmark className="type-h1 leading-none" />
             <BrandTagline className="text-sm" />
           </div>
         </div>
@@ -115,7 +115,7 @@ export function BrandLogo({
             className="size-8 group-data-[collapsible=icon]:size-8"
             priority={priority}
           />
-          <BrandWordmark className="text-[1.05rem] leading-none group-data-[collapsible=icon]:hidden" />
+          <BrandWordmark className="type-body leading-none group-data-[collapsible=icon]:hidden" />
         </div>
       );
       break;
