@@ -41,8 +41,13 @@ function sumValues(values: Record<string, number>): number {
   return Object.values(values).reduce((sum, value) => sum + value, 0);
 }
 
-/** Fixed-point cap for tax that depends on the withdrawal that pays the tax. */
-const TAX_WITHDRAWAL_ITERATIONS = 16;
+/**
+ * Fixed-point cap for tax that depends on the withdrawal that pays the tax.
+ * At a combined marginal rate near 68%, 16 plain iterations can leave about
+ * $100 unresolved. 64 iterations close that gap, and a bisection finishes
+ * any remainder.
+ */
+const TAX_WITHDRAWAL_ITERATIONS = 64;
 const TAX_WITHDRAWAL_TOLERANCE = 0.01;
 
 function withdrawalsClose(
@@ -357,6 +362,7 @@ export function computeRetirementProjections(
     // pass matches the previous projection. Otherwise a bounded fixed point
     // repeats until the withdrawal and the tax agree.
     let taxPayable = 0;
+    let taxWithdrawalConverged = true;
     let settled: WithdrawalYearResult;
     if (!options?.taxEngine || !drawing) {
       taxPayable = taxPayableFrom(options?.taxEngine, taxInputFor({}));
@@ -365,26 +371,71 @@ export function computeRetirementProjections(
         : 0;
       settled = callWithdraw(spendingGap);
     } else {
-      let withdrawalByAccount: Record<string, number> = {};
-      let resolved: WithdrawalYearResult | null = null;
-      for (let iteration = 0; iteration < TAX_WITHDRAWAL_ITERATIONS; iteration += 1) {
-        const result = options.taxEngine(taxInputFor(withdrawalByAccount));
-        const raw = result.taxPayable;
-        const nextTax = !Number.isFinite(raw) || raw <= 0 ? 0 : raw;
-        const spendingGap = Math.max(0, lifestyleSpending + nextTax - income.total);
+      const taxEngine = options.taxEngine;
+      const evaluate = (guess: number) => {
+        const spendingGap = Math.max(0, lifestyleSpending + guess - income.total);
         const nextSettled = callWithdraw(spendingGap);
+        const raw = taxEngine(taxInputFor(nextSettled.withdrawalByAccount)).taxPayable;
+        const nextTax = !Number.isFinite(raw) || raw <= 0 ? 0 : raw;
+        return { nextTax, nextSettled, spendingGap };
+      };
+
+      let guess = 0;
+      let resolved = evaluate(guess);
+      taxWithdrawalConverged = false;
+      for (let iteration = 0; iteration < TAX_WITHDRAWAL_ITERATIONS; iteration += 1) {
+        const next = evaluate(guess);
         const stable =
-          iteration > 0 &&
-          Math.abs(nextTax - taxPayable) <= TAX_WITHDRAWAL_TOLERANCE &&
-          withdrawalsClose(withdrawalByAccount, nextSettled.withdrawalByAccount);
-        taxPayable = nextTax;
-        resolved = nextSettled;
-        if (stable) break;
-        withdrawalByAccount = nextSettled.withdrawalByAccount;
+          Math.abs(next.nextTax - guess) <= TAX_WITHDRAWAL_TOLERANCE &&
+          withdrawalsClose(
+            resolved.nextSettled.withdrawalByAccount,
+            next.nextSettled.withdrawalByAccount,
+          );
+        resolved = next;
+        if (stable) {
+          taxWithdrawalConverged = true;
+          break;
+        }
+        guess = next.nextTax;
       }
-      settled =
-        resolved ??
-        callWithdraw(Math.max(0, lifestyleSpending + taxPayable - income.total));
+
+      if (!taxWithdrawalConverged) {
+        let low = 0;
+        let high = Math.max(guess, lifestyleSpending, 1);
+        let highEval = evaluate(high);
+        for (let expand = 0; expand < 24 && highEval.nextTax > high + TAX_WITHDRAWAL_TOLERANCE; expand += 1) {
+          high *= 2;
+          highEval = evaluate(high);
+        }
+        let lowEval = evaluate(low);
+        for (let step = 0; step < 60; step += 1) {
+          const mid = (low + high) / 2;
+          const midEval = evaluate(mid);
+          resolved = midEval;
+          if (Math.abs(midEval.nextTax - mid) <= TAX_WITHDRAWAL_TOLERANCE) {
+            taxWithdrawalConverged = true;
+            break;
+          }
+          if (midEval.nextTax > mid) {
+            low = mid;
+            lowEval = midEval;
+          } else {
+            high = mid;
+            highEval = midEval;
+          }
+          if (high - low <= TAX_WITHDRAWAL_TOLERANCE) {
+            const lowGap = Math.abs(lowEval.nextTax - low);
+            const highGap = Math.abs(highEval.nextTax - high);
+            resolved = lowGap <= highGap ? lowEval : highEval;
+            taxWithdrawalConverged =
+              Math.min(lowGap, highGap) <= TAX_WITHDRAWAL_TOLERANCE;
+            break;
+          }
+        }
+      }
+
+      taxPayable = resolved.nextTax;
+      settled = resolved.nextSettled;
     }
 
     for (const account of accounts) {
@@ -411,6 +462,7 @@ export function computeRetirementProjections(
         ? income.byPerson
         : { person1: emptyPersonIncome(), person2: emptyPersonIncome() },
       taxPayable: drawing ? taxPayable : 0,
+      taxWithdrawalConverged: drawing ? taxWithdrawalConverged : true,
       portfolioWithdrawal: settled.portfolioWithdrawal,
       rrifMinimum: settled.rrifMinimum,
       rrifSurplusReinvested: settled.rrifSurplusReinvested,

@@ -70,6 +70,13 @@ export interface CaTaxTable {
   ontarioSurtaxFirstRate: number;
   ontarioSurtaxSecondThreshold: number;
   ontarioSurtaxSecondRate: number;
+  /**
+   * Ontario low-income tax reduction basic amount. The reduction is
+   * max(0, 2 × this amount − (basic Ontario tax + surtax)), capped at that
+   * tax, and applied before the health premium. T4032ON 2026 uses $300.
+   * https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032on-jan/t4032on-january-general-information.html
+   */
+  ontarioLowIncomeReduction: number;
   capitalGainsInclusionRate: number;
   tfsaDollarLimit: number;
 }
@@ -114,9 +121,66 @@ export const CA_ON_TAX_2026: CaTaxTable = {
   ontarioSurtaxFirstRate: 0.2,
   ontarioSurtaxSecondThreshold: 7_446,
   ontarioSurtaxSecondRate: 0.36,
+  ontarioLowIncomeReduction: 300,
   capitalGainsInclusionRate: 0.5,
   tfsaDollarLimit: 7_000,
 };
+
+const UNINDEXED_DOLLAR_FIELDS = [
+  "federalPensionAmount",
+] as const;
+
+/**
+ * 2026 dollar thresholds and credits, grown by the plan's inflation rate.
+ * `inflationPct` is a percent: 3 means 3%. The federal $2,000 pension amount
+ * stays fixed. Ontario health premium bands stay the 2026 dollar figures
+ * inside `ontarioHealthPremium` and are not read from this table.
+ */
+export function taxTableForYear(year: number, inflationPct: number): CaTaxTable {
+  const rate = Number.isFinite(inflationPct) ? inflationPct / 100 : 0;
+  const yearsFromBase = year - CA_ON_TAX_2026.taxYear;
+  const factor =
+    yearsFromBase === 0 || rate === 0 ? 1 : (1 + rate) ** yearsFromBase;
+  if (factor === 1) return CA_ON_TAX_2026;
+
+  const scale = (amount: number) =>
+    Number.isFinite(amount) ? amount * factor : amount;
+  const scaleBrackets = (brackets: readonly CaTaxBracket[]): CaTaxBracket[] =>
+    brackets.map((bracket) => ({
+      upTo: scale(bracket.upTo),
+      rate: bracket.rate,
+    }));
+
+  const next: CaTaxTable = {
+    ...CA_ON_TAX_2026,
+    taxYear: year,
+    federalBrackets: scaleBrackets(CA_ON_TAX_2026.federalBrackets),
+    provincialBrackets: scaleBrackets(CA_ON_TAX_2026.provincialBrackets),
+    federalBasicPersonalMaximum: scale(CA_ON_TAX_2026.federalBasicPersonalMaximum),
+    federalBasicPersonalMinimum: scale(CA_ON_TAX_2026.federalBasicPersonalMinimum),
+    federalBasicPersonalPhaseOutStart: scale(
+      CA_ON_TAX_2026.federalBasicPersonalPhaseOutStart,
+    ),
+    federalBasicPersonalPhaseOutEnd: scale(
+      CA_ON_TAX_2026.federalBasicPersonalPhaseOutEnd,
+    ),
+    provincialBasicPersonalAmount: scale(CA_ON_TAX_2026.provincialBasicPersonalAmount),
+    federalAgeMaximum: scale(CA_ON_TAX_2026.federalAgeMaximum),
+    federalAgeThreshold: scale(CA_ON_TAX_2026.federalAgeThreshold),
+    provincialAgeMaximum: scale(CA_ON_TAX_2026.provincialAgeMaximum),
+    provincialAgeThreshold: scale(CA_ON_TAX_2026.provincialAgeThreshold),
+    provincialPensionAmount: scale(CA_ON_TAX_2026.provincialPensionAmount),
+    oasRecoveryThreshold: scale(CA_ON_TAX_2026.oasRecoveryThreshold),
+    ontarioSurtaxFirstThreshold: scale(CA_ON_TAX_2026.ontarioSurtaxFirstThreshold),
+    ontarioSurtaxSecondThreshold: scale(CA_ON_TAX_2026.ontarioSurtaxSecondThreshold),
+    ontarioLowIncomeReduction: scale(CA_ON_TAX_2026.ontarioLowIncomeReduction),
+    tfsaDollarLimit: scale(CA_ON_TAX_2026.tfsaDollarLimit),
+  };
+  for (const field of UNINDEXED_DOLLAR_FIELDS) {
+    next[field] = CA_ON_TAX_2026[field];
+  }
+  return next;
+}
 
 export const CA_TAX_SOURCES: readonly { label: string; url: string }[] = [
   {
@@ -151,15 +215,15 @@ export const CA_TAX_SOURCES: readonly { label: string; url: string }[] = [
 
 /** Shown in the assumptions panel. Educational limits, not a filing checklist. */
 export const CA_TAX_LIMITATIONS: readonly string[] = [
-  "Ontario tax reduction (the low-income reduction on Form ON428) is not applied.",
-  "The spouse or common-law partner amount is not applied.",
+  "The spouse or common-law partner amount is not applied. The Ontario low-income reduction uses the basic amount only.",
   "Annual non-registered distributions (interest and dividends) are not modeled. Only the gain assumed on a withdrawal is taxed. Dividend gross-up and the dividend tax credit are not applied.",
   "Alternative minimum tax, CPP contributions, and the Canada employment amount are not applied.",
-  "OAS is the amount entered on the plan. The 10% increase at 75 and the GIS are not modeled. The recovery tax uses that OAS and 2026 net income.",
+  "OAS is the amount entered on the plan. The 10% increase at 75 and the GIS are not modeled. The recovery threshold is the 2026 figure, indexed at the plan's inflation rate.",
+  "The federal pension amount stays $2,000. Ontario health premium bands stay at the 2026 dollar figures. Other brackets and credits index at the plan's inflation rate.",
   "A pension you enter is treated as eligible pension income at any age. The plan cannot tell a life annuity from other pension income.",
   "RRSP withdrawals are not split. RRIF withdrawals are split with the pension-split percent only when both people are alive and the owner is 65 or older. The pension credit on RRIF income requires the person reporting it to be 65 or older.",
-  "At the first death, registered accounts roll to the survivor with no tax. Tax on the remaining RRSP or RRIF, and on the assumed non-registered gain, is estimated only at the plan horizon.",
-  "TFSA room is a flat annual amount per living person who already has a TFSA. Unused room and withdrawals are not tracked.",
+  "At the first death, registered accounts roll to the survivor with no tax. If both people are alive at the plan horizon, the younger person is assumed to die second, and the remaining RRSP, RRIF, and assumed non-registered gain are taxed on that person's final return. The same age uses person 1.",
+  "TFSA room is a flat annual amount per living person who already has a TFSA. Unused room and withdrawals are not tracked. A blank room follows the indexed TFSA dollar limit.",
   "Cash withdrawals are not taxed. A non-registered withdrawal is taxed as a capital gain using the unrealized-gain share and the inclusion rate.",
   "Provincial tax is Ontario only.",
   "The chart and the balance table still withdraw pro-rata and do not include this tax. This section is the tax estimate.",
@@ -280,10 +344,13 @@ export function estimatePersonTax(
     Math.max(0, netIncome - table.oasRecoveryThreshold) * table.oasRecoveryRate,
   );
   const taxableIncome = Math.max(0, netIncome - clawback);
+  // Line 23600: net income after the OAS recovery deduction. The basic
+  // personal amount and the age amount phase out on this figure.
+  const incomeAfterClawback = taxableIncome;
 
-  const federalBase = federalBasicPersonalAmount(netIncome, table);
+  const federalBase = federalBasicPersonalAmount(incomeAfterClawback, table);
   const federalAge = ageCreditBase(
-    netIncome,
+    incomeAfterClawback,
     input.age,
     table.federalAgeMaximum,
     table.federalAgeThreshold,
@@ -302,7 +369,7 @@ export function estimatePersonTax(
   );
 
   const provincialAge = ageCreditBase(
-    netIncome,
+    incomeAfterClawback,
     input.age,
     table.provincialAgeMaximum,
     table.provincialAgeThreshold,
@@ -321,8 +388,14 @@ export function estimatePersonTax(
     taxFromBrackets(taxableIncome, table.provincialBrackets) - provincialCredits,
   );
   const surtax = ontarioSurtax(basicProvincial, table);
+  const beforeReduction = basicProvincial + surtax;
+  const reductionRoom = Math.max(
+    0,
+    2 * table.ontarioLowIncomeReduction - beforeReduction,
+  );
+  const reduction = Math.min(beforeReduction, reductionRoom);
   const health = ontarioHealthPremium(taxableIncome);
-  const provincialTax = basicProvincial + surtax + health;
+  const provincialTax = beforeReduction - reduction + health;
 
   return {
     netIncomeBeforeClawback: netIncome,
@@ -342,6 +415,8 @@ export interface CanadianTaxAssumptions {
    * 1 means the stored dollars are already Canadian dollars (the hand check).
    */
   cadPerUsd: number;
+  /** Percent. 3 means 3%. Indexes 2026 dollar figures to `input.year`. */
+  inflationRatePercent: number;
 }
 
 interface PersonAccumulator {
@@ -504,9 +579,9 @@ export function estimateHouseholdTax(
 
 export function createCanadianTaxEngine(
   assumptions: CanadianTaxAssumptions,
-  table: CaTaxTable = CA_ON_TAX_2026,
 ): RetirementTaxEngine {
   return (input) => {
+    const table = taxTableForYear(input.year, assumptions.inflationRatePercent);
     const detail = estimateHouseholdTax(input, assumptions, table);
     return { taxPayable: detail.totalTax, people: detail.people };
   };

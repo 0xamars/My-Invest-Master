@@ -164,6 +164,11 @@ export interface YearProjection {
   incomeByPerson: Record<RetirementPersonId, PersonYearIncome>;
   /** Tax hook result. The default engine returns 0. */
   taxPayable: number;
+  /**
+   * True when the tax-and-withdrawal fixed point settled within $0.01.
+   * Years with no tax engine are settled in one pass.
+   */
+  taxWithdrawalConverged: boolean;
   portfolioWithdrawal: number;
   /** Prescribed RRIF minimum actually taken from RRIF accounts. */
   rrifMinimum: number;

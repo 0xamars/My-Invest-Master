@@ -4,7 +4,11 @@
  *
  * The golden couple is fictional. None of these balances are a real household.
  */
-import { estimatePersonTax } from "../src/lib/retirement/tax-ca.ts";
+import {
+  estimatePersonTax,
+  ontarioHealthPremium,
+  taxTableForYear,
+} from "../src/lib/retirement/tax-ca.ts";
 import { normalizeRetirementPlan } from "../src/lib/retirement/normalize.ts";
 import {
   compareWithdrawalOrders,
@@ -155,12 +159,13 @@ function taken(
 }
 
 // --- Draw sequence ---------------------------------------------------------
-// Person 2's taxable income starts at $6,000 and person 1's at $18,500, so
-// person 2 is drawn first. A non-registered balance exists only for person 1.
+// Person 2's taxable income starts at $6,000 and person 1's at $18,500.
+// RRSP withdrawals are fully taxable, so person 2 is drawn only until the
+// incomes match ($12,500), then the remaining $33,000 is split equally.
 
 const rrspFirst = taken("rrsp-first", 45_500);
-assert(rrspFirst.withdrawalByAccount["rrsp-2"] === 45_500, "RRSP first draws person 2's RRSP");
-assert((rrspFirst.withdrawalByAccount["rrsp-1"] ?? 0) === 0, "RRSP first leaves person 1's RRSP");
+assert(rrspFirst.withdrawalByAccount["rrsp-2"] === 29_000, "RRSP first draws person 2 up to a matched income, then half");
+assert(rrspFirst.withdrawalByAccount["rrsp-1"] === 16_500, "RRSP first draws the matched half from person 1");
 assert((rrspFirst.withdrawalByAccount["taxable-1"] ?? 0) === 0, "RRSP first does not touch non-registered yet");
 assert((rrspFirst.withdrawalByAccount["tfsa-1"] ?? 0) === 0, "RRSP first does not touch TFSA yet");
 
@@ -178,7 +183,9 @@ assert(
 const wide = 120_000;
 const tfsaLastWide = taken("tfsa-last", wide);
 assert(tfsaLastWide.withdrawalByAccount["taxable-1"] === 50_000, "TFSA last exhausts non-registered");
-assert(tfsaLastWide.withdrawalByAccount["rrsp-2"] === 70_000, "TFSA last then draws the lower-income RRSP");
+// Remaining $70,000 is RRSP. Person 2 catches up by $12,500, then each takes $28,750.
+assert(tfsaLastWide.withdrawalByAccount["rrsp-2"] === 41_250, "TFSA last then matches incomes and splits the RRSP");
+assert(tfsaLastWide.withdrawalByAccount["rrsp-1"] === 28_750, "TFSA last draws person 1's matched RRSP share");
 assert((tfsaLastWide.withdrawalByAccount["tfsa-1"] ?? 0) === 0, "TFSA last still has not touched TFSA");
 
 const nonRegWide = taken("non-registered-first", wide);
@@ -266,6 +273,18 @@ const above = estimatePersonTax({
 });
 near(above.oasClawback, 701.55, "OAS clawback is 15% of income above $95,323");
 
+// 15% × (250,000 − 95,323) = 23,201.55, which is above the $8,500 OAS, so the clawback caps.
+const cappedClawback = estimatePersonTax({
+  age: 65,
+  netIncomeBeforeClawback: 250_000,
+  oas: 8_500,
+  eligiblePension: 0,
+});
+assert(
+  cappedClawback.oasClawback === 8_500,
+  "OAS clawback is capped at the OAS received",
+);
+
 function oasPlan(cpp: number): RetirementPlan {
   return normalizeRetirementPlan(
     {
@@ -350,25 +369,35 @@ assert(
 //
 // Other income: person 1 = 10,000 + 8,500 = 18,500. Person 2 = 6,000.
 // Gap before tax = 70,000 − 24,500 = 45,500.
-// Person 2 has the lower taxable income, and their RRSP covers the gap, so the
-// whole RRSP withdrawal W is theirs. W = 45,500 + person 2's tax. Person 1's
-// tax on $18,500 is zero: federal tax 18,500 × 0.14 = 2,590 is under the
-// credit (16,452 + 9,208) × 0.14 = 3,592.40, and Ontario 18,500 × 0.0505 =
-// 934.25 is under (12,989 + 6,342) × 0.0505 = 976.22. Health premium is zero
-// at $18,500.
+// RRSP withdrawals are fully taxable and the pension split is 0, so person 2
+// is drawn only until taxable income matches person 1, then each takes the
+// same additional RRSP dollar S.
+//   Catch-up = 18,500 − 6,000 = 12,500
+//   Person 2 RRSP = 12,500 + S, person 1 RRSP = S
+//   Both taxable incomes N = 18,500 + S
+//   W = 12,500 + 2S = 2N − 24,500
+//   W = 45,500 + T1 + T2
+//   2N = 70,000 + T1 + T2
 //
-// Person 2, age 63, no age amount and no OAS. Let N = 6,000 + W = 51,500 + T.
-// The fixed point lands in the second federal bracket and the second Ontario
-// bracket, with the health premium capped at $600 and no Ontario surtax:
-//   federal = 0.205 N − 6,107.275
-//   Ontario basic = 0.0915 N − 2,865.4755
-//   T = federal + Ontario basic + 600 = 0.2965 N − 8,372.7505
-//   N = 51,500 + T = 43,127.2495 + 0.2965 N
-//   N = 43,127.2495 / 0.7035 = 61,303.8372
-//   T = 9,803.8372
-//   federal = 6,460.01, Ontario including the $600 premium = 3,343.83
-//   W = 55,303.84
-// Clawback is zero because $61,304 is under $95,323.
+// N lands at $39,142.78: first federal bracket, first Ontario bracket, full
+// age amounts (thresholds $46,432 and $47,210), health premium flat at $450
+// (the $450 cap starts at $38,500), no surtax, and Ontario basic tax above
+// the $600 low-income reduction cutoff for both people. Clawback is zero.
+//
+// Person 1, age 65, OAS included in the $18,500, no pension credit on RRSP:
+//   federal = 0.14 N − 0.14 × (16,452 + 9,208) = 0.14 N − 3,592.40
+//   Ontario = 0.0505 N − 0.0505 × (12,989 + 6,342) + 450 = 0.0505 N − 526.2155
+//   T1 = 0.1905 N − 4,118.6155
+// Person 2, age 63, no age amount and no OAS:
+//   federal = 0.14 N − 0.14 × 16,452 = 0.14 N − 2,303.28
+//   Ontario = 0.0505 N − 0.0505 × 12,989 + 450 = 0.0505 N − 205.9445
+//   T2 = 0.1905 N − 2,509.2245
+//   T1 + T2 = 0.381 N − 6,627.84
+//   2N = 70,000 + 0.381 N − 6,627.84 = 63,372.16 + 0.381 N
+//   N = 63,372.16 / 1.619 = 39,142.7795
+//   S = 20,642.7795
+//   Person 1 RRSP = 20,642.78, federal = 1,887.59, Ontario = 1,450.49, tax = 3,338.08
+//   Person 2 RRSP = 33,142.78, federal = 3,176.71, Ontario = 1,770.77, tax = 4,947.47
 
 const golden = normalizeRetirementPlan(
   {
@@ -493,17 +522,17 @@ assert(yearOneYou != null && yearOneSpouse != null, "both people have a first ye
 if (yearOneYou && yearOneSpouse) {
   assert(yearOneYou.age === 65 && yearOneYou.alive, "person 1 is 65 and alive");
   assert(yearOneSpouse.age === 63 && yearOneSpouse.alive, "person 2 is 63 and alive");
-  near(yearOneYou.withdrawals.rrspRrif, 0, "person 1 withdraws no RRSP in year 1");
-  near(yearOneYou.federalTax, 0, "person 1 federal tax is zero");
-  near(yearOneYou.provincialTax, 0, "person 1 Ontario tax is zero");
+  near(yearOneYou.withdrawals.rrspRrif, 20_642.78, "person 1 RRSP withdrawal");
+  near(yearOneYou.federalTax, 1_887.59, "person 1 federal tax");
+  near(yearOneYou.provincialTax, 1_450.49, "person 1 Ontario tax, including the health premium");
   near(yearOneYou.oasClawback, 0, "person 1 OAS clawback is zero");
-  near(yearOneYou.taxableIncome, 18_500, "person 1 taxable income is CPP plus OAS");
-  near(yearOneSpouse.withdrawals.rrspRrif, 55_303.84, "person 2 RRSP withdrawal");
-  near(yearOneSpouse.federalTax, 6_460.01, "person 2 federal tax");
-  near(yearOneSpouse.provincialTax, 3_343.83, "person 2 Ontario tax, including the health premium");
+  near(yearOneYou.taxableIncome, 39_142.78, "person 1 taxable income matches person 2");
+  near(yearOneSpouse.withdrawals.rrspRrif, 33_142.78, "person 2 RRSP withdrawal");
+  near(yearOneSpouse.federalTax, 3_176.71, "person 2 federal tax");
+  near(yearOneSpouse.provincialTax, 1_770.77, "person 2 Ontario tax, including the health premium");
   near(yearOneSpouse.oasClawback, 0, "person 2 has no OAS to claw back");
-  near(yearOneSpouse.totalTax, 9_803.84, "person 2 total tax");
-  near(yearOneSpouse.taxableIncome, 61_303.84, "person 2 taxable income");
+  near(yearOneSpouse.totalTax, 4_947.47, "person 2 total tax");
+  near(yearOneSpouse.taxableIncome, 39_142.78, "person 2 taxable income matches person 1");
 }
 
 assert(compared.orders.length === 4, "all four orders are compared");
@@ -556,6 +585,221 @@ assert(terminalOrder.totals.totalTax === 0, "a year with no income and no withdr
 // Health premium is $750. Ontario total = 7,127.83.
 // Estate tax = 21,356.36. Estate = 100,000 − 21,356.36 = 78,643.64.
 near(terminalOrder.totals.endingAfterTaxEstate, 78_643.64, "ending estate is the RRSP net of tax at the horizon");
+
+// --- Indexed thresholds ----------------------------------------------------
+// $18,000 is under $20,000 and has no pension income. Brackets, personal
+// amounts, and the Ontario low-income reduction scale by 1.03^10. The health
+// premium bands stay at the 2026 dollars, so once the inflated income crosses
+// $20,000 the premium is subtracted before the comparison.
+const indexFactor = 1.03 ** 10;
+const indexedIncome = 18_000;
+const indexedBase = estimatePersonTax({
+  age: 40,
+  netIncomeBeforeClawback: indexedIncome,
+  oas: 0,
+  eligiblePension: 0,
+});
+const indexedLater = estimatePersonTax(
+  {
+    age: 40,
+    netIncomeBeforeClawback: indexedIncome * indexFactor,
+    oas: 0,
+    eligiblePension: 0,
+  },
+  taxTableForYear(YEAR + 10, 3),
+);
+near(
+  indexedLater.totalTax - ontarioHealthPremium(indexedIncome * indexFactor),
+  indexedBase.totalTax * indexFactor,
+  "3% inflation, year+10, income under $20k with no pension income gives base-year tax × 1.03^10",
+);
+const indexedTable = taxTableForYear(YEAR + 10, 3);
+near(indexedTable.federalBrackets[0].upTo, 58_523 * indexFactor, "the lowest federal bracket indexes", 0.01);
+assert(indexedTable.federalPensionAmount === 2_000, "the federal pension amount stays $2,000");
+near(indexedTable.tfsaDollarLimit, 7_000 * indexFactor, "the TFSA dollar limit indexes", 0.01);
+near(indexedTable.ontarioLowIncomeReduction, 300 * indexFactor, "the Ontario low-income reduction indexes", 0.01);
+assert(ontarioHealthPremium(25_000) === 300, "the health premium band stays the 2026 figure");
+
+const indexedMeltdown = createWithdrawalOrderEngine("meltdown", {
+  ...engineAssumptions({ meltdownTargetIncome: null, annualTfsaRoom: 0 }),
+  inflationRatePercent: 3,
+  cadPerUsd: 1,
+});
+const indexedDraw = indexedMeltdown({
+  spendingGap: 0,
+  year: YEAR + 10,
+  people: [
+    {
+      id: "person1",
+      age: 65,
+      retired: true,
+      deceased: false,
+      cpp: 0,
+      oas: 0,
+      pension: 0,
+      pensionAfterSplit: 0,
+      other: 0,
+    },
+  ],
+  accounts: [
+    {
+      id: "rrsp",
+      owner: "person1",
+      kind: "rrsp",
+      value: 500_000,
+      contribution: 0,
+      rrifMinimum: 0,
+    },
+  ],
+});
+near(
+  indexedDraw.withdrawalByAccount.rrsp,
+  58_523 * indexFactor,
+  "a blank meltdown target uses the indexed bracket for that year",
+);
+
+// --- Estate on the second death --------------------------------------------
+// Two $400,000 RRSPs, both alive, no other income, no spending. The old
+// per-person method taxes each $400,000 on its own return. The horizon now
+// puts both balances on the younger person's final return (same age: person 1).
+
+const perPersonEstateTax =
+  estimatePersonTax({
+    age: 65,
+    netIncomeBeforeClawback: 400_000,
+    oas: 0,
+    eligiblePension: 0,
+  }).totalTax * 2;
+const combinedEstateTax = estimatePersonTax({
+  age: 65,
+  netIncomeBeforeClawback: 800_000,
+  oas: 0,
+  eligiblePension: 0,
+}).totalTax;
+const stackedEstate = compareWithdrawalOrders(
+  normalizeRetirementPlan(
+    {
+      id: "stacked-estate",
+      name: "Fictional stacked estate",
+      currentAge: 65,
+      retirementAge: 65,
+      retirementYear: YEAR,
+      planEndAge: 65,
+      inflationRate: 0,
+      annualLifestyleSpending: 0,
+      spouse: { name: "Riley", currentAge: 65, retirementAge: 65 },
+      assets: [
+        asset({
+          id: "rrsp-1",
+          symbol: "RRSP1",
+          unitPrice: 400_000,
+          quantity: 1,
+          accountKind: "rrsp",
+          owner: "person1",
+        }),
+        asset({
+          id: "rrsp-2",
+          symbol: "RRSP2",
+          unitPrice: 400_000,
+          quantity: 1,
+          accountKind: "rrsp",
+          owner: "person2",
+        }),
+      ],
+      withdrawalAssumptions: {
+        selectedOrder: "rrsp-first",
+        unrealizedGainShare: 0,
+        capitalGainsInclusionRate: 0.5,
+        meltdownTargetIncome: null,
+        annualTfsaRoom: null,
+      },
+    },
+    { currentYear: YEAR },
+  ),
+  { currentYear: YEAR, cadPerUsd: 1 },
+);
+const stackedOrder = stackedEstate.orders[0];
+const stackedEstateTax = 800_000 - stackedOrder.totals.endingAfterTaxEstate;
+near(stackedEstateTax, combinedEstateTax, "both RRSPs are taxed on one final return");
+near(
+  stackedEstateTax - perPersonEstateTax,
+  44_666.02,
+  "stacking the two RRSPs costs about $44,700 more estate tax than taxing each person",
+);
+
+// --- Gross-up convergence at the clawback marginal -------------------------
+
+const clawbackPlan = compareWithdrawalOrders(
+  normalizeRetirementPlan(
+    {
+      id: "clawback-converge",
+      name: "Fictional clawback",
+      currentAge: 70,
+      retirementAge: 70,
+      retirementYear: YEAR,
+      planEndAge: 70,
+      inflationRate: 0,
+      annualLifestyleSpending: 280_000,
+      assets: [
+        asset({
+          id: "rrsp",
+          symbol: "RRSP",
+          unitPrice: 2_000_000,
+          quantity: 1,
+          accountKind: "rrsp",
+        }),
+      ],
+      incomeStreams: [
+        {
+          id: "cpp",
+          name: "CPP",
+          kind: "cpp",
+          annualAmount: 141_500,
+          startAge: 65,
+          colaWithInflation: false,
+          owner: "person1",
+          survivorPercent: 0,
+        },
+        {
+          id: "oas",
+          name: "OAS",
+          kind: "oas",
+          annualAmount: 8_500,
+          startAge: 65,
+          colaWithInflation: false,
+          owner: "person1",
+          survivorPercent: 0,
+        },
+      ],
+      withdrawalAssumptions: {
+        selectedOrder: "rrsp-first",
+        unrealizedGainShare: 0,
+        capitalGainsInclusionRate: 0.5,
+        meltdownTargetIncome: 58_523,
+        annualTfsaRoom: 7_000,
+      },
+    },
+    { currentYear: YEAR },
+  ),
+  { currentYear: YEAR, cadPerUsd: 1 },
+);
+const clawbackRow = clawbackPlan.orders[0].householdRows[0];
+assert(clawbackRow != null, "the clawback case has a year");
+if (clawbackRow) {
+  const withdrawal =
+    clawbackRow.withdrawals.rrspRrif +
+    clawbackRow.withdrawals.tfsa +
+    clawbackRow.withdrawals.nonRegisteredCash;
+  const gapBeforeTax = 280_000 - 141_500 - 8_500;
+  near(
+    withdrawal - gapBeforeTax - clawbackRow.totalTax,
+    0,
+    "a ~$150k income with clawback converges: withdrawal − gap − tax within $0.01",
+    0.01,
+  );
+  assert(clawbackRow.converged, "the clawback year records that the fixed point converged");
+  assert(clawbackRow.oasClawback > 0, "the clawback case is actually in the recovery zone");
+}
 
 const survivorPlan = normalizeRetirementPlan(
   {

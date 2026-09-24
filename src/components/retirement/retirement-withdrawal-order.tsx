@@ -98,8 +98,8 @@ export function RetirementWithdrawalOrder({
   const cadPerUsd = getFxRate("CAD", rates);
 
   const resolved = useMemo(
-    () => resolveWithdrawalAssumptions(plan, cadPerUsd),
-    [plan, cadPerUsd],
+    () => resolveWithdrawalAssumptions(plan, cadPerUsd, currentYear),
+    [plan, cadPerUsd, currentYear],
   );
   const comparison = useMemo(
     () =>
@@ -140,7 +140,7 @@ export function RetirementWithdrawalOrder({
         >
           Withdrawal order
         </h2>
-        <p className="max-w-3xl text-sm text-muted-foreground">
+        <p className="type-small max-w-3xl text-muted-foreground">
           Four ways to draw the accounts, with federal tax, Ontario tax, and
           the OAS recovery tax each year. The lowest lifetime tax and the
           highest ending estate are marked. Neither mark is a recommendation.
@@ -233,7 +233,7 @@ export function RetirementWithdrawalOrder({
                     />
                     <button
                       type="button"
-                      className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                      className="type-small font-medium text-[var(--brand-green-text)] underline-offset-4 hover:underline"
                       onClick={() =>
                         onChange(
                           patchAssumptions(plan, { selectedOrder: order.id }),
@@ -322,7 +322,7 @@ export function RetirementWithdrawalOrder({
             <RetireField
               id="meltdown-target"
               label="Meltdown target income, per person"
-              hint="Default is the top of the lowest federal bracket for this tax year."
+              hint="Left as the default, this is the top of the lowest federal bracket and it indexes each year."
             >
               <CurrencyAmountInput
                 id="meltdown-target"
@@ -413,7 +413,8 @@ export function RetirementWithdrawalOrder({
               />
             </RetireField>
           </div>
-          <ul className="space-y-1.5 text-xs leading-relaxed text-muted-foreground">
+          <ul className="type-small space-y-1.5 leading-relaxed text-muted-foreground">
+            <li>Tax brackets and credits indexed at the plan's inflation rate.</li>
             <li>
               Inflation {plan.inflationRate}% from the plan. Each account grows
               at the return saved on that account.
@@ -510,7 +511,12 @@ function YearTable({
           : order.householdRows.map((row) => (
               <TableRow key={row.year}>
                 <TableCell className={cn(STICKY, "font-medium")}>
-                  {row.year}
+                  <span className="block">{row.year}</span>
+                  {row.converged ? null : (
+                    <span className="type-small block font-normal text-muted-foreground">
+                      Tax and the withdrawal did not settle within $0.01.
+                    </span>
+                  )}
                 </TableCell>
                 <MoneyCell value={row.withdrawals.rrspRrif} currency={currency} rates={rates} />
                 <MoneyCell value={row.withdrawals.tfsa} currency={currency} rates={rates} />
@@ -545,9 +551,14 @@ function PersonCells({
     <TableRow>
       <TableCell className={cn(STICKY, "font-medium")}>
         <span className="block">{row.year}</span>
-        <span className="block text-xs font-normal text-muted-foreground">
+        <span className="type-small block font-normal text-muted-foreground">
           Age {row.age}
         </span>
+        {row.converged ? null : (
+          <span className="type-small block font-normal text-muted-foreground">
+            Tax and the withdrawal did not settle within $0.01.
+          </span>
+        )}
       </TableCell>
       <TableCell className={MONEY}>{row.alive ? "Yes" : "No"}</TableCell>
       <MoneyCell value={row.withdrawals.rrspRrif} currency={currency} rates={rates} />

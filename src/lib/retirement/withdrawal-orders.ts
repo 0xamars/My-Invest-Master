@@ -6,6 +6,7 @@ import {
   estimatePersonTax,
   lowestFederalBracketTop,
   taxableGainOnWithdrawal,
+  taxTableForYear,
 } from "@/lib/retirement/tax-ca";
 import type { RetirementTaxYearResult } from "@/lib/retirement/tax-year";
 import type {
@@ -24,21 +25,21 @@ import {
 } from "@/types/retirement";
 
 /**
- * Owner rule, the same for every order after the RRIF minimum:
- * the next slice comes from the owner with the lower taxable income so far
- * this year. A tie goes to person 1. That owner's accounts in the tier are
- * drawn pro-rata by balance, up to the remaining gap or their balance.
- * The slice is not cut off when their income passes the other owner, so the
- * lower-income spouse can fund the whole gap while they still have a balance.
- * Taxable income for the choice is CPP + OAS + pension after the pension
- * split + other income + withdrawals already taken. RRSP and RRIF count in
- * full. A non-registered withdrawal counts as withdrawal × unrealized-gain
- * share × inclusion rate. TFSA and cash count as zero. A RRIF withdrawal is
- * split with the pension-split percent when both people are alive and the
- * owner is 65 or older.
+ * Owner rule, the same for every order after the RRIF minimum.
+ * Draw from the person with the lower taxable income until it matches the
+ * other person, then draw from both so the two taxable incomes rise together.
+ * A tie starts with person 1. Within a tier, that person's accounts are drawn
+ * pro-rata by balance. If one person has no balance left in the tier, the
+ * other funds the rest. Taxable income is CPP + OAS + pension after the
+ * pension split + other income + withdrawals already taken. RRSP and RRIF
+ * count in full. A non-registered withdrawal counts as withdrawal ×
+ * unrealized-gain share × inclusion rate. TFSA and cash count as zero, so
+ * they do not close the income gap and stay with the lower-income person
+ * until that person's tier is empty. A RRIF withdrawal is split with the
+ * pension-split percent when both people are alive and the owner is 65 or older.
  */
 export const WITHDRAWAL_OWNER_RULE =
-  "After the RRIF minimum, each slice comes from the person with the lower taxable income so far this year. A tie goes to person 1, and that person's accounts in the tier are drawn pro-rata by balance. The slice runs until the gap is filled or those accounts are empty.";
+  "After the RRIF minimum, draw from the person with the lower taxable income until it matches the other person, then draw from both so those incomes rise together. A tie starts with person 1. Accounts in the tier are drawn pro-rata by balance. If one person has no balance left in the tier, the other funds the rest.";
 
 export interface WithdrawalOrderDetail {
   id: WithdrawalOrderId;
@@ -85,12 +86,22 @@ const ORDER_TIERS: Record<
 export interface WithdrawalOrderEngineAssumptions {
   unrealizedGainShare: number;
   capitalGainsInclusionRate: number;
-  /** Stored plan dollars per retired person. */
-  meltdownTargetIncome: number;
-  /** Stored plan dollars per living person who already has a TFSA. */
-  annualTfsaRoom: number;
+  /**
+   * Stored plan dollars per retired person. Null uses the indexed top of the
+   * lowest federal bracket for the projection year.
+   */
+  meltdownTargetIncome: number | null;
+  /**
+   * Stored plan dollars per living person who already has a TFSA. Null uses
+   * the indexed TFSA dollar limit for the projection year.
+   */
+  annualTfsaRoom: number | null;
   /** 0–50. Applied to RRIF withdrawals when the owner is 65 or older. */
   pensionSplitPercent: number;
+  /** Percent. 3 means 3%. Used when the meltdown target or TFSA room is blank. */
+  inflationRatePercent?: number;
+  /** Canadian dollars per stored plan dollar. Defaults to 1. */
+  cadPerUsd?: number;
 }
 
 const DRAW_EPSILON = 0.005;
@@ -207,6 +218,15 @@ function applyOrderedWithdrawal(
   const split = bothAlive
     ? Math.min(0.5, Math.max(0, assumptions.pensionSplitPercent / 100))
     : 0;
+  const fx = assumptions.cadPerUsd != null && assumptions.cadPerUsd > 0 ? assumptions.cadPerUsd : 1;
+  const yearTable = taxTableForYear(
+    input.year ?? CA_ON_TAX_2026.taxYear,
+    assumptions.inflationRatePercent ?? 0,
+  );
+  const meltdownTarget =
+    assumptions.meltdownTargetIncome ?? lowestFederalBracketTop(yearTable) / fx;
+  const tfsaRoom =
+    assumptions.annualTfsaRoom ?? yearTable.tfsaDollarLimit / fx;
 
   const addTaxable = (
     owner: RetirementPersonId,
@@ -272,13 +292,54 @@ function applyOrderedWithdrawal(
       )
       .map((account) => account.id);
 
+  const marginalPerDollar = (owner: RetirementPersonId, kinds: readonly ProjectedAccountKind[]) => {
+    const ids = idsFor(owner, kinds);
+    const balance = sumIds(values, ids);
+    if (balance <= 0) return { self: 0, other: 0, balance: 0 };
+    let self = 0;
+    let other = 0;
+    for (const account of input.accounts) {
+      if (!ids.includes(account.id)) continue;
+      const weight = Math.max(0, values[account.id] ?? 0) / balance;
+      const rate = taxableRate(account.kind, assumptions);
+      const ownerPerson = byPerson.get(owner);
+      const canSplit =
+        account.kind === "rrif" &&
+        bothAlive &&
+        split > 0 &&
+        ownerPerson != null &&
+        !ownerPerson.deceased &&
+        ownerPerson.age >= 65;
+      if (canSplit) {
+        self += weight * rate * (1 - split);
+        other += weight * rate * split;
+      } else {
+        self += weight * rate;
+      }
+    }
+    return { self, other, balance };
+  };
+
+  const drawOwner = (
+    owner: RetirementPersonId,
+    kinds: readonly ProjectedAccountKind[],
+    amount: number,
+  ): number => {
+    const ownerIds = idsFor(owner, kinds);
+    if (ownerIds.length === 0 || amount <= DRAW_EPSILON) return 0;
+    const before = { ...taken };
+    const drawn = withdrawProRata(values, amount, ownerIds, taken);
+    if (drawn > DRAW_EPSILON) attributeSince(before);
+    return drawn;
+  };
+
   const drawTier = (
     kinds: readonly ProjectedAccountKind[],
     amount: number,
   ): number => {
     let remaining = Math.max(0, amount);
     let guard = 0;
-    while (remaining > DRAW_EPSILON && guard < 8) {
+    while (remaining > DRAW_EPSILON && guard < 16) {
       guard += 1;
       const owners = [
         ...new Set(
@@ -292,19 +353,56 @@ function applyOrderedWithdrawal(
         ),
       ].sort(compareOwners);
       if (owners.length === 0) break;
-      const ownerIds = idsFor(owners[0], kinds);
-      if (ownerIds.length === 0) break;
-      const before = { ...taken };
-      const drawn = withdrawProRata(values, remaining, ownerIds, taken);
+      if (owners.length === 1) {
+        remaining -= drawOwner(owners[0], kinds, remaining);
+        break;
+      }
+      const low = owners[0];
+      const high = owners[1];
+      const lowMargin = marginalPerDollar(low, kinds);
+      const incomeGap = income[high] - income[low];
+      const catchUp = lowMargin.self - lowMargin.other;
+      if (incomeGap > DRAW_EPSILON && catchUp > DRAW_EPSILON) {
+        const need = Math.min(remaining, incomeGap / catchUp, lowMargin.balance);
+        const drawn = drawOwner(low, kinds, need);
+        if (drawn <= DRAW_EPSILON) break;
+        remaining -= drawn;
+        continue;
+      }
+      const highMargin = marginalPerDollar(high, kinds);
+      const lowCatch = lowMargin.self - lowMargin.other;
+      const highCatch = highMargin.self - highMargin.other;
+      if (lowCatch <= DRAW_EPSILON && highCatch <= DRAW_EPSILON) {
+        const drawn = drawOwner(low, kinds, remaining);
+        if (drawn <= DRAW_EPSILON) break;
+        remaining -= drawn;
+        continue;
+      }
+      if (lowCatch <= DRAW_EPSILON || highCatch <= DRAW_EPSILON) {
+        const payer = lowCatch > DRAW_EPSILON ? low : high;
+        const drawn = drawOwner(payer, kinds, remaining);
+        if (drawn <= DRAW_EPSILON) break;
+        remaining -= drawn;
+        continue;
+      }
+      let fromLow = (remaining * highCatch) / (lowCatch + highCatch);
+      let fromHigh = remaining - fromLow;
+      if (fromLow > lowMargin.balance) {
+        fromLow = lowMargin.balance;
+        fromHigh = Math.min(highMargin.balance, remaining - fromLow);
+      } else if (fromHigh > highMargin.balance) {
+        fromHigh = highMargin.balance;
+        fromLow = Math.min(lowMargin.balance, remaining - fromHigh);
+      }
+      const drawn = drawOwner(low, kinds, fromLow) + drawOwner(high, kinds, fromHigh);
       if (drawn <= DRAW_EPSILON) break;
-      attributeSince(before);
       remaining -= drawn;
     }
     return Math.max(0, amount) - remaining;
   };
 
   const drawRegisteredToTarget = (owner: RetirementPersonId) => {
-    const target = Math.max(0, assumptions.meltdownTargetIncome);
+    const target = Math.max(0, meltdownTarget);
     let guard = 0;
     while (income[owner] < target - DRAW_EPSILON && guard < 6) {
       guard += 1;
@@ -381,7 +479,7 @@ function applyOrderedWithdrawal(
         .filter((account) => account.owner === owner && account.kind === "tfsa")
         .map((account) => account.id);
       if (tfsaIds.length === 0) continue;
-      const deposit = Math.min(left, Math.max(0, assumptions.annualTfsaRoom));
+      const deposit = Math.min(left, Math.max(0, tfsaRoom));
       if (deposit <= 0) continue;
       addProRata(values, deposit, tfsaIds);
       left -= deposit;
@@ -456,27 +554,35 @@ export interface ResolvedWithdrawalAssumptions {
   taxYear: number;
   province: "ON";
   provinceLabel: string;
+  /** Percent. 3 means 3%. */
+  inflationRatePercent: number;
 }
 
 export function resolveWithdrawalAssumptions(
-  plan: Pick<RetirementPlan, "withdrawalAssumptions" | "pensionSplitPercent">,
+  plan: Pick<
+    RetirementPlan,
+    "withdrawalAssumptions" | "pensionSplitPercent" | "inflationRate"
+  >,
   cadPerUsd: number,
+  currentYear = CA_ON_TAX_2026.taxYear,
 ): ResolvedWithdrawalAssumptions {
   const fx = cadPerUsd > 0 ? cadPerUsd : 1;
   const stored = plan.withdrawalAssumptions;
+  const table = taxTableForYear(currentYear, plan.inflationRate ?? 0);
   return {
     selectedOrder: stored?.selectedOrder ?? "rrsp-first",
     unrealizedGainShare: stored?.unrealizedGainShare ?? 0.5,
     capitalGainsInclusionRate:
       stored?.capitalGainsInclusionRate ?? CA_ON_TAX_2026.capitalGainsInclusionRate,
     meltdownTargetIncome:
-      stored?.meltdownTargetIncome ?? lowestFederalBracketTop() / fx,
-    annualTfsaRoom: stored?.annualTfsaRoom ?? CA_ON_TAX_2026.tfsaDollarLimit / fx,
+      stored?.meltdownTargetIncome ?? lowestFederalBracketTop(table) / fx,
+    annualTfsaRoom: stored?.annualTfsaRoom ?? table.tfsaDollarLimit / fx,
     pensionSplitPercent: plan.pensionSplitPercent ?? 0,
     cadPerUsd: fx,
     taxYear: CA_ON_TAX_2026.taxYear,
     province: "ON",
     provinceLabel: CA_ON_TAX_2026.provinceLabel,
+    inflationRatePercent: plan.inflationRate ?? 0,
   };
 }
 
@@ -497,6 +603,8 @@ export interface PersonWithdrawalYearRow {
   provincialTax: number;
   oasClawback: number;
   totalTax: number;
+  /** False when this year's tax and withdrawal did not settle within $0.01. */
+  converged: boolean;
 }
 
 export interface HouseholdWithdrawalYearRow {
@@ -509,6 +617,8 @@ export interface HouseholdWithdrawalYearRow {
   oasClawback: number;
   totalTax: number;
   closingBalance: number;
+  /** False when this year's tax and withdrawal did not settle within $0.01. */
+  converged: boolean;
 }
 
 export interface WithdrawalOrderTotals {
@@ -594,35 +704,49 @@ function endingAfterTaxEstate(
   if (!tax?.people) return gross;
 
   const fx = assumptions.cadPerUsd > 0 ? assumptions.cadPerUsd : 1;
-  let estateTax = 0;
-  for (const person of tax.people) {
-    let rrsp = 0;
-    let rrif = 0;
-    let nonRegistered = 0;
-    for (const account of trace.input.accounts) {
-      if (account.owner !== person.id) continue;
-      const closing = Math.max(0, trace.result.closingByAccount[account.id] ?? 0);
-      if (account.kind === "rrsp") rrsp += closing;
-      else if (account.kind === "rrif") rrif += closing;
-      else if (account.kind === "non_registered") nonRegistered += closing;
-    }
-    const gain = taxableGainOnWithdrawal(
-      "non_registered",
-      nonRegistered,
-      assumptions.unrealizedGainShare,
-      assumptions.capitalGainsInclusionRate,
-    );
-    const extra = rrsp + rrif + gain;
-    if (extra <= 0) continue;
-    const eligibleExtra = person.age >= CA_ON_TAX_2026.ageAmountAge ? rrif : 0;
-    const withEstate = estimatePersonTax({
-      age: person.age,
+  const table = taxTableForYear(last.year, assumptions.inflationRatePercent);
+  let rrsp = 0;
+  let rrif = 0;
+  let nonRegistered = 0;
+  for (const account of trace.input.accounts) {
+    const closing = Math.max(0, trace.result.closingByAccount[account.id] ?? 0);
+    if (account.kind === "rrsp") rrsp += closing;
+    else if (account.kind === "rrif") rrif += closing;
+    else if (account.kind === "non_registered") nonRegistered += closing;
+  }
+  const gain = taxableGainOnWithdrawal(
+    "non_registered",
+    nonRegistered,
+    assumptions.unrealizedGainShare,
+    assumptions.capitalGainsInclusionRate,
+  );
+  const extra = rrsp + rrif + gain;
+  if (extra <= 0) return gross;
+
+  // Spousal rollover puts the household's remaining registered accounts and
+  // the assumed non-registered gain on the second death. When both people
+  // are alive at the horizon, the younger person is assumed to die second.
+  // The same age uses person 1.
+  const candidates = (trace.input.people ?? []).filter((person) => !person.deceased);
+  const pool = candidates.length > 0 ? candidates : (trace.input.people ?? []);
+  const second = [...pool].sort((a, b) => {
+    if (a.age !== b.age) return a.age - b.age;
+    return a.id === "person1" ? -1 : 1;
+  })[0];
+  if (!second) return gross;
+  const person = tax.people.find((row) => row.id === second.id);
+  if (!person) return gross;
+  const eligibleExtra = second.age >= table.ageAmountAge ? rrif : 0;
+  const withEstate = estimatePersonTax(
+    {
+      age: second.age,
       netIncomeBeforeClawback: (person.netIncomeBeforeClawback + extra) * fx,
       oas: person.oas * fx,
       eligiblePension: (person.eligiblePension + eligibleExtra) * fx,
-    });
-    estateTax += Math.max(0, withEstate.totalTax / fx - person.totalTax);
-  }
+    },
+    table,
+  );
+  const estateTax = Math.max(0, withEstate.totalTax / fx - person.totalTax);
   return Math.max(0, gross - estateTax);
 }
 
@@ -638,14 +762,17 @@ function compareOneOrder(
   const engineAssumptions: WithdrawalOrderEngineAssumptions = {
     unrealizedGainShare: assumptions.unrealizedGainShare,
     capitalGainsInclusionRate: assumptions.capitalGainsInclusionRate,
-    meltdownTargetIncome: assumptions.meltdownTargetIncome,
-    annualTfsaRoom: assumptions.annualTfsaRoom,
+    meltdownTargetIncome: plan.withdrawalAssumptions.meltdownTargetIncome,
+    annualTfsaRoom: plan.withdrawalAssumptions.annualTfsaRoom,
     pensionSplitPercent: assumptions.pensionSplitPercent,
+    inflationRatePercent: assumptions.inflationRatePercent,
+    cadPerUsd: assumptions.cadPerUsd,
   };
   const taxEngine = createCanadianTaxEngine({
     unrealizedGainShare: assumptions.unrealizedGainShare,
     capitalGainsInclusionRate: assumptions.capitalGainsInclusionRate,
     cadPerUsd: assumptions.cadPerUsd,
+    inflationRatePercent: assumptions.inflationRatePercent,
   });
 
   const projections = computeRetirementProjections(plan, {
@@ -704,6 +831,7 @@ function compareOneOrder(
         provincialTax: personTax?.provincialTax ?? 0,
         oasClawback: personTax?.oasClawback ?? 0,
         totalTax: personTax?.totalTax ?? 0,
+        converged: projection.taxWithdrawalConverged,
       });
     }
   }
@@ -738,6 +866,7 @@ function compareOneOrder(
         oasClawback,
         totalTax,
         closingBalance: projection.closingBalance,
+        converged: projection.taxWithdrawalConverged,
       };
     },
   );
@@ -791,6 +920,7 @@ export function compareWithdrawalOrders(
   const assumptions = resolveWithdrawalAssumptions(
     plan,
     options.cadPerUsd ?? 1,
+    options.currentYear,
   );
   const orders = WITHDRAWAL_ORDER_DETAILS.map((detail) =>
     compareOneOrder(plan, detail.id, assumptions, options),
