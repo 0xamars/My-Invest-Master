@@ -1,6 +1,12 @@
-import { isCreditCardPaymentAccount } from "@/lib/budget/accounts";
+import {
+  accountById,
+  isCreditCardPaymentAccount,
+  isOnBudgetAccount,
+} from "@/lib/budget/accounts";
 import { removeCategoryFromBudget } from "@/lib/budget/category-mutations";
+import { isSplitTransaction } from "@/lib/budget/transactions";
 import type {
+  BudgetAccount,
   BudgetCategory,
   BudgetCategoryGroup,
   BudgetPlan,
@@ -42,28 +48,81 @@ export function paymentAccountIdForCategory(
     ?.creditCardAccountId;
 }
 
+/** Portion of a card outflow that is categorized to a spending envelope. */
+export function categorizedCardOutflowAmount(tx: BudgetTransaction): number {
+  if (tx.type !== "outflow") return 0;
+  if (isSplitTransaction(tx)) {
+    return (tx.splits ?? [])
+      .filter((line) => Boolean(line.categoryId))
+      .reduce((sum, line) => sum + line.amount, 0);
+  }
+  return tx.categoryId ? tx.amount : 0;
+}
+
+function isOnBudgetCashAccount(account: BudgetAccount | undefined): boolean {
+  if (!account || !isOnBudgetAccount(account)) return false;
+  return !isCreditCardPaymentAccount(account);
+}
+
 /**
  * Activity that reduces payment-category available.
  *
- *   available = assigned − activity
- *   activity  = payments − card charges (+ refunds, − cash advances)
+ *   available = assigned − activity − credit overspend
+ *   activity  = payments − categorized card charges + categorized returns
+ *               − card spending that leaves the budget
  *
- * A card spend therefore raises available (money moved to the payment category).
- * A transfer *to* the card lowers available and must not also count as expense.
+ * A categorized card purchase raises available (dollars moved here).
+ * An uncategorized card charge, including a starting balance owed, does not.
+ * A transfer *to* the card lowers available.
+ * A cash advance (card → on-budget cash) does not fund this envelope.
+ * An uncategorized card inflow is handled separately, and only up to the
+ * dollars this envelope already holds.
  */
 export function getPaymentCategoryActivity(
   tx: BudgetTransaction,
   creditCardAccountId: string,
+  accounts?: BudgetAccount[],
 ): number {
   if (tx.type === "transfer") {
     if (tx.transferAccountId === creditCardAccountId) return tx.amount;
-    if (tx.accountId === creditCardAccountId) return -tx.amount;
+    if (tx.accountId !== creditCardAccountId) return 0;
+    const destination = accountById(accounts, tx.transferAccountId);
+    if (isOnBudgetCashAccount(destination)) return 0;
+    if (destination && isCreditCardPaymentAccount(destination)) return 0;
+    if (destination && !isOnBudgetAccount(destination)) return -tx.amount;
     return 0;
   }
   if (tx.accountId !== creditCardAccountId) return 0;
-  if (tx.type === "outflow") return -tx.amount;
-  if (tx.type === "inflow") return tx.amount;
+  if (tx.type === "outflow") return -categorizedCardOutflowAmount(tx);
+  if (tx.type === "inflow") return tx.categoryId ? tx.amount : 0;
   return 0;
+}
+
+export function sumTransfersToCard(
+  transactions: BudgetTransaction[],
+  creditCardAccountId: string,
+  monthKey: string,
+): number {
+  return transactions.reduce((sum, tx) => {
+    if (tx.date.slice(0, 7) > monthKey) return sum;
+    if (tx.type !== "transfer" || tx.transferAccountId !== creditCardAccountId) {
+      return sum;
+    }
+    return sum + tx.amount;
+  }, 0);
+}
+
+export function sumUncategorizedCardInflows(
+  transactions: BudgetTransaction[],
+  creditCardAccountId: string,
+  monthKey: string,
+): number {
+  return transactions.reduce((sum, tx) => {
+    if (tx.date.slice(0, 7) > monthKey) return sum;
+    if (tx.type !== "inflow" || tx.accountId !== creditCardAccountId) return sum;
+    if (tx.categoryId) return sum;
+    return sum + tx.amount;
+  }, 0);
 }
 
 function paymentCategoryName(accountName: string): string {

@@ -60,6 +60,23 @@ export function getOutflowActivityForCategory(
   return tx.categoryId === categoryId ? tx.amount : 0;
 }
 
+/**
+ * Envelope activity. Spending is positive. A categorized inflow (refund or
+ * reimbursement) is negative. Transfers are 0. Tracking accounts are 0.
+ */
+export function getEnvelopeActivityForCategory(
+  tx: BudgetTransaction,
+  categoryId: string,
+  accounts?: BudgetAccount[],
+): number {
+  if (isTransferTransaction(tx)) return 0;
+  const account = accountById(accounts, tx.accountId);
+  if (account && !isOnBudgetAccount(account)) return 0;
+  if (isExpenseTransaction(tx)) return getOutflowActivityForCategory(tx, categoryId);
+  if (isIncomeTransaction(tx) && tx.categoryId === categoryId) return -tx.amount;
+  return 0;
+}
+
 export function getSplitTotal(splits: BudgetTransactionSplit[]): number {
   return splits.reduce((sum, line) => sum + line.amount, 0);
 }

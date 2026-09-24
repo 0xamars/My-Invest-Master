@@ -9,7 +9,7 @@ import {
   getSortedTransactions,
 } from "@/lib/budget/calculations";
 import { isOnBudgetOutflow } from "@/lib/budget/on-budget";
-import { getOutflowActivityForCategory } from "@/lib/budget/transactions";
+import { getEnvelopeActivityForCategory } from "@/lib/budget/transactions";
 import { getMonthKey, parseMonthKey, shiftMonthKey } from "@/types/budget";
 
 export type ReportRangePreset =
@@ -248,8 +248,7 @@ export function getSpendingByCategoryInRange(
       categoryName: category.name,
       amount: budget.transactions.reduce((sum, tx) => {
         if (!isInDateRange(tx.date, fromDate, toDate)) return sum;
-        if (!isOnBudgetOutflow(tx, budget.accounts)) return sum;
-        return sum + getOutflowActivityForCategory(tx, category.id);
+        return sum + getEnvelopeActivityForCategory(tx, category.id, budget.accounts);
       }, 0),
     }))
     .filter((row) => row.amount > 0)

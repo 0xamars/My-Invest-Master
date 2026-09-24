@@ -9,6 +9,13 @@ import {
   type CategoryGoal,
 } from "@/types/budget";
 import {
+  cardInflowReleaseInMonth,
+  getAbsorbedPaymentOverpay,
+  getCardInflowRelease,
+  getCardInflowReleaseInMonth,
+  getPaymentEnvelopeAvailable,
+} from "@/lib/budget/card-envelope";
+import {
   getPaymentCategoryActivity,
   paymentAccountIdForCategory,
   sortCategoryGroupsForBudget,
@@ -28,7 +35,8 @@ import {
   getOverspendKind,
   type OverspendKind,
 } from "@/lib/budget/overspend";
-import { getOutflowActivityForCategory } from "@/lib/budget/transactions";
+import { accountById, isOnBudgetAccount } from "@/lib/budget/accounts";
+import { getEnvelopeActivityForCategory } from "@/lib/budget/transactions";
 
 export type CategoryBudgetStatus =
   | "healthy"
@@ -92,10 +100,9 @@ function activityForCategory(
   accounts?: BudgetAccount[],
 ): number {
   if (paymentAccountId) {
-    return getPaymentCategoryActivity(tx, paymentAccountId);
+    return getPaymentCategoryActivity(tx, paymentAccountId, accounts);
   }
-  if (!isOnBudgetOutflow(tx, accounts)) return 0;
-  return getOutflowActivityForCategory(tx, categoryId);
+  return getEnvelopeActivityForCategory(tx, categoryId, accounts);
 }
 
 export function getCategoryActivity(
@@ -196,9 +203,11 @@ export function getReadyToAssign(
   monthKey: string,
 ): number {
   return (
-    getIncomeThroughMonth(budget.transactions, monthKey, budget.accounts) -
+    getIncomeThroughMonth(budget.transactions, monthKey, budget.accounts) +
+    getCardInflowRelease(budget, monthKey) -
     getAssignedThroughMonth(budget, monthKey) -
-    getAbsorbedCashOverspend(budget, monthKey)
+    getAbsorbedCashOverspend(budget, monthKey) -
+    getAbsorbedPaymentOverpay(budget, monthKey)
   );
 }
 
@@ -220,16 +229,7 @@ export function getCategoryAvailable(
     categoryId,
   );
   if (paymentAccountId) {
-    const raw =
-      getCategoryAssignedThroughMonth(budget, categoryId, monthKey) -
-      getCategoryActivityThroughMonth(
-        budget.transactions,
-        categoryId,
-        monthKey,
-        paymentAccountId,
-        budget.accounts,
-      );
-    return raw - getCreditOverspendOnAccount(budget, paymentAccountId, monthKey);
+    return getPaymentEnvelopeAvailable(budget, paymentAccountId, monthKey);
   }
   return getCategoryOverspendState(budget, categoryId, monthKey).available;
 }
@@ -250,14 +250,19 @@ export function computeMonthSummary(
   monthKey: string,
 ): MonthBudgetSummary {
   const monthTransactions = getTransactionsForMonth(budget.transactions, monthKey);
-  const totalIncome = monthTransactions.reduce(
-    (sum, tx) =>
-      sum + Math.max(0, getReadyToAssignEffect(tx, budget.accounts)),
-    0,
-  );
-  const totalSpent = monthTransactions
-    .filter((tx) => isOnBudgetOutflow(tx, budget.accounts))
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  const totalIncome =
+    monthTransactions.reduce(
+      (sum, tx) =>
+        sum + Math.max(0, getReadyToAssignEffect(tx, budget.accounts)),
+      0,
+    ) + Math.max(0, getCardInflowReleaseInMonth(budget, monthKey));
+  const totalSpent = monthTransactions.reduce((sum, tx) => {
+    if (isOnBudgetOutflow(tx, budget.accounts)) return sum + tx.amount;
+    if (tx.type !== "inflow" || !tx.categoryId) return sum;
+    const account = accountById(budget.accounts, tx.accountId);
+    if (account && !isOnBudgetAccount(account)) return sum;
+    return sum - tx.amount;
+  }, 0);
   const assignments = getMonthAssignments(budget, monthKey);
   const totalAssigned = Object.values(assignments).reduce(
     (sum, value) => sum + value,
@@ -288,13 +293,17 @@ export function buildCategoryRows(
       .map((category) => {
         const paymentAccountId = category.creditCardAccountId;
         const assigned = getCategoryAssigned(budget, category.id, monthKey);
-        const activity = getCategoryActivity(
-          budget.transactions,
-          category.id,
-          monthKey,
-          paymentAccountId,
-          budget.accounts,
-        );
+        const activity =
+          getCategoryActivity(
+            budget.transactions,
+            category.id,
+            monthKey,
+            paymentAccountId,
+            budget.accounts,
+          ) +
+          (paymentAccountId
+            ? cardInflowReleaseInMonth(budget, paymentAccountId, monthKey)
+            : 0);
         const available = getCategoryAvailable(budget, category.id, monthKey);
         const overspendState = paymentAccountId
           ? null

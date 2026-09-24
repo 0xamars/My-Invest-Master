@@ -168,7 +168,9 @@ export function BudgetAccountsContent() {
       <AccountDialog
         open={addOpen}
         onOpenChange={setAddOpen}
-        onSave={(name, type, onBudget) => addAccount(name, type, onBudget)}
+        onSave={(name, type, onBudget, startingBalance) =>
+          addAccount(name, type, onBudget, startingBalance)
+        }
       />
 
       <AccountDialog

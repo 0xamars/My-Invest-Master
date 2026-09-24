@@ -304,11 +304,7 @@ export function BudgetTransactionDialog({
       amount: parsedAmount,
       type,
       categoryId:
-        type === "inflow" || !selectedOnBudget
-          ? null
-          : categoryId === "none"
-            ? null
-            : categoryId,
+        !selectedOnBudget || categoryId === "none" ? null : categoryId,
       memo: memo.trim() || undefined,
       cleared: transaction?.cleared ?? "uncleared",
     });
@@ -346,22 +342,39 @@ export function BudgetTransactionDialog({
     type === "outflow" &&
     selectedAccount != null &&
     isCreditCardPaymentAccount(selectedAccount);
+  const returningOnCard =
+    type === "inflow" &&
+    selectedAccount != null &&
+    isCreditCardPaymentAccount(selectedAccount);
+  const cashAdvance =
+    type === "transfer" &&
+    selectedAccount != null &&
+    isCreditCardPaymentAccount(selectedAccount) &&
+    transferAccount != null &&
+    isOnBudgetAccount(transferAccount) &&
+    !isCreditCardPaymentAccount(transferAccount);
 
   const description =
     type === "transfer"
       ? payingCard
         ? "This pays the card. It uses the card payment envelope. Leftover does not change."
-        : transferCrossesBudget
-          ? selectedOnBudget
-            ? "This leaves the budget. Leftover goes down by the transfer amount."
-            : "This enters the budget. Leftover goes up by the transfer amount."
-          : "Move money between accounts. Transfers between the same budget side do not change leftover."
+        : cashAdvance
+          ? "Cash advance. Leftover goes up and the balance owed goes up. Assign leftover to the payment envelope to cover it."
+          : transferCrossesBudget
+            ? selectedOnBudget && selectedAccount && isCreditCardPaymentAccount(selectedAccount)
+              ? "Spending off-budget with this card pulls leftover into the payment envelope."
+              : selectedOnBudget
+                ? "This leaves the budget. Leftover goes down by the transfer amount."
+                : "This enters the budget. Leftover goes up by the transfer amount."
+            : "Move money between accounts. Transfers between the same budget side do not change leftover."
       : type === "inflow"
-        ? selectedOnBudget
-          ? "Record income. Inflows go to leftover."
-          : "Tracking inflow. This changes the account balance only — not leftover."
+        ? returningOnCard
+          ? "A return to an envelope puts those dollars back and takes them out of the payment envelope. Leave it unassigned to free leftover, but only up to what that envelope already holds."
+          : selectedOnBudget
+            ? "Unassigned inflows go to leftover. Pick an envelope to put a refund or reimbursement back there instead."
+            : "Tracking inflow. This changes the account balance only — not leftover."
         : spendingOnCard
-          ? "Card spend moves dollars from the envelope into the card payment envelope."
+          ? "Funded card spend moves dollars into the payment envelope. Unfunded spend, interest, and fees become card debt."
           : !selectedOnBudget
             ? "Tracking outflow. This changes the account balance only — not leftover or envelope Activity."
             : splitEnabled
@@ -578,6 +591,37 @@ export function BudgetTransactionDialog({
               ) : null}
             </div>
           )}
+
+          {type === "inflow" && selectedOnBudget ? (
+            <div className="space-y-1.5">
+              <Label>Envelope</Label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => {
+                  setCategoryTouched(true);
+                  setCategoryId(value ?? "none");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Leftover" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Leftover</SelectItem>
+                  {sortedGroups.flatMap((group) => {
+                    const groupCategories = assignableCategories
+                      .filter((category) => category.groupId === group.id)
+                      .sort((a, b) => a.sortOrder - b.sortOrder);
+
+                    return groupCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {group.name} · {category.name}
+                      </SelectItem>
+                    ));
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           {type === "outflow" && selectedOnBudget && !splitEnabled && (
             <div className="space-y-1.5">

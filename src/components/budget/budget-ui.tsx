@@ -117,10 +117,10 @@ export function BudgetAvailableChip({
   className?: string;
 }) {
   const tone =
-    status === "overspent" || available < 0
-      ? "cash"
-      : status === "credit-overspent"
-        ? "credit"
+    status === "credit-overspent"
+      ? "credit"
+      : status === "overspent" || available < 0
+        ? "cash"
         : available === 0
           ? "zero"
           : status === "low"
@@ -139,6 +139,8 @@ export function BudgetAvailableChip({
         className,
       )}
     >
+      {tone === "credit" ? <span className="sr-only">Credit overspent. </span> : null}
+      {tone === "cash" ? <span className="sr-only">Overspent. </span> : null}
       {children}
     </span>
   );

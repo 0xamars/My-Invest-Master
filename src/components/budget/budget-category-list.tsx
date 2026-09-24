@@ -50,6 +50,8 @@ function EnvelopeRowMenu({
   onPayCard,
   onRename,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   className,
 }: {
   name: string;
@@ -62,6 +64,8 @@ function EnvelopeRowMenu({
   onPayCard?: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   className?: string;
 }) {
   return (
@@ -94,6 +98,18 @@ function EnvelopeRowMenu({
           <ArrowLeftRight className="size-4" />
           Move money
         </DropdownMenuItem>
+        {onMoveUp ? (
+          <DropdownMenuItem onClick={onMoveUp}>
+            <ChevronUp className="size-4" />
+            Move up
+          </DropdownMenuItem>
+        ) : null}
+        {onMoveDown ? (
+          <DropdownMenuItem onClick={onMoveDown}>
+            <ChevronDown className="size-4" />
+            Move down
+          </DropdownMenuItem>
+        ) : null}
         {isPaymentCategory ? null : (
           <>
             <DropdownMenuItem onClick={onSetGoal}>
@@ -133,6 +149,7 @@ interface BudgetCategoryListProps {
   onEditGroup: (groupId: string) => void;
   onDeleteGroup: (groupId: string) => void;
   onMoveGroup: (groupId: string, direction: "up" | "down") => void;
+  onMoveCategory: (categoryId: string, direction: "up" | "down") => void;
   onEditCategory: (categoryId: string) => void;
   onDeleteCategory: (categoryId: string) => void;
 }
@@ -154,6 +171,7 @@ export function BudgetCategoryList({
   onEditGroup,
   onDeleteGroup,
   onMoveGroup,
+  onMoveCategory,
   onEditCategory,
   onDeleteCategory,
 }: BudgetCategoryListProps) {
@@ -268,7 +286,7 @@ export function BudgetCategoryList({
                   </h3>
                   {paymentGroup ? (
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      Card spend moves money here. Paying the card is a transfer.
+                      Funded card spend moves money here. Unfunded charges and a starting balance owed stay as debt until you assign money here. Paying the card is a transfer.
                     </p>
                   ) : null}
                 </div>
@@ -300,14 +318,26 @@ export function BudgetCategoryList({
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          disabled={groupIndex === 0}
+                          disabled={
+                            groups
+                              .slice(0, groupIndex)
+                              .every(({ group: earlier }) =>
+                                isCreditCardPaymentsGroup(earlier),
+                              )
+                          }
                           onClick={() => onMoveGroup(group.id, "up")}
                         >
                           <ChevronUp className="size-4" />
                           Move up
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          disabled={groupIndex === groups.length - 1}
+                          disabled={
+                            groups
+                              .slice(groupIndex + 1)
+                              .every(({ group: later }) =>
+                                isCreditCardPaymentsGroup(later),
+                              )
+                          }
                           onClick={() => onMoveGroup(group.id, "down")}
                         >
                           <ChevronDown className="size-4" />
@@ -345,8 +375,16 @@ export function BudgetCategoryList({
                   )}
                 </div>
               ) : (
-                categories.map((row) => {
+                categories.map((row, categoryIndex) => {
                   const overspent = row.available < 0;
+                  const moveUp =
+                    !row.isPaymentCategory && categoryIndex > 0
+                      ? () => onMoveCategory(row.category.id, "up")
+                      : undefined;
+                  const moveDown =
+                    !row.isPaymentCategory && categoryIndex < categories.length - 1
+                      ? () => onMoveCategory(row.category.id, "down")
+                      : undefined;
                   return (
                   <div
                     key={row.category.id}
@@ -395,6 +433,14 @@ export function BudgetCategoryList({
                             ? ` · underfunded ${formatBudgetMoney(row.creditOverspend, currency)}`
                             : ""}
                         </p>
+                      ) : row.overspendKind === "credit" ? (
+                        <p className="mt-0.5 text-[11px] text-[var(--brand-orange)]">
+                          Credit overspend stays on the card. It does not reduce leftover next month.
+                        </p>
+                      ) : row.overspendKind === "cash" ? (
+                        <p className="mt-0.5 text-[11px] text-[var(--brand-red)]">
+                          Cash overspend. Cover it, or leftover drops when you close the month.
+                        </p>
                       ) : null}
                       </div>
                       <div className="shrink-0 md:hidden">
@@ -413,6 +459,8 @@ export function BudgetCategoryList({
                           }
                           onRename={() => onEditCategory(row.category.id)}
                           onDelete={() => onDeleteCategory(row.category.id)}
+                          onMoveUp={moveUp}
+                          onMoveDown={moveDown}
                         />
                       </div>
                     </div>
@@ -422,10 +470,11 @@ export function BudgetCategoryList({
                         Assigned
                       </span>
                       {editingId === row.category.id && !monthClosed ? (
-                        <Input
+                          <Input
                           type="number"
-                          min={0}
                           step="0.01"
+                          inputMode="decimal"
+                          aria-label={`Assigned for ${row.category.name}`}
                           value={draftAmount}
                           onChange={(event) => setDraftAmount(event.target.value)}
                           onBlur={() => commitEdit(row.category.id)}
@@ -444,6 +493,7 @@ export function BudgetCategoryList({
                             startEdit(row);
                           }}
                           disabled={monthClosed}
+                          aria-label={`Assigned ${formatBudgetMoney(row.assigned, currency)} for ${row.category.name}`}
                           className="rounded-md px-1.5 py-0.5 text-sm tabular-nums hover:bg-muted disabled:cursor-default disabled:hover:bg-transparent"
                         >
                           {formatBudgetMoney(row.assigned, currency)}
@@ -490,6 +540,8 @@ export function BudgetCategoryList({
                         }
                         onRename={() => onEditCategory(row.category.id)}
                         onDelete={() => onDeleteCategory(row.category.id)}
+                        onMoveUp={moveUp}
+                        onMoveDown={moveDown}
                         className="budget-row-actions"
                       />
                     </div>

@@ -1,8 +1,11 @@
-import { isCreditCardPaymentAccount } from "@/lib/budget/accounts";
+import {
+  accountById,
+  isCreditCardPaymentAccount,
+  isOnBudgetAccount,
+} from "@/lib/budget/accounts";
 import { shouldAbsorbCashOverspend } from "@/lib/budget/closed-months";
 import { isPaymentCategory } from "@/lib/budget/credit-card-payments";
-import { isOnBudgetOutflow } from "@/lib/budget/on-budget";
-import { getOutflowActivityForCategory } from "@/lib/budget/transactions";
+import { getEnvelopeActivityForCategory } from "@/lib/budget/transactions";
 import {
   getMonthKey,
   shiftMonthKey,
@@ -92,12 +95,12 @@ export function splitCategoryActivity(
   accounts: BudgetAccount[] | undefined,
 ): CategoryActivitySplit {
   const empty: CategoryActivitySplit = { cash: 0, credit: 0, byCreditAccount: {} };
-  if (!isOnBudgetOutflow(tx, accounts)) return empty;
+  const account = accountById(accounts, tx.accountId);
+  if (account && !isOnBudgetAccount(account)) return empty;
 
-  const amount = getOutflowActivityForCategory(tx, categoryId);
+  const amount = getEnvelopeActivityForCategory(tx, categoryId, accounts);
   if (amount === 0) return empty;
 
-  const account = accounts?.find((entry) => entry.id === tx.accountId);
   if (account && isCreditCardPaymentAccount(account)) {
     return {
       cash: 0,
@@ -174,6 +177,7 @@ export function getCategoryOverspendState(
 
   let leftover = 0;
   let absorbedCash = 0;
+  const fundedByAccount: Record<string, number> = {};
   let last: CategoryMonthOverspend = emptyOverspend(0, 0);
 
   for (const cursor of months) {
@@ -186,21 +190,28 @@ export function getCategoryOverspendState(
     const fundedStart = leftover;
     const carriedCredit = Math.max(0, -fundedStart);
     const coverCarried = Math.min(Math.max(0, assigned), carriedCredit);
-    const leftoverAssigned = Math.max(0, assigned) - coverCarried + Math.min(0, assigned);
+    const leftoverAssigned =
+      Math.max(0, assigned) - coverCarried + Math.min(0, assigned);
     const remainingCarried = carriedCredit - coverCarried;
     const spendable = Math.max(0, fundedStart) + leftoverAssigned;
 
     const cashOverspend = Math.max(0, cashActivity - spendable);
     const afterCash = Math.max(0, spendable - cashActivity);
-    const newCreditOverspend = Math.max(0, creditActivity - afterCash);
-    const creditOverspend = remainingCarried + newCreditOverspend;
-    let available = spendable - cashActivity - creditActivity - remainingCarried;
 
     const prevHoleByAccount = last.creditOverspendByAccount;
     const prevHoleTotal = Object.values(prevHoleByAccount).reduce(
       (sum, value) => sum + value,
       0,
     );
+    if (coverCarried > 0 && prevHoleTotal > 0) {
+      for (const [accountId, hole] of Object.entries(prevHoleByAccount)) {
+        addAmount(
+          fundedByAccount,
+          accountId,
+          coverCarried * (hole / prevHoleTotal),
+        );
+      }
+    }
     const remainingHoleByAccount =
       remainingCarried === 0 || prevHoleTotal <= 0
         ? {}
@@ -209,22 +220,70 @@ export function getCategoryOverspendState(
     const newHoleByAccount: Record<string, number> = {
       ...remainingHoleByAccount,
     };
-    const monthCreditTotal = Object.values(activitySplit.byCreditAccount).reduce(
-      (sum, value) => sum + value,
-      0,
-    );
-    if (newCreditOverspend > 0 && monthCreditTotal > 0) {
+    let creditOverspend = 0;
+    let available = 0;
+
+    if (creditActivity >= 0) {
+      const newCreditOverspend = Math.max(0, creditActivity - afterCash);
+      creditOverspend = remainingCarried + newCreditOverspend;
+      const monthCreditTotal = Object.values(activitySplit.byCreditAccount).reduce(
+        (sum, value) => sum + Math.max(0, value),
+        0,
+      );
+      const moved = creditActivity - newCreditOverspend;
+      if (moved > 0 && monthCreditTotal > 0) {
+        for (const [accountId, amount] of Object.entries(
+          activitySplit.byCreditAccount,
+        )) {
+          if (amount <= 0) continue;
+          addAmount(
+            fundedByAccount,
+            accountId,
+            moved * (amount / monthCreditTotal),
+          );
+        }
+      }
+      if (newCreditOverspend > 0 && monthCreditTotal > 0) {
+        for (const [accountId, amount] of Object.entries(
+          activitySplit.byCreditAccount,
+        )) {
+          if (amount <= 0) continue;
+          addAmount(
+            newHoleByAccount,
+            accountId,
+            newCreditOverspend * (amount / monthCreditTotal),
+          );
+        }
+      } else if (newCreditOverspend > 0) {
+        addAmount(newHoleByAccount, "unknown", newCreditOverspend);
+      }
+      available = spendable - cashActivity - creditActivity - remainingCarried;
+    } else {
+      let returned = 0;
       for (const [accountId, amount] of Object.entries(
         activitySplit.byCreditAccount,
       )) {
-        addAmount(
-          newHoleByAccount,
-          accountId,
-          newCreditOverspend * (amount / monthCreditTotal),
-        );
+        if (amount >= 0) continue;
+        const refund = -amount;
+        const hole = Math.max(0, newHoleByAccount[accountId] ?? 0);
+        const fill = Math.min(hole, refund);
+        if (hole > 0) {
+          const left = hole - fill;
+          if (left > 0.0001) newHoleByAccount[accountId] = left;
+          else delete newHoleByAccount[accountId];
+        }
+        const funded = Math.max(0, fundedByAccount[accountId] ?? 0);
+        const pull = Math.min(Math.max(0, refund - fill), funded);
+        if (pull > 0) {
+          fundedByAccount[accountId] = funded - pull;
+          returned += pull;
+        }
       }
-    } else if (newCreditOverspend > 0) {
-      addAmount(newHoleByAccount, "unknown", newCreditOverspend);
+      creditOverspend = Object.values(newHoleByAccount).reduce(
+        (sum, value) => sum + Math.max(0, value),
+        0,
+      );
+      available = spendable - cashActivity - creditOverspend + returned;
     }
 
     if (shouldAbsorbCashOverspend(budget, cursor, monthKey) && cashOverspend > 0) {

@@ -12,8 +12,9 @@ import {
   applyBulkToggleCleared,
 } from "@/lib/budget/bulk-transactions";
 import {
+  moveCategoryGroupInBudget,
+  moveCategoryInBudget,
   removeCategoryFromBudget,
-  sortedCategoryGroups,
 } from "@/lib/budget/category-mutations";
 import {
   isClearedForBalance,
@@ -27,7 +28,8 @@ import {
 } from "@/lib/budget/credit-card-payments";
 import { isMonthClosed } from "@/lib/budget/closed-months";
 import { applyCoverOverspend, applyMoveMoney } from "@/lib/budget/move-money";
-import { applyMonthClose } from "@/lib/budget/month-close";
+import { applyMonthClose, applyMonthNote } from "@/lib/budget/month-close";
+import { buildStartingBalanceTransaction } from "@/lib/budget/starting-balance";
 import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
@@ -111,9 +113,7 @@ function toStoredTransaction(
     payee: input.payee.trim(),
     accountId: input.accountId,
     categoryId:
-      type === "inflow" || type === "transfer" || splits
-        ? null
-        : input.categoryId,
+      type === "transfer" || splits ? null : input.categoryId,
     amount: Math.abs(input.amount),
     type,
     cleared: normalizeClearedState(input.cleared ?? existing?.cleared),
@@ -157,9 +157,7 @@ function toStoredSchedule(
     payee: input.payee.trim(),
     accountId: input.accountId,
     categoryId:
-      type === "inflow" || type === "transfer" || splits
-        ? null
-        : input.categoryId,
+      type === "transfer" || splits ? null : input.categoryId,
     amount: Math.abs(input.amount),
     type,
     memo: input.memo?.trim() || undefined,
@@ -406,28 +404,14 @@ export function useBudgetPlanMutations(planId: string) {
 
   const moveCategoryGroup = useCallback(
     (groupId: string, direction: "up" | "down") => {
-      commitPlan((current) => {
-        const ordered = sortedCategoryGroups(current);
-        const index = ordered.findIndex((group) => group.id === groupId);
-        if (index < 0) return current;
+      commitPlan((current) => moveCategoryGroupInBudget(current, groupId, direction));
+    },
+    [commitPlan],
+  );
 
-        const swapIndex = direction === "up" ? index - 1 : index + 1;
-        if (swapIndex < 0 || swapIndex >= ordered.length) return current;
-
-        const reordered = [...ordered];
-        [reordered[index], reordered[swapIndex]] = [
-          reordered[swapIndex],
-          reordered[index],
-        ];
-
-        return {
-          ...current,
-          categoryGroups: reordered.map((group, sortOrder) => ({
-            ...group,
-            sortOrder,
-          })),
-        };
-      });
+  const moveCategory = useCallback(
+    (categoryId: string, direction: "up" | "down") => {
+      commitPlan((current) => moveCategoryInBudget(current, categoryId, direction));
     },
     [commitPlan],
   );
@@ -544,6 +528,7 @@ export function useBudgetPlanMutations(planId: string) {
       commitPlan(
         (current) => {
           if (isMonthClosed(current, monthKey)) return current;
+          if (!Number.isFinite(amount)) return current;
           const monthBudget = current.monthBudgets[monthKey] ?? { assignments: {} };
           return {
             ...current,
@@ -553,7 +538,7 @@ export function useBudgetPlanMutations(planId: string) {
                 ...monthBudget,
                 assignments: {
                   ...monthBudget.assignments,
-                  [categoryId]: Math.max(0, amount),
+                  [categoryId]: amount,
                 },
               },
             },
@@ -767,22 +752,45 @@ export function useBudgetPlanMutations(planId: string) {
   );
 
   const addAccount = useCallback(
-    (name: string, type: BudgetAccountType, onBudget?: boolean) => {
-      commitPlan((current) =>
-        ensureCreditCardPaymentCategories({
-          ...current,
-          accounts: [
-            ...current.accounts,
-            {
+    (
+      name: string,
+      type: BudgetAccountType,
+      onBudget?: boolean,
+      startingBalance?: { amount: number; date: string },
+    ) => {
+      commitPlan((current) => {
+        const account = {
+          id: crypto.randomUUID(),
+          name: name.trim(),
+          type,
+          onBudget: onBudget ?? defaultOnBudgetForType(type),
+          sortOrder: current.accounts.length,
+        };
+        const opening = startingBalance
+          ? buildStartingBalanceTransaction({
               id: crypto.randomUUID(),
-              name: name.trim(),
-              type,
-              onBudget: onBudget ?? defaultOnBudgetForType(type),
-              sortOrder: current.accounts.length,
-            },
-          ],
-        }),
-      );
+              account,
+              amount: startingBalance.amount,
+              date: startingBalance.date,
+            })
+          : null;
+        return ensureCreditCardPaymentCategories({
+          ...current,
+          accounts: [...current.accounts, account],
+          transactions: opening
+            ? [...current.transactions, opening]
+            : current.transactions,
+        });
+      });
+    },
+    [commitPlan],
+  );
+
+  const setMonthNote = useCallback(
+    (monthKey: string, note: string) => {
+      commitPlan((current) => applyMonthNote(current, monthKey, note), {
+        label: "Undo note",
+      });
     },
     [commitPlan],
   );
@@ -951,6 +959,7 @@ export function useBudgetPlanMutations(planId: string) {
       addCategory,
       updateCategoryGroup,
       moveCategoryGroup,
+      moveCategory,
       deleteCategoryGroup,
       updateCategory,
       deleteCategory,
@@ -971,6 +980,7 @@ export function useBudgetPlanMutations(planId: string) {
       setCategoryGoal,
       removeCategoryGoal,
       addAccount,
+      setMonthNote,
       updateAccount,
       deleteAccount,
       setTransactionCleared,
@@ -1001,6 +1011,7 @@ export function useBudgetPlanMutations(planId: string) {
       addCategory,
       updateCategoryGroup,
       moveCategoryGroup,
+      moveCategory,
       deleteCategoryGroup,
       updateCategory,
       deleteCategory,
@@ -1021,6 +1032,7 @@ export function useBudgetPlanMutations(planId: string) {
       setCategoryGoal,
       removeCategoryGoal,
       addAccount,
+      setMonthNote,
       updateAccount,
       deleteAccount,
       setTransactionCleared,

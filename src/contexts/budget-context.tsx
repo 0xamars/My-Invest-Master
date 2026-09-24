@@ -43,6 +43,7 @@ interface BudgetContextValue {
   addCategory: (groupId: string, name: string) => void;
   updateCategoryGroup: (groupId: string, name: string) => void;
   moveCategoryGroup: (groupId: string, direction: "up" | "down") => void;
+  moveCategory: (categoryId: string, direction: "up" | "down") => void;
   deleteCategoryGroup: (
     groupId: string,
     strategy:
@@ -104,7 +105,9 @@ interface BudgetContextValue {
     name: string,
     type: BudgetAccountType,
     onBudget?: boolean,
+    startingBalance?: { amount: number; date: string },
   ) => void;
+  setMonthNote: (monthKey: string, note: string) => void;
   updateAccount: (
     accountId: string,
     updates: { name?: string; type?: BudgetAccountType; onBudget?: boolean },

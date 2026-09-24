@@ -92,6 +92,28 @@ export function previewMonthClose(
   };
 }
 
+export function applyMonthNote<T extends BudgetData>(
+  budget: T,
+  monthKey: string,
+  note: string,
+): T {
+  if (!/^\d{4}-\d{2}$/.test(monthKey)) return budget;
+  const trimmed = note.trim();
+  const current = budget.monthBudgets[monthKey] ?? { assignments: {} };
+  const nextNote = trimmed.length > 0 ? trimmed : undefined;
+  if ((current.note ?? undefined) === nextNote) return budget;
+  return {
+    ...budget,
+    monthBudgets: {
+      ...budget.monthBudgets,
+      [monthKey]: {
+        ...current,
+        note: nextNote,
+      },
+    },
+  };
+}
+
 export function applyMonthClose<T extends BudgetData>(
   budget: T,
   monthKey: string,

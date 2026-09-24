@@ -152,9 +152,7 @@ function normalizeScheduledTransactions(
         payee: typeof row.payee === "string" ? row.payee : "",
         accountId,
         categoryId:
-          type === "inflow" || type === "transfer" || splits
-            ? null
-            : (row.categoryId ?? null),
+          type === "transfer" || splits ? null : (row.categoryId ?? null),
         amount: Math.abs(typeof row.amount === "number" ? row.amount : 0),
         type,
         memo: typeof row.memo === "string" && row.memo.trim() ? row.memo.trim() : undefined,
@@ -258,6 +256,10 @@ function normalizeMonthBudgets(
           ? month.closedAt
           : undefined,
       opening: normalizeOpening(month.opening),
+      note:
+        typeof month.note === "string" && month.note.trim()
+          ? month.note.trim()
+          : undefined,
     };
   }
   return next;
@@ -342,7 +344,7 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
       accountId: legacyTx.accountId ?? fallbackAccountId,
       cleared: normalizeClearedState(legacyTx.cleared),
       categoryId:
-        type === "inflow" || type === "transfer" ? null : (tx.categoryId ?? null),
+        type === "transfer" || splits ? null : (tx.categoryId ?? null),
       transferAccountId,
       splits,
       scheduledTransactionId,
