@@ -24,6 +24,7 @@ import {
   ACCOUNT_TYPE_LABELS,
   defaultOnBudgetForType,
   isCreditCardPaymentAccount,
+  isLiabilityAccount,
   isOnBudgetAccount,
 } from "@/lib/budget/accounts";
 import type { BudgetAccount, BudgetAccountType } from "@/types/budget";
@@ -34,7 +35,19 @@ interface AccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: BudgetAccount | null;
-  onSave: (name: string, type: BudgetAccountType, onBudget: boolean) => void;
+  onSave: (
+    name: string,
+    type: BudgetAccountType,
+    onBudget: boolean,
+    startingBalance?: { amount: number; date: string },
+  ) => void;
+}
+
+function todayKey(): string {
+  const date = new Date();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 export function AccountDialog({
@@ -47,6 +60,8 @@ export function AccountDialog({
   const [name, setName] = useState("");
   const [type, setType] = useState<BudgetAccountType>("chequing");
   const [onBudget, setOnBudget] = useState(true);
+  const [startingBalance, setStartingBalance] = useState("");
+  const [startingDate, setStartingDate] = useState(todayKey);
 
   useEffect(() => {
     if (!open) return;
@@ -56,6 +71,8 @@ export function AccountDialog({
     setOnBudget(
       account ? isOnBudgetAccount(account) : defaultOnBudgetForType(nextType),
     );
+    setStartingBalance("");
+    setStartingDate(todayKey());
   }, [open, account]);
 
   function handleTypeChange(nextType: BudgetAccountType) {
@@ -67,7 +84,12 @@ export function AccountDialog({
 
   function handleSubmit() {
     if (!name.trim()) return;
-    onSave(name, type, onBudget);
+    const parsed = Number.parseFloat(startingBalance);
+    const opening =
+      !isEdit && Number.isFinite(parsed) && parsed > 0 && startingDate
+        ? { amount: parsed, date: startingDate }
+        : undefined;
+    onSave(name, type, onBudget, opening);
     onOpenChange(false);
   }
 
@@ -121,6 +143,42 @@ export function AccountDialog({
                   : "Off-budget. Activity does not change leftover or envelope Activity. Transfers in or out of the budget do."}
             </p>
           </div>
+
+          {!isEdit ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="account-starting-balance">
+                  {isLiabilityAccount(type) ? "Current balance owed" : "Current balance"}
+                </Label>
+                <Input
+                  id="account-starting-balance"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={startingBalance}
+                  onChange={(event) => setStartingBalance(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="account-starting-date">As of</Label>
+                <Input
+                  id="account-starting-date"
+                  type="date"
+                  value={startingDate}
+                  onChange={(event) => setStartingDate(event.target.value)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                {isCreditCardPaymentAccount({ type, onBudget })
+                  ? "Existing debt is not funded. Assign money to the payment envelope when you are ready to pay it. Interest and fees are later transactions on this card."
+                  : onBudget
+                    ? "A positive balance is income in leftover, ready to give a job."
+                    : "Tracking only. This balance does not change leftover."}
+              </p>
+            </div>
+          ) : null}
 
           <div className="space-y-1.5">
             <Label>Account type</Label>

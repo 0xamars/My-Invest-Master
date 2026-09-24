@@ -290,7 +290,16 @@ const marketing = readFileSync(
 assert(!marketing.includes("BrandStill"), "marketing has no hero still");
 assert(!marketing.includes("surface-card"), "marketing pillars are not cards");
 assert(!marketing.includes("Learn"), "marketing does not revive Learn");
-assert(!marketing.includes("Freedom"), "marketing does not label Freedom");
+assert(
+  marketing.includes("Freedom, Engineered."),
+  "marketing hero stays Freedom, Engineered.",
+);
+assert(
+  marketing.includes("Budget") &&
+    marketing.includes("Invest") &&
+    marketing.includes("Retire"),
+  "marketing pillars stay Budget, Invest, Retire",
+);
 
 const headerNav = readFileSync(
   join(process.cwd(), "src/components/layout/signed-in-header-nav.tsx"),

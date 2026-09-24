@@ -69,7 +69,11 @@ export interface BudgetScheduledTransaction {
   frequency: RecurringFrequency;
   payee: string;
   accountId: string;
-  /** Null for inflows (Ready to Assign) and transfers. Unused when splits are present. */
+  /**
+   * Null for transfers, and for inflows that go to leftover.
+   * Set on an inflow to put a refund or reimbursement back in an envelope.
+   * Unused when splits are present.
+   */
   categoryId: string | null;
   amount: number;
   type: BudgetTransactionType;
@@ -94,7 +98,11 @@ export interface BudgetTransaction {
   date: string;
   payee: string;
   accountId: string;
-  /** Null for inflows (Ready to Assign) and transfers. Unused when splits are present. */
+  /**
+   * Null for transfers, and for inflows that go to leftover.
+   * Set on an inflow to put a refund or reimbursement back in an envelope.
+   * Unused when splits are present.
+   */
   categoryId: string | null;
   amount: number;
   type: BudgetTransactionType;
@@ -128,6 +136,8 @@ export interface MonthBudget {
   closedAt?: string;
   /** Opening leftover and envelope available after the previous month close. */
   opening?: MonthOpening;
+  /** Free-text note for this month. Does not affect the math. */
+  note?: string;
 }
 
 export type CategoryGoalType =

@@ -290,11 +290,7 @@ export function BudgetScheduledDialog({
       amount: parsedAmount,
       type,
       categoryId:
-        type === "inflow" || !selectedOnBudget
-          ? null
-          : categoryId === "none"
-            ? null
-            : categoryId,
+        !selectedOnBudget || categoryId === "none" ? null : categoryId,
       memo: memo.trim() || undefined,
       ...end,
     });
@@ -532,6 +528,24 @@ export function BudgetScheduledDialog({
               />
             </div>
           )}
+
+          {type === "inflow" && selectedOnBudget ? (
+            <div className="space-y-1.5">
+              <Label>Envelope</Label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => setCategoryId(value ?? "none")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Leftover" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Leftover</SelectItem>
+                  {categoryOptions()}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           {type === "outflow" && selectedOnBudget && !splitEnabled && (
             <div className="space-y-1.5">

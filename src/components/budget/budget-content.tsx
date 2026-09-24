@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import {
@@ -40,6 +40,35 @@ import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
 import { budgetHabitSnapshot } from "@/lib/budget/habit";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
 
+function MonthNoteField({
+  value,
+  onCommit,
+}: {
+  value: string;
+  onCommit: (note: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  return (
+    <textarea
+      id="budget-month-note"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        if (draft !== value) onCommit(draft);
+      }}
+      rows={2}
+      maxLength={500}
+      placeholder="What should you remember about this month?"
+      className="mt-2 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    />
+  );
+}
+
 export function BudgetContent() {
   const {
     budget,
@@ -48,6 +77,7 @@ export function BudgetContent() {
     syncError,
     updateCategoryGroup,
     moveCategoryGroup,
+    moveCategory,
     deleteCategoryGroup,
     updateCategory,
     deleteCategory,
@@ -60,6 +90,7 @@ export function BudgetContent() {
     setCategoryGoal,
     removeCategoryGoal,
     addTransaction,
+    setMonthNote,
   } = useBudget();
   const { openAddGroup, openAddEnvelope } = useBudgetDialog();
   const { monthKey } = useBudgetMonth();
@@ -204,6 +235,19 @@ export function BudgetContent() {
         </BudgetPanel>
       ) : null}
 
+      <BudgetPanel className="px-4 py-3 sm:px-5">
+        <label htmlFor="budget-month-note" className="text-sm font-semibold">
+          Month note
+        </label>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          A reminder for this month. It does not change leftover or envelopes.
+        </p>
+        <MonthNoteField
+          value={budget.monthBudgets[monthKey]?.note ?? ""}
+          onCommit={(note) => setMonthNote(monthKey, note)}
+        />
+      </BudgetPanel>
+
       <BudgetSummaryStats
         summary={summary}
         ageOfMoney={ageOfMoney}
@@ -255,6 +299,7 @@ export function BudgetContent() {
           setDeleteGroupOpen(true);
         }}
         onMoveGroup={(groupId, direction) => moveCategoryGroup(groupId, direction)}
+        onMoveCategory={(categoryId, direction) => moveCategory(categoryId, direction)}
         onEditCategory={(categoryId) => {
           setEditCategoryId(categoryId);
           setEditCategoryOpen(true);
