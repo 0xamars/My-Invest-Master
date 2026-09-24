@@ -13,6 +13,7 @@ export const DEFAULT_MONTE_CARLO_PATHS = 750;
 export interface MonteCarloPercentileBand {
   year: number;
   age: number;
+  spouseAge: number | null;
   p10: number;
   p50: number;
   p90: number;
@@ -93,12 +94,16 @@ export function runRetirementMonteCarlo(
   const next = createMulberry32(options?.seed ?? 1);
   const closingsByYear = new Map<number, number[]>();
   const ageByYear = new Map<number, number>();
+  const spouseAgeByYear = new Map<number, number | null>();
   let successCount = 0;
 
   for (let path = 0; path < paths; path += 1) {
     const projections = computeRetirementProjections(plan, {
       currentYear: options?.currentYear,
       horizonYears: options?.horizonYears,
+      survivor: options?.survivor,
+      withdrawalEngine: options?.withdrawalEngine,
+      taxEngine: options?.taxEngine,
       growthRatesForYear: () => {
         const growthRates: Record<string, number> = {};
         for (const asset of plan.assets) {
@@ -124,6 +129,7 @@ export function runRetirementMonteCarlo(
         closingsByYear.set(row.year, [row.closingBalance]);
       }
       ageByYear.set(row.year, row.age);
+      spouseAgeByYear.set(row.year, row.spouseAge);
     }
   }
 
@@ -134,6 +140,7 @@ export function runRetirementMonteCarlo(
       return {
         year,
         age: ageByYear.get(year) ?? 0,
+        spouseAge: spouseAgeByYear.get(year) ?? null,
         p10: percentile(sorted, 0.1),
         p50: percentile(sorted, 0.5),
         p90: percentile(sorted, 0.9),

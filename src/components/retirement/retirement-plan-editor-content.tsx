@@ -15,7 +15,9 @@ import {
   AddRetirementAssetDialog,
 } from "@/components/retirement/add-retirement-asset-dialog";
 import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
+import { RetirementDisclaimer } from "@/components/retirement/retirement-disclaimer";
 import { RetirementIncomeStreams } from "@/components/retirement/retirement-income-streams";
+import { RetirementSurvivorPanel } from "@/components/retirement/retirement-survivor-panel";
 import { RetirementMonteCarloPanel } from "@/components/retirement/retirement-monte-carlo-panel";
 import { RetirementPlanAssetsTable } from "@/components/retirement/retirement-plan-assets-table";
 import { RetirementPlanLevers } from "@/components/retirement/retirement-plan-levers";
@@ -48,7 +50,11 @@ import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import { projectionsForSavedPlan } from "@/lib/retirement/plan-chart";
 import { nominalTargetNestEgg } from "@/lib/retirement/target";
 import { cn } from "@/lib/utils";
-import type { RetirementPlan, RetirementPlanAsset } from "@/types/retirement";
+import {
+  personLabel,
+  type RetirementPlan,
+  type RetirementPlanAsset,
+} from "@/types/retirement";
 import { isLivePricedAsset } from "@/types/portfolio";
 
 interface RetirementPlanEditorContentProps {
@@ -152,7 +158,15 @@ export function RetirementPlanEditorContent({
     (
       id: string,
       patch: Partial<
-        Pick<RetirementPlanAsset, "unitPrice" | "quantity" | "expectedCagr">
+        Pick<
+          RetirementPlanAsset,
+          | "unitPrice"
+          | "quantity"
+          | "expectedCagr"
+          | "accountKind"
+          | "owner"
+          | "annualContribution"
+        >
       >,
     ) => {
       if (!workingPlan) return;
@@ -215,9 +229,12 @@ export function RetirementPlanEditorContent({
 
   if (!isLoaded || !isPlanLoaded) {
     return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading plan…
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-sm text-muted-foreground">
+        <div className="flex items-center">
+          <Loader2 className="mr-2 size-4 animate-spin" />
+          Loading plan…
+        </div>
+        <RetirementDisclaimer />
       </div>
     );
   }
@@ -232,10 +249,11 @@ export function RetirementPlanEditorContent({
             access to it.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <Button variant="outline" render={<Link href="/retire" />}>
             Back to Retire
           </Button>
+          <RetirementDisclaimer />
         </CardContent>
       </Card>
     );
@@ -270,6 +288,7 @@ export function RetirementPlanEditorContent({
               Assets, savings, and income on this plan. The chart and target
               date update as soon as they change.
             </p>
+            <RetirementDisclaimer />
           </div>
         </div>
 
@@ -312,10 +331,23 @@ export function RetirementPlanEditorContent({
           streams={workingPlan.incomeStreams}
           currency={currency}
           rates={rates}
+          hasSpouse={Boolean(workingPlan.spouse)}
+          ownerLabels={{
+            person1: personLabel(workingPlan, "person1"),
+            person2: personLabel(workingPlan, "person2"),
+          }}
           onChange={(incomeStreams) =>
             persistPlan({ ...workingPlan, incomeStreams })
           }
         />
+        {workingPlan.spouse ? (
+          <RetirementSurvivorPanel
+            plan={workingPlan}
+            currency={currency}
+            rates={rates}
+            currentYear={new Date().getFullYear()}
+          />
+        ) : null}
 
         <RetirementMonteCarloPanel
           plan={workingPlan}
@@ -343,7 +375,9 @@ export function RetirementPlanEditorContent({
               <CardDescription>
                 {lastUpdated
                   ? `Prices updated ${lastUpdated.toLocaleTimeString()}`
-                  : "Quantities and prices can refresh from Invest. CAGR stays yours."}
+                  : "Quantities and prices can refresh from Invest. CAGR stays yours."}{" "}
+                Tag each holding RRSP, TFSA, non-registered, or cash. An RRSP
+                becomes a RRIF at the end of the year its owner turns 71.
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -376,6 +410,15 @@ export function RetirementPlanEditorContent({
               currency={currency}
               rates={rates}
               loadingSymbols={loadingSymbols}
+              hasSpouse={Boolean(workingPlan.spouse)}
+              ownerLabels={{
+                person1: personLabel(workingPlan, "person1"),
+                person2: personLabel(workingPlan, "person2"),
+              }}
+              ownerAges={{
+                person1: workingPlan.currentAge,
+                person2: workingPlan.spouse?.currentAge ?? workingPlan.currentAge,
+              }}
               onUpdateAsset={handleUpdateAsset}
               onDeleteAsset={handleDeleteAsset}
             />
@@ -405,6 +448,10 @@ export function RetirementPlanEditorContent({
             currency={currency}
             rates={rates}
             retirementYear={workingPlan.retirementYear}
+            personLabels={{
+              person1: personLabel(workingPlan, "person1"),
+              person2: personLabel(workingPlan, "person2"),
+            }}
           />
         </div>
 
@@ -415,6 +462,11 @@ export function RetirementPlanEditorContent({
           existingSymbols={assets.map((asset) => asset.symbol)}
           currency={currency}
           rates={rates}
+          hasSpouse={Boolean(workingPlan.spouse)}
+          ownerLabels={{
+            person1: personLabel(workingPlan, "person1"),
+            person2: personLabel(workingPlan, "person2"),
+          }}
         />
         <CreateRetirementFromPortfolioDialog
           open={refreshOpen}

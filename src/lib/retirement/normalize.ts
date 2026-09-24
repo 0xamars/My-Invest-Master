@@ -4,10 +4,13 @@ import {
   DEFAULT_PLAN_END_AGE,
   DEFAULT_RETIREMENT_AGE,
   DEFAULT_WITHDRAWAL_RATE,
+  defaultAccountKind,
+  isAccountKind,
   retirementAgeFromYear,
   retirementYearFromAges,
   type RetirementIncomeKind,
   type RetirementIncomeStream,
+  type RetirementPersonId,
   type RetirementPlan,
   type RetirementPlanAsset,
   type RetirementPlanCurrency,
@@ -64,16 +67,24 @@ function normalizeAsset(raw: unknown, index: number): RetirementPlanAsset | null
   const symbol = optionalString(raw.symbol, "").trim();
   if (!symbol) return null;
 
+  const type = normalizeAssetType(raw.type);
+  const owner: RetirementPersonId = raw.owner === "person2" ? "person2" : "person1";
+
   return {
     id: optionalString(raw.id, `asset-${index}`),
     symbol,
     name: optionalString(raw.name, symbol),
-    type: normalizeAssetType(raw.type),
+    type,
     priceId: typeof raw.priceId === "string" ? raw.priceId : undefined,
     logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : undefined,
     unitPrice: Math.max(0, finiteNumber(raw.unitPrice, 0)),
     quantity: Math.max(0, finiteNumber(raw.quantity, 0)),
     expectedCagr: finiteNumber(raw.expectedCagr, 0),
+    accountKind: isAccountKind(raw.accountKind)
+      ? raw.accountKind
+      : defaultAccountKind(type),
+    owner,
+    annualContribution: Math.max(0, finiteNumber(raw.annualContribution, 0)),
   };
 }
 
@@ -105,6 +116,8 @@ function normalizeIncomeStream(
     annualAmount: Math.max(0, finiteNumber(raw.annualAmount, 0)),
     startAge: clampAge(finiteNumber(raw.startAge, 65), 65),
     colaWithInflation: raw.colaWithInflation !== false,
+    owner: raw.owner === "person2" ? "person2" : "person1",
+    survivorPercent: Math.min(100, Math.max(0, finiteNumber(raw.survivorPercent, 0))),
   };
 }
 
@@ -173,6 +186,10 @@ export function normalizeRetirementPlan(
     currency: normalizeCurrency(source.currency),
     withdrawalRate: Math.max(0.1, finiteNumber(source.withdrawalRate, DEFAULT_WITHDRAWAL_RATE)),
     annualContribution: Math.max(0, finiteNumber(source.annualContribution, 0)),
+    pensionSplitPercent: Math.min(
+      50,
+      Math.max(0, finiteNumber(source.pensionSplitPercent, 0)),
+    ),
     incomeStreams: Array.isArray(source.incomeStreams)
       ? source.incomeStreams
           .map((stream, index) => normalizeIncomeStream(stream, index))

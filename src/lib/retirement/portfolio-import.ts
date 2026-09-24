@@ -3,6 +3,7 @@ import { DEFAULT_FX_RATES, type FxRates } from "@/types/currency";
 import { getCashCurrency, type PortfolioHolding } from "@/types/portfolio";
 import {
   DEFAULT_CAGR_BY_TYPE,
+  defaultAccountKind,
   type RetirementPlanAsset,
 } from "@/types/retirement";
 
@@ -20,6 +21,9 @@ export function portfolioHoldingToPlanAsset(
     unitPrice,
     quantity: holding.quantity,
     expectedCagr: DEFAULT_CAGR_BY_TYPE[holding.type],
+    accountKind: defaultAccountKind(holding.type),
+    owner: "person1",
+    annualContribution: 0,
   };
 }
 

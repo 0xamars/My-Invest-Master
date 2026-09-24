@@ -11,6 +11,7 @@ import {
   RETIREMENT_INCOME_KIND_LABELS,
   type RetirementIncomeKind,
   type RetirementIncomeStream,
+  type RetirementPersonId,
 } from "@/types/retirement";
 
 const QUICK_KINDS: RetirementIncomeKind[] = ["cpp", "oas", "pension", "other"];
@@ -19,11 +20,15 @@ export function RetirementIncomeStreams({
   streams,
   currency,
   rates,
+  hasSpouse,
+  ownerLabels,
   onChange,
 }: {
   streams: RetirementIncomeStream[];
   currency: DisplayCurrency;
   rates: FxRates;
+  hasSpouse: boolean;
+  ownerLabels: Record<RetirementPersonId, string>;
   onChange: (streams: RetirementIncomeStream[]) => void;
 }) {
   function patch(id: string, next: Partial<RetirementIncomeStream>) {
@@ -40,8 +45,9 @@ export function RetirementIncomeStreams({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Income streams</h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            CPP, OAS, pension, or other. After the target age, portfolio withdrawal
-            is spending minus income that year.
+            CPP, OAS, pension, or other. Amounts stay at zero until you enter
+            them. A stream pays after that person reaches both their target age
+            and the start age. Portfolio withdrawal is spending minus that income.
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -63,14 +69,16 @@ export function RetirementIncomeStreams({
 
       {streams.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          No income yet. US Social Security can be an Other income row.
+          {hasSpouse
+            ? "No income yet. Add a CPP or OAS row for each person, and set the owner. US Social Security can be an Other income row."
+            : "No income yet. US Social Security can be an Other income row."}
         </p>
       ) : (
         <div className="mt-4 space-y-3">
           {streams.map((stream) => (
             <div
               key={stream.id}
-              className="grid gap-3 rounded-xl border border-border/60 p-3 sm:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_auto] sm:items-end"
+              className="grid gap-3 rounded-xl border border-border/60 p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_auto] lg:items-end"
             >
               <RetireField id={`${stream.id}-name`} label="Name">
                 <Input
@@ -114,6 +122,46 @@ export function RetirementIncomeStreams({
                   className="tabular-nums"
                 />
               </RetireField>
+              {hasSpouse ? (
+                <RetireField id={`${stream.id}-owner`} label="Person">
+                  <select
+                    id={`${stream.id}-owner`}
+                    className="h-10 w-full rounded-[var(--radius)] border border-border bg-muted px-3 text-sm"
+                    value={stream.owner === "person2" ? "person2" : "person1"}
+                    aria-label={`${stream.name} person`}
+                    onChange={(event) =>
+                      patch(stream.id, {
+                        owner:
+                          event.target.value === "person2" ? "person2" : "person1",
+                      })
+                    }
+                  >
+                    <option value="person1">{ownerLabels.person1}</option>
+                    <option value="person2">{ownerLabels.person2}</option>
+                  </select>
+                </RetireField>
+              ) : null}
+              {hasSpouse && (stream.kind === "pension" || stream.kind === "other") ? (
+                <RetireField
+                  id={`${stream.id}-survivor`}
+                  label="Continues for survivor %"
+                  hint="0 means this stops at death. CPP and OAS always stop."
+                >
+                  <Input
+                    id={`${stream.id}-survivor`}
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={stream.survivorPercent}
+                    onChange={(event) =>
+                      patch(stream.id, {
+                        survivorPercent: Number(event.target.value) || 0,
+                      })
+                    }
+                    className="tabular-nums"
+                  />
+                </RetireField>
+              ) : null}
               <RetireField id={`${stream.id}-cola`} label="COLA">
                 <Button
                   id={`${stream.id}-cola`}

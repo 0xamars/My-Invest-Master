@@ -4,6 +4,7 @@ import { CurrencyAmountInput } from "@/components/retirement/currency-amount-inp
 import { RetireField, RetirePanel } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RETIRE_ENGINE_ASSUMPTIONS } from "@/lib/retirement/assumptions";
 import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
 import type { FxRates } from "@/types/currency";
 import { createEmptySpouse, type RetirementPlan } from "@/types/retirement";
@@ -112,55 +113,92 @@ export function RetirementPlanLevers({
         </div>
 
         {plan.spouse ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <RetireField id="spouse-name" label="Spouse name">
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <RetireField id="spouse-name" label="Spouse name">
+                <Input
+                  id="spouse-name"
+                  value={plan.spouse.name}
+                  onChange={(event) =>
+                    patch({
+                      spouse: { ...plan.spouse!, name: event.target.value },
+                    })
+                  }
+                />
+              </RetireField>
+              <RetireField id="spouse-age" label="Spouse age">
+                <Input
+                  id="spouse-age"
+                  type="number"
+                  min="18"
+                  max="100"
+                  value={plan.spouse.currentAge}
+                  onChange={(event) =>
+                    patch({
+                      spouse: {
+                        ...plan.spouse!,
+                        currentAge: Number(event.target.value) || plan.spouse!.currentAge,
+                      },
+                    })
+                  }
+                  className="tabular-nums"
+                />
+              </RetireField>
+              <RetireField id="spouse-target-age" label="Spouse target age">
+                <Input
+                  id="spouse-target-age"
+                  type="number"
+                  min="30"
+                  max="100"
+                  value={plan.spouse.retirementAge}
+                  onChange={(event) =>
+                    patch({
+                      spouse: {
+                        ...plan.spouse!,
+                        retirementAge:
+                          Number(event.target.value) || plan.spouse!.retirementAge,
+                      },
+                    })
+                  }
+                  className="tabular-nums"
+                />
+              </RetireField>
+            </div>
+            <RetireField
+              id="pension-split"
+              label="Pension income split %"
+              hint="Share of pension income assigned to the other person, up to 50%. CPP and OAS stay with the person who receives them. This does not change the household total and it does not calculate tax."
+            >
               <Input
-                id="spouse-name"
-                value={plan.spouse.name}
-                onChange={(event) =>
-                  patch({
-                    spouse: { ...plan.spouse!, name: event.target.value },
-                  })
-                }
-              />
-            </RetireField>
-            <RetireField id="spouse-age" label="Spouse age">
-              <Input
-                id="spouse-age"
+                id="pension-split"
                 type="number"
-                min="18"
-                max="100"
-                value={plan.spouse.currentAge}
+                min="0"
+                max="50"
+                step="1"
+                value={plan.pensionSplitPercent}
                 onChange={(event) =>
                   patch({
-                    spouse: {
-                      ...plan.spouse!,
-                      currentAge: Number(event.target.value) || plan.spouse!.currentAge,
-                    },
+                    pensionSplitPercent: Number(event.target.value) || 0,
                   })
                 }
                 className="tabular-nums"
               />
             </RetireField>
-            <RetireField id="spouse-target-age" label="Spouse target age">
-              <Input
-                id="spouse-target-age"
-                type="number"
-                min="30"
-                max="100"
-                value={plan.spouse.retirementAge}
-                onChange={(event) =>
-                  patch({
-                    spouse: {
-                      ...plan.spouse!,
-                      retirementAge:
-                        Number(event.target.value) || plan.spouse!.retirementAge,
-                    },
-                  })
-                }
-                className="tabular-nums"
-              />
-            </RetireField>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Each person retires at their own target age. Household spending
+              starts when the first person reaches theirs. Add each CPP, OAS,
+              and pension as its own income row.
+            </p>
+            <details className="text-xs leading-relaxed text-muted-foreground">
+              <summary className="cursor-pointer font-medium text-foreground">
+                Assumptions for two people
+              </summary>
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                {RETIRE_ENGINE_ASSUMPTIONS.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </details>
           </div>
         ) : null}
       </RetirePanel>
@@ -169,8 +207,9 @@ export function RetirementPlanLevers({
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Spend, save, withdraw</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Target nest egg is spending ÷ withdrawal rate. Savings are added
-            each year until the target age.
+            Target nest egg is spending ÷ withdrawal rate. Plan savings are
+            added each year until your target age. An account can also carry
+            its own annual contribution.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">

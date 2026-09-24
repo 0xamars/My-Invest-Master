@@ -26,22 +26,30 @@ interface RetirementPlanProjectionsTableProps {
   currency: DisplayCurrency;
   rates: FxRates;
   retirementYear: number;
+  personLabels?: { person1: string; person2: string };
 }
 
+type MetricKey = keyof Pick<
+  YearProjection,
+  | "openingBalance"
+  | "assetAppreciation"
+  | "balanceAfterAppreciation"
+  | "contribution"
+  | "lifestyleSpending"
+  | "income"
+  | "taxPayable"
+  | "rrifMinimum"
+  | "rrifSurplusReinvested"
+  | "rrifSurplusLeftPlan"
+  | "portfolioWithdrawal"
+  | "closingBalance"
+>;
+
 const METRIC_ROWS: {
-  key: keyof Pick<
-    YearProjection,
-    | "openingBalance"
-    | "assetAppreciation"
-    | "balanceAfterAppreciation"
-    | "contribution"
-    | "lifestyleSpending"
-    | "income"
-    | "portfolioWithdrawal"
-    | "closingBalance"
-  >;
+  key: MetricKey;
   label: string;
   className?: string;
+  when?: "always" | "nonzero";
 }[] = [
   { key: "openingBalance", label: "Opening Balance" },
   {
@@ -66,6 +74,29 @@ const METRIC_ROWS: {
     className: "text-emerald-600 dark:text-emerald-400",
   },
   {
+    key: "taxPayable",
+    label: "Tax",
+    className: "text-amber-600 dark:text-amber-400",
+    when: "nonzero",
+  },
+  {
+    key: "rrifMinimum",
+    label: "RRIF minimum",
+    className: "text-amber-600 dark:text-amber-400",
+    when: "nonzero",
+  },
+  {
+    key: "rrifSurplusReinvested",
+    label: "RRIF surplus reinvested",
+    when: "nonzero",
+  },
+  {
+    key: "rrifSurplusLeftPlan",
+    label: "RRIF surplus left the plan",
+    className: "text-amber-600 dark:text-amber-400",
+    when: "nonzero",
+  },
+  {
     key: "portfolioWithdrawal",
     label: "Portfolio Withdrawal",
     className: "text-amber-600 dark:text-amber-400",
@@ -85,16 +116,36 @@ const LABEL_CELL = cn(
 const NUMERIC = cn(CELL, "min-w-[112px] text-right text-sm tabular-nums");
 
 function formatProjectionCell(
-  key: (typeof METRIC_ROWS)[number]["key"],
+  key: MetricKey,
   value: number,
   currency: DisplayCurrency,
   rates: FxRates,
 ): string {
-  if (key === "lifestyleSpending" || key === "portfolioWithdrawal") {
+  if (
+    key === "lifestyleSpending" ||
+    key === "portfolioWithdrawal" ||
+    key === "rrifMinimum" ||
+    key === "rrifSurplusLeftPlan" ||
+    key === "taxPayable"
+  ) {
     return formatProjectionSpending(value, currency, rates);
   }
 
   return formatProjectionMoney(value, currency, rates);
+}
+
+function ageLabel(
+  projection: YearProjection,
+  labels: { person1: string; person2: string },
+): string {
+  if (projection.spouseAge == null) return "";
+  const you = projection.deceased.includes("person1")
+    ? `${labels.person1} died`
+    : `${labels.person1} ${projection.age}`;
+  const spouse = projection.deceased.includes("person2")
+    ? `${labels.person2} died`
+    : `${labels.person2} ${projection.spouseAge}`;
+  return `${you} · ${spouse}`;
 }
 
 export function RetirementPlanProjectionsTable({
@@ -103,8 +154,14 @@ export function RetirementPlanProjectionsTable({
   currency,
   rates,
   retirementYear,
+  personLabels = { person1: "You", person2: "Spouse" },
 }: RetirementPlanProjectionsTableProps) {
   const [showAssetBreakdown, setShowAssetBreakdown] = useState(false);
+  const rows = METRIC_ROWS.filter(
+    (metric) =>
+      metric.when !== "nonzero" ||
+      projections.some((projection) => projection[metric.key] > 0),
+  );
 
   if (projections.length === 0) {
     return (
@@ -148,6 +205,10 @@ export function RetirementPlanProjectionsTable({
                   {projection.year}
                   <span className="ml-2 text-xs font-medium text-muted-foreground">
                     Age {projection.age}
+                    {projection.spouseAge != null
+                      ? ` · ${personLabels.person2} ${projection.spouseAge}`
+                      : ""}
+                    {projection.deceased.length > 0 ? " · death" : ""}
                   </span>
                 </p>
                 {isRetirement ? (
@@ -203,6 +264,18 @@ export function RetirementPlanProjectionsTable({
                     )}
                   </dd>
                 </div>
+                {projection.rrifMinimum > 0 ? (
+                  <div>
+                    <dt className="text-muted-foreground">RRIF minimum</dt>
+                    <dd className="tabular-nums">
+                      {formatProjectionSpending(
+                        projection.rrifMinimum,
+                        currency,
+                        rates,
+                      )}
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
             </div>
           );
@@ -234,6 +307,11 @@ export function RetirementPlanProjectionsTable({
                     >
                       <div className="flex flex-col items-end gap-0.5">
                         <span>{projection.year}</span>
+                        {ageLabel(projection, personLabels) ? (
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {ageLabel(projection, personLabels)}
+                          </span>
+                        ) : null}
                         {isRetirement && (
                           <span className="rounded-md bg-primary/15 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
                             Target
@@ -246,7 +324,7 @@ export function RetirementPlanProjectionsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {METRIC_ROWS.map((metric) => (
+              {rows.map((metric) => (
                 <TableRow key={metric.key} className="group">
                   <TableCell
                     className={cn(

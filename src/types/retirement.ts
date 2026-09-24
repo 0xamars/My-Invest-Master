@@ -6,6 +6,14 @@ export type RetirementPlanCurrency = "CAD" | "USD";
 
 export type RetirementIncomeKind = "cpp" | "oas" | "pension" | "other";
 
+/** Registered and taxable buckets. Cash is an unregistered cash account. */
+export type RetirementAccountKind = "rrsp" | "tfsa" | "non_registered" | "cash";
+
+/** RRSP is stored as rrsp. The projection reports rrif after conversion. */
+export type ProjectedAccountKind = RetirementAccountKind | "rrif";
+
+export type RetirementPersonId = "person1" | "person2";
+
 export interface RetirementPlanAsset {
   id: string;
   symbol: string;
@@ -17,6 +25,15 @@ export interface RetirementPlanAsset {
   quantity: number;
   /** Expected annual growth rate in percent (e.g. 7 = 7%). */
   expectedCagr: number;
+  /** RRSP, TFSA, non-registered, or cash. Existing rows migrate in normalize. */
+  accountKind: RetirementAccountKind;
+  /** Person 1 is the primary plan holder. Person 2 is the spouse. */
+  owner: RetirementPersonId;
+  /**
+   * Annual amount added to this account until its owner reaches their target
+   * age. Stored in USD, like the rest of the plan. Default 0.
+   */
+  annualContribution: number;
 }
 
 export interface RetirementSpouse {
@@ -34,6 +51,23 @@ export interface RetirementIncomeStream {
   startAge: number;
   /** When true, amount grows with plan inflation from today. */
   colaWithInflation: boolean;
+  /** Defaults to person 1 so older plans keep a single earner. */
+  owner: RetirementPersonId;
+  /**
+   * Percent of a pension or other stream that continues after the owner dies.
+   * CPP and OAS ignore this and stop. Default 0 so death does not invent income.
+   */
+  survivorPercent: number;
+}
+
+/**
+ * What-if for the survivor view. Not stored on the plan: a death age is an
+ * input to the view, not a fact the planner invents.
+ */
+export interface SurvivorScenario {
+  deceased: RetirementPersonId;
+  /** Age the deceased attains in the year of death. */
+  deathAge: number;
 }
 
 export interface RetirementPlan {
@@ -58,21 +92,51 @@ export interface RetirementPlan {
   withdrawalRate: number;
   /** Annual savings added during the accumulation phase. */
   annualContribution: number;
+  /**
+   * Percent of pension-stream income assigned to the other person while both
+   * are alive. 0–50. CPP and OAS are not split. Does not change the household
+   * total and does not calculate tax. Default 0.
+   */
+  pensionSplitPercent: number;
   incomeStreams: RetirementIncomeStream[];
+}
+
+export interface PersonYearIncome {
+  cpp: number;
+  oas: number;
+  pension: number;
+  other: number;
+  /** Pension after the split election. The household pension total is unchanged. */
+  pensionAfterSplit: number;
 }
 
 export interface YearProjection {
   year: number;
   age: number;
+  /** Null when the plan has no spouse. */
+  spouseAge: number | null;
+  deceased: RetirementPersonId[];
   openingBalance: number;
   assetAppreciation: number;
   balanceAfterAppreciation: number;
   contribution: number;
   lifestyleSpending: number;
+  /** Household income. Pension split does not change this total. */
   income: number;
+  incomeByPerson: Record<RetirementPersonId, PersonYearIncome>;
+  /** Tax hook result. The default engine returns 0. */
+  taxPayable: number;
   portfolioWithdrawal: number;
+  /** Prescribed RRIF minimum actually taken from RRIF accounts. */
+  rrifMinimum: number;
+  /** Minimum above the spending gap that was moved to a non-RRIF account. */
+  rrifSurplusReinvested: number;
+  /** Minimum above the spending gap that left the plan. */
+  rrifSurplusLeftPlan: number;
   closingBalance: number;
   assetBreakdown: Record<string, number>;
+  /** Account kind after RRSP→RRIF conversion for this year. */
+  accountKindById: Record<string, ProjectedAccountKind>;
 }
 
 export interface RetirementPlanSummary {
@@ -116,6 +180,49 @@ export const RETIREMENT_INCOME_KIND_LABELS: Record<RetirementIncomeKind, string>
     other: "Other income",
   };
 
+export const ACCOUNT_KIND_LABELS: Record<RetirementAccountKind, string> = {
+  rrsp: "RRSP",
+  tfsa: "TFSA",
+  non_registered: "Non-registered",
+  cash: "Cash",
+};
+
+export const ACCOUNT_KINDS: RetirementAccountKind[] = [
+  "rrsp",
+  "tfsa",
+  "non_registered",
+  "cash",
+];
+
+/** Federal RRSP-to-RRIF deadline: the end of the year the owner turns 71. */
+export const RRSP_CONVERSION_AGE = 71;
+
+export function defaultAccountKind(type: AssetType): RetirementAccountKind {
+  return type === "cash" ? "cash" : "non_registered";
+}
+
+export function isAccountKind(value: unknown): value is RetirementAccountKind {
+  return (
+    value === "rrsp" ||
+    value === "tfsa" ||
+    value === "non_registered" ||
+    value === "cash"
+  );
+}
+
+export function emptyPersonIncome(): PersonYearIncome {
+  return { cpp: 0, oas: 0, pension: 0, other: 0, pensionAfterSplit: 0 };
+}
+
+export function personLabel(
+  plan: Pick<RetirementPlan, "spouse">,
+  person: RetirementPersonId,
+): string {
+  if (person === "person1") return "You";
+  const name = plan.spouse?.name.trim();
+  return name ? name : "Spouse";
+}
+
 export function getPlanTotalValue(plan: Pick<RetirementPlan, "assets">): number {
   return plan.assets.reduce(
     (sum, asset) => sum + asset.unitPrice * asset.quantity,
@@ -158,6 +265,8 @@ export function createIncomeStream(
     annualAmount: 0,
     startAge: 65,
     colaWithInflation: true,
+    owner: "person1",
+    survivorPercent: 0,
     ...overrides,
   };
 }
@@ -189,6 +298,7 @@ export function createEmptyPlan(name = "New Retire plan"): RetirementPlan {
     currency: DEFAULT_PLAN_CURRENCY,
     withdrawalRate: DEFAULT_WITHDRAWAL_RATE,
     annualContribution: 0,
+    pensionSplitPercent: 0,
     incomeStreams: [],
     annualLifestyleSpending: 60_000,
     inflationRate: 3,
