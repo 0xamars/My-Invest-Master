@@ -96,6 +96,19 @@ export function BudgetPayeeRulesContent() {
   );
   const categories = userAssignableCategories(budget.categories);
   const groups = [...budget.categoryGroups].sort((a, b) => a.sortOrder - b.sortOrder);
+  const categoryItems = useMemo(() => {
+    const items: Record<string, string> = { none: "No category" };
+    const assignable = userAssignableCategories(budget.categories);
+    const orderedGroups = [...budget.categoryGroups].sort((a, b) => a.sortOrder - b.sortOrder);
+    for (const group of orderedGroups) {
+      for (const category of assignable
+        .filter((entry) => entry.groupId === group.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder)) {
+        items[category.id] = `${group.name} · ${category.name}`;
+      }
+    }
+    return items;
+  }, [budget.categories, budget.categoryGroups]);
   const categoryName = useMemo(() => {
     const names = new Map(budget.categories.map((category) => [category.id, category.name]));
     return (id: string | null | undefined) => (id ? names.get(id) ?? "Missing category" : "No category");
@@ -194,6 +207,7 @@ export function BudgetPayeeRulesContent() {
               <Label htmlFor="payee-rule-match">When the payee</Label>
               <div className="flex gap-2">
                 <Select
+                  items={MATCH_TYPE_LABEL}
                   value={draft.matchType}
                   onValueChange={(value) =>
                     setDraft((current) => ({
@@ -243,6 +257,7 @@ export function BudgetPayeeRulesContent() {
             <div className="space-y-1.5">
               <Label htmlFor="payee-rule-category">Category</Label>
               <Select
+                items={categoryItems}
                 value={draft.categoryId}
                 onValueChange={(value) =>
                   setDraft((current) => ({ ...current, categoryId: value ?? "none" }))
