@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
+import { CHECK_YOUR_EMAIL_MESSAGE, signupNextStep } from "@/lib/auth/confirmation";
 import { signedInLandingPath } from "@/lib/journey/landing";
 import { LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "@/lib/routes";
 
@@ -17,28 +18,25 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
-    setMessage(null);
     setIsSubmitting(true);
     const result = await signUp(email, password);
     setIsSubmitting(false);
-    if (result.error) {
+    const next = signupNextStep(result);
+    if (next === "show-error") {
       setError(result.error);
       return;
     }
-    if (result.error == null) {
-      setMessage(
-        "Account created. If email confirmation is on, check your inbox, then sign in.",
-      );
-      window.setTimeout(() => {
-        router.push(signedInLandingPath(false));
-      }, 400);
+    if (next === "check-email") {
+      setNeedsEmailConfirmation(true);
+      return;
     }
+    router.push(signedInLandingPath(false));
   }
 
   return (
@@ -50,7 +48,21 @@ export function SignupForm() {
         </p>
       </div>
 
-      {!isConfigured ? (
+      {needsEmailConfirmation ? (
+        <div className="space-y-4" data-signup-state="check-email">
+          <h2 className="text-xl font-semibold tracking-tight">Check your email</h2>
+          <p className="text-sm text-white/70">{CHECK_YOUR_EMAIL_MESSAGE}</p>
+          <p className="text-sm text-white/70">
+            We sent the link to <span className="text-white">{email}</span>.
+          </p>
+          <Button
+            render={<Link href={`${LOGIN_PATH}?notice=confirm-email`} />}
+            className="premium-cta w-full"
+          >
+            Go to sign in
+          </Button>
+        </div>
+      ) : !isConfigured ? (
         <p className="text-sm text-white/55">
           Cloud auth is not configured. Add Supabase credentials to{" "}
           <code className="text-xs">.env.local</code>.
@@ -84,7 +96,6 @@ export function SignupForm() {
           </div>
 
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
-          {message ? <p className="text-sm text-white/70">{message}</p> : null}
 
           <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}

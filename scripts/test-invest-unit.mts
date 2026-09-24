@@ -1008,19 +1008,22 @@ const exportPayload = buildAccountExportPayload({
   exportedAt: "2026-08-18T00:00:00.000Z",
   userId: "user-1",
   user_budget_plans: [{ id: "b1", data: leftoverPlan }],
+  user_budgets: [],
   user_retirement_plans: [],
   user_portfolio_plans: [{ id: "p1", data: { holdings: appliedNew.holdings } }],
+  user_portfolios: [],
+  user_watchlist_plans: [{ id: "w1", data: { name: "Ideas" } }],
+  user_options: [],
+  user_preferences: [{ display_currency: "USD", plan: "free" }],
+  user_money_profiles: [],
+  user_plaid_accounts: [],
+  user_plaid_items: [],
 });
-assert(isAccountExportPayload(exportPayload), "export payload has the three blobs");
+assert(isAccountExportPayload(exportPayload), "export payload includes user-owned tables");
 assert(
-  Array.isArray(exportPayload.user_budget_plans) &&
-    Array.isArray(exportPayload.user_retirement_plans) &&
-    Array.isArray(exportPayload.user_portfolio_plans),
-  "export shape is the three user_* arrays",
-);
-assert(
-  !("user_watchlist_plans" in exportPayload),
-  "export does not add extra tables",
+  Array.isArray(exportPayload.user_watchlist_plans) &&
+    exportPayload.user_watchlist_plans.length === 1,
+  "export includes watchlists",
 );
 
 // --- Cookies ---

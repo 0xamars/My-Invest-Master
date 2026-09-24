@@ -1,3 +1,9 @@
+import {
+  CLIENT_DELETABLE_USER_TABLES,
+  PLAID_ITEM_EXPORT_COLUMNS,
+  type AccountExportRows,
+} from "@/lib/account/export";
+import { preferencesCloudWrite } from "@/lib/account/preferences-write";
 import { createClient } from "@/lib/supabase/client";
 import type { BudgetData, BudgetPlan } from "@/types/budget";
 import { createDefaultAccount } from "@/types/budget";
@@ -312,18 +318,16 @@ export async function savePreferencesToCloud(
   userId: string,
   preferences: {
     displayCurrency: DisplayCurrency;
-    plan?: UserPlan;
   },
 ): Promise<void> {
   await waitForSupabaseSession();
   const supabase = getClient();
   const { error } = await supabase.from("user_preferences").upsert(
-    {
-      user_id: userId,
-      display_currency: preferences.displayCurrency,
-      ...(preferences.plan ? { plan: preferences.plan } : {}),
-      updated_at: new Date().toISOString(),
-    },
+    preferencesCloudWrite({
+      userId,
+      displayCurrency: preferences.displayCurrency,
+      updatedAt: new Date().toISOString(),
+    }),
     { onConflict: "user_id" },
   );
 
@@ -633,55 +637,124 @@ export async function deleteWatchlistPlanFromCloud(
   if (error) throw error;
 }
 
-export async function loadAccountExportRows(userId: string): Promise<{
-  user_budget_plans: unknown[];
-  user_retirement_plans: unknown[];
-  user_portfolio_plans: unknown[];
-}> {
+export async function loadAccountExportRows(
+  userId: string,
+): Promise<AccountExportRows> {
   await waitForSupabaseSession();
   const supabase = getClient();
 
-  const [budget, retirement, portfolio] = await Promise.all([
+  const [
+    budgetPlans,
+    budgets,
+    retirement,
+    portfolioPlans,
+    portfolios,
+    watchlists,
+    options,
+    preferences,
+    moneyProfiles,
+    plaidAccounts,
+    plaidItems,
+  ] = await Promise.all([
     supabase
       .from("user_budget_plans")
-      .select("id, data, updated_at")
+      .select("id, user_id, data, updated_at")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false }),
     supabase
+      .from("user_budgets")
+      .select("user_id, data, updated_at")
+      .eq("user_id", userId),
+    supabase
       .from("user_retirement_plans")
-      .select("id, data, updated_at")
+      .select("id, user_id, data, updated_at")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false }),
     supabase
       .from("user_portfolio_plans")
-      .select("id, data, updated_at")
+      .select("id, user_id, data, updated_at")
       .eq("user_id", userId)
       .order("updated_at", { ascending: false }),
+    supabase
+      .from("user_portfolios")
+      .select("user_id, holdings, updated_at")
+      .eq("user_id", userId),
+    supabase
+      .from("user_watchlist_plans")
+      .select("id, user_id, data, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("user_options")
+      .select("user_id, positions, updated_at")
+      .eq("user_id", userId),
+    supabase
+      .from("user_preferences")
+      .select("user_id, display_currency, plan, updated_at")
+      .eq("user_id", userId),
+    supabase
+      .from("user_money_profiles")
+      .select("user_id, data, updated_at")
+      .eq("user_id", userId),
+    supabase
+      .from("user_plaid_accounts")
+      .select(
+        "id, user_id, item_row_id, plaid_account_id, budget_account_id, name, official_name, mask, type, subtype, created_at",
+      )
+      .eq("user_id", userId),
+    supabase
+      .from("user_plaid_items")
+      .select(PLAID_ITEM_EXPORT_COLUMNS)
+      .eq("user_id", userId),
   ]);
 
-  if (budget.error) throw budget.error;
-  if (retirement.error) throw retirement.error;
-  if (portfolio.error) throw portfolio.error;
+  const results = [
+    budgetPlans,
+    budgets,
+    retirement,
+    portfolioPlans,
+    portfolios,
+    watchlists,
+    options,
+    preferences,
+    moneyProfiles,
+    plaidAccounts,
+    plaidItems,
+  ];
+  for (const result of results) {
+    if (result.error) throw result.error;
+  }
 
   return {
-    user_budget_plans: budget.data ?? [],
+    user_budget_plans: budgetPlans.data ?? [],
+    user_budgets: budgets.data ?? [],
     user_retirement_plans: retirement.data ?? [],
-    user_portfolio_plans: portfolio.data ?? [],
+    user_portfolio_plans: portfolioPlans.data ?? [],
+    user_portfolios: portfolios.data ?? [],
+    user_watchlist_plans: watchlists.data ?? [],
+    user_options: options.data ?? [],
+    user_preferences: preferences.data ?? [],
+    user_money_profiles: moneyProfiles.data ?? [],
+    user_plaid_accounts: plaidAccounts.data ?? [],
+    user_plaid_items: plaidItems.data ?? [],
   };
 }
 
-/** Wipe the three JSONB plan tables the signed-in user can already delete. */
-export async function deleteOwnPlanRows(userId: string): Promise<void> {
+/**
+ * Deletes every user-owned table the browser session is allowed to delete.
+ * Plaid items stay until the server calls /item/remove.
+ */
+export async function deleteOwnUserData(userId: string): Promise<void> {
   await waitForSupabaseSession();
   const supabase = getClient();
 
-  const [budget, retirement, portfolio] = await Promise.all([
-    supabase.from("user_budget_plans").delete().eq("user_id", userId),
-    supabase.from("user_retirement_plans").delete().eq("user_id", userId),
-    supabase.from("user_portfolio_plans").delete().eq("user_id", userId),
-  ]);
+  const results = await Promise.all(
+    CLIENT_DELETABLE_USER_TABLES.map((table) =>
+      supabase.from(table).delete().eq("user_id", userId),
+    ),
+  );
 
-  if (budget.error) throw budget.error;
-  if (retirement.error) throw retirement.error;
-  if (portfolio.error) throw portfolio.error;
+  for (const result of results) {
+    if (result.error) throw result.error;
+  }
 }

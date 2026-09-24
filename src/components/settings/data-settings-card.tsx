@@ -22,7 +22,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGoToMarketingHome } from "@/lib/navigation/marketing-home";
 import { buildAccountExportPayload } from "@/lib/account/export";
 import {
-  deleteOwnPlanRows,
+  deleteOwnUserData,
   loadAccountExportRows,
 } from "@/lib/supabase/user-data";
 
@@ -74,23 +74,31 @@ export function DataSettingsCard() {
     setNote(null);
     setBusy("delete");
     try {
-      await deleteOwnPlanRows(user.id);
       const response = await fetch("/api/account/delete", { method: "POST" });
       const body = (await response.json().catch(() => ({}))) as {
         authUserDeleted?: boolean;
+        dataDeleted?: boolean;
         message?: string;
         error?: string;
       };
-      if (!response.ok && response.status !== 200) {
+      if (!response.ok) {
         throw new Error(body.error ?? "Unable to finish account delete.");
+      }
+      if (!body.dataDeleted) {
+        await deleteOwnUserData(user.id);
       }
       await signOut();
       if (body.authUserDeleted) {
-        setNote("Account deleted.");
+        setNote("Account deleted. Linked banks were disconnected first.");
+      } else if (body.dataDeleted) {
+        setNote(
+          body.message ??
+            "Account data was deleted and you are signed out. The auth user was not removed.",
+        );
       } else {
         setNote(
           body.message ??
-            "Plan rows deleted and you are signed out. Auth user was not removed (no service role on the server).",
+            "Your account data was deleted and you are signed out. Bank connections stay until the server can disconnect them.",
         );
       }
       goHome();
@@ -110,8 +118,9 @@ export function DataSettingsCard() {
         <CardHeader>
           <CardTitle className="text-lg">Your data</CardTitle>
           <CardDescription>
-            Export the three plan documents you can already read, or delete
-            those rows and sign out. This does not invent balances.
+            Download your account data, or delete the account. The download
+            leaves out bank access tokens. Deleting the account disconnects
+            linked banks before those tokens are removed.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -126,7 +135,7 @@ export function DataSettingsCard() {
               ) : (
                 <Download className="size-4" />
               )}
-              Export plans
+              Export data
             </Button>
             <Button
               variant="destructive"
@@ -147,8 +156,8 @@ export function DataSettingsCard() {
           <DialogHeader>
             <DialogTitle>Delete your account?</DialogTitle>
             <DialogDescription>
-              This deletes your budget, Retire, and portfolio plan rows,
-              then signs you out. It cannot be undone from this app.
+              This deletes your account data, disconnects linked banks, and
+              signs you out. It cannot be undone from this app.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -167,7 +176,7 @@ export function DataSettingsCard() {
               {busy === "delete" ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : null}
-              Delete plans and sign out
+              Delete account
             </Button>
           </DialogFooter>
         </DialogContent>

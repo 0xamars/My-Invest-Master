@@ -153,7 +153,6 @@ async function runLegacyImport(userId: string): Promise<void> {
     uploads.push(
       savePreferencesToCloud(userId, {
         displayCurrency: legacyCurrency as DisplayCurrency,
-        plan: "free",
       }),
     );
   } else if (legacyCurrency !== null) {

@@ -36,6 +36,7 @@ import {
   journeyFreedomDate,
 } from "../src/lib/journey/freedom-date.ts";
 import {
+  GOAL_LABELS,
   JOURNEY_HOME_STATUS_LABELS,
   profileSummaryLine,
 } from "../src/lib/journey/labels.ts";
@@ -363,6 +364,20 @@ for (const pillar of ["budget", "invest", "freedom"] as const) {
 assert(
   profileSummaryLine(finalized) === "Build a cushion · Fast Track · Preserve",
   "one-line profile uses goal, track, and risk",
+);
+assert(
+  profileSummaryLine({
+    primaryGoal: "retire_year",
+    track: "fast",
+    riskBand: "growth",
+  }) === "Retire · Fast Track · Growth",
+  "retire goal label says Retire",
+);
+assert(
+  !Object.values(GOAL_LABELS).some((label) =>
+    label.toLowerCase().includes("freedom"),
+  ),
+  "goal labels do not say freedom",
 );
 
 const emptyBudget = leftoverPresenceFromBudgetPlan(null);

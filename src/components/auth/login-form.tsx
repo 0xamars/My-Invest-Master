@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
+import { CHECK_YOUR_EMAIL_MESSAGE } from "@/lib/auth/confirmation";
 import { SIGNUP_PATH, safeAuthNextPath } from "@/lib/routes";
 
 export function LoginForm() {
@@ -16,6 +17,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const next = safeAuthNextPath(searchParams.get("next"));
   const authError = searchParams.get("error") === "auth";
+  const confirmEmailNotice = searchParams.get("notice") === "confirm-email";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -99,7 +101,16 @@ export function LoginForm() {
             />
           </div>
 
-          {error ? <p className="text-sm text-red-300">{error}</p> : null}
+          {confirmEmailNotice && !error ? (
+            <p className="text-sm text-white/70" role="status">
+              {CHECK_YOUR_EMAIL_MESSAGE}
+            </p>
+          ) : null}
+          {error ? (
+            <p className="text-sm text-red-300" role="alert">
+              {error}
+            </p>
+          ) : null}
           {message ? <p className="text-sm text-white/70">{message}</p> : null}
 
           <Button type="submit" className="premium-cta w-full" disabled={isSubmitting}>

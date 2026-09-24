@@ -11,7 +11,7 @@ export const GOAL_LABELS: Record<PrimaryGoal, string> = {
   cashflow: "Cash flow",
   cushion: "Build a cushion",
   start_investing: "Start investing",
-  retire_year: "A freedom year",
+  retire_year: "Retire",
   unsure: "Still figuring it out",
 };
 

@@ -93,6 +93,18 @@ export async function removePlaidItem(accessToken: string): Promise<void> {
   }
 }
 
+/** Account deletion: /item/remove must succeed (or the item is already gone) before tokens are dropped. */
+export async function removePlaidItemForDeletion(accessToken: string): Promise<void> {
+  try {
+    await plaidPost("/item/remove", { access_token: accessToken });
+  } catch (error) {
+    if (error instanceof PlaidRequestError && error.errorCode === "ITEM_NOT_FOUND") {
+      return;
+    }
+    throw error;
+  }
+}
+
 export async function fetchPlaidAccounts(
   accessToken: string,
 ): Promise<PlaidLinkedAccount[]> {

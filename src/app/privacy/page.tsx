@@ -17,23 +17,24 @@ export default function PrivacyPage() {
         </p>
         <h1 className="page-title mt-2">Privacy</h1>
         <p className="page-description">
-          Last updated August 18, 2026. What we store, and how you can export or delete it.
+          Last updated September 24, 2026. What we store, and how you can export or delete it.
         </p>
       </div>
 
       <section className="space-y-3 text-sm leading-relaxed text-muted-foreground">
         <p>
           When you create an account we store your email and auth credentials
-          with Supabase. Signed-in plan data lives in three JSON documents you
-          can already read: budget plans, Retire plans, and portfolio
-          plans. The browser talks to Supabase with the anon key and your
-          session. Row-level security keeps other users out of your rows.
+          with Supabase. Signed-in data includes budget and Retire plans,
+          portfolios, watchlists, options, preferences, your money profile, and
+          bank-connection metadata. The browser talks to Supabase with the anon
+          key and your session. Row-level security keeps other users out of
+          your rows. Bank access tokens stay on the server.
         </p>
         <p>
-          Settings can download those three blobs and delete the plan rows.
-          Deleting your account wipes those plans and signs you out. If a
-          server-side service role is configured, the auth user is removed
-          too.
+          Settings can download that data. The download does not include bank
+          access tokens. Deleting your account removes your rows and signs you
+          out. When the server can, it disconnects linked banks before those
+          tokens are deleted, then removes the auth user.
         </p>
         <p>
           We use account email to send password-reset links. We do not sell
