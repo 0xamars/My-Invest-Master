@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PageLoading } from "@/components/layout/page-loading";
+import { RetirementDisclaimer } from "@/components/retirement/retirement-disclaimer";
 import {
   RetireEmptyState,
   RetirePageHeader,
@@ -108,6 +109,7 @@ export function RetireHomeContent() {
           ) : null
         }
       />
+      <RetirementDisclaimer />
 
       {!ready ? (
         <PageLoading label="Loading Retire…" />

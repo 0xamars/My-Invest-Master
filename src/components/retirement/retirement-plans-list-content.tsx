@@ -15,6 +15,7 @@ import {
 import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
 import { DeleteRetirementPlanDialog } from "@/components/retirement/delete-retirement-plan-dialog";
+import { RetirementDisclaimer } from "@/components/retirement/retirement-disclaimer";
 import { RetirePageHeader, RetireVerdictChip } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,9 +95,12 @@ export function RetirementPlansListContent() {
 
   if (!isLoaded || !portfoliosLoaded) {
     return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading Retire plans…
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-sm text-muted-foreground">
+        <div className="flex items-center">
+          <Loader2 className="mr-2 size-4 animate-spin" />
+          Loading Retire plans…
+        </div>
+        <RetirementDisclaimer />
       </div>
     );
   }
@@ -147,6 +151,7 @@ export function RetirementPlansListContent() {
         </div>
         }
       />
+      <RetirementDisclaimer />
 
       {syncError && (
         <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">

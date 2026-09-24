@@ -12,6 +12,7 @@ import { DEFAULT_FX_RATES, type FxRates } from "@/types/currency";
 import { getCashCurrency, type PortfolioHolding } from "@/types/portfolio";
 import {
   DEFAULT_CAGR_BY_TYPE,
+  defaultAccountKind,
   getPlanTotalValue,
   type RetirementPlan,
   type RetirementPlanAsset,
@@ -83,6 +84,9 @@ export function leftoverCashAsset(
     unitPrice: convertToUsd(1, leftover.currency, rates),
     quantity: leftover.amount,
     expectedCagr: DEFAULT_CAGR_BY_TYPE.cash,
+    accountKind: defaultAccountKind("cash"),
+    owner: "person1",
+    annualContribution: 0,
   };
 }
 

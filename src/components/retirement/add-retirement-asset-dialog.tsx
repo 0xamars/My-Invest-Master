@@ -25,10 +25,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { useAssetPrice } from "@/hooks/use-asset-price";
 import { useAssetSearch } from "@/hooks/use-asset-search";
+import { CurrencyAmountInput } from "@/components/retirement/currency-amount-input";
 import { convertFromUsd, convertToUsd } from "@/lib/portfolio/prices/fx";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
 import {
+  ACCOUNT_KINDS,
+  ACCOUNT_KIND_LABELS,
   DEFAULT_CAGR_BY_TYPE,
+  defaultAccountKind,
+  type RetirementAccountKind,
+  type RetirementPersonId,
   type RetirementPlanAsset,
 } from "@/types/retirement";
 import type { AssetCatalogItem, AssetType } from "@/types/portfolio";
@@ -42,6 +48,8 @@ interface AddRetirementAssetDialogProps {
   existingSymbols: string[];
   currency: DisplayCurrency;
   rates: FxRates;
+  hasSpouse: boolean;
+  ownerLabels: Record<RetirementPersonId, string>;
 }
 
 export function AddRetirementAssetDialog({
@@ -51,6 +59,8 @@ export function AddRetirementAssetDialog({
   existingSymbols,
   currency,
   rates,
+  hasSpouse,
+  ownerLabels,
 }: AddRetirementAssetDialogProps) {
   const [mode, setMode] = useState<DialogMode>("stock");
   const [query, setQuery] = useState("");
@@ -66,6 +76,9 @@ export function AddRetirementAssetDialog({
 
   const [customSymbol, setCustomSymbol] = useState("");
   const [customName, setCustomName] = useState("");
+  const [accountKind, setAccountKind] = useState<RetirementAccountKind>("non_registered");
+  const [owner, setOwner] = useState<RetirementPersonId>("person1");
+  const [annualContribution, setAnnualContribution] = useState(0);
 
   const isSearchMode = mode === "stock" || mode === "crypto";
   const { results, isSearching } = useAssetSearch(query, mode, isSearchMode);
@@ -86,6 +99,9 @@ export function AddRetirementAssetDialog({
     setSubmitError(null);
     setCustomSymbol("");
     setCustomName("");
+    setAccountKind(defaultAccountKind("stock"));
+    setOwner("person1");
+    setAnnualContribution(0);
   }, [open]);
 
   useEffect(() => {
@@ -95,6 +111,7 @@ export function AddRetirementAssetDialog({
 
   useEffect(() => {
     setExpectedCagr(String(DEFAULT_CAGR_BY_TYPE[mode]));
+    setAccountKind(defaultAccountKind(mode));
     setSelectedAsset(null);
     setQuery("");
     setUnitPrice("");
@@ -133,6 +150,11 @@ export function AddRetirementAssetDialog({
       return;
     }
 
+    const shared = {
+      accountKind,
+      owner: hasSpouse ? owner : "person1",
+      annualContribution: Math.max(0, annualContribution),
+    };
     let asset: RetirementPlanAsset;
 
     if (mode === "cash") {
@@ -144,6 +166,7 @@ export function AddRetirementAssetDialog({
         unitPrice: convertToUsd(1, currency, rates),
         quantity: qty,
         expectedCagr: cagr,
+        ...shared,
       };
     } else if (mode === "custom") {
       const symbol = customSymbol.trim().toUpperCase();
@@ -164,6 +187,7 @@ export function AddRetirementAssetDialog({
         unitPrice: usdPrice,
         quantity: qty,
         expectedCagr: cagr,
+        ...shared,
       };
     } else {
       if (!selectedAsset) {
@@ -184,6 +208,7 @@ export function AddRetirementAssetDialog({
         unitPrice: usdPrice,
         quantity: qty,
         expectedCagr: cagr,
+        ...shared,
       };
     }
 
@@ -371,6 +396,58 @@ export function AddRetirementAssetDialog({
                 value={expectedCagr}
                 onChange={(event) => setExpectedCagr(event.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="account-kind">Account</Label>
+              <select
+                id="account-kind"
+                className="h-10 w-full rounded-[var(--radius)] border border-border bg-muted px-3 text-sm"
+                value={accountKind}
+                onChange={(event) =>
+                  setAccountKind(event.target.value as RetirementAccountKind)
+                }
+              >
+                {ACCOUNT_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {ACCOUNT_KIND_LABELS[kind]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {hasSpouse ? (
+              <div className="space-y-2">
+                <Label htmlFor="account-owner">Owner</Label>
+                <select
+                  id="account-owner"
+                  className="h-10 w-full rounded-[var(--radius)] border border-border bg-muted px-3 text-sm"
+                  value={owner}
+                  onChange={(event) =>
+                    setOwner(event.target.value === "person2" ? "person2" : "person1")
+                  }
+                >
+                  <option value="person1">{ownerLabels.person1}</option>
+                  <option value="person2">{ownerLabels.person2}</option>
+                </select>
+              </div>
+            ) : null}
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="account-contribution">
+                Annual contribution ({currency})
+              </Label>
+              <CurrencyAmountInput
+                id="account-contribution"
+                min="0"
+                step="100"
+                usdValue={annualContribution}
+                currency={currency}
+                rates={rates}
+                onUsdChange={setAnnualContribution}
+                aria-label={`Annual contribution in ${currency}`}
+              />
+              <p className="text-xs text-muted-foreground">
+                Added to this account until its owner reaches their target age.
+                Leave at zero to use only the plan savings field.
+              </p>
             </div>
           </div>
 
