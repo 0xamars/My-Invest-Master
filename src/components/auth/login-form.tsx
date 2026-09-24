@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,18 @@ import { useAuth } from "@/hooks/use-auth";
 import { CHECK_YOUR_EMAIL_MESSAGE } from "@/lib/auth/confirmation";
 import { SIGNUP_PATH, safeAuthNextPath } from "@/lib/routes";
 
-export function LoginForm() {
+export function LoginForm({
+  nextPath,
+  authError = false,
+  confirmEmailNotice = false,
+}: {
+  nextPath?: string;
+  authError?: boolean;
+  confirmEmailNotice?: boolean;
+}) {
   const { isConfigured, signIn, requestPasswordReset } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = safeAuthNextPath(searchParams.get("next"));
-  const authError = searchParams.get("error") === "auth";
-  const confirmEmailNotice = searchParams.get("notice") === "confirm-email";
+  const next = safeAuthNextPath(nextPath);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

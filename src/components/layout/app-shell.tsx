@@ -9,7 +9,6 @@ import { BrandLogo } from "@/components/layout/brand-logo";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { SignedInHeaderNav } from "@/components/layout/signed-in-header-nav";
 import { BudgetPlansProvider } from "@/contexts/budget-plans-context";
-import { useAuth } from "@/hooks/use-auth";
 import {
   AUTH_RESET_PATH,
   LOGIN_PATH,
@@ -38,7 +37,6 @@ function AppShellHeader() {
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { isLoading } = useAuth();
 
   const isAuthPublic =
     pathname === LOGIN_PATH ||
@@ -51,17 +49,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const isPublicChrome = isAuthPublic || isMarketingPublic || isLegalPublic;
 
   if (isPublicChrome) {
-    return (
-      <div className="relative min-h-svh w-full bg-background">
-        {isLoading ? (
-          <div className="flex min-h-svh items-center justify-center">
-            <div className="size-5 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
-          </div>
-        ) : (
-          children
-        )}
-      </div>
-    );
+    return <div className="relative min-h-svh w-full bg-background">{children}</div>;
   }
 
   return (

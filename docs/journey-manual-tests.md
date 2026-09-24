@@ -37,7 +37,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 ## 6. Signed-out public page still works. Chat still gone.
 
-1. Open `/` signed out. Marketing loads. Hero is **Freedom, Engineered.** Subtitle/pillars stay Budget → Invest → Retire. Login and Sign up are the CTAs.
+1. Open `/` signed out. Marketing loads in the first HTML, with no full-page spinner. Hero is **Freedom, Engineered.** The subline is the couples RRSP, RRIF, TFSA, and non-registered draw-down comparison. CTAs are Create your Retire plan and Sign in. A fictional Sam & Riley withdrawal comparison is on the page. Budget, Invest, and Retire remain named below it.
 2. `/chat` and `/assistant` redirect to Invest. No assistant FAB.
 3. `/freedom` redirects to Retire. `/money-profile` redirects to Home. Signed-out `/home` asks for sign-in.
 
