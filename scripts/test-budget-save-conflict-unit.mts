@@ -5,9 +5,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  BUDGET_PLAN_CONFLICT_MESSAGE,
   BudgetPlanConflictError,
   budgetPlanWriteAction,
   isBudgetPlanConflict,
+  isMissingBudgetPlanVersionColumn,
   nextBudgetPlanVersion,
 } from "../src/lib/budget/plan-version.ts";
 
@@ -81,8 +83,31 @@ assert(
   "the reloaded tab writes its plan",
 );
 
+assert(
+  isMissingBudgetPlanVersionColumn({
+    code: "42703",
+    message: 'column "version" does not exist',
+  }),
+  "undefined_column falls back when version is missing",
+);
+assert(
+  isMissingBudgetPlanVersionColumn({
+    code: "PGRST204",
+    message: "Could not find the 'version' column of 'user_budget_plans' in the schema cache",
+  }),
+  "schema-cache miss falls back when version is missing",
+);
+assert(
+  !isMissingBudgetPlanVersionColumn({ code: "23505", message: "duplicate key" }),
+  "a unique violation is not a missing-column fallback",
+);
+assert(
+  !isMissingBudgetPlanVersionColumn(new Error("column version does not exist")),
+  "a message without a PostgREST code is not a missing-column fallback",
+);
+
 const migration = readFileSync(
-  join(process.cwd(), "supabase/migrations/015_budget_plan_version.sql"),
+  join(process.cwd(), "supabase/migrations/016_budget_plan_version.sql"),
   "utf8",
 );
 assert(
@@ -102,8 +127,32 @@ assert(
   "cloud save updates only the loaded version",
 );
 assert(
-  !saver.includes('from("user_budget_plans").upsert'),
-  "budget plan saves no longer upsert over a newer row",
+  saver.includes("isMissingBudgetPlanVersionColumn") &&
+    saver.includes('.select("id, data")') &&
+    saver.includes("versioning === false") &&
+    saver.includes('from("user_budget_plans").upsert'),
+  "a missing version column falls back to the pre-version load and upsert",
+);
+const versionedSave = saver.slice(
+  saver.indexOf("const expectedVersion = options?.expectedVersion"),
+  saver.indexOf("export async function deleteBudgetPlanFromCloud"),
+);
+assert(
+  versionedSave.includes('eq("version", expectedVersion)') &&
+    !versionedSave.includes(".upsert("),
+  "versioned saves update only the loaded version and do not upsert",
+);
+const conflictUi = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-sync-error.tsx"),
+  "utf8",
+);
+assert(
+  conflictUi.includes("BUDGET_PLAN_CONFLICT_MESSAGE") && conflictUi.includes("Reload"),
+  "a conflict shows a reload prompt",
+);
+assert(
+  new BudgetPlanConflictError().message === BUDGET_PLAN_CONFLICT_MESSAGE,
+  "the conflict error tells the user to reload the page",
 );
 
 console.log("budget save conflict unit tests passed");

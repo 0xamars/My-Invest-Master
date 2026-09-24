@@ -3,13 +3,27 @@
  * Callers pass the version they loaded. A mismatch is a conflict.
  * Inserts are only for plans that are not on the server yet.
  */
+export const BUDGET_PLAN_CONFLICT_MESSAGE =
+  "This budget was updated in another tab or device. This tab did not overwrite it. Reload the page to see the latest version.";
+
 export class BudgetPlanConflictError extends Error {
-  constructor(
-    message = "This budget was updated in another tab or device. This tab did not overwrite it. Reload to see the latest version.",
-  ) {
+  constructor(message = BUDGET_PLAN_CONFLICT_MESSAGE) {
     super(message);
     this.name = "BudgetPlanConflictError";
   }
+}
+
+/**
+ * PostgREST reports a missing `version` column as 42703 (undefined_column)
+ * or PGRST204 (column not in the schema cache). That happens when this
+ * code ships before `016_budget_plan_version.sql` is applied.
+ */
+export function isMissingBudgetPlanVersionColumn(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return false;
+  }
+  const code = String((error as { code?: unknown }).code ?? "");
+  return code === "42703" || code === "PGRST204";
 }
 
 export function isBudgetPlanConflict(error: unknown): boolean {

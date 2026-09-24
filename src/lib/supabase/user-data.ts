@@ -7,6 +7,7 @@ import { preferencesCloudWrite } from "@/lib/account/preferences-write";
 import { createClient } from "@/lib/supabase/client";
 import {
   BudgetPlanConflictError,
+  isMissingBudgetPlanVersionColumn,
   nextBudgetPlanVersion,
   readBudgetPlanVersion,
 } from "@/lib/budget/plan-version";
@@ -430,7 +431,31 @@ export type CloudBudgetPlans = {
   plans: BudgetPlan[];
   /** Server version each plan was loaded at. Saves must send this back. */
   versions: Record<string, number>;
+  /**
+   * False when `version` is not on the table yet. Saves then use the
+   * pre-016 upsert and skip the version check.
+   */
+  versioning: boolean;
 };
+
+function readCloudBudgetPlans(
+  rows: readonly { data: unknown; version?: unknown }[] | null,
+  versioning: boolean,
+): CloudBudgetPlans {
+  const versions: Record<string, number> = {};
+  const plans = (rows ?? [])
+    .map((row) => {
+      const plan = row.data as BudgetPlan;
+      if (!plan || typeof plan.id !== "string") return null;
+      const normalized = normalizeBudgetPlan(plan);
+      if (versioning) {
+        versions[normalized.id] = readBudgetPlanVersion(row.version) ?? 1;
+      }
+      return normalized;
+    })
+    .filter((plan): plan is BudgetPlan => plan !== null);
+  return { plans, versions, versioning };
+}
 
 export async function loadBudgetPlansFromCloud(
   userId: string,
@@ -443,23 +468,33 @@ export async function loadBudgetPlansFromCloud(
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    if (!isMissingBudgetPlanVersionColumn(error)) throw error;
+    const fallback = await supabase
+      .from("user_budget_plans")
+      .select("id, data")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+    if (fallback.error) throw fallback.error;
+    const loaded = readCloudBudgetPlans(fallback.data, false);
+    if (loaded.plans.length > 0) return loaded;
+    const migrated = await migrateLegacyBudgetPlan(userId, false);
+    return migrated ?? loaded;
+  }
 
-  const versions: Record<string, number> = {};
-  const plans = (data ?? [])
-    .map((row) => {
-      const plan = row.data as BudgetPlan;
-      if (!plan || typeof plan.id !== "string") return null;
-      const normalized = normalizeBudgetPlan(plan);
-      versions[normalized.id] = readBudgetPlanVersion(row.version) ?? 1;
-      return normalized;
-    })
-    .filter((plan): plan is BudgetPlan => plan !== null);
+  const loaded = readCloudBudgetPlans(data, true);
+  if (loaded.plans.length > 0) return loaded;
 
-  if (plans.length > 0) return { plans, versions };
+  const migrated = await migrateLegacyBudgetPlan(userId, true);
+  return migrated ?? { plans: [], versions: {}, versioning: true };
+}
 
+async function migrateLegacyBudgetPlan(
+  userId: string,
+  versioning: boolean,
+): Promise<CloudBudgetPlans | null> {
   const legacy = await loadBudgetFromCloud(userId);
-  if (!legacy) return { plans: [], versions: {} };
+  if (!legacy) return null;
 
   const now = new Date().toISOString();
   const defaultAccount = createDefaultAccount();
@@ -483,8 +518,13 @@ export async function loadBudgetPlansFromCloud(
 
   const saved = await saveBudgetPlanToCloud(userId, migrated, {
     expectedVersion: null,
+    versioning,
   });
-  return { plans: [migrated], versions: { [migrated.id]: saved.version } };
+  return {
+    plans: [migrated],
+    versions: versioning ? { [migrated.id]: saved.version } : {},
+    versioning,
+  };
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -499,10 +539,25 @@ function isUniqueViolation(error: unknown): boolean {
 export async function saveBudgetPlanToCloud(
   userId: string,
   plan: BudgetPlan,
-  options?: { expectedVersion?: number | null },
+  options?: { expectedVersion?: number | null; versioning?: boolean },
 ): Promise<{ version: number }> {
   await waitForSupabaseSession();
   const supabase = getClient();
+
+  if (options?.versioning === false) {
+    const { error } = await supabase.from("user_budget_plans").upsert(
+      {
+        id: plan.id,
+        user_id: userId,
+        data: plan,
+        updated_at: plan.updatedAt,
+      },
+      { onConflict: "id" },
+    );
+    if (error) throw error;
+    return { version: 1 };
+  }
+
   const expectedVersion = options?.expectedVersion ?? null;
 
   if (expectedVersion == null) {

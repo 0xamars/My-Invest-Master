@@ -21,14 +21,42 @@ export function advancePlaidCursor(input: {
   return { cursor: next, advanced: true };
 }
 
+/** A batch that changed accounts or transactions must be saved before the cursor moves. */
+export function plaidSyncNeedsDurableSave(payload: {
+  accounts?: readonly unknown[];
+  transactions?: readonly unknown[];
+  modified?: readonly unknown[];
+  removedTransactionIds?: readonly unknown[];
+}): boolean {
+  return (
+    (payload.accounts?.length ?? 0) > 0 ||
+    (payload.transactions?.length ?? 0) > 0 ||
+    (payload.modified?.length ?? 0) > 0 ||
+    (payload.removedTransactionIds?.length ?? 0) > 0
+  );
+}
+
+export const PLAID_CURSOR_NOT_SAVED =
+  "Bank transactions were not saved, so the sync bookmark was left unchanged.";
+
 /**
  * `save` must reject when the budget plan was not written.
- * `commit` runs only after that write (or when there was nothing to write).
+ * When the batch changed data, `plan` is that exact plan. A missing plan
+ * (the React updater has not queued it, or a debounce already took it)
+ * is a failed save: the cursor stays where it was.
+ * `commit` runs only after that write, or when there was nothing to write.
  */
-export async function commitPlaidCursorAfterSave(input: {
-  save: () => Promise<void>;
+export async function commitPlaidCursorAfterSave<T>(input: {
+  needsSave: boolean;
+  plan: T | null;
+  save: (plan: T) => Promise<void>;
   commit: () => Promise<void>;
 }): Promise<void> {
-  await input.save();
+  if (input.needsSave) {
+    if (input.plan == null) {
+      throw new Error(PLAID_CURSOR_NOT_SAVED);
+    }
+    await input.save(input.plan);
+  }
   await input.commit();
 }

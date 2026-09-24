@@ -7,9 +7,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { applyPlaidImport } from "../src/lib/budget/plaid.ts";
 import { syncPlaidTransactions } from "../src/lib/plaid/client.ts";
+import { BudgetPlanConflictError } from "../src/lib/budget/plan-version.ts";
+import { flushQueuedPlanSave } from "../src/lib/budget/plan-save-queue.ts";
 import {
   advancePlaidCursor,
   commitPlaidCursorAfterSave,
+  PLAID_CURSOR_NOT_SAVED,
+  plaidSyncNeedsDurableSave,
 } from "../src/lib/plaid/cursor.ts";
 import {
   foldPlaidSyncPages,
@@ -90,9 +94,11 @@ async function attempt(pages: PlaidSyncPage[], saveOk: boolean) {
   let saved = false;
   try {
     await commitPlaidCursorAfterSave({
-      save: async () => {
+      needsSave: plaidSyncNeedsDurableSave(payload(memory.plan, delta)),
+      plan: applied.next,
+      save: async (next) => {
         if (!saveOk) throw new Error("save failed");
-        memory.plan = applied.next;
+        memory.plan = next;
         saved = true;
       },
       commit: async () => {
@@ -297,9 +303,149 @@ assert(!syncRoute.includes("markPlaidItemSynced"), "sync route does not store th
 assert(!exchangeRoute.includes("markPlaidItemSynced"), "exchange route does not store the cursor");
 assert(!reconnectRoute.includes("markPlaidItemSynced"), "reconnect route does not store the cursor");
 assert(
-  bankLink.includes("commitPlaidCursorAfterSave") && bankLink.includes("flushPlanSave"),
-  "the browser commits the cursor only after the budget save",
+  bankLink.includes("commitPlaidCursorAfterSave") &&
+    bankLink.includes("enqueuePlanSave") &&
+    bankLink.includes("plaidSyncNeedsDurableSave") &&
+    bankLink.includes("const plan = importFromPlaid(payload)") &&
+    !bankLink.includes("flushPlanSave"),
+  "the browser saves the imported plan itself before committing the cursor",
 );
+
+const storageHook = readFileSync(
+  join(process.cwd(), "src/hooks/use-budget-plans-storage.ts"),
+  "utf8",
+);
+const mutationsHook = readFileSync(
+  join(process.cwd(), "src/hooks/use-budget-plan-mutations.ts"),
+  "utf8",
+);
+assert(
+  !storageHook.includes("if (next !== plan) queueSave(next)"),
+  "opening a budget does not save scheduled transactions by itself",
+);
+assert(
+  mutationsHook.includes("persist: false"),
+  "scheduled transactions stay local until a user edit",
+);
+assert(
+  storageHook.includes("conflictedRef") && storageHook.includes("inflightRef"),
+  "a conflict stops later saves and flush waits for the in-flight write",
+);
+
+// The old race: import enqueues inside a React updater that has not run,
+// or the debounce already took the plan. Flush then resolved with nothing
+// saved and the cursor still advanced.
+let raceCursor: string | null = null;
+const racedQueue = new Map<string, BudgetPlan>();
+const racedPlan = racedQueue.get("missing") ?? null;
+let raceCommitted = false;
+try {
+  await commitPlaidCursorAfterSave({
+    needsSave: plaidSyncNeedsDurableSave({
+      accounts: [account],
+      transactions: [
+        {
+          transactionId: "sandbox_tx_race",
+          plaidAccountId: "sandbox_acc",
+          date: "2026-09-01",
+          name: "SANDBOX RACE",
+          merchantName: null,
+          amount: 1,
+          pending: false,
+        },
+      ],
+    }),
+    plan: racedPlan,
+    save: async () => {
+      throw new Error("save should not run without a plan");
+    },
+    commit: async () => {
+      raceCommitted = true;
+      raceCursor = "cursor_should_not_advance";
+    },
+  });
+  assert(false, "a missing queued plan must reject");
+} catch (error) {
+  assert(
+    error instanceof Error && error.message === PLAID_CURSOR_NOT_SAVED,
+    "the race tells the caller the bookmark was left unchanged",
+  );
+}
+assert(!raceCommitted && raceCursor === null, "cursor does not advance when the plan is not queued");
+
+let conflictCursor: string | null = null;
+try {
+  await commitPlaidCursorAfterSave({
+    needsSave: true,
+    plan: createEmptyBudgetPlan("Sandbox"),
+    save: async () => {
+      throw new BudgetPlanConflictError();
+    },
+    commit: async () => {
+      conflictCursor = "cursor_should_not_advance";
+    },
+  });
+  assert(false, "a version conflict must reject");
+} catch (error) {
+  assert(error instanceof BudgetPlanConflictError, "the conflict surfaces");
+}
+assert(conflictCursor === null, "a version conflict does not advance the cursor");
+
+let inflightCursor: string | null = null;
+const inflight = Promise.reject(new BudgetPlanConflictError());
+void inflight.catch(() => undefined);
+try {
+  await flushQueuedPlanSave({
+    planId: "already-taken",
+    pending: new Map<string, BudgetPlan>(),
+    inflight,
+    save: async () => {
+      throw new Error("the debounce already took this plan");
+    },
+  });
+  inflightCursor = "cursor_should_not_advance";
+} catch (error) {
+  assert(error instanceof BudgetPlanConflictError, "flush rejects the in-flight conflict");
+}
+assert(
+  inflightCursor === null,
+  "cursor does not advance when the debounce already took the plan and that save conflicts",
+);
+
+let exactSaved: BudgetPlan | null = null;
+let exactCursor: string | null = null;
+const exactPlan = createEmptyBudgetPlan("Sandbox");
+await commitPlaidCursorAfterSave({
+  needsSave: true,
+  plan: exactPlan,
+  save: async (next) => {
+    exactSaved = next;
+  },
+  commit: async () => {
+    exactCursor = "cursor_saved";
+  },
+});
+assert(exactSaved === exactPlan, "the save receives the exact imported plan");
+assert(exactCursor === "cursor_saved", "a successful save of that plan advances the cursor");
+
+let emptySaved = false;
+let emptyCursor: string | null = null;
+await commitPlaidCursorAfterSave({
+  needsSave: plaidSyncNeedsDurableSave({
+    accounts: [],
+    transactions: [],
+    modified: [],
+    removedTransactionIds: [],
+  }),
+  plan: null,
+  save: async () => {
+    emptySaved = true;
+  },
+  commit: async () => {
+    emptyCursor = "cursor_empty";
+  },
+});
+assert(!emptySaved && emptyCursor === "cursor_empty", "an empty batch can move the cursor without a save");
 
 const now = 1_700_000_000;
 const webhookBody = JSON.stringify({

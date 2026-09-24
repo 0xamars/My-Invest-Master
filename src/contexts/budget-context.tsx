@@ -28,7 +28,9 @@ interface BudgetContextValue {
   isCloudSynced: boolean;
   addTransaction: (input: AddBudgetTransactionInput) => void;
   importTransactions: (inputs: AddBudgetTransactionInput[]) => void;
-  importFromPlaid: (payload: import("@/lib/plaid/types").PlaidSyncPayload) => void;
+  importFromPlaid: (
+    payload: import("@/lib/plaid/types").PlaidSyncPayload,
+  ) => import("@/types/budget").BudgetPlan | null;
   unlinkPlaidItem: (itemId: string) => void;
   importFromCsv: (
     inputs: AddBudgetTransactionInput[],

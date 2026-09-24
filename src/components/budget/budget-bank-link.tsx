@@ -11,7 +11,10 @@ import {
   formatPlaidItemSyncLine,
   plaidItemNeedsUserReconnect,
 } from "@/lib/plaid/item-status";
-import { commitPlaidCursorAfterSave } from "@/lib/plaid/cursor";
+import {
+  commitPlaidCursorAfterSave,
+  plaidSyncNeedsDurableSave,
+} from "@/lib/plaid/cursor";
 import type { PlaidItemSummary, PlaidStatusResponse, PlaidSyncPayload } from "@/lib/plaid/types";
 
 function PlaidOpen({
@@ -51,7 +54,7 @@ export function BudgetBankLink({
   primary?: boolean;
 }) {
   const { planId, importFromPlaid, unlinkPlaidItem } = useBudget();
-  const { flushPlanSave } = useBudgetPlans();
+  const { enqueuePlanSave } = useBudgetPlans();
   const [status, setStatus] = useState<PlaidStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -92,9 +95,11 @@ export function BudgetBankLink({
 
   const applyPayload = useCallback(
     async (payload: PlaidSyncPayload) => {
-      importFromPlaid(payload);
+      const plan = importFromPlaid(payload);
       await commitPlaidCursorAfterSave({
-        save: () => flushPlanSave(planId),
+        needsSave: plaidSyncNeedsDurableSave(payload),
+        plan,
+        save: (next) => enqueuePlanSave(next),
         commit: async () => {
           const nextCursor = payload.cursor?.next?.trim() ?? "";
           if (!nextCursor) return;
@@ -119,7 +124,7 @@ export function BudgetBankLink({
         },
       });
     },
-    [flushPlanSave, importFromPlaid, planId],
+    [enqueuePlanSave, importFromPlaid],
   );
 
   const startLink = async (itemId?: string) => {
