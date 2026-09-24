@@ -48,6 +48,10 @@ export function prescribedRrifFactor(age: number): number {
   return 1 / denominator;
 }
 
+/**
+ * `age` is the age at the start of the year, the age CRA uses. Callers that
+ * store the age attained during the year pass that age minus one.
+ */
 export function rrifMinimumAmount(openingValue: number, age: number): number {
   if (openingValue <= 0) return 0;
   return openingValue * prescribedRrifFactor(age);

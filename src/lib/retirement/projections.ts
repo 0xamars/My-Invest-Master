@@ -8,7 +8,6 @@ import {
   modeledPeople,
   personById,
   survivorOf,
-  yearOfDeath,
 } from "@/lib/retirement/household";
 import { inflateFromToday } from "@/lib/retirement/inflate";
 import {
@@ -202,7 +201,7 @@ export function computeRetirementProjections(
       for (const account of accounts) {
         const owner = byId[account.owner];
         if (!owner) continue;
-        if (yearOfDeath(owner, scenario, currentYear) === year) {
+        if (isDeceasedInYear(owner, year, scenario, currentYear)) {
           account.owner = survivorOf(account.owner);
         }
       }
@@ -226,7 +225,8 @@ export function computeRetirementProjections(
       accountKindById[account.id] = projectedKind(account);
       minimumById[account.id] =
         accountKindById[account.id] === "rrif"
-          ? rrifMinimumAmount(account.value, age)
+          // CRA uses age at the start of the year. `age` is the age attained this year.
+          ? rrifMinimumAmount(account.value, age - 1)
           : 0;
     }
 
@@ -248,6 +248,10 @@ export function computeRetirementProjections(
       .map((person) => person.id);
 
     const contributionById: Record<string, number> = {};
+    // Reported total is the amount we decided to add. Summing the pro-rata
+    // shares can drift by an ulp, which would disagree with the single-person
+    // engine that records the plan contribution itself.
+    let intendedContribution = 0;
     for (const account of accounts) {
       const contributor = byId[account.contributionOwner];
       const contributorDead =
@@ -255,8 +259,10 @@ export function computeRetirementProjections(
         isDeceasedInYear(contributor, year, scenario, currentYear);
       const contributorRetired =
         contributor != null && year >= contributor.retirementYear;
-      contributionById[account.id] =
+      const amount =
         contributorDead || contributorRetired ? 0 : account.annualContribution;
+      contributionById[account.id] = amount;
+      intendedContribution += amount;
     }
 
     const person1Dead = deceased.includes("person1");
@@ -264,7 +270,10 @@ export function computeRetirementProjections(
       const person1Ids = accounts
         .filter((account) => account.owner === "person1")
         .map((account) => account.id);
-      addProRata(contributionById, afterGrowth, planContribution, person1Ids);
+      if (person1Ids.length > 0) {
+        addProRata(contributionById, afterGrowth, planContribution, person1Ids);
+        intendedContribution += planContribution;
+      }
     }
 
     const income = householdIncomeForYear({
@@ -340,7 +349,7 @@ export function computeRetirementProjections(
       openingBalance,
       assetAppreciation,
       balanceAfterAppreciation,
-      contribution: settled.contributionTotal,
+      contribution: intendedContribution,
       lifestyleSpending,
       income: drawing ? income.total : 0,
       incomeByPerson: drawing

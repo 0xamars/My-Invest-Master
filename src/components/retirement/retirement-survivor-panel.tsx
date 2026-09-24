@@ -20,7 +20,7 @@ import {
 
 const SURVIVOR_ASSUMPTIONS = [
   "Death is applied at the start of the year that person reaches the age you enter. The planner does not choose that age.",
-  "Their accounts move to the survivor before growth that year. An RRSP or RRIF stays that kind of account. Later RRIF minimums use the survivor's age.",
+  "Their accounts move to the survivor before growth that year, and stay there. An RRSP or RRIF stays that kind of account. Later RRIF minimums use the survivor's age at the start of each year.",
   "CPP and OAS stop. A pension or other income continues only at the survivor percent on that row, which starts at zero.",
   "Household spending stays the same number. This view does not model a CPP survivor pension or the OAS allowance.",
   "The range below uses the same 750-path Monte Carlo as the household plan, with this death applied on every path.",
@@ -42,8 +42,16 @@ export function RetirementSurvivorPanel({
 
   const you = personLabel(plan, "person1");
   const spouse = personLabel(plan, "person2");
+  const subjectAge =
+    deceased === "person2"
+      ? (plan.spouse?.currentAge ?? plan.currentAge)
+      : plan.currentAge;
+  const minDeathAge = subjectAge + 1;
   const deathAge = Number(deathAgeText);
-  const ageReady = deathAgeText.trim() !== "" && Number.isFinite(deathAge);
+  const ageReady =
+    deathAgeText.trim() !== "" &&
+    Number.isFinite(deathAge) &&
+    deathAge >= minDeathAge;
 
   const survivor = useMemo(
     () =>
@@ -106,12 +114,12 @@ export function RetirementSurvivorPanel({
         <RetireField
           id="survivor-age"
           label={`Age ${who} dies`}
-          hint="Leave blank to keep the both-alive projection."
+          hint={`After age ${subjectAge}. Leave blank to keep the both-alive projection.`}
         >
           <Input
             id="survivor-age"
             type="number"
-            min="0"
+            min={minDeathAge}
             max="120"
             inputMode="numeric"
             placeholder="Age"
@@ -163,7 +171,9 @@ export function RetirementSurvivorPanel({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Enter an age to run this view. No death age is assumed.
+          {deathAgeText.trim() !== "" && Number.isFinite(deathAge) && deathAge < minDeathAge
+            ? `Enter an age after ${subjectAge}. A death at or before the current age is ignored.`
+            : "Enter an age to run this view. No death age is assumed."}
         </p>
       )}
 

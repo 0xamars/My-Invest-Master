@@ -7,6 +7,11 @@ import type {
  * Input for a later year-by-year tax pass. The projection calls this hook
  * and adds `taxPayable` to the spending gap. The default returns 0, so
  * today's totals do not include tax, OAS clawback, or a withdrawal order.
+ *
+ * TODO: When this hook starts calculating tax, eligible pension income under
+ * 65 is limited to registered pension life annuities, and RRIF income becomes
+ * splittable at 65. The split recorded today does not apply those limits and
+ * does not change any projected number.
  */
 export interface RetirementTaxPerson {
   id: RetirementPersonId;

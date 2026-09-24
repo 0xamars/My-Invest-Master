@@ -108,12 +108,15 @@ assert(age71?.accountKindById.rrsp === "rrsp", "conversion waits until year-end 
 assert(age71?.rrifMinimum === 0, "no minimum in the conversion year");
 assert(age71?.closingBalance === 100_000, "conversion year does not withdraw");
 assert(age72?.accountKindById.rrsp === "rrif", "the following year is a RRIF");
-assert(age72?.rrifMinimum === 5_400, `age 72 minimum is 5.40% (got ${age72?.rrifMinimum})`);
 assert(
-  age72?.closingBalance === 94_600,
+  age72?.rrifMinimum === 5_280,
+  `the year they turn 72 uses the age-71 factor 5.28% (got ${age72?.rrifMinimum})`,
+);
+assert(
+  age72?.closingBalance === 94_720,
   `minimum leaves the plan when nothing can receive it (got ${age72?.closingBalance})`,
 );
-assert(age72?.rrifSurplusLeftPlan === 5_400, "surplus above a zero spending gap leaves the plan");
+assert(age72?.rrifSurplusLeftPlan === 5_280, "surplus above a zero spending gap leaves the plan");
 assert(age72?.portfolioWithdrawal === 0, "the lifestyle withdrawal stays zero");
 
 const alreadyDue = base({
@@ -140,10 +143,10 @@ const alreadyDue = base({
 });
 const due = row(alreadyDue, YEAR);
 assert(due?.accountKindById.rrsp === "rrif", "an RRSP is already a RRIF when the plan starts after 71");
-assert(due?.rrifMinimum === 5_400, "first year uses the age-72 minimum");
-assert(due?.assetBreakdown.rrsp === 94_600, "the minimum comes out of the RRIF");
-assert(due?.assetBreakdown.open === 15_400, "surplus is reinvested in the non-registered account");
-assert(due?.rrifSurplusReinvested === 5_400, "reinvested surplus is reported");
+assert(due?.rrifMinimum === 5_280, "a plan that starts at 72 uses the age-71 factor");
+assert(due?.assetBreakdown.rrsp === 94_720, "the minimum comes out of the RRIF");
+assert(due?.assetBreakdown.open === 15_280, "surplus is reinvested in the non-registered account");
+assert(due?.rrifSurplusReinvested === 5_280, "reinvested surplus is reported");
 assert(due?.rrifSurplusLeftPlan === 0, "surplus does not leave when a taxable account exists");
 assert(due?.closingBalance === 110_000, "reinvestment keeps the household total");
 
@@ -171,10 +174,53 @@ const tfsaOnly = base({
 });
 const tfsaYear = row(tfsaOnly, YEAR);
 assert(
-  tfsaYear?.assetBreakdown.tfsa === 6_400,
+  tfsaYear?.assetBreakdown.tfsa === 6_280,
   "when no taxable account exists, RRIF surplus is reinvested in the TFSA",
 );
 assert(tfsaYear?.rrifSurplusLeftPlan === 0, "TFSA surplus does not leave the plan");
+
+const turn81 = base({
+  currentAge: 81,
+  retirementAge: 81,
+  retirementYear: YEAR,
+  planEndAge: 81,
+  assets: [
+    asset({
+      id: "rrsp",
+      symbol: "RRSP",
+      unitPrice: 100_000,
+      quantity: 1,
+      accountKind: "rrsp",
+    }),
+  ],
+});
+const age81 = row(turn81, YEAR);
+assert(age81?.age === 81, "this row is the year they turn 81");
+assert(
+  age81?.rrifMinimum === 6_820,
+  `the year they turn 81 uses the start-of-year factor 6.82% (got ${age81?.rrifMinimum})`,
+);
+assert(age81?.closingBalance === 93_180, "the age-81 minimum leaves the only account");
+
+const turn96 = base({
+  currentAge: 96,
+  retirementAge: 96,
+  retirementYear: YEAR,
+  planEndAge: 96,
+  assets: [
+    asset({
+      id: "rrsp",
+      symbol: "RRSP",
+      unitPrice: 100_000,
+      quantity: 1,
+      accountKind: "rrsp",
+    }),
+  ],
+});
+const age96 = row(turn96, YEAR);
+assert(age96?.age === 96, "this row is the year they turn 96");
+assert(age96?.rrifMinimum === 20_000, `the year they turn 96 uses 20% (got ${age96?.rrifMinimum})`);
+assert(age96?.closingBalance === 80_000, "the age-96 minimum is a fifth of the opening value");
 
 // --- Existing plans migrate without dropping balances ----------------------
 
@@ -391,7 +437,7 @@ const survivorPlan = base({
     asset({
       id: "rrsp",
       symbol: "RRSP",
-      unitPrice: 280_000,
+      unitPrice: 290_000,
       quantity: 1,
       accountKind: "rrsp",
       owner: "person1",
@@ -436,11 +482,16 @@ assert(death?.spouseAge === 62, "the survivor's age is used that year");
 assert(death?.accountKindById.rrsp === "rrif", "the transferred account is already a RRIF");
 assert(
   death?.rrifMinimum === 10_000,
-  `minimum uses the survivor age 62 factor 1/28 (got ${death?.rrifMinimum})`,
+  `minimum uses the survivor's age at the start of the year, 61, factor 1/29 (got ${death?.rrifMinimum})`,
 );
 assert(death?.incomeByPerson.person1.cpp === 0, "CPP stops at death even if a survivor percent is set");
 assert(death?.income === 2_500, "half the pension continues and nothing is invented");
-assert(death?.closingBalance === 270_000, "the minimum leaves the RRIF and the rest stays in the household");
+assert(death?.closingBalance === 280_000, "the minimum leaves the RRIF and the rest stays in the household");
+const yearAfter = afterDeath.find((item) => item.year === YEAR + 3);
+assert(
+  yearAfter?.rrifMinimum === 10_000,
+  `the next year still uses the survivor's start-of-year age (got ${yearAfter?.rrifMinimum})`,
+);
 assert(
   (alive.find((item) => item.year === YEAR + 2)?.rrifMinimum ?? 0) > (death?.rrifMinimum ?? 0),
   "without the death, the older owner's age-72 minimum is larger",
@@ -459,6 +510,35 @@ assert(survivorMc.paths === 15, "survivor Monte Carlo uses the same engine");
 assert(
   survivorMc.percentiles.length === afterDeath.length,
   "survivor Monte Carlo matches the survivor horizon",
+);
+
+function householdFingerprint(rows: ReturnType<typeof computeRetirementProjections>): string {
+  return JSON.stringify(
+    rows.map((item) => ({
+      year: item.year,
+      closingBalance: item.closingBalance,
+      income: item.income,
+      rrifMinimum: item.rrifMinimum,
+      deceased: item.deceased,
+    })),
+  );
+}
+
+const deathAtCurrentAge = computeRetirementProjections(survivorPlan, {
+  currentYear: YEAR,
+  survivor: { deceased: "person1", deathAge: 70 },
+});
+const deathBeforeCurrentAge = computeRetirementProjections(survivorPlan, {
+  currentYear: YEAR,
+  survivor: { deceased: "person2", deathAge: 60 },
+});
+assert(
+  householdFingerprint(deathAtCurrentAge) === householdFingerprint(alive),
+  "a death age equal to the current age is ignored",
+);
+assert(
+  householdFingerprint(deathBeforeCurrentAge) === householdFingerprint(alive),
+  "a death age below the current age is ignored",
 );
 
 // --- Tax hook plugs in without changing the default ------------------------
@@ -512,6 +592,360 @@ const untaxed = computeRetirementProjections(
 );
 assert(untaxed[0].taxPayable === 0, "the default tax hook is zero");
 assert(untaxed[0].portfolioWithdrawal === 20_000, "without a tax engine the withdrawal is spending");
+
+// --- Single-person path matches main's engine before this change ----------
+// Captured from origin/main fc19934 via normalizeRetirementPlan +
+// computeRetirementProjections. The stored document has no account fields.
+
+const LEGACY_GOLDEN: Array<{
+  year: number;
+  age: number;
+  openingBalance: number;
+  assetAppreciation: number;
+  balanceAfterAppreciation: number;
+  contribution: number;
+  lifestyleSpending: number;
+  income: number;
+  portfolioWithdrawal: number;
+  closingBalance: number;
+  assetBreakdown: Record<string, number>;
+}> = [
+  {
+    year: 2026,
+    age: 55,
+    openingBalance: 23000,
+    assetAppreciation: 995.0000000000001,
+    balanceAfterAppreciation: 23995,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 35995,
+    assetBreakdown: {
+      voo: 16051.114815586581,
+      bond: 7763.039174828089,
+      cash: 12180.84600958533,
+    },
+  },
+  {
+    year: 2027,
+    age: 56,
+    openingBalance: 35995,
+    assetAppreciation: 1577.9970983538242,
+    balanceAfterAppreciation: 37572.99709835382,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 49572.99709835382,
+    assetBreakdown: {
+      voo: 22659.917086790214,
+      bond: 10600.868932350793,
+      cash: 16312.211079212819,
+    },
+  },
+  {
+    year: 2028,
+    age: 57,
+    openingBalance: 49572.99709835382,
+    assetAppreciation: 2201.907774895785,
+    balanceAfterAppreciation: 51774.90487324961,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 63774.9048732496,
+    assetBreakdown: {
+      voo: 29865.693513034188,
+      bond: 13514.884068221503,
+      cash: 20394.327291993915,
+    },
+  },
+  {
+    year: 2029,
+    age: 58,
+    openingBalance: 63774.9048732496,
+    assetAppreciation: 2869.534397680055,
+    balanceAfterAppreciation: 66644.43927092967,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 78644.43927092967,
+    assetBreakdown: {
+      voo: 37710.343093098374,
+      bond: 16506.56766219119,
+      cash: 24427.528515640097,
+    },
+  },
+  {
+    year: 2030,
+    age: 59,
+    openingBalance: 78644.43927092967,
+    assetAppreciation: 3583.86681242818,
+    balanceAfterAppreciation: 82228.30608335783,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 94228.30608335783,
+    assetBreakdown: {
+      voo: 46238.56011620269,
+      bond: 19577.497015185032,
+      cash: 28412.24895197012,
+    },
+  },
+  {
+    year: 2031,
+    age: 60,
+    openingBalance: 94228.30608335783,
+    assetAppreciation: 4348.095337945216,
+    balanceAfterAppreciation: 98576.40142130305,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 110576.40142130306,
+    assetBreakdown: {
+      voo: 55498.0305285182,
+      bond: 22729.34959460185,
+      cash: 32349.021298183012,
+    },
+  },
+  {
+    year: 2032,
+    age: 61,
+    openingBalance: 110576.40142130306,
+    assetAppreciation: 5165.624692280084,
+    balanceAfterAppreciation: 115742.02611358314,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 127742.02611358315,
+    assetBreakdown: {
+      voo: 65539.64260254141,
+      bond: 25963.908973222664,
+      cash: 36238.474537819064,
+    },
+  },
+  {
+    year: 2033,
+    age: 62,
+    openingBalance: 127742.02611358315,
+    assetAppreciation: 6040.0889143079785,
+    balanceAfterAppreciation: 133782.11502789112,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 145782.11502789112,
+    assetBreakdown: {
+      voo: 76417.71289692295,
+      bond: 29283.070748650407,
+      cash: 40081.33138231777,
+    },
+  },
+  {
+    year: 2034,
+    age: 63,
+    openingBalance: 145782.11502789112,
+    assetAppreciation: 6975.367349722137,
+    balanceAfterAppreciation: 152757.48237761325,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 164757.48237761325,
+    assetBreakdown: {
+      voo: 88190.22855893339,
+      bond: 32688.84843191242,
+      cash: 43878.40538676745,
+    },
+  },
+  {
+    year: 2035,
+    age: 64,
+    openingBalance: 164757.48237761325,
+    assetAppreciation: 7975.601775043784,
+    balanceAfterAppreciation: 172733.08415265704,
+    contribution: 12000,
+    lifestyleSpending: 0,
+    income: 0,
+    portfolioWithdrawal: 0,
+    closingBalance: 184733.08415265704,
+    assetBreakdown: {
+      voo: 100919.10709115141,
+      bond: 36183.37929571262,
+      cash: 47630.59776579301,
+    },
+  },
+  {
+    year: 2036,
+    age: 65,
+    openingBalance: 184733.08415265704,
+    assetAppreciation: 9045.214738217435,
+    balanceAfterAppreciation: 193778.2988908745,
+    contribution: 0,
+    lifestyleSpending: 48000,
+    income: 25520.76089776721,
+    portfolioWithdrawal: 22479.23910223279,
+    closingBalance: 171299.0597886417,
+    assetBreakdown: {
+      voo: 95456.8320418578,
+      bond: 33105.43621198069,
+      cash: 42736.79153480321,
+    },
+  },
+  {
+    year: 2037,
+    age: 66,
+    openingBalance: 171299.0597886417,
+    assetAppreciation: 8481.720383371417,
+    balanceAfterAppreciation: 179780.7801720131,
+    contribution: 0,
+    lifestyleSpending: 49199.99999999999,
+    income: 25808.77992021139,
+    portfolioWithdrawal: 23391.220079788603,
+    closingBalance: 156389.5600922245,
+    assetBreakdown: {
+      voo: 88849.56219178633,
+      bond: 29806.031890231436,
+      cash: 37733.96601020675,
+    },
+  },
+  {
+    year: 2038,
+    age: 67,
+    openingBalance: 156389.5600922245,
+    assetAppreciation: 7828.689959736245,
+    balanceAfterAppreciation: 164218.25005196076,
+    contribution: 0,
+    lifestyleSpending: 50429.99999999999,
+    income: 26103.999418216674,
+    portfolioWithdrawal: 24326.00058178332,
+    closingBalance: 139892.24947017743,
+    assetBreakdown: {
+      voo: 80986.25258521979,
+      bond: 26279.478664828483,
+      cash: 32626.518220129165,
+    },
+  },
+  {
+    year: 2039,
+    age: 68,
+    openingBalance: 139892.24947017743,
+    assetAppreciation: 7078.21720753632,
+    balanceAfterAppreciation: 146970.46667771373,
+    contribution: 0,
+    lifestyleSpending: 51690.749999999985,
+    income: 26406.599403672088,
+    portfolioWithdrawal: 25284.150596327898,
+    closingBalance: 121686.31608138584,
+    assetBreakdown: {
+      voo: 71747.49648566115,
+      bond: 22520.01966949203,
+      cash: 27418.799926232663,
+    },
+  },
+];
+
+const legacyRaw = {
+  id: "legacy-golden",
+  name: "Legacy single",
+  retirementYear: YEAR + 20,
+  currentAge: 55,
+  retirementAge: 65,
+  planEndAge: 68,
+  annualLifestyleSpending: 48_000,
+  inflationRate: 2.5,
+  annualContribution: 12_000,
+  withdrawalRate: 4,
+  currency: "CAD",
+  spouse: null,
+  priceProjectionScenario: "expected",
+  assets: [
+    {
+      id: "voo",
+      symbol: "VOO",
+      name: "Broad equity",
+      type: "stock",
+      unitPrice: 400,
+      quantity: 25,
+      expectedCagr: 7,
+    },
+    {
+      id: "bond",
+      symbol: "BOND",
+      name: "Bonds",
+      type: "custom",
+      unitPrice: 50,
+      quantity: 100,
+      expectedCagr: 3.5,
+    },
+    {
+      id: "cash",
+      symbol: "CASH",
+      name: "Cash",
+      type: "cash",
+      unitPrice: 1,
+      quantity: 8_000,
+      expectedCagr: 1.5,
+    },
+  ],
+  incomeStreams: [
+    {
+      id: "cpp",
+      name: "CPP",
+      kind: "cpp",
+      annualAmount: 9_000,
+      startAge: 65,
+      colaWithInflation: true,
+    },
+    {
+      id: "pension",
+      name: "Pension",
+      kind: "pension",
+      annualAmount: 14_000,
+      startAge: 65,
+      colaWithInflation: false,
+    },
+  ],
+  createdAt: "2024-03-01T00:00:00.000Z",
+  updatedAt: "2024-06-01T00:00:00.000Z",
+};
+
+const legacyPlan = normalizeRetirementPlan(legacyRaw, { currentYear: YEAR });
+const legacyRows = computeRetirementProjections(legacyPlan, { currentYear: YEAR });
+assert(
+  legacyRows.length === LEGACY_GOLDEN.length,
+  `legacy single-person row count matches main (${legacyRows.length} vs ${LEGACY_GOLDEN.length})`,
+);
+for (let index = 0; index < LEGACY_GOLDEN.length; index += 1) {
+  const expected = LEGACY_GOLDEN[index];
+  const actual = legacyRows[index];
+  if (!actual || !expected) {
+    assert(false, `legacy row ${index} exists`);
+    continue;
+  }
+  const comparable = {
+    year: actual.year,
+    age: actual.age,
+    openingBalance: actual.openingBalance,
+    assetAppreciation: actual.assetAppreciation,
+    balanceAfterAppreciation: actual.balanceAfterAppreciation,
+    contribution: actual.contribution,
+    lifestyleSpending: actual.lifestyleSpending,
+    income: actual.income,
+    portfolioWithdrawal: actual.portfolioWithdrawal,
+    closingBalance: actual.closingBalance,
+    assetBreakdown: actual.assetBreakdown,
+  };
+  assert(
+    JSON.stringify(comparable) === JSON.stringify(expected),
+    `legacy ${expected.year} matches main's engine before this change`,
+  );
+}
 
 if (failed > 0) {
   console.error(`\n${failed} failed`);

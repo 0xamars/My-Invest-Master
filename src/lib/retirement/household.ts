@@ -91,7 +91,7 @@ export function householdDrawStartYear(
 }
 
 export function activeSurvivor(
-  plan: Pick<RetirementPlan, "spouse">,
+  plan: Pick<RetirementPlan, "spouse" | "currentAge">,
   scenario: SurvivorScenario | null | undefined,
 ): SurvivorScenario | null {
   if (!plan.spouse || !scenario) return null;
@@ -99,6 +99,12 @@ export function activeSurvivor(
     return null;
   }
   if (!Number.isFinite(scenario.deathAge)) return null;
+  const currentAge =
+    scenario.deceased === "person2"
+      ? plan.spouse.currentAge
+      : plan.currentAge;
+  // Death at or before the person's current age is not a future year.
+  if (scenario.deathAge <= currentAge) return null;
   return scenario;
 }
 
