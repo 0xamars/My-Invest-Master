@@ -441,7 +441,7 @@ export function AddRetirementAssetDialog({
                 usdValue={annualContribution}
                 currency={currency}
                 rates={rates}
-                onUsdChange={setAnnualContribution}
+                onUsdChange={(value) => setAnnualContribution(value ?? 0)}
                 aria-label={`Annual contribution in ${currency}`}
               />
               <p className="text-xs text-muted-foreground">

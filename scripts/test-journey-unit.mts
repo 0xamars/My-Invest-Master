@@ -430,6 +430,9 @@ assert(
 );
 
 const assumptions = createEmptyPlan("Retire");
+assumptions.currentAge = 42;
+assumptions.retirementAge = 65;
+assumptions.retirementYear = 2026 + (65 - 42);
 assumptions.annualLifestyleSpending = 40_000;
 assumptions.annualContribution = 99_999;
 const dated = journeyFreedomDate({

@@ -22,6 +22,7 @@ function displayFromUsd(
 /**
  * Plan amounts are stored in USD and shown in the plan currency.
  * The draft keeps the typed text so FX rounding does not fight the caret.
+ * Pass `allowEmpty` when a blank field must stay unset instead of becoming 0.
  */
 export function CurrencyAmountInput({
   usdValue,
@@ -29,17 +30,22 @@ export function CurrencyAmountInput({
   rates,
   onUsdChange,
   fractionDigits = 0,
+  allowEmpty = false,
   onFocus,
   onBlur,
   ...props
 }: {
-  usdValue: number;
+  usdValue: number | null;
   currency: DisplayCurrency;
   rates: FxRates;
-  onUsdChange: (usd: number) => void;
+  onUsdChange: (usd: number | null) => void;
   fractionDigits?: number;
+  allowEmpty?: boolean;
 } & Omit<ComponentProps<typeof Input>, "value" | "onChange" | "type">) {
-  const formatted = displayFromUsd(usdValue, currency, rates, fractionDigits);
+  const formatted =
+    usdValue == null
+      ? ""
+      : displayFromUsd(usdValue, currency, rates, fractionDigits);
   const [draft, setDraft] = useState<string | null>(null);
 
   return (
@@ -63,7 +69,9 @@ export function CurrencyAmountInput({
         onUsdChange(convertToUsd(next, currency, rates));
       }}
       onBlur={(event) => {
-        if (draft != null && draft.trim() === "") onUsdChange(0);
+        if (draft != null && draft.trim() === "") {
+          onUsdChange(allowEmpty ? null : 0);
+        }
         setDraft(null);
         onBlur?.(event);
       }}

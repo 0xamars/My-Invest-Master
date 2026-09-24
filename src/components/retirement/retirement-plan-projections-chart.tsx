@@ -68,10 +68,12 @@ interface RetirementPlanProjectionsChartProps {
   assets: RetirementPlanAsset[];
   currency: DisplayCurrency;
   rates: FxRates;
-  retirementYear: number;
+  retirementYear: number | null;
   percentiles?: MonteCarloPercentileBand[];
   /** Target nest egg at the target age, in future dollars. */
   targetNominal?: number;
+  /** Shown when there is nothing to plot. */
+  emptyMessage?: string;
 }
 
 const AXIS_TICK = { fill: CHART_AXIS_COLOR, fontSize: 11, fontWeight: 500 };
@@ -172,6 +174,7 @@ export function RetirementPlanProjectionsChart({
   retirementYear,
   percentiles,
   targetNominal = 0,
+  emptyMessage = "Add assets to generate projection charts.",
 }: RetirementPlanProjectionsChartProps) {
   const [view, setView] = useState<ProjectionChartView>("total-closing");
   const gradientIdPrefix = useId().replace(/:/g, "");
@@ -234,7 +237,9 @@ export function RetirementPlanProjectionsChart({
   );
 
   const showRetirementLine = useMemo(
-    () => chartData.some((row) => row.year >= retirementYear),
+    () =>
+      retirementYear != null &&
+      chartData.some((row) => row.year >= retirementYear),
     [chartData, retirementYear],
   );
 
@@ -245,7 +250,7 @@ export function RetirementPlanProjectionsChart({
     [chartData, depletionYear],
   );
 
-  const retirementLineX = retirementYear - 0.5;
+  const retirementLineX = retirementYear != null ? retirementYear - 0.5 : 0;
   const depletionLineX =
     depletionYear !== null ? depletionYear - 0.5 : null;
 
@@ -257,7 +262,7 @@ export function RetirementPlanProjectionsChart({
       color: string;
     }> = [];
 
-    if (showRetirementLine) {
+    if (showRetirementLine && retirementYear != null) {
       items.push({
         x: retirementLineX,
         year: retirementYear,
@@ -337,7 +342,7 @@ export function RetirementPlanProjectionsChart({
       </div>
 
       {chartData.length === 0 ? (
-        <AnalyticsChartEmpty message="Add assets to generate projection charts." />
+        <AnalyticsChartEmpty message={emptyMessage} />
       ) : (
         <ChartContainer
           config={chartConfig}

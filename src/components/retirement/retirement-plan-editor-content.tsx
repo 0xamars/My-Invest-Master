@@ -44,6 +44,11 @@ import { useUserPlan } from "@/hooks/use-user-preferences";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
 import { canOpenRetirementPlanOnPlan } from "@/lib/plans/free-access";
 import { computeRetirementDashboard } from "@/lib/retirement/dashboard";
+import {
+  missingRetirementInputs,
+  retirementInputPrompt,
+  retirementPlanReady,
+} from "@/lib/retirement/inputs";
 import { bookPresenceFromPortfolio } from "@/lib/retirement/freedom-path";
 import { runRetirementMonteCarlo } from "@/lib/retirement/monte-carlo";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
@@ -112,19 +117,22 @@ export function RetirementPlanEditorContent({
     [primaryPortfolio],
   );
 
+  const inputGaps = workingPlan ? missingRetirementInputs(workingPlan) : [];
+  const readyPlan =
+    workingPlan && retirementPlanReady(workingPlan) ? workingPlan : null;
+  const inputPrompt = retirementInputPrompt(inputGaps);
+
   const projections = useMemo(
-    () => (workingPlan ? projectionsForSavedPlan(workingPlan) : []),
-    [workingPlan],
+    () => (readyPlan ? projectionsForSavedPlan(readyPlan) : []),
+    [readyPlan],
   );
 
   const deferredPlan = useDeferredValue(workingPlan);
-  const monteCarlo = useMemo(
-    () =>
-      deferredPlan && deferredPlan.assets.length > 0
-        ? runRetirementMonteCarlo(deferredPlan, { paths: 750, seed: 17 })
-        : null,
-    [deferredPlan],
-  );
+  const monteCarlo = useMemo(() => {
+    if (!deferredPlan || !retirementPlanReady(deferredPlan)) return null;
+    if (deferredPlan.assets.length === 0) return null;
+    return runRetirementMonteCarlo(deferredPlan, { paths: 750, seed: 17 });
+  }, [deferredPlan]);
 
   const dashboard = useMemo(
     () =>
@@ -137,12 +145,12 @@ export function RetirementPlanEditorContent({
     [workingPlan, projections, monteCarlo],
   );
 
-  const targetNominal = workingPlan
+  const targetNominal = readyPlan
     ? nominalTargetNestEgg(
-        workingPlan.annualLifestyleSpending,
-        workingPlan.withdrawalRate,
-        workingPlan.inflationRate,
-        Math.max(0, workingPlan.retirementAge - workingPlan.currentAge),
+        readyPlan.annualLifestyleSpending,
+        readyPlan.withdrawalRate,
+        readyPlan.inflationRate,
+        Math.max(0, readyPlan.retirementAge - readyPlan.currentAge),
       )
     : 0;
 
@@ -418,7 +426,7 @@ export function RetirementPlanEditorContent({
               }}
               ownerAges={{
                 person1: workingPlan.currentAge,
-                person2: workingPlan.spouse?.currentAge ?? workingPlan.currentAge,
+                person2: workingPlan.spouse?.currentAge ?? null,
               }}
               onUpdateAsset={handleUpdateAsset}
               onDeleteAsset={handleDeleteAsset}
@@ -434,6 +442,7 @@ export function RetirementPlanEditorContent({
           retirementYear={workingPlan.retirementYear}
           percentiles={monteCarlo?.percentiles}
           targetNominal={targetNominal}
+          emptyMessage={inputPrompt?.title}
         />
 
         <div className="space-y-4">
@@ -449,6 +458,7 @@ export function RetirementPlanEditorContent({
             currency={currency}
             rates={rates}
             retirementYear={workingPlan.retirementYear}
+            emptyMessage={inputPrompt?.title}
             personLabels={{
               person1: personLabel(workingPlan, "person1"),
               person2: personLabel(workingPlan, "person2"),

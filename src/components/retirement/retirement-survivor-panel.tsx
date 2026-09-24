@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import { RetirementDisclaimer } from "@/components/retirement/retirement-disclaimer";
 import { RetirementPlanProjectionsTable } from "@/components/retirement/retirement-plan-projections-table";
-import { RetireField, RetirePanel } from "@/components/retirement/retire-ui";
+import { RetireEmptyState, RetireField, RetirePanel } from "@/components/retirement/retire-ui";
+import {
+  missingRetirementInputs,
+  retirementInputPrompt,
+} from "@/lib/retirement/inputs";
 import { Input } from "@/components/ui/input";
 import { formatProjectionMoney } from "@/lib/retirement/format";
 import { runRetirementMonteCarlo } from "@/lib/retirement/monte-carlo";
@@ -42,13 +46,17 @@ export function RetirementSurvivorPanel({
 
   const you = personLabel(plan, "person1");
   const spouse = personLabel(plan, "person2");
+  const inputGaps = missingRetirementInputs(plan);
+  const inputPrompt = retirementInputPrompt(inputGaps);
   const subjectAge =
     deceased === "person2"
-      ? (plan.spouse?.currentAge ?? plan.currentAge)
+      ? (plan.spouse?.currentAge ?? null)
       : plan.currentAge;
-  const minDeathAge = subjectAge + 1;
+  const minDeathAge = subjectAge != null ? subjectAge + 1 : null;
   const deathAge = Number(deathAgeText);
   const ageReady =
+    inputPrompt == null &&
+    minDeathAge != null &&
     deathAgeText.trim() !== "" &&
     Number.isFinite(deathAge) &&
     deathAge >= minDeathAge;
@@ -114,12 +122,16 @@ export function RetirementSurvivorPanel({
         <RetireField
           id="survivor-age"
           label={`Age ${who} dies`}
-          hint={`After age ${subjectAge}. Leave blank to keep the both-alive projection.`}
+          hint={
+            subjectAge != null
+              ? `After age ${subjectAge}. Leave blank to keep the both-alive projection.`
+              : "Enter your age to see your plan."
+          }
         >
           <Input
             id="survivor-age"
             type="number"
-            min={minDeathAge}
+            min={minDeathAge ?? undefined}
             max="120"
             inputMode="numeric"
             placeholder="Age"
@@ -130,7 +142,12 @@ export function RetirementSurvivorPanel({
         </RetireField>
       </div>
 
-      {ageReady ? (
+      {inputPrompt ? (
+        <RetireEmptyState
+          title={inputPrompt.title}
+          description={inputPrompt.description}
+        />
+      ) : ageReady ? (
         <div className="space-y-3">
           <dl className="grid gap-3 sm:grid-cols-3">
             <Stat
@@ -171,7 +188,10 @@ export function RetirementSurvivorPanel({
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {deathAgeText.trim() !== "" && Number.isFinite(deathAge) && deathAge < minDeathAge
+          {minDeathAge != null &&
+          deathAgeText.trim() !== "" &&
+          Number.isFinite(deathAge) &&
+          deathAge < minDeathAge
             ? `Enter an age after ${subjectAge}. A death at or before the current age is ignored.`
             : "Enter an age to run this view. No death age is assumed."}
         </p>

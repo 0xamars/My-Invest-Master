@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { LeftoverPresence } from "@/lib/invest/leftover";
 import type { RetirementDashboard } from "@/lib/retirement/dashboard";
+import { retirementInputPrompt } from "@/lib/retirement/inputs";
 import {
   formatFreedomDate,
   freedomLeverSentence,
@@ -53,6 +54,22 @@ export function RetirementVerdictHero({
 }) {
   const money = (value: number) => formatProjectionMoney(value, currency, rates);
   const hasInputs = leftover != null && book != null;
+  const inputPrompt = retirementInputPrompt(dashboard.missingInputs);
+
+  if (inputPrompt) {
+    return (
+      <RetirePanel>
+        <RetireEmptyState
+          icon={<Wallet className="size-5" />}
+          title={inputPrompt.title}
+          description={inputPrompt.description}
+        />
+      </RetirePanel>
+    );
+  }
+
+  const annualSpending = dashboard.annualSpending ?? 0;
+  const targetNestEgg = dashboard.targetNestEgg ?? 0;
   const dateLabel = formatFreedomDate(
     dashboard.freedomYear == null
       ? null
@@ -73,9 +90,9 @@ export function RetirementVerdictHero({
         <div className="border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
           You need{" "}
           <span className="font-semibold text-foreground">
-            {money(dashboard.targetNestEgg)}
+            {money(targetNestEgg)}
           </span>{" "}
-          to spend {money(dashboard.annualSpending)}/year at{" "}
+          to spend {money(annualSpending)}/year at{" "}
           {dashboard.withdrawalRate}%.
         </div>
       </RetirePanel>
@@ -117,7 +134,7 @@ export function RetirementVerdictHero({
               ? "The target is already covered at 0% growth."
               : `Needs ${dashboard.requiredGrowthRate.toFixed(1)}% a year to reach the target by the target age.`}
           </p>
-        ) : dashboard.verdict !== "empty" && dashboard.targetNestEgg > 0 ? (
+        ) : dashboard.verdict !== "empty" && targetNestEgg > 0 ? (
           <p className="mt-2 text-sm font-medium">
             Not reachable by the target age at 40% growth.
           </p>
@@ -141,8 +158,8 @@ export function RetirementVerdictHero({
         <div className="grid grid-cols-2 divide-x divide-y divide-border">
           <Metric
             label="Target nest egg"
-            value={money(dashboard.targetNestEgg)}
-            hint={`${money(dashboard.annualSpending)}/year at ${dashboard.withdrawalRate}%`}
+            value={money(targetNestEgg)}
+            hint={`${money(annualSpending)}/year at ${dashboard.withdrawalRate}%`}
           />
           <Metric
             label="On this path"

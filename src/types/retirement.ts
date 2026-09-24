@@ -38,7 +38,8 @@ export interface RetirementPlanAsset {
 
 export interface RetirementSpouse {
   name: string;
-  currentAge: number;
+  /** Unset until entered. Never filled with a guessed age. */
+  currentAge: number | null;
   retirementAge: number;
 }
 
@@ -73,16 +74,21 @@ export interface SurvivorScenario {
 export interface RetirementPlan {
   id: string;
   name: string;
-  retirementYear: number;
-  /** Annual lifestyle spending in USD. */
-  annualLifestyleSpending: number;
+  /** Calendar year of the target age. Null until a current age is entered. */
+  retirementYear: number | null;
+  /**
+   * Annual lifestyle spending in USD. Null until entered.
+   * Zero is an explicit amount, not a stand-in for "unknown".
+   */
+  annualLifestyleSpending: number | null;
   /** Inflation rate in percent (e.g. 3 = 3%). */
   inflationRate: number;
   priceProjectionScenario: PriceProjectionScenario;
   assets: RetirementPlanAsset[];
   createdAt: string;
   updatedAt: string;
-  currentAge: number;
+  /** Unset until entered. Never filled with a guessed age. */
+  currentAge: number | null;
   retirementAge: number;
   planEndAge: number;
   spouse: RetirementSpouse | null;
@@ -185,11 +191,15 @@ export interface YearProjection {
 export interface RetirementPlanSummary {
   id: string;
   name: string;
-  retirementYear: number;
+  retirementYear: number | null;
   totalPortfolioValue: number;
   updatedAt: string;
 }
 
+/**
+ * Historical placeholder. New plans and normalize do not apply this age.
+ * A stored plan that already has an age keeps that age.
+ */
 export const DEFAULT_CURRENT_AGE = 40;
 export const DEFAULT_RETIREMENT_AGE = 65;
 export const DEFAULT_PLAN_END_AGE = 90;
@@ -325,25 +335,20 @@ export const DEFAULT_WITHDRAWAL_ASSUMPTIONS: RetirementWithdrawalAssumptions = {
 export function createEmptySpouse(): RetirementSpouse {
   return {
     name: "",
-    currentAge: DEFAULT_CURRENT_AGE,
+    currentAge: null,
     retirementAge: DEFAULT_RETIREMENT_AGE,
   };
 }
 
 export function createEmptyPlan(name = "New Retire plan"): RetirementPlan {
   const now = new Date().toISOString();
-  const currentYear = new Date().getFullYear();
 
   return {
     id: crypto.randomUUID(),
     name,
-    currentAge: DEFAULT_CURRENT_AGE,
+    currentAge: null,
     retirementAge: DEFAULT_RETIREMENT_AGE,
-    retirementYear: retirementYearFromAges(
-      DEFAULT_CURRENT_AGE,
-      DEFAULT_RETIREMENT_AGE,
-      currentYear,
-    ),
+    retirementYear: null,
     planEndAge: DEFAULT_PLAN_END_AGE,
     spouse: null,
     currency: DEFAULT_PLAN_CURRENCY,
@@ -352,7 +357,7 @@ export function createEmptyPlan(name = "New Retire plan"): RetirementPlan {
     pensionSplitPercent: 0,
     incomeStreams: [],
     withdrawalAssumptions: { ...DEFAULT_WITHDRAWAL_ASSUMPTIONS },
-    annualLifestyleSpending: 60_000,
+    annualLifestyleSpending: null,
     inflationRate: 3,
     priceProjectionScenario: "expected",
     assets: [],

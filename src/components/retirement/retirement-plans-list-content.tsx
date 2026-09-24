@@ -219,7 +219,9 @@ export function RetirementPlansListContent() {
                   <CardDescription className="flex flex-wrap items-center gap-1.5">
                     <Calendar className="size-3.5" />
                     Target age {normalized?.retirementAge ?? "—"}
-                    {normalized ? ` · ${normalized.retirementYear}` : ""}
+                    {normalized?.retirementYear != null
+                      ? ` · ${normalized.retirementYear}`
+                      : ""}
                     {dash ? (
                       <RetireVerdictChip verdict={dash.verdict} />
                     ) : null}

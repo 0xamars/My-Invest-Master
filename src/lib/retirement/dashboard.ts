@@ -1,5 +1,10 @@
 import { getPlanTotalValue, type RetirementPlan } from "@/types/retirement";
 import { findFreedomCrossing } from "@/lib/retirement/freedom-path";
+import {
+  missingRetirementInputs,
+  retirementPlanReady,
+  type RetirementInputGap,
+} from "@/lib/retirement/inputs";
 import { requiredGrowthRate } from "@/lib/retirement/required-growth";
 import { computeTargetNestEgg, presentValue } from "@/lib/retirement/target";
 import {
@@ -15,8 +20,10 @@ export type RetirementVerdict = "ahead" | "on-track" | "behind" | "empty";
 export interface RetirementDashboard {
   verdict: RetirementVerdict;
   currentPortfolio: number;
-  targetNestEgg: number;
-  annualSpending: number;
+  /** Null until age and spending are both entered. */
+  targetNestEgg: number | null;
+  /** Null until spending is entered. */
+  annualSpending: number | null;
   withdrawalRate: number;
   projectedNestEgg: number | null;
   projectedNestEggToday: number | null;
@@ -26,12 +33,13 @@ export interface RetirementDashboard {
   lastsPastPlanEnd: boolean;
   planEndAge: number;
   successRate: number | null;
-  yearsToRetirement: number;
+  yearsToRetirement: number | null;
   freedomYear: number | null;
   freedomAge: number | null;
   yearsToFreedom: number | null;
   /** Blended annual growth required to meet the target. Null if unreachable at 40%. */
   requiredGrowthRate: number | null;
+  missingInputs: RetirementInputGap[];
 }
 
 export function verdictFromGap(
@@ -57,11 +65,7 @@ export function computeRetirementDashboard(
 ): RetirementDashboard {
   const currentYear = options?.currentYear ?? new Date().getFullYear();
   const currentPortfolio = getPlanTotalValue(plan);
-  const targetNestEgg = computeTargetNestEgg(
-    plan.annualLifestyleSpending,
-    plan.withdrawalRate,
-  );
-  const yearsToRetirement = Math.max(0, plan.retirementAge - plan.currentAge);
+  const missingInputs = missingRetirementInputs(plan);
 
   const emptyFreedom = {
     freedomYear: null,
@@ -70,7 +74,13 @@ export function computeRetirementDashboard(
     requiredGrowthRate: null,
   };
 
-  if (plan.assets.length === 0) {
+  if (!retirementPlanReady(plan) || plan.assets.length === 0) {
+    const yearsToRetirement = retirementPlanReady(plan)
+      ? Math.max(0, plan.retirementAge - plan.currentAge)
+      : null;
+    const targetNestEgg = retirementPlanReady(plan)
+      ? computeTargetNestEgg(plan.annualLifestyleSpending, plan.withdrawalRate)
+      : null;
     return {
       verdict: "empty",
       currentPortfolio,
@@ -86,9 +96,16 @@ export function computeRetirementDashboard(
       planEndAge: plan.planEndAge,
       successRate: null,
       yearsToRetirement,
+      missingInputs,
       ...emptyFreedom,
     };
   }
+
+  const targetNestEgg = computeTargetNestEgg(
+    plan.annualLifestyleSpending,
+    plan.withdrawalRate,
+  );
+  const yearsToRetirement = Math.max(0, plan.retirementAge - plan.currentAge);
 
   const projections =
     options?.projections ??
@@ -140,5 +157,6 @@ export function computeRetirementDashboard(
     freedomAge: freedom?.age ?? null,
     yearsToFreedom,
     requiredGrowthRate: requiredGrowthRate(plan, { currentYear }),
+    missingInputs,
   };
 }

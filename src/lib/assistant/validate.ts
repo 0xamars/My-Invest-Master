@@ -60,9 +60,9 @@ function sanitizeRetirementPlans(value: unknown): AssistantRetirementPlanSummary
     .map((plan) => ({
       id: asString(plan.id) ?? crypto.randomUUID(),
       name: asString(plan.name) ?? "Untitled plan",
-      retirementYear: asNumber(plan.retirementYear) ?? new Date().getFullYear(),
+      retirementYear: asNumber(plan.retirementYear),
       totalPortfolioValue: asNumber(plan.totalPortfolioValue) ?? 0,
-      annualLifestyleSpending: asNumber(plan.annualLifestyleSpending) ?? 0,
+      annualLifestyleSpending: asNumber(plan.annualLifestyleSpending),
       inflationRate: asNumber(plan.inflationRate) ?? 0,
       assetCount: asNumber(plan.assetCount) ?? 0,
       projectedDepletionYear: asNumber(plan.projectedDepletionYear),

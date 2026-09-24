@@ -5,6 +5,7 @@ import {
   resolveHoldingUnitPrice,
 } from "@/lib/retirement/portfolio-import";
 import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
+import { retirementPlanReady } from "@/lib/retirement/inputs";
 import { computeRetirementProjections } from "@/lib/retirement/projections";
 import { computeTargetNestEgg, presentValue } from "@/lib/retirement/target";
 import type { LeftoverPresence } from "@/lib/invest/leftover";
@@ -137,6 +138,7 @@ export function findFreedomCrossing(
   plan: RetirementPlan,
   options?: { currentYear?: number },
 ): { year: number; age: number } | null {
+  if (!retirementPlanReady(plan)) return null;
   const currentYear = options?.currentYear ?? new Date().getFullYear();
   const target = computeTargetNestEgg(
     plan.annualLifestyleSpending,

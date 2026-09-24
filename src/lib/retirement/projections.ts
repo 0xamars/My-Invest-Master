@@ -15,6 +15,7 @@ import {
   rrspAlreadyDue,
   rrspConvertsAtYearEnd,
 } from "@/lib/retirement/rrif";
+import { retirementPlanReady } from "@/lib/retirement/inputs";
 import { taxPayableFrom, type RetirementTaxEngine } from "@/lib/retirement/tax-year";
 import {
   applyProRataWithdrawal,
@@ -78,16 +79,18 @@ export function lifestyleSpendingForYear(
   year: number,
   currentYear: number,
 ): number {
-  const drawStart = plan.spouse
-    ? householdDrawStartYear(modeledPeople(plan, currentYear))
-    : plan.retirementYear;
-  if (year < drawStart) return 0;
+  const spending = plan.annualLifestyleSpending;
+  if (spending == null || !Number.isFinite(spending)) return 0;
 
-  return inflateFromToday(
-    plan.annualLifestyleSpending,
-    plan.inflationRate,
-    year - drawStart,
-  );
+  const people = plan.spouse ? modeledPeople(plan, currentYear) : [];
+  const drawStart = plan.spouse
+    ? people.length === 0
+      ? null
+      : householdDrawStartYear(people)
+    : plan.retirementYear;
+  if (drawStart == null || !Number.isFinite(drawStart) || year < drawStart) return 0;
+
+  return inflateFromToday(spending, plan.inflationRate, year - drawStart);
 }
 
 export function incomeForYear(
@@ -196,6 +199,8 @@ export function computeRetirementProjections(
   plan: RetirementPlan,
   options?: ComputeProjectionOptions,
 ): YearProjection[] {
+  if (!retirementPlanReady(plan)) return [];
+
   const currentYear = options?.currentYear ?? new Date().getFullYear();
   const endYear =
     options?.horizonYears != null
@@ -500,8 +505,9 @@ export function findDepletionAge(
 
 export function nestEggAtRetirement(
   projections: YearProjection[],
-  retirementYear: number,
+  retirementYear: number | null,
 ): number | null {
+  if (retirementYear == null) return null;
   const atRetirement = projections.find((row) => row.year === retirementYear);
   if (atRetirement) return atRetirement.closingBalance;
   const lastPre = [...projections]

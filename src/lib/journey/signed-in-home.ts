@@ -163,6 +163,7 @@ export function signedInHomeRetireInsight(input: {
 
   if (
     dashboard.projectedNestEggToday == null ||
+    dashboard.targetNestEgg == null ||
     dashboard.targetNestEgg <= 0
   ) {
     return {

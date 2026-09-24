@@ -39,17 +39,29 @@ export function RetirementPlanLevers({
               type="number"
               min="18"
               max="100"
-              value={plan.currentAge}
-              onChange={(event) =>
-                patch({ currentAge: Number(event.target.value) || plan.currentAge })
-              }
+              value={plan.currentAge ?? ""}
+              placeholder="Age"
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (raw.trim() === "") {
+                  patch({ currentAge: null });
+                  return;
+                }
+                const next = Number(raw);
+                if (!Number.isFinite(next)) return;
+                patch({ currentAge: next });
+              }}
               className="tabular-nums"
             />
           </RetireField>
           <RetireField
             id="retirement-age"
             label="Target age"
-            hint={`Year ${plan.retirementYear}`}
+            hint={
+              plan.retirementYear != null
+                ? `Year ${plan.retirementYear}`
+                : "Enter your age"
+            }
           >
             <Input
               id="retirement-age"
@@ -132,15 +144,19 @@ export function RetirementPlanLevers({
                   type="number"
                   min="18"
                   max="100"
-                  value={plan.spouse.currentAge}
-                  onChange={(event) =>
+                  value={plan.spouse.currentAge ?? ""}
+                  placeholder="Age"
+                  onChange={(event) => {
+                    const raw = event.target.value;
+                    const currentAge = raw.trim() === "" ? null : Number(raw);
+                    if (currentAge != null && !Number.isFinite(currentAge)) return;
                     patch({
                       spouse: {
                         ...plan.spouse!,
-                        currentAge: Number(event.target.value) || plan.spouse!.currentAge,
+                        currentAge,
                       },
-                    })
-                  }
+                    });
+                  }}
                   className="tabular-nums"
                 />
               </RetireField>
@@ -219,8 +235,10 @@ export function RetirementPlanLevers({
           >
             <CurrencyAmountInput
               id="spend"
+              allowEmpty
               min="0"
               step="1000"
+              placeholder="Yearly spending"
               usdValue={plan.annualLifestyleSpending}
               currency={plan.currency}
               rates={rates}
@@ -242,9 +260,10 @@ export function RetirementPlanLevers({
               usdValue={plan.annualContribution}
               currency={plan.currency}
               rates={rates}
-              onUsdChange={(annualContribution) =>
-                patch({ annualContribution })
-              }
+              onUsdChange={(annualContribution) => {
+                if (annualContribution == null) return;
+                patch({ annualContribution });
+              }}
               aria-label={`Annual savings in ${plan.currency}`}
               className="tabular-nums"
             />
