@@ -6,6 +6,7 @@ import {
   type AddBudgetScheduledTransactionInput,
   type AddBudgetTransactionInput,
 } from "@/hooks/use-budget-plan-mutations";
+import type { PayeeRuleDraft } from "@/lib/budget/payee-rules";
 import type {
   BudgetAccount,
   BudgetAccountType,
@@ -133,6 +134,14 @@ interface BudgetContextValue {
     input: AddBudgetScheduledTransactionInput,
   ) => void;
   deleteScheduledTransaction: (scheduleId: string) => void;
+  savePayeeRule: (
+    draft: PayeeRuleDraft,
+    options?: { id?: string; applyToExisting?: boolean },
+  ) => void;
+  removePayeeRule: (ruleId: string) => void;
+  movePayeeRule: (ruleId: string, direction: "up" | "down") => void;
+  togglePayeeRule: (ruleId: string, enabled: boolean) => void;
+  mergeBudgetPayees: (fromName: string, toName: string) => void;
 }
 
 const BudgetContext = createContext<BudgetContextValue | null>(null);

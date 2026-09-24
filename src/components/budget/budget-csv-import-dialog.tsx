@@ -32,11 +32,14 @@ import {
   parseBudgetCsv,
   parsedCsvToTransactionInput,
   type CsvImportPreview,
+  type ParsedCsvTransaction,
 } from "@/lib/budget/csv";
 import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
 import { cn } from "@/lib/utils";
 import type { AddBudgetTransactionInput } from "@/hooks/use-budget-plan-mutations";
-import type { BudgetAccount, BudgetCategory, BudgetTransaction } from "@/types/budget";
+import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
+import { normalizePayeeName } from "@/lib/budget/payees";
+import type { BudgetAccount, BudgetCategory, BudgetTransaction, PayeeRule } from "@/types/budget";
 
 const SAMPLE_LIMIT = 8;
 
@@ -46,6 +49,7 @@ interface BudgetCsvImportDialogProps {
   accounts: BudgetAccount[];
   categories: BudgetCategory[];
   transactions: BudgetTransaction[];
+  payeeRules?: PayeeRule[];
   defaultAccountId?: string;
   onImport: (
     inputs: AddBudgetTransactionInput[],
@@ -59,6 +63,7 @@ export function BudgetCsvImportDialog({
   accounts,
   categories,
   transactions,
+  payeeRules = [],
   defaultAccountId,
   onImport,
 }: BudgetCsvImportDialogProps) {
@@ -121,9 +126,35 @@ export function BudgetCsvImportDialog({
       preview.matched.map((row) => ({
         transactionId: row.matchedTransactionId,
         importId: row.importId,
+        payee: row.payee,
       })),
     );
     onOpenChange(false);
+  }
+
+  function cleanedPayee(row: { date: string; payee: string; accountId: string; categoryId: string | null; amount: number; type: ParsedCsvTransaction["type"]; memo?: string; sourceRow: number }) {
+    const resolved = applyPayeeRulesToTransaction(
+      {
+        id: `preview-${row.sourceRow}`,
+        date: row.date,
+        payee: row.payee,
+        accountId: row.accountId,
+        categoryId: row.type === "outflow" ? row.categoryId : null,
+        amount: row.amount,
+        type: row.type,
+        cleared: "uncleared",
+        memo: row.memo,
+      },
+      payeeRules,
+      transactions,
+      {
+        matchText: row.payee,
+        recordOriginal: true,
+        preserveCategory: Boolean(row.categoryId),
+        categories,
+      },
+    );
+    return resolved;
   }
 
   const sample = preview?.imported.slice(0, SAMPLE_LIMIT) ?? [];
@@ -253,6 +284,9 @@ export function BudgetCsvImportDialog({
               <p className="text-xs text-muted-foreground">
                 Exact date + payee + amount + account is skipped. Same amount and
                 close dates match an existing entered row.
+                {payeeRules.some((rule) => rule.enabled)
+                  ? " Payee rules rename matching rows and fill an empty category."
+                  : ""}
               </p>
 
               {preview.skipped.length > 0 && (
@@ -280,12 +314,25 @@ export function BudgetCsvImportDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sample.map((tx) => (
+                      {sample.map((tx) => {
+                        const cleaned = cleanedPayee(tx);
+                        const showBank =
+                          cleaned.originalPayee &&
+                          normalizePayeeName(cleaned.originalPayee) !==
+                            normalizePayeeName(cleaned.payee);
+                        return (
                         <TableRow key={`${tx.sourceRow}-${tx.payee}`}>
                           <TableCell className="whitespace-nowrap text-muted-foreground">
                             {formatBudgetDate(tx.date)}
                           </TableCell>
-                          <TableCell className="font-medium">{tx.payee}</TableCell>
+                          <TableCell className="font-medium">
+                            {cleaned.payee}
+                            {showBank ? (
+                              <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                                Bank: {cleaned.originalPayee}
+                              </span>
+                            ) : null}
+                          </TableCell>
                           <TableCell className="capitalize text-muted-foreground">
                             {tx.type}
                           </TableCell>
@@ -303,7 +350,8 @@ export function BudgetCsvImportDialog({
                             {formatBudgetMoney(tx.amount)}
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

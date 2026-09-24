@@ -35,8 +35,8 @@ export function applyBulkCategorize<T extends BudgetData>(
   return mapSelected(budget, ids, (tx) => {
     if (tx.type !== "outflow") return tx;
     if (isTransferTransaction(tx) || isSplitTransaction(tx)) return tx;
-    if (tx.categoryId === categoryId) return tx;
-    return { ...tx, categoryId };
+    if (tx.categoryId === categoryId && tx.categoryManual === true) return tx;
+    return { ...tx, categoryId, categoryManual: true };
   });
 }
 

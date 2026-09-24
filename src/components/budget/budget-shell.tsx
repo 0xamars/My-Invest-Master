@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   List,
   Plus,
+  Tags,
   Undo2,
   Wallet,
 } from "lucide-react";
@@ -169,6 +170,12 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
       title: "Transactions",
       href: `${basePath}/transactions`,
       icon: List,
+      exact: false,
+    },
+    {
+      title: "Payee rules",
+      href: `${basePath}/payee-rules`,
+      icon: Tags,
       exact: false,
     },
     {

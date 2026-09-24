@@ -7,8 +7,12 @@ export interface DerivedPayee {
   lastDate: string;
 }
 
-function payeeKey(name: string): string {
+export function normalizePayeeName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function payeeKey(name: string): string {
+  return normalizePayeeName(name);
 }
 
 /** Unique payees derived from the plan JSON. Transfer payees are omitted. */

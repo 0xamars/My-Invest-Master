@@ -34,6 +34,17 @@ import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
 import { applyPlaidImport, unlinkPlaidItemFromPlan } from "@/lib/budget/plaid";
+import {
+  addPayeeRule,
+  applyPayeeRulesToTransaction,
+  applyRulesToImportedTransactions,
+  deletePayeeRule,
+  mergePayees,
+  reorderPayeeRule,
+  setPayeeRuleEnabled,
+  updatePayeeRule,
+  type PayeeRuleDraft,
+} from "@/lib/budget/payee-rules";
 import { transactionTouchesAccount } from "@/lib/budget/transactions";
 import type { PlaidSyncPayload } from "@/lib/plaid/types";
 import type {
@@ -75,6 +86,13 @@ export interface AddBudgetTransactionInput {
   approved?: boolean;
   importId?: string;
   matchedTransactionId?: string;
+  originalPayee?: string;
+  /** True when the user picked the category in the form. */
+  categoryManual?: boolean;
+  /** Dialog already resolved payee rules against the typed payee. */
+  rulesApplied?: boolean;
+  /** A category from the file should win over a rule category. */
+  preserveCategory?: boolean;
 }
 
 export interface AddBudgetScheduledTransactionInput {
@@ -127,7 +145,29 @@ function toStoredTransaction(
     approved: input.approved ?? existing?.approved ?? true,
     importId: input.importId ?? existing?.importId,
     matchedTransactionId: input.matchedTransactionId ?? existing?.matchedTransactionId,
+    originalPayee: input.originalPayee?.trim() || existing?.originalPayee,
+    categoryManual:
+      input.categoryManual === true
+        ? true
+        : input.categoryManual === false
+          ? false
+          : existing?.categoryManual,
   };
+}
+
+function withPayeeRules(
+  plan: BudgetPlan,
+  tx: BudgetTransaction,
+  input: AddBudgetTransactionInput,
+): BudgetTransaction {
+  if (input.rulesApplied) return tx;
+  const imported = Boolean(input.importId);
+  return applyPayeeRulesToTransaction(tx, plan.payeeRules ?? [], plan.transactions, {
+    categories: plan.categories,
+    preserveCategory: input.preserveCategory || (imported && Boolean(tx.categoryId)),
+    recordOriginal: imported,
+    matchText: imported ? tx.originalPayee?.trim() || tx.payee : tx.payee,
+  });
 }
 
 function toStoredSchedule(
@@ -228,10 +268,13 @@ export function useBudgetPlanMutations(planId: string) {
   const addTransaction = useCallback(
     (input: AddBudgetTransactionInput) => {
       commitPlan(
-        (current) => ({
-          ...current,
-          transactions: [...current.transactions, toStoredTransaction(input)],
-        }),
+        (current) => {
+          const stored = toStoredTransaction(input);
+          return {
+            ...current,
+            transactions: [...current.transactions, withPayeeRules(current, stored, input)],
+          };
+        },
         { label: "Undo transaction" },
       );
     },
@@ -242,18 +285,17 @@ export function useBudgetPlanMutations(planId: string) {
     (inputs: AddBudgetTransactionInput[]) => {
       if (inputs.length === 0) return;
       commitPlan(
-        (current) => ({
-          ...current,
-          transactions: [
-            ...current.transactions,
-            ...inputs.map((input) =>
+        (current) =>
+          applyRulesToImportedTransactions(
+            current,
+            inputs.map((input) =>
               toStoredTransaction({
                 ...input,
                 approved: input.approved ?? false,
               }),
             ),
-          ],
-        }),
+            [],
+          ),
         { label: "Undo import" },
       );
     },
@@ -283,31 +325,21 @@ export function useBudgetPlanMutations(planId: string) {
   const importFromCsv = useCallback(
     (
       inputs: AddBudgetTransactionInput[],
-      matches: Array<{ transactionId: string; importId: string }>,
+      matches: Array<{ transactionId: string; importId: string; payee?: string }>,
     ) => {
       if (inputs.length === 0 && matches.length === 0) return;
       commitPlan(
-        (current) => {
-          const matchById = new Map(
-            matches.map((match) => [match.transactionId, match.importId]),
-          );
-          return {
-            ...current,
-            transactions: [
-              ...current.transactions.map((tx) => {
-                const importId = matchById.get(tx.id);
-                if (!importId) return tx;
-                return { ...tx, importId, matchedTransactionId: importId };
+        (current) =>
+          applyRulesToImportedTransactions(
+            current,
+            inputs.map((input) =>
+              toStoredTransaction({
+                ...input,
+                approved: false,
               }),
-              ...inputs.map((input) =>
-                toStoredTransaction({
-                  ...input,
-                  approved: false,
-                }),
-              ),
-            ],
-          };
-        },
+            ),
+            matches,
+          ),
         { label: "Undo import" },
       );
     },
@@ -343,9 +375,11 @@ export function useBudgetPlanMutations(planId: string) {
     (transactionId: string, input: AddBudgetTransactionInput) => {
       commitPlan((current) => ({
         ...current,
-        transactions: current.transactions.map((tx) =>
-          tx.id === transactionId ? toStoredTransaction(input, tx) : tx,
-        ),
+        transactions: current.transactions.map((tx) => {
+          if (tx.id !== transactionId) return tx;
+          const stored = toStoredTransaction(input, tx);
+          return withPayeeRules(current, stored, input);
+        }),
       }));
     },
     [commitPlan],
@@ -903,6 +937,60 @@ export function useBudgetPlanMutations(planId: string) {
     [commitPlan],
   );
 
+  const savePayeeRule = useCallback(
+    (
+      draft: PayeeRuleDraft,
+      options?: { id?: string; applyToExisting?: boolean },
+    ) => {
+      commitPlan(
+        (current) =>
+          options?.id
+            ? updatePayeeRule(current, options.id, draft)
+            : addPayeeRule(current, draft, {
+                applyToExisting: options?.applyToExisting,
+              }),
+        { label: options?.id ? "Undo rule edit" : "Undo payee rule" },
+      );
+    },
+    [commitPlan],
+  );
+
+  const removePayeeRule = useCallback(
+    (ruleId: string) => {
+      commitPlan((current) => deletePayeeRule(current, ruleId), {
+        label: "Undo delete rule",
+      });
+    },
+    [commitPlan],
+  );
+
+  const movePayeeRule = useCallback(
+    (ruleId: string, direction: "up" | "down") => {
+      commitPlan((current) => reorderPayeeRule(current, ruleId, direction), {
+        label: "Undo reorder rule",
+      });
+    },
+    [commitPlan],
+  );
+
+  const togglePayeeRule = useCallback(
+    (ruleId: string, enabled: boolean) => {
+      commitPlan((current) => setPayeeRuleEnabled(current, ruleId, enabled), {
+        label: enabled ? "Undo enable rule" : "Undo disable rule",
+      });
+    },
+    [commitPlan],
+  );
+
+  const mergeBudgetPayees = useCallback(
+    (fromName: string, toName: string) => {
+      commitPlan((current) => mergePayees(current, fromName, toName), {
+        label: "Undo payee merge",
+      });
+    },
+    [commitPlan],
+  );
+
   const deleteScheduledTransaction = useCallback(
     (scheduleId: string) => {
       commitPlan((current) => ({
@@ -989,6 +1077,11 @@ export function useBudgetPlanMutations(planId: string) {
       addScheduledTransaction,
       updateScheduledTransaction,
       deleteScheduledTransaction,
+      savePayeeRule,
+      removePayeeRule,
+      movePayeeRule,
+      togglePayeeRule,
+      mergeBudgetPayees,
       undoLastMutation,
       canUndo: undoStack.length > 0,
       lastMutationLabel,
@@ -1041,6 +1134,11 @@ export function useBudgetPlanMutations(planId: string) {
       addScheduledTransaction,
       updateScheduledTransaction,
       deleteScheduledTransaction,
+      savePayeeRule,
+      removePayeeRule,
+      movePayeeRule,
+      togglePayeeRule,
+      mergeBudgetPayees,
       undoLastMutation,
       undoStack.length,
       lastMutationLabel,

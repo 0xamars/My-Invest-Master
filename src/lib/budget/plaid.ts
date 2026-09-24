@@ -1,6 +1,7 @@
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
 import { findImportMatch } from "@/lib/budget/csv";
 import { ensureCreditCardPaymentCategories } from "@/lib/budget/credit-card-payments";
+import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
 import type { PlaidImportedTransaction, PlaidLinkedAccount, PlaidSyncPayload } from "@/lib/plaid/types";
 import type {
   BudgetAccount,
@@ -146,31 +147,56 @@ export function applyPlaidImport(
       nextTransactions,
       usedMatchIds,
     );
+    const bankText = (row.name || row.merchantName || "Bank transaction").trim();
+    const displayPayee = (row.merchantName || row.name || "Bank transaction").trim();
     if (matchId) {
       usedMatchIds.add(matchId);
       const index = nextTransactions.findIndex((tx) => tx.id === matchId);
       if (index >= 0) {
-        nextTransactions[index] = {
-          ...nextTransactions[index]!,
-          importId,
-          matchedTransactionId: importId,
-        };
+        const current = nextTransactions[index]!;
+        nextTransactions[index] = applyPayeeRulesToTransaction(
+          {
+            ...current,
+            importId,
+            matchedTransactionId: importId,
+          },
+          plan.payeeRules ?? [],
+          nextTransactions,
+          {
+            matchText: bankText,
+            recordOriginal: true,
+            preserveCategory: true,
+            protectEditedPayee: true,
+            categories: plan.categories,
+          },
+        );
         matched += 1;
       }
       continue;
     }
-    nextTransactions.push({
-      id: createId(),
-      date: row.date,
-      payee: (row.merchantName || row.name || "Bank transaction").trim(),
-      accountId,
-      categoryId: signed.type === "inflow" ? null : null,
-      amount: signed.amount,
-      type: signed.type,
-      cleared: row.pending ? "uncleared" : "cleared",
-      approved: false,
-      importId,
-    });
+    nextTransactions.push(
+      applyPayeeRulesToTransaction(
+        {
+          id: createId(),
+          date: row.date,
+          payee: displayPayee,
+          accountId,
+          categoryId: null,
+          amount: signed.amount,
+          type: signed.type,
+          cleared: row.pending ? "uncleared" : "cleared",
+          approved: false,
+          importId,
+        },
+        plan.payeeRules ?? [],
+        nextTransactions,
+        {
+          matchText: bankText,
+          recordOriginal: true,
+          categories: plan.categories,
+        },
+      ),
+    );
     imported += 1;
   }
 
