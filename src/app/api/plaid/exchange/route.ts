@@ -6,10 +6,8 @@ import {
   syncPlaidTransactions,
 } from "@/lib/plaid/client";
 import { isPlaidConfigured, isPlaidStorageReady } from "@/lib/plaid/config";
-import {
-  markPlaidItemSynced,
-  upsertPlaidItem,
-} from "@/lib/plaid/store";
+import { toPlaidSyncPayload } from "@/lib/plaid/sync-delta";
+import { loadPlaidItemForUser, upsertPlaidItem } from "@/lib/plaid/store";
 import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
 
 export async function POST(request: Request) {
@@ -52,19 +50,30 @@ export async function POST(request: Request) {
       accounts,
     });
     const syncedAt = new Date().toISOString();
-    let transactions = [] as Awaited<
-      ReturnType<typeof syncPlaidTransactions>
-    >["transactions"];
+    const stored = await loadPlaidItemForUser({
+      userId: auth.user!.id,
+      itemId: exchanged.itemId,
+    });
+    let payload = toPlaidSyncPayload({
+      itemId: exchanged.itemId,
+      institutionName: item.institutionName,
+      syncedAt,
+      accounts,
+      delta: { added: [], modified: [], removed: [], nextCursor: "" },
+      previousCursor: stored?.transactions_cursor ?? null,
+    });
     try {
       const sync = await syncPlaidTransactions({
         accessToken: exchanged.accessToken,
-        cursor: null,
+        cursor: stored?.transactions_cursor ?? null,
       });
-      transactions = sync.transactions;
-      await markPlaidItemSynced({
-        id: item.id,
-        cursor: sync.nextCursor,
-        lastSyncedAt: syncedAt,
+      payload = toPlaidSyncPayload({
+        itemId: exchanged.itemId,
+        institutionName: item.institutionName,
+        syncedAt,
+        accounts,
+        delta: sync,
+        previousCursor: stored?.transactions_cursor ?? null,
       });
     } catch {
       // Sandbox can be empty until HISTORICAL_UPDATE. Accounts still link.
@@ -72,13 +81,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       item,
-      payload: {
-        itemId: exchanged.itemId,
-        institutionName: item.institutionName,
-        syncedAt,
-        accounts,
-        transactions,
-      },
+      payload,
     });
   } catch (error) {
     if (error instanceof PlaidRequestError) {

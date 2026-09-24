@@ -1,11 +1,14 @@
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
 import { findImportMatch } from "@/lib/budget/csv";
 import { ensureCreditCardPaymentCategories } from "@/lib/budget/credit-card-payments";
+import { normalizePayeeName } from "@/lib/budget/payees";
 import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
+import { isSplitTransaction } from "@/lib/budget/transactions";
 import type { PlaidImportedTransaction, PlaidLinkedAccount, PlaidSyncPayload } from "@/lib/plaid/types";
 import type {
   BudgetAccount,
   BudgetAccountType,
+  BudgetClearedState,
   BudgetPlan,
   BudgetTransaction,
 } from "@/types/budget";
@@ -73,7 +76,68 @@ export type PlaidImportResult = {
   imported: number;
   matched: number;
   duplicates: number;
+  updated: number;
+  removed: number;
 };
+
+function clearedAfterBankUpdate(
+  current: BudgetClearedState,
+  pending: boolean,
+): BudgetClearedState {
+  if (current === "reconciled") return "reconciled";
+  if (!pending && current === "uncleared") return "cleared";
+  return current;
+}
+
+function bankTexts(row: PlaidImportedTransaction): {
+  matchText: string;
+  displayPayee: string;
+} {
+  return {
+    matchText: (row.name || row.merchantName || "Bank transaction").trim(),
+    displayPayee: (row.merchantName || row.name || "Bank transaction").trim(),
+  };
+}
+
+function payeeWasEdited(tx: BudgetTransaction): boolean {
+  const original = tx.originalPayee?.trim();
+  if (!original) return false;
+  return normalizePayeeName(tx.payee) !== normalizePayeeName(original);
+}
+
+/** Bank fields move. Category, memo, approval, and a payee the user renamed stay. */
+function reviseImportedTransaction(
+  current: BudgetTransaction,
+  row: PlaidImportedTransaction,
+  importId: string,
+  plan: BudgetPlan,
+  history: readonly BudgetTransaction[],
+  accountId: string | undefined,
+): BudgetTransaction {
+  const signed = plaidSignedAmountToBudget(row.amount);
+  const split = isSplitTransaction(current);
+  const edited = payeeWasEdited(current);
+  const { matchText, displayPayee } = bankTexts(row);
+  const next: BudgetTransaction = {
+    ...current,
+    date: row.date,
+    importId,
+    cleared: clearedAfterBankUpdate(current.cleared, row.pending),
+    amount: !split && signed ? signed.amount : current.amount,
+    type: !split && signed ? signed.type : current.type,
+    payee: edited ? current.payee : displayPayee,
+    originalPayee: edited ? current.originalPayee : undefined,
+    accountId:
+      current.type === "transfer" || !accountId ? current.accountId : accountId,
+  };
+  return applyPayeeRulesToTransaction(next, plan.payeeRules ?? [], history, {
+    matchText,
+    recordOriginal: true,
+    preserveCategory: true,
+    protectEditedPayee: true,
+    categories: plan.categories,
+  });
+}
 
 export function applyPlaidImport(
   plan: BudgetPlan,
@@ -127,15 +191,60 @@ export function applyPlaidImport(
   let imported = 0;
   let matched = 0;
   let duplicates = 0;
+  let updated = 0;
+  let removed = 0;
+  const replacedPendingIds = new Set<string>();
+  const incoming = [...payload.transactions];
 
-  for (const row of payload.transactions) {
+  for (const row of payload.modified ?? []) {
+    const importId = plaidImportId(row.transactionId);
+    const index = nextTransactions.findIndex((tx) => tx.importId === importId);
+    if (index < 0) {
+      incoming.push(row);
+      continue;
+    }
+    const accountId = accountIdByPlaid.get(row.plaidAccountId);
+    nextTransactions[index] = reviseImportedTransaction(
+      nextTransactions[index]!,
+      row,
+      importId,
+      plan,
+      nextTransactions,
+      accountId,
+    );
+    updated += 1;
+  }
+
+  for (const row of incoming) {
     const signed = plaidSignedAmountToBudget(row.amount);
     const accountId = accountIdByPlaid.get(row.plaidAccountId);
     if (!signed || !accountId) continue;
     const importId = plaidImportId(row.transactionId);
     if (nextTransactions.some((tx) => tx.importId === importId)) {
       duplicates += 1;
+      if (row.pendingTransactionId) {
+        replacedPendingIds.add(row.pendingTransactionId);
+      }
       continue;
+    }
+    if (row.pendingTransactionId) {
+      const pendingImportId = plaidImportId(row.pendingTransactionId);
+      const pendingIndex = nextTransactions.findIndex(
+        (tx) => tx.importId === pendingImportId,
+      );
+      if (pendingIndex >= 0) {
+        replacedPendingIds.add(row.pendingTransactionId);
+        nextTransactions[pendingIndex] = reviseImportedTransaction(
+          nextTransactions[pendingIndex]!,
+          row,
+          importId,
+          plan,
+          nextTransactions,
+          accountId,
+        );
+        updated += 1;
+        continue;
+      }
     }
     const matchId = findImportMatch(
       {
@@ -200,6 +309,24 @@ export function applyPlaidImport(
     imported += 1;
   }
 
+  for (const transactionId of payload.removedTransactionIds ?? []) {
+    if (replacedPendingIds.has(transactionId)) continue;
+    const importId = plaidImportId(transactionId);
+    const index = nextTransactions.findIndex((tx) => tx.importId === importId);
+    if (index < 0) continue;
+    const current = nextTransactions[index]!;
+    if (current.matchedTransactionId) {
+      const unlinked = { ...current };
+      delete unlinked.importId;
+      delete unlinked.matchedTransactionId;
+      nextTransactions[index] = unlinked;
+      updated += 1;
+      continue;
+    }
+    nextTransactions.splice(index, 1);
+    removed += 1;
+  }
+
   const createdAccounts = accounts.filter(
     (account) => !plan.accounts.some((current) => current.id === account.id),
   ).length;
@@ -214,6 +341,8 @@ export function applyPlaidImport(
     imported,
     matched,
     duplicates,
+    updated,
+    removed,
   };
 }
 

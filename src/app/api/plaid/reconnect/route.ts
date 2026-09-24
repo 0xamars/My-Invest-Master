@@ -6,11 +6,8 @@ import {
 } from "@/lib/plaid/client";
 import { isPlaidConfigured, isPlaidStorageReady } from "@/lib/plaid/config";
 import { plaidErrorNeedsReconnect } from "@/lib/plaid/item-status";
-import {
-  loadPlaidItemForUser,
-  markPlaidItemStatus,
-  markPlaidItemSynced,
-} from "@/lib/plaid/store";
+import { toPlaidSyncPayload } from "@/lib/plaid/sync-delta";
+import { loadPlaidItemForUser, markPlaidItemStatus } from "@/lib/plaid/store";
 import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
 
 /**
@@ -49,20 +46,17 @@ export async function POST(request: Request) {
       cursor: row.transactions_cursor,
     });
     const syncedAt = new Date().toISOString();
-    await markPlaidItemSynced({
-      id: row.id,
-      cursor: sync.nextCursor,
-      lastSyncedAt: syncedAt,
-    });
+    await markPlaidItemStatus({ id: row.id, status: "active" });
 
     return NextResponse.json({
-      payload: {
+      payload: toPlaidSyncPayload({
         itemId: row.item_id,
         institutionName: row.institution_name,
         syncedAt,
         accounts,
-        transactions: sync.transactions,
-      },
+        delta: sync,
+        previousCursor: row.transactions_cursor,
+      }),
     });
   } catch (error) {
     if (error instanceof PlaidRequestError) {

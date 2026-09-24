@@ -25,6 +25,18 @@ export type PlaidImportedTransaction = {
   merchantName: string | null;
   amount: number;
   pending: boolean;
+  /**
+   * Set on a posted transaction that replaced a pending one.
+   * The pending id is a different Plaid transaction id.
+   */
+  pendingTransactionId?: string | null;
+};
+
+export type PlaidSyncCursor = {
+  /** Cursor this batch was read from. Null is the first sync. */
+  previous: string | null;
+  /** Store this only after the budget plan write succeeds. */
+  next: string;
 };
 
 export type PlaidSyncPayload = {
@@ -32,7 +44,13 @@ export type PlaidSyncPayload = {
   institutionName: string | null;
   syncedAt: string;
   accounts: PlaidLinkedAccount[];
+  /** Transactions Plaid reported as added. */
   transactions: PlaidImportedTransaction[];
+  /** Transactions Plaid reported as modified. */
+  modified?: PlaidImportedTransaction[];
+  /** Plaid transaction ids reported as removed. */
+  removedTransactionIds?: string[];
+  cursor?: PlaidSyncCursor;
 };
 
 export type PlaidStatusResponse = {

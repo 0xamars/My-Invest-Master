@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import {
   BudgetKindBadge,
   BudgetMoney,
@@ -26,6 +26,7 @@ import {
 } from "@/components/budget/budget-dialogs";
 import { useBudgetMonth } from "@/components/budget/budget-shell";
 import { BudgetSummaryStats } from "@/components/budget/budget-summary-stats";
+import { BudgetSyncError } from "@/components/budget/budget-sync-error";
 import { Button } from "@/components/ui/button";
 import { PayCardDialog } from "@/components/budget/pay-card-dialog";
 import { useBudget } from "@/contexts/budget-context";
@@ -180,12 +181,7 @@ export function BudgetContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-5">
-      {syncError && (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--brand-red)]/30 bg-[var(--brand-red)]/10 px-4 py-3 text-sm text-[var(--brand-red)]">
-          <AlertCircle className="size-4 shrink-0" />
-          {syncError}
-        </div>
-      )}
+      {syncError && <BudgetSyncError message={syncError} />}
 
       {habit.needsAttention ? (
         <BudgetPanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">

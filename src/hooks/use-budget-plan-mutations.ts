@@ -261,7 +261,7 @@ export function useBudgetPlanMutations(planId: string) {
     if (!plan) return;
     const next = materializeDueSchedules(plan);
     if (next !== plan) {
-      updatePlan(planId, () => next);
+      updatePlan(planId, () => next, { persist: false });
     }
   }, [plan, planId, updatePlan]);
 
@@ -303,13 +303,21 @@ export function useBudgetPlanMutations(planId: string) {
   );
 
   const importFromPlaid = useCallback(
-    (payload: PlaidSyncPayload) => {
-      commitPlan(
-        (current) => applyPlaidImport(current, payload).next,
-        { label: "Undo bank import" },
-      );
+    (payload: PlaidSyncPayload): BudgetPlan | null => {
+      const current = getPlan(planId);
+      if (!current) return null;
+      const applied = applyPlaidImport(current, payload).next;
+      if (applied === current) return current;
+      const stamped: BudgetPlan = {
+        ...applied,
+        updatedAt: new Date().toISOString(),
+      };
+      updatePlan(planId, () => stamped, { persist: false });
+      setUndoStack((stack) => [...stack.slice(-(UNDO_LIMIT - 1)), current]);
+      setLastMutationLabel("Undo bank import");
+      return stamped;
     },
-    [commitPlan],
+    [getPlan, planId, updatePlan],
   );
 
   const unlinkPlaidItem = useCallback(

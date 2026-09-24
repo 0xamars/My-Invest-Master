@@ -135,22 +135,37 @@ export async function loadPlaidItemByPlaidId(itemId: string): Promise<ItemRow | 
   return (data as ItemRow | null) ?? null;
 }
 
-export async function markPlaidItemSynced(input: {
+/**
+ * Advance the sync bookmark only when it is still the cursor this batch
+ * was read from. A 0-row update means another save already moved it.
+ */
+export async function commitPlaidItemCursor(input: {
   id: string;
-  cursor: string;
-  lastSyncedAt: string;
-}): Promise<void> {
+  userId: string;
+  previousCursor: string | null;
+  nextCursor: string;
+  syncedAt: string;
+}): Promise<{ advanced: boolean }> {
+  const nextCursor = input.nextCursor.trim();
+  if (!nextCursor) return { advanced: false };
   const admin = requireAdmin();
-  const { error } = await admin
+  let query = admin
     .from("user_plaid_items")
     .update({
-      transactions_cursor: input.cursor,
-      last_synced_at: input.lastSyncedAt,
+      transactions_cursor: nextCursor,
+      last_synced_at: input.syncedAt,
       status: "active",
-      updated_at: input.lastSyncedAt,
+      updated_at: input.syncedAt,
     })
-    .eq("id", input.id);
+    .eq("id", input.id)
+    .eq("user_id", input.userId);
+  query =
+    input.previousCursor == null
+      ? query.is("transactions_cursor", null)
+      : query.eq("transactions_cursor", input.previousCursor);
+  const { data, error } = await query.select("id");
   if (error) throw new Error(error.message);
+  return { advanced: (data?.length ?? 0) > 0 };
 }
 
 export async function markPlaidWebhook(itemId: string): Promise<void> {

@@ -2,15 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AlertCircle,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { PageLoading } from "@/components/layout/page-loading";
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-dialog";
 import { BudgetEmptyState, BudgetPageHeader } from "@/components/budget/budget-ui";
+import { BudgetSyncError } from "@/components/budget/budget-sync-error";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
@@ -104,12 +101,7 @@ export function BudgetPlansListContent() {
         }
       />
 
-      {syncError && (
-        <div className="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="size-4 shrink-0" />
-          {syncError}
-        </div>
-      )}
+      {syncError && <BudgetSyncError message={syncError} tone="destructive" />}
 
       {summaries.length === 0 ? (
         <div data-budget-first-run-kit="1" data-empty-state="budget">
