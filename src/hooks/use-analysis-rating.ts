@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AnalysisForecast } from "@/lib/analysis/forecast";
 import type { AnalysisRecentEvent } from "@/lib/analysis/recent-events";
 import type { InvestSalsaRating } from "@/lib/analysis/rating/types";
+import { readFailureMessage, uiErrorMessage } from "@/lib/market-data/display-gate";
 import type { AnalysisRatingPayload } from "@/lib/analysis/types";
 
 type RatingLoad = {
@@ -40,7 +41,9 @@ async function fetchRatingPayload(symbol: string, force?: boolean): Promise<Rati
 
   const response = await fetch(`/api/analysis/rating?${search.toString()}`);
   if (!response.ok) {
-    throw new Error("Unable to load analysis rating");
+    throw new Error(
+      await readFailureMessage(response, "Unable to load analysis rating"),
+    );
   }
   const payload = (await response.json()) as Partial<AnalysisRatingPayload>;
   if (!payload.rating) {
@@ -88,14 +91,14 @@ export function useAnalysisRating(symbol: string) {
       setName(payload.name);
       setDescription(payload.description);
       setRecentEvents(payload.recentEvents);
-    } catch {
+    } catch (err) {
       setRating(null);
       setForecast(null);
       setPrice(null);
       setName(null);
       setDescription(null);
       setRecentEvents([]);
-      setError("Rating unavailable for this ticker.");
+      setError(uiErrorMessage(err, "Rating unavailable for this ticker."));
     } finally {
       setIsLoading(false);
     }

@@ -1,3 +1,4 @@
+import { readFailureMessage } from "@/lib/market-data/display-gate";
 import type { PriceRequestAsset, PricesResponse } from "@/types/portfolio";
 
 export async function fetchPricesFromApi(
@@ -14,7 +15,7 @@ export async function fetchPricesFromApi(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch prices");
+    throw new Error(await readFailureMessage(response, "Failed to fetch prices"));
   }
 
   return response.json() as Promise<PricesResponse>;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildEarlyOppPayload } from "@/lib/analysis/early-opp/generate";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,6 +18,9 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
+
+  const denied = await fmpDisplayDeniedResponse({});
+  if (denied) return denied;
 
   const { searchParams } = new URL(request.url);
   const symbol = searchParams.get("symbol")?.trim() ?? "";

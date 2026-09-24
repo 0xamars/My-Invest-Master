@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { readFailureMessage, uiErrorMessage } from "@/lib/market-data/display-gate";
 import { buildHeatmapLayout, getTileLabelStyle } from "@/lib/market/heatmap-treemap";
 import { INDEX_CONFIG } from "@/lib/market/index-config";
 import {
@@ -347,12 +348,21 @@ export function IndexHeatmap() {
         const response = await fetch(`/api/market/heatmap?index=${index}`, {
           cache: "no-store",
         });
-        if (!response.ok) throw new Error("Failed to load heatmap");
+        if (!response.ok) {
+          throw new Error(
+            await readFailureMessage(
+              response,
+              `Could not load ${indexConfig.label} heatmap.`,
+            ),
+          );
+        }
         const json = (await response.json()) as HeatmapResponse;
         setData(json);
         setError(null);
-      } catch {
-        setError(`Could not load ${indexConfig.label} heatmap.`);
+      } catch (err) {
+        setError(
+          uiErrorMessage(err, `Could not load ${indexConfig.label} heatmap.`),
+        );
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);

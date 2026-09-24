@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { uiErrorMessage } from "@/lib/market-data/display-gate";
 import { fetchPricesFromApi } from "@/lib/portfolio/price-client";
 import type { PriceRequestAsset } from "@/types/portfolio";
 import type { WatchlistItem } from "@/types/watchlist";
@@ -76,8 +77,8 @@ export function useWatchlistPrices(items: WatchlistItem[]) {
         if (failedCount > 0 && Object.keys(result.prices).length === 0) {
           setError("Unable to fetch prices. Please try again.");
         }
-      } catch {
-        setError("Unable to fetch prices. Please try again.");
+      } catch (err) {
+        setError(uiErrorMessage(err, "Unable to fetch prices. Please try again."));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);

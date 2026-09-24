@@ -7,6 +7,7 @@ import {
   buildTapeFromPackage,
 } from "@/lib/invest/assess";
 import { investAssessPath } from "@/lib/invest/assess/paths";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { getAnalysisPackage } from "@/lib/market-data/warehouse";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
@@ -30,6 +31,9 @@ export async function GET(request: Request) {
         { status: 400 },
       );
     }
+
+    const denied = await fmpDisplayDeniedResponse({});
+    if (denied) return denied;
 
     const pkg = await getAnalysisPackage(symbol, { includeHourly: true });
 

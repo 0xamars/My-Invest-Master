@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { searchAssets } from "@/lib/portfolio/search";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 import type { AssetType } from "@/types/portfolio";
@@ -17,6 +18,11 @@ export async function GET(request: Request) {
 
   if (type !== "stock" && type !== "crypto") {
     return NextResponse.json({ error: "Invalid asset type" }, { status: 400 });
+  }
+
+  if (type === "stock") {
+    const denied = await fmpDisplayDeniedResponse({ results: [] });
+    if (denied) return denied;
   }
 
   try {

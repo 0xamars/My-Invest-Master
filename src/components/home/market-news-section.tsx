@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { readFailureMessage, uiErrorMessage } from "@/lib/market-data/display-gate";
 import { formatNewsTime } from "@/lib/market/format";
 import type { MarketNewsItem, NewsResponse } from "@/types/market";
 import { cn } from "@/lib/utils";
@@ -75,12 +76,16 @@ export function MarketNewsSection() {
 
     try {
       const response = await fetch("/api/news");
-      if (!response.ok) throw new Error("Failed to load news");
+      if (!response.ok) {
+        throw new Error(
+          await readFailureMessage(response, "Could not load market news."),
+        );
+      }
       const json = (await response.json()) as NewsResponse;
       setData(json);
       setError(null);
-    } catch {
-      setError("Could not load market news.");
+    } catch (err) {
+      setError(uiErrorMessage(err, "Could not load market news."));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

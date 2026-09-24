@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAssistantAuth } from "@/lib/assistant/auth";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { fetchHeadlineForSymbol } from "@/lib/market/fetch-news";
 import { fetchAnalysisQuote } from "@/lib/analysis/quote";
 import { getAnalysisPackage } from "@/lib/market-data/warehouse";
@@ -36,6 +37,11 @@ export async function GET(request: Request) {
 
     if (!symbol) {
       return NextResponse.json({ error: "Symbol is required" }, { status: 400 });
+    }
+
+    if (type === "stock" || type === "crypto") {
+      const denied = await fmpDisplayDeniedResponse({});
+      if (denied) return denied;
     }
 
     if (type !== "stock") {

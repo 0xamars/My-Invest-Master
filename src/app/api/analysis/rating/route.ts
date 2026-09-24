@@ -21,6 +21,7 @@ import {
   getAnalysisPackage,
   packageNetworkSummary,
 } from "@/lib/market-data/warehouse";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
 const RANGES = new Set(["1D", "1W", "1M", "3M", "1Y", "5Y"]);
@@ -65,6 +66,13 @@ export async function GET(request: Request) {
         { status: 400 },
       );
     }
+
+    const denied = await fmpDisplayDeniedResponse({
+      quote: null,
+      rating: null,
+      chart: { range, points: [] },
+    });
+    if (denied) return denied;
 
     if (chartOnly) {
       // Prefer warehouse daily/hourly when available via package for stocks

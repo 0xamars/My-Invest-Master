@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { uiErrorMessage } from "@/lib/market-data/display-gate";
 import { fetchPricesFromApi } from "@/lib/portfolio/price-client";
 import type { AssetCatalogItem } from "@/types/portfolio";
 
@@ -44,9 +45,9 @@ export function useAssetPrice(asset: AssetCatalogItem | null) {
               "Could not fetch current price",
           );
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
-          setError("Could not fetch current price");
+          setError(uiErrorMessage(err, "Could not fetch current price"));
         }
       } finally {
         if (!cancelled) {

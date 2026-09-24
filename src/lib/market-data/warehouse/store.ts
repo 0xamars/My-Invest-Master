@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { JsonRow } from "@/lib/market-data/warehouse/types";
 import type { OhlcBar } from "@/lib/analysis/rating/types";
+import {
+  MARKET_CACHE_PRUNE_DATASETS,
+  marketCachePruneCutoff,
+  shouldPruneMarketCache,
+} from "@/lib/market-data/warehouse/cache-prune";
 import type { WarehouseDataset } from "@/lib/market-data/warehouse/ttl";
 
 type Admin = SupabaseClient;
@@ -591,6 +596,42 @@ export async function readMarketCache(
   return { data: data.data, updatedAt: data.updated_at as string | null };
 }
 
+let lastMarketCachePruneAt: number | null = null;
+let marketCachePruneInFlight = false;
+
+/**
+ * Drop symbol-search and news rows older than 7 days.
+ * At most once an hour per process. A failed cleanup does not fail the write.
+ * Service role bypasses RLS, so this works with no delete policy.
+ */
+function pruneStaleMarketCache(sb: Admin): void {
+  const now = Date.now();
+  if (
+    marketCachePruneInFlight ||
+    !shouldPruneMarketCache(lastMarketCachePruneAt, now)
+  ) {
+    return;
+  }
+  marketCachePruneInFlight = true;
+  lastMarketCachePruneAt = now;
+  const cutoff = marketCachePruneCutoff(now);
+  void (async () => {
+    try {
+      const { error } = await sb
+        .from("market_cache")
+        .delete()
+        .in("dataset", [...MARKET_CACHE_PRUNE_DATASETS])
+        .lt("updated_at", cutoff);
+      logStoreError("pruneMarketCache", error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "prune failed";
+      logStoreError("pruneMarketCache", { message });
+    } finally {
+      marketCachePruneInFlight = false;
+    }
+  })();
+}
+
 export async function writeMarketCache(input: {
   cacheKey: string;
   dataset: string;
@@ -608,6 +649,7 @@ export async function writeMarketCache(input: {
     { onConflict: "cache_key,dataset" },
   );
   logStoreError(`writeMarketCache ${input.dataset}`, error);
+  if (!error) pruneStaleMarketCache(sb);
 }
 
 export function isWarehouseWritable(): boolean {

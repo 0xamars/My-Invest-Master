@@ -6,6 +6,7 @@ import {
   peekTickerSnapshot,
 } from "@/lib/ticker/get-snapshot";
 import { normalizeTickerSymbol } from "@/lib/ticker/symbol";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,6 +25,9 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
+
+  const denied = await fmpDisplayDeniedResponse({ quotes: [] });
+  if (denied) return denied;
 
   const { searchParams } = new URL(request.url);
   const symbols = (searchParams.get("symbols") ?? "")

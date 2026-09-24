@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTickerSnapshot } from "@/lib/ticker/get-snapshot";
 import { normalizeTickerSymbol } from "@/lib/ticker/symbol";
+import { fmpDisplayDeniedResponse } from "@/lib/market-data/display-gate-server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,6 +22,9 @@ export async function GET(request: Request) {
   if (!symbol) {
     return NextResponse.json({ error: "Symbol is required" }, { status: 400 });
   }
+
+  const denied = await fmpDisplayDeniedResponse({});
+  if (denied) return denied;
 
   try {
     const snapshot = await getTickerSnapshot(symbol);

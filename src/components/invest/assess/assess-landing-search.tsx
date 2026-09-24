@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { investAssessPath } from "@/lib/invest/assess/paths";
+import {
+  FMP_DISPLAY_UNAVAILABLE,
+  readFailureMessage,
+} from "@/lib/market-data/display-gate";
 import { normalizeTickerSymbol } from "@/lib/ticker/symbol";
 import type { AssetCatalogItem } from "@/types/portfolio";
 
@@ -27,6 +31,16 @@ export function AssessLandingSearch() {
       const response = await fetch(
         `/api/assets/search?q=${encodeURIComponent(raw)}&type=stock`,
       );
+      if (!response.ok) {
+        const message = await readFailureMessage(
+          response,
+          "Search failed — try again.",
+        );
+        if (message === FMP_DISPLAY_UNAVAILABLE) {
+          setError(message);
+          return;
+        }
+      }
       let symbol = normalizeTickerSymbol(raw);
       if (response.ok) {
         const payload = (await response.json()) as { results?: AssetCatalogItem[] };

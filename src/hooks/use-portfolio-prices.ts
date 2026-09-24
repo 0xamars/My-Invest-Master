@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { uiErrorMessage } from "@/lib/market-data/display-gate";
 import { fetchPricesFromApi } from "@/lib/portfolio/price-client";
 import type { PortfolioHolding, PriceRequestAsset } from "@/types/portfolio";
 import { isLivePricedAsset } from "@/types/portfolio";
@@ -87,8 +88,8 @@ export function usePortfolioPrices(holdings: PortfolioHolding[]) {
         if (failedCount > 0 && Object.keys(result.prices).length === 0) {
           setError("Unable to fetch prices. Please try again.");
         }
-      } catch {
-        setError("Unable to fetch prices. Please try again.");
+      } catch (err) {
+        setError(uiErrorMessage(err, "Unable to fetch prices. Please try again."));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);

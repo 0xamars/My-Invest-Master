@@ -51,7 +51,11 @@ export function InvestHomeContent() {
     () => holdings.filter((item) => item.type === "stock").map((item) => item.symbol),
     [holdings],
   );
-  const { quotes, isLoaded: quotesLoaded } = useBookTickerQuotes(stockSymbols);
+  const {
+    quotes,
+    isLoaded: quotesLoaded,
+    error: quoteError,
+  } = useBookTickerQuotes(stockSymbols);
   const rows = useMemo(() => buildBookRows(holdings, quotes), [holdings, quotes]);
   const cacheLine = useMemo(
     () => formatBookCacheLine(Object.values(quotes), { isLoaded: quotesLoaded }),
@@ -148,6 +152,9 @@ export function InvestHomeContent() {
       ) : (
         <RetirePanel className="px-5 py-4">
           <h2 className="text-sm font-semibold">Book</h2>
+          {quoteError ? (
+            <p className="mt-1 text-xs text-muted-foreground">{quoteError}</p>
+          ) : null}
           {cacheLine ? (
             <p className="mt-1 text-xs text-muted-foreground" data-book-cache="1">
               {cacheLine}
