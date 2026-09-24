@@ -1,16 +1,20 @@
 "use client";
 
+import { CurrencyAmountInput } from "@/components/retirement/currency-amount-input";
 import { RetireField, RetirePanel } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
+import type { FxRates } from "@/types/currency";
 import { createEmptySpouse, type RetirementPlan } from "@/types/retirement";
 
 export function RetirementPlanLevers({
   plan,
+  rates,
   onChange,
 }: {
   plan: RetirementPlan;
+  rates: FxRates;
   onChange: (plan: RetirementPlan) => void;
 }) {
   function patch(next: Partial<RetirementPlan>) {
@@ -80,6 +84,7 @@ export function RetirementPlanLevers({
             type="button"
             size="sm"
             variant={plan.spouse ? "default" : "outline"}
+            aria-pressed={Boolean(plan.spouse)}
             onClick={() =>
               patch({ spouse: plan.spouse ? null : createEmptySpouse() })
             }
@@ -96,6 +101,8 @@ export function RetirementPlanLevers({
                     ? "bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
                     : "px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                 }
+                aria-pressed={plan.currency === code}
+                aria-label={`Plan currency ${code}`}
                 onClick={() => patch({ currency: code })}
               >
                 {code}
@@ -106,8 +113,9 @@ export function RetirementPlanLevers({
 
         {plan.spouse ? (
           <div className="grid gap-3 sm:grid-cols-3">
-            <RetireField label="Spouse name">
+            <RetireField id="spouse-name" label="Spouse name">
               <Input
+                id="spouse-name"
                 value={plan.spouse.name}
                 onChange={(event) =>
                   patch({
@@ -116,8 +124,9 @@ export function RetirementPlanLevers({
                 }
               />
             </RetireField>
-            <RetireField label="Spouse age">
+            <RetireField id="spouse-age" label="Spouse age">
               <Input
+                id="spouse-age"
                 type="number"
                 min="18"
                 max="100"
@@ -133,8 +142,9 @@ export function RetirementPlanLevers({
                 className="tabular-nums"
               />
             </RetireField>
-            <RetireField label="Spouse target age">
+            <RetireField id="spouse-target-age" label="Spouse target age">
               <Input
+                id="spouse-target-age"
                 type="number"
                 min="30"
                 max="100"
@@ -164,33 +174,39 @@ export function RetirementPlanLevers({
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <RetireField id="spend" label="Annual lifestyle spending">
-            <Input
+          <RetireField
+            id="spend"
+            label={`Annual lifestyle spending (${plan.currency})`}
+          >
+            <CurrencyAmountInput
               id="spend"
-              type="number"
               min="0"
               step="1000"
-              value={plan.annualLifestyleSpending}
-              onChange={(event) =>
-                patch({
-                  annualLifestyleSpending: Number(event.target.value) || 0,
-                })
+              usdValue={plan.annualLifestyleSpending}
+              currency={plan.currency}
+              rates={rates}
+              onUsdChange={(annualLifestyleSpending) =>
+                patch({ annualLifestyleSpending })
               }
+              aria-label={`Annual lifestyle spending in ${plan.currency}`}
               className="tabular-nums"
             />
           </RetireField>
-          <RetireField id="save" label="Annual savings until target age">
-            <Input
+          <RetireField
+            id="save"
+            label={`Annual savings until target age (${plan.currency})`}
+          >
+            <CurrencyAmountInput
               id="save"
-              type="number"
               min="0"
               step="500"
-              value={plan.annualContribution}
-              onChange={(event) =>
-                patch({
-                  annualContribution: Number(event.target.value) || 0,
-                })
+              usdValue={plan.annualContribution}
+              currency={plan.currency}
+              rates={rates}
+              onUsdChange={(annualContribution) =>
+                patch({ annualContribution })
               }
+              aria-label={`Annual savings in ${plan.currency}`}
               className="tabular-nums"
             />
           </RetireField>

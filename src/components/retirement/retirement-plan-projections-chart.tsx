@@ -57,6 +57,7 @@ import {
   formatProjectionMoney,
   formatProjectionSpending,
 } from "@/lib/retirement/format";
+import { projectionChartRevision } from "@/lib/retirement/plan-chart";
 import { cn } from "@/lib/utils";
 import type { DisplayCurrency, FxRates } from "@/types/currency";
 import type { MonteCarloPercentileBand } from "@/lib/retirement/monte-carlo";
@@ -69,6 +70,8 @@ interface RetirementPlanProjectionsChartProps {
   rates: FxRates;
   retirementYear: number;
   percentiles?: MonteCarloPercentileBand[];
+  /** Target nest egg at the target age, in future dollars. */
+  targetNominal?: number;
 }
 
 const AXIS_TICK = { fill: CHART_AXIS_COLOR, fontSize: 11, fontWeight: 500 };
@@ -168,6 +171,7 @@ export function RetirementPlanProjectionsChart({
   rates,
   retirementYear,
   percentiles,
+  targetNominal = 0,
 }: RetirementPlanProjectionsChartProps) {
   const [view, setView] = useState<ProjectionChartView>("total-closing");
   const gradientIdPrefix = useId().replace(/:/g, "");
@@ -207,9 +211,21 @@ export function RetirementPlanProjectionsChart({
 
   const xAxisTicks = useMemo(() => buildXAxisTicks(yearValues), [yearValues]);
 
+  const balanceView =
+    view === "total-closing" ||
+    view === "opening-vs-closing" ||
+    view === "post-growth-vs-close";
+  const showTargetLine = balanceView && targetNominal > 0;
+
   const yDomain = useMemo(
-    () => computeProjectionYDomain(chartData, view, assetKeys),
-    [chartData, view, assetKeys],
+    () =>
+      computeProjectionYDomain(
+        chartData,
+        view,
+        assetKeys,
+        showTargetLine ? [targetNominal] : [],
+      ),
+    [chartData, view, assetKeys, showTargetLine, targetNominal],
   );
 
   const depletionYear = useMemo(
@@ -274,6 +290,9 @@ export function RetirementPlanProjectionsChart({
     view === "net-change" ||
     view === "income-vs-spend";
 
+  const chartRevision = projectionChartRevision(projections, assets);
+  const lastClose = projections[projections.length - 1]?.closingBalance ?? 0;
+
   return (
     <AnalyticsChartCard
       title="Portfolio Projections"
@@ -292,6 +311,11 @@ export function RetirementPlanProjectionsChart({
               Depletes {depletionYear}
             </span>
           )}
+          {showTargetLine ? (
+            <span className="mt-1 block text-xs sm:mt-0 sm:ml-2 sm:inline">
+              Dashed line is the target at your target age, in future dollars.
+            </span>
+          ) : null}
         </p>
         <Select
           value={view}
@@ -317,14 +341,17 @@ export function RetirementPlanProjectionsChart({
       ) : (
         <ChartContainer
           config={chartConfig}
+          aria-label={`Portfolio projection across ${projections.length} years`}
+          data-projection-close={lastClose}
+          data-projection-revision={chartRevision}
           className={cn(
-            "aspect-[16/9] h-[440px] w-full",
+            "aspect-[16/9] h-[300px] w-full sm:h-[440px]",
             "[&_.recharts-cartesian-grid_horizontal_line]:opacity-50",
             "[&_.recharts-reference-line-line]:opacity-95",
           )}
         >
           <ComposedChart
-            key={`${view}-${compositionAssets.map((a) => a.id).join(",")}`}
+            key={`${view}-${chartRevision}`}
             data={chartData}
             margin={{ top: 12, right: 16, left: 4, bottom: 72 }}
             barCategoryGap={isBarView ? "18%" : undefined}
@@ -443,6 +470,17 @@ export function RetirementPlanProjectionsChart({
               />
             )}
 
+            {showTargetLine && (
+              <ReferenceLine
+                y={targetNominal}
+                stroke={PROJECTION_RETIREMENT_LINE_COLOR}
+                strokeWidth={1.25}
+                strokeDasharray="2 6"
+                strokeOpacity={0.95}
+                ifOverflow="extendDomain"
+              />
+            )}
+
             <ProjectionXAxisLabels
               xAxisTicks={xAxisTicks}
               milestones={milestoneLabels}
@@ -499,6 +537,20 @@ export function RetirementPlanProjectionsChart({
                       stroke="var(--brand-green-deep)"
                       strokeWidth={1.75}
                       dot={false}
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="closingBalance"
+                      stroke={PROJECTION_PRIMARY_LINE}
+                      strokeWidth={2.75}
+                      dot={false}
+                      activeDot={{
+                        r: 5,
+                        strokeWidth: 2,
+                        stroke: PROJECTION_PRIMARY_LINE,
+                        fill: "var(--background)",
+                      }}
                       isAnimationActive={false}
                     />
                   </>
@@ -575,7 +627,7 @@ export function RetirementPlanProjectionsChart({
                     type="monotone"
                     dataKey={key}
                     stackId="composition"
-                    fill={`url(#${gradientIdPrefix}-area-${asset.id}`}
+                    fill={`url(#${gradientIdPrefix}-area-${asset.id})`}
                     stroke={color}
                     strokeWidth={0.75}
                     strokeOpacity={0.55}

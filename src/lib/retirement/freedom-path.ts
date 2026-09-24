@@ -1,3 +1,4 @@
+import { convertToUsd } from "@/lib/portfolio/prices/fx";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import {
   portfolioHoldingToPlanAsset,
@@ -7,6 +8,7 @@ import { applyRetirementPlanPatch } from "@/lib/retirement/normalize";
 import { computeRetirementProjections } from "@/lib/retirement/projections";
 import { computeTargetNestEgg, presentValue } from "@/lib/retirement/target";
 import type { LeftoverPresence } from "@/lib/invest/leftover";
+import { DEFAULT_FX_RATES, type FxRates } from "@/types/currency";
 import { getCashCurrency, type PortfolioHolding } from "@/types/portfolio";
 import {
   DEFAULT_CAGR_BY_TYPE,
@@ -70,6 +72,7 @@ export function leftoverAlreadyInBook(
 
 export function leftoverCashAsset(
   leftover: LeftoverPresence,
+  rates: FxRates = DEFAULT_FX_RATES,
 ): RetirementPlanAsset | null {
   if (leftover.status !== "present") return null;
   return {
@@ -77,7 +80,7 @@ export function leftoverCashAsset(
     symbol: "CASH",
     name: `Leftover (${leftover.currency})`,
     type: "cash",
-    unitPrice: 1,
+    unitPrice: convertToUsd(1, leftover.currency, rates),
     quantity: leftover.amount,
     expectedCagr: DEFAULT_CAGR_BY_TYPE.cash,
   };
@@ -86,12 +89,13 @@ export function leftoverCashAsset(
 export function assetsFromBook(
   book: BookPresence,
   prices: Record<string, number> = {},
+  rates: FxRates = DEFAULT_FX_RATES,
 ): RetirementPlanAsset[] {
   if (book.status !== "present") return [];
   return book.holdings.map((holding) =>
     portfolioHoldingToPlanAsset(
       holding,
-      resolveHoldingUnitPrice(holding, prices),
+      resolveHoldingUnitPrice(holding, prices, rates),
     ),
   );
 }
@@ -107,9 +111,10 @@ export function bindFreedomPathPlan(
   leftover: LeftoverPresence,
   book: BookPresence,
   prices: Record<string, number> = {},
+  rates: FxRates = DEFAULT_FX_RATES,
 ): RetirementPlan {
-  const fromBook = assetsFromBook(book, prices);
-  const leftoverAsset = leftoverCashAsset(leftover);
+  const fromBook = assetsFromBook(book, prices, rates);
+  const leftoverAsset = leftoverCashAsset(leftover, rates);
   const includeLeftover =
     leftoverAsset != null && !leftoverAlreadyInBook(book, leftover);
 

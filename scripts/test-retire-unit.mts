@@ -35,7 +35,10 @@ import {
   outlookSentence,
 } from "../src/lib/retirement/outlook.ts";
 import { normalizeRetirementPlan } from "../src/lib/retirement/normalize.ts";
-import { refreshAssetsFromPortfolio } from "../src/lib/retirement/portfolio-import.ts";
+import {
+  refreshAssetsFromPortfolio,
+  resolveHoldingUnitPrice,
+} from "../src/lib/retirement/portfolio-import.ts";
 import {
   computeRetirementProjections,
   findDepletionAge,
@@ -43,6 +46,15 @@ import {
   nestEggAtRetirement,
 } from "../src/lib/retirement/projections.ts";
 import { buildProjectionChartData } from "../src/lib/retirement/chart-data.ts";
+import {
+  projectionChartRevision,
+  projectionsForSavedPlan,
+  savedPlanChartRows,
+} from "../src/lib/retirement/plan-chart.ts";
+import { requiredGrowthRate } from "../src/lib/retirement/required-growth.ts";
+import { nominalTargetNestEgg } from "../src/lib/retirement/target.ts";
+import { convertToUsd } from "../src/lib/portfolio/prices/fx.ts";
+import { DEFAULT_FX_RATES } from "../src/types/currency.ts";
 import {
   applyScenario,
   buildWhatIfScenarios,
@@ -870,8 +882,8 @@ assert(freeDash.freedomYear === CURRENT_YEAR, "dashboard exposes the Freedom yea
 assert(freeDash.yearsToFreedom === 0, "already free is zero years");
 assert(freeDash.verdict === "ahead", "free 25 years early is ahead");
 assert(
-  impliedPathSentence(freeDash, (value) => `$${value}`).includes("Free this year"),
-  "path sentence uses the date",
+  impliedPathSentence(freeDash, (value) => `$${value}`).includes("Retire this year"),
+  "path sentence uses the Retire date",
 );
 
 assert(
@@ -920,6 +932,154 @@ const whatIfDates = compareRetirementScenarios(
 assert(
   whatIfDates.every((item) => item.freedomYear === CURRENT_YEAR),
   "what-ifs on an already-free path keep this year's date",
+);
+
+// --- Plan chart follows saved assets, not the Invest book overlay --------
+
+const chartBase = plan({
+  annualLifestyleSpending: 0,
+  inflationRate: 0,
+  retirementAge: 42,
+  retirementYear: CURRENT_YEAR + 2,
+  assets: [
+    asset({
+      id: "saved-cash",
+      symbol: "CASH",
+      unitPrice: 1,
+      quantity: 100_000,
+      expectedCagr: 0,
+      type: "cash",
+    }),
+  ],
+});
+const chartEdited: RetirementPlan = {
+  ...chartBase,
+  assets: [{ ...chartBase.assets[0], quantity: 250_000, expectedCagr: 5 }],
+};
+const chartBefore = savedPlanChartRows(chartBase, { currentYear: CURRENT_YEAR });
+const chartAfter = savedPlanChartRows(chartEdited, { currentYear: CURRENT_YEAR });
+assert(
+  chartAfter[0].closingBalance > chartBefore[0].closingBalance,
+  `raising a saved asset moves the plan chart (before ${chartBefore[0].closingBalance}, after ${chartAfter[0].closingBalance})`,
+);
+assert(
+  projectionChartRevision(
+    projectionsForSavedPlan(chartBase, { currentYear: CURRENT_YEAR }),
+    chartBase.assets,
+  ) !==
+    projectionChartRevision(
+      projectionsForSavedPlan(chartEdited, { currentYear: CURRENT_YEAR }),
+      chartEdited.assets,
+    ),
+  "chart revision changes when asset quantity or growth changes",
+);
+const boundBeforeEdit = bindFreedomPathPlan(chartBase, leftoverNone, vooBook, {
+  VOO: 500,
+});
+const boundAfterEdit = bindFreedomPathPlan(chartEdited, leftoverNone, vooBook, {
+  VOO: 500,
+});
+assert(
+  boundBeforeEdit.assets.length === boundAfterEdit.assets.length &&
+    boundBeforeEdit.assets[0]?.quantity === boundAfterEdit.assets[0]?.quantity &&
+    boundBeforeEdit.assets[0]?.symbol === "VOO",
+  "book overlay ignores saved asset edits, so the plan chart must not use it",
+);
+const directRows = buildProjectionChartData(
+  projectionsForSavedPlan(chartEdited, { currentYear: CURRENT_YEAR }),
+  chartEdited.assets,
+);
+assert(
+  directRows[directRows.length - 1].closingBalance ===
+    chartAfter[chartAfter.length - 1].closingBalance,
+  "saved-plan chart rows stay on the edited balances",
+);
+
+const funded = plan({
+  currentAge: 65,
+  retirementAge: 65,
+  retirementYear: CURRENT_YEAR,
+  annualLifestyleSpending: 4_000,
+  withdrawalRate: 4,
+  inflationRate: 0,
+  annualContribution: 0,
+  assets: [
+    asset({
+      id: "funded",
+      symbol: "CASH",
+      unitPrice: 1,
+      quantity: 1_000_000,
+      expectedCagr: 0,
+      type: "cash",
+    }),
+  ],
+});
+assert(
+  requiredGrowthRate(funded, { currentYear: CURRENT_YEAR }) === 0,
+  "a funded plan needs no extra growth",
+);
+const unreachable = plan({
+  currentAge: 60,
+  retirementAge: 65,
+  retirementYear: CURRENT_YEAR + 5,
+  annualLifestyleSpending: 80_000,
+  withdrawalRate: 4,
+  inflationRate: 0,
+  annualContribution: 0,
+  assets: [
+    asset({
+      id: "tiny-growth",
+      symbol: "CASH",
+      unitPrice: 1,
+      quantity: 1_000,
+      expectedCagr: 0,
+      type: "cash",
+    }),
+  ],
+});
+assert(
+  requiredGrowthRate(unreachable, { currentYear: CURRENT_YEAR }) == null,
+  "a tiny pot with no savings is not reachable at 40% growth",
+);
+assert(
+  requiredGrowthRate(plan({ assets: [] }), { currentYear: CURRENT_YEAR }) == null,
+  "no assets has no required growth rate",
+);
+const nominal = nominalTargetNestEgg(40_000, 4, 0, 10);
+assert(nominal === 1_000_000, "0% inflation keeps the target in today's dollars");
+const inflated = nominalTargetNestEgg(40_000, 4, 10, 1);
+assert(
+  Math.abs(inflated - 1_100_000) < 1e-6,
+  "one year of 10% inflation lifts a $1M target to $1.1M",
+);
+
+const cadCash = bookHolding({
+  id: "cad",
+  symbol: "CASH",
+  quantity: 136,
+  type: "cash",
+  cashCurrency: "CAD",
+  costPrice: 1,
+});
+const cadUnit = resolveHoldingUnitPrice(cadCash, {}, DEFAULT_FX_RATES);
+assert(
+  Math.abs(cadUnit - convertToUsd(1, "CAD", DEFAULT_FX_RATES)) < 1e-9,
+  "CAD cash imports at the USD unit price, not 1",
+);
+assert(cadUnit < 1, "CAD cash is not counted as one USD per dollar");
+const cadLeftover = leftoverCashAsset(
+  {
+    status: "present",
+    amount: 136,
+    currency: "CAD",
+    budgetPlanId: "b1",
+  },
+  DEFAULT_FX_RATES,
+);
+assert(
+  cadLeftover != null &&
+    Math.abs(cadLeftover.unitPrice * cadLeftover.quantity - 136 / DEFAULT_FX_RATES.CAD) < 1e-6,
+  "CAD leftover is converted to USD instead of treated as USD",
 );
 
 if (failed > 0) {

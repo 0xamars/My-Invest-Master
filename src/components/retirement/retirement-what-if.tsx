@@ -47,6 +47,7 @@ export function RetirementWhatIf({
             key={item.id}
             type="button"
             onClick={() => onSelect(item.plan, item.id)}
+            aria-pressed={selectedId === item.id}
             className={cn(
               "flex flex-col rounded-xl border px-4 py-4 text-left transition-colors",
               selectedId === item.id
@@ -58,7 +59,7 @@ export function RetirementWhatIf({
             <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
             <dl className="mt-3 space-y-1.5 text-sm">
               <Row
-                label="Free"
+                label="Retire year"
                 value={
                   item.freedomYear == null
                     ? "Not on this path"

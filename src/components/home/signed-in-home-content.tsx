@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PageLoading } from "@/components/layout/page-loading";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
+import { useFxRate } from "@/hooks/use-fx-rate";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
 import {
@@ -34,6 +35,7 @@ export function SignedInHomeContent() {
   const { primaryPortfolio, isLoaded: portfoliosLoaded } = usePortfolioPlans();
   const { plans: retirePlans, isLoaded: retireLoaded } =
     useRetirementPlansStorage();
+  const { rates } = useFxRate();
 
   const leftover = useMemo(
     () => leftoverPresenceFromBudgetPlans(budget.plans),
@@ -61,8 +63,9 @@ export function SignedInHomeContent() {
         assigned: assigned.assigned,
         budgetPlanId: assigned.planId,
         assumptions: latestRetire,
+        rates,
       }),
-    [leftover, book, assigned, latestRetire],
+    [leftover, book, assigned, latestRetire, rates],
   );
 
   const ready = budget.isLoaded && portfoliosLoaded && retireLoaded;

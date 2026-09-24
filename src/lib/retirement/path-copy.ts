@@ -16,12 +16,12 @@ export function impliedPathSentence(
   const target = `Target ${formatMoney(dashboard.targetNestEgg)}.`;
 
   if (dashboard.yearsToFreedom === 0) {
-    return `Free this year. ${target}`;
+    return `Retire this year. ${target}`;
   }
   if (dashboard.freedomYear == null || dashboard.yearsToFreedom == null) {
     return `Not on this path by age ${dashboard.planEndAge}. ${target}`;
   }
-  return `Free in ${dashboard.freedomYear} · age ${dashboard.freedomAge}. ${target}`;
+  return `Retire in ${dashboard.freedomYear} · age ${dashboard.freedomAge}. ${target}`;
 }
 
 /** Existing what-if labels only — not advice. */

@@ -32,6 +32,9 @@ export function RetirementVerdictHero({
   leftover,
   book,
   lever,
+  portfolioLabel = "Book + leftover",
+  emptyTitle = "Leftover or the book is missing",
+  emptyDescription = "Retire uses Budget leftover plus the Invest book. It will not invent cash.",
   currentYear = new Date().getFullYear(),
 }: {
   dashboard: RetirementDashboard;
@@ -43,6 +46,9 @@ export function RetirementVerdictHero({
   leftover?: LeftoverPresence;
   book?: BookPresence;
   lever?: FreedomLever;
+  portfolioLabel?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
   currentYear?: number;
 }) {
   const money = (value: number) => formatProjectionMoney(value, currency, rates);
@@ -60,8 +66,8 @@ export function RetirementVerdictHero({
       <RetirePanel>
         <RetireEmptyState
           icon={<Wallet className="size-5" />}
-          title="Leftover or the book is missing"
-          description="Retire uses Budget leftover plus the Invest book. It will not invent cash."
+          title={emptyTitle}
+          description={emptyDescription}
           actions={emptyActions}
         />
         <div className="border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
@@ -105,6 +111,24 @@ export function RetirementVerdictHero({
         {leverText ? (
           <p className="mt-2 text-sm font-medium">{leverText}</p>
         ) : null}
+        {dashboard.requiredGrowthRate != null ? (
+          <p className="mt-2 text-sm font-medium">
+            {dashboard.requiredGrowthRate <= 0
+              ? "The target is already covered at 0% growth."
+              : `Needs ${dashboard.requiredGrowthRate.toFixed(1)}% a year to reach the target by the target age.`}
+          </p>
+        ) : dashboard.verdict !== "empty" && dashboard.targetNestEgg > 0 ? (
+          <p className="mt-2 text-sm font-medium">
+            Not reachable by the target age at 40% growth.
+          </p>
+        ) : null}
+        {dashboard.gapToday != null ? (
+          <p className="mt-1 text-sm text-muted-foreground">
+            {dashboard.gapToday >= 0
+              ? `${money(dashboard.gapToday)} ahead of the target, in today's dollars.`
+              : `${money(Math.abs(dashboard.gapToday))} short of the target, in today's dollars.`}
+          </p>
+        ) : null}
         {href ? (
           <Button className="mt-4" render={<Link href={href} />}>
             Open plan
@@ -133,7 +157,7 @@ export function RetirementVerdictHero({
             }
           />
           <Metric
-            label="Book + leftover"
+            label={portfolioLabel}
             value={
               dashboard.verdict === "empty" && dashboard.currentPortfolio <= 0
                 ? "—"

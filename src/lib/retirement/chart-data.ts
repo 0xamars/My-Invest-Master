@@ -282,6 +282,7 @@ export function computeProjectionYDomain(
   chartData: ProjectionChartRow[],
   view: ProjectionChartView,
   assetKeys: string[],
+  extraValues: number[] = [],
 ): [number, number] {
   if (chartData.length === 0) return [0, 100];
 
@@ -313,6 +314,12 @@ export function computeProjectionYDomain(
         );
       }
     }
+  }
+
+  for (const value of extraValues) {
+    if (!Number.isFinite(value)) continue;
+    max = Math.max(max, value);
+    min = Math.min(min, value);
   }
 
   if (max === 0 && min === 0) return [0, 100];

@@ -6,6 +6,7 @@ import { ArrowRight, Loader2, RefreshCw } from "lucide-react";
 import { RetirePanel } from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
+import { useFxRate } from "@/hooks/use-fx-rate";
 import { usePortfolioPrices } from "@/hooks/use-portfolio-prices";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { pickOpenablePlan } from "@/lib/invest/leftover";
@@ -16,6 +17,7 @@ export function RefreshRetireAction() {
   const { primaryPortfolio } = usePortfolioPlans();
   const retirement = useRetirementPlansStorage();
   const { prices } = usePortfolioPrices(primaryPortfolio?.holdings ?? []);
+  const { rates } = useFxRate();
   const retirePlan = pickOpenablePlan(retirement.plans);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,6 +39,7 @@ export function RefreshRetireAction() {
       retirePlan.assets,
       visible,
       prices,
+      rates,
     );
     retirement.updatePlan(retirePlan.id, (plan) => ({ ...plan, assets }));
     setBusy(false);
@@ -48,8 +51,8 @@ export function RefreshRetireAction() {
       <div className="min-w-0">
         <p className="text-sm font-medium">Refresh Retire from this book</p>
         <p className="text-xs text-muted-foreground">
-          Updates matched holdings on {retirePlan.name}. Does not change
-          projection math or re-key the plan.
+          Updates matched quantities and prices on {retirePlan.name}. Expected
+          growth on each holding stays yours.
         </p>
         {status ? (
           <p className="mt-1 text-xs text-muted-foreground">{status}</p>

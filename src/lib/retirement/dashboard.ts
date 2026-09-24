@@ -1,5 +1,6 @@
 import { getPlanTotalValue, type RetirementPlan } from "@/types/retirement";
 import { findFreedomCrossing } from "@/lib/retirement/freedom-path";
+import { requiredGrowthRate } from "@/lib/retirement/required-growth";
 import { computeTargetNestEgg, presentValue } from "@/lib/retirement/target";
 import {
   computeRetirementProjections,
@@ -29,6 +30,8 @@ export interface RetirementDashboard {
   freedomYear: number | null;
   freedomAge: number | null;
   yearsToFreedom: number | null;
+  /** Blended annual growth required to meet the target. Null if unreachable at 40%. */
+  requiredGrowthRate: number | null;
 }
 
 export function verdictFromGap(
@@ -64,6 +67,7 @@ export function computeRetirementDashboard(
     freedomYear: null,
     freedomAge: null,
     yearsToFreedom: null,
+    requiredGrowthRate: null,
   };
 
   if (plan.assets.length === 0) {
@@ -135,5 +139,6 @@ export function computeRetirementDashboard(
     freedomYear: freedom?.year ?? null,
     freedomAge: freedom?.age ?? null,
     yearsToFreedom,
+    requiredGrowthRate: requiredGrowthRate(plan, { currentYear }),
   };
 }

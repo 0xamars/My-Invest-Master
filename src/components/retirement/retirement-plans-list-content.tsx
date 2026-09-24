@@ -25,7 +25,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
-import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
@@ -59,7 +58,6 @@ export function RetirementPlansListContent() {
     primaryPortfolio,
     isLoaded: portfoliosLoaded,
   } = usePortfolioPlans();
-  const { currency } = useDisplayCurrency();
   const { rates } = useFxRate();
 
   const [deletingPlan, setDeletingPlan] = useState<RetirementPlan | null>(null);
@@ -215,7 +213,8 @@ export function RetirementPlansListContent() {
                   </div>
                   <CardDescription className="flex flex-wrap items-center gap-1.5">
                     <Calendar className="size-3.5" />
-                    Target age {normalized?.retirementAge ?? summary.retirementYear}
+                    Target age {normalized?.retirementAge ?? "—"}
+                    {normalized ? ` · ${normalized.retirementYear}` : ""}
                     {dash ? (
                       <RetireVerdictChip verdict={dash.verdict} />
                     ) : null}
@@ -228,7 +227,7 @@ export function RetirementPlansListContent() {
                       <p className="stat-value text-xl">
                         {formatDisplayMoney(
                           summary.totalPortfolioValue,
-                          currency,
+                          normalized?.currency ?? "CAD",
                           rates,
                         )}
                       </p>
@@ -293,7 +292,7 @@ export function RetirementPlansListContent() {
         open={Boolean(deletingPlan)}
         onOpenChange={(open) => !open && setDeletingPlan(null)}
         onConfirm={deletePlan}
-        currency={currency}
+        currency={deletingPlan?.currency ?? "CAD"}
         rates={rates}
       />
     </div>
