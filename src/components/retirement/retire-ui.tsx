@@ -1,4 +1,7 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
+import {
+  DeskEmptyMark,
+} from "@/components/layout/desk-empty-mark";
 import { cn } from "@/lib/utils";
 import type { RetirementVerdict } from "@/lib/retirement/dashboard";
 
@@ -14,7 +17,7 @@ export function RetirePageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {typeof title === "string" ? (
@@ -40,20 +43,24 @@ export function RetirePageHeader({
 export function RetirePanel({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={cn("budget-panel", className)}>{children}</div>;
+  ...rest
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("budget-panel", className)} {...rest}>
+      {children}
+    </div>
+  );
 }
 
 export function RetireEmptyState({
   icon,
+  mark = "retire",
   title,
   description,
   actions,
 }: {
   icon?: ReactNode;
+  mark?: "budget" | "invest" | "retire";
   title: string;
   description: string;
   actions?: ReactNode;
@@ -61,15 +68,15 @@ export function RetireEmptyState({
   return (
     <div className="premium-empty">
       {icon ? (
-        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-          {icon}
-        </div>
-      ) : null}
-      <p className="text-[0.975rem] font-semibold tracking-tight">{title}</p>
-      <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
+        <div className="desk-empty-icon">{icon}</div>
+      ) : (
+        <DeskEmptyMark kind={mark} />
+      )}
+      <p className="text-base font-semibold tracking-tight">{title}</p>
+      <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">
         {description}
       </p>
-      {actions ? <div className="mt-4 flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div> : null}
     </div>
   );
 }
@@ -119,9 +126,9 @@ export function RetireMoney({
     <span
       className={cn(
         "tabular-nums tracking-tight",
-        tone === "in" && "text-[var(--brand-green)]",
-        tone === "out" && "text-[var(--brand-orange)]",
-        tone === "danger" && "text-[var(--brand-red)]",
+        tone === "in" && "text-[var(--brand-green-text)]",
+        tone === "out" && "text-[var(--brand-orange-text)]",
+        tone === "danger" && "text-[var(--fg-danger-text)]",
         className,
       )}
     >

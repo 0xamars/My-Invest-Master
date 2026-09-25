@@ -28,7 +28,7 @@ import {
 } from "@/lib/budget/credit-card-payments";
 import { isMonthClosed } from "@/lib/budget/closed-months";
 import { applyCoverOverspend, applyMoveMoney } from "@/lib/budget/move-money";
-import { applyMonthClose, applyMonthNote } from "@/lib/budget/month-close";
+import { applyMonthClose } from "@/lib/budget/month-close";
 import { buildStartingBalanceTransaction } from "@/lib/budget/starting-balance";
 import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
@@ -828,15 +828,6 @@ export function useBudgetPlanMutations(planId: string) {
     [commitPlan],
   );
 
-  const setMonthNote = useCallback(
-    (monthKey: string, note: string) => {
-      commitPlan((current) => applyMonthNote(current, monthKey, note), {
-        label: "Undo note",
-      });
-    },
-    [commitPlan],
-  );
-
   const updateAccount = useCallback(
     (
       accountId: string,
@@ -1076,7 +1067,6 @@ export function useBudgetPlanMutations(planId: string) {
       setCategoryGoal,
       removeCategoryGoal,
       addAccount,
-      setMonthNote,
       updateAccount,
       deleteAccount,
       setTransactionCleared,
@@ -1133,7 +1123,6 @@ export function useBudgetPlanMutations(planId: string) {
       setCategoryGoal,
       removeCategoryGoal,
       addAccount,
-      setMonthNote,
       updateAccount,
       deleteAccount,
       setTransactionCleared,

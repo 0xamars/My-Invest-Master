@@ -8,7 +8,6 @@ import {
   Plus,
   Star,
   Trash2,
-  TrendingUp,
 } from "lucide-react";
 import { DeletePortfolioDialog } from "@/components/portfolio/delete-portfolio-dialog";
 import { PortfolioNameDialog } from "@/components/portfolio/portfolio-name-dialog";
@@ -17,6 +16,7 @@ import {
   BudgetPageHeader,
   BudgetPanel,
 } from "@/components/budget/budget-ui";
+import { PageLoading } from "@/components/layout/page-loading";
 import { Button } from "@/components/ui/button";
 import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -74,16 +74,11 @@ export function PortfolioPlansListContent() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading portfolios…
-      </div>
-    );
+    return <PageLoading label="Loading portfolios" layout="cards" />;
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-4">
       <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
       <BudgetPageHeader
         title="Portfolios"
@@ -110,7 +105,7 @@ export function PortfolioPlansListContent() {
       {summaries.length === 0 ? (
         <BudgetPanel>
           <BudgetEmptyState
-            icon={<TrendingUp className="size-5" />}
+            mark="invest"
             title="No books yet"
             description="Create a portfolio, then add holdings. You must keep at least one book after that."
             actions={

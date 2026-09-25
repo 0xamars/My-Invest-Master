@@ -11,7 +11,7 @@ interface BudgetMonthNavProps {
 
 export function BudgetMonthNav({ monthKey, onMonthChange }: BudgetMonthNavProps) {
   return (
-    <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
+    <div className="inline-flex items-center rounded-full border border-border bg-muted p-0.5">
       <Button
         type="button"
         variant="ghost"

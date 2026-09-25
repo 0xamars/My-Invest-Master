@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { PageLoading } from "@/components/layout/page-loading";
+import { InvestShelf, PageLoading } from "@/components/layout/page-loading";
 import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
@@ -89,11 +89,11 @@ export function InvestHomeContent() {
   }
 
   if (!isLoaded) {
-    return <PageLoading label="Loading Invest…" />;
+    return <PageLoading label="Loading Invest" layout="cards" />;
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex flex-1 flex-col gap-3.5">
       <InvestToolsNav />
       <RetirePageHeader
         title="Invest"
@@ -101,8 +101,9 @@ export function InvestHomeContent() {
         action={
           offerFirstBook ? null : (
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
+              className="btn-quiet"
               onClick={() => void onAddClick()}
               disabled={creating}
             >
@@ -116,7 +117,7 @@ export function InvestHomeContent() {
       <TickerLookup />
 
       <Link href={INVEST_EARLY_OPP_PATH} className="block">
-        <RetirePanel className="px-5 py-4 transition-colors hover:bg-muted/20">
+        <RetirePanel className="px-4 py-3 transition-colors hover:bg-muted/20 sm:px-5">
           <p className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             Decision aid
           </p>
@@ -129,28 +130,37 @@ export function InvestHomeContent() {
       </Link>
 
       {offerFirstBook ? (
-        <FirstBookWizard
-          onCreate={onCreateFirstBook}
-          isSubmitting={creating}
-        />
+        <>
+          <RetirePanel className="px-4 py-4 sm:px-5">
+            <FirstBookWizard
+              onCreate={onCreateFirstBook}
+              isSubmitting={creating}
+            />
+          </RetirePanel>
+          <InvestShelf />
+        </>
       ) : rows.length === 0 ? (
-        <div data-empty-state="invest">
-          <RetireEmptyState
-            title={INVEST_EMPTY_BOOK.title}
-            description={INVEST_EMPTY_BOOK.description}
-            actions={
-              <Button
-                onClick={() => void onAddClick()}
-                disabled={creating}
-              >
-                <Plus className="size-4" />
-                {INVEST_EMPTY_BOOK.addLabel}
-              </Button>
-            }
-          />
-        </div>
+        <>
+          <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="invest">
+            <RetireEmptyState
+              mark="invest"
+              title={INVEST_EMPTY_BOOK.title}
+              description={INVEST_EMPTY_BOOK.description}
+              actions={
+                <Button
+                  onClick={() => void onAddClick()}
+                  disabled={creating}
+                >
+                  <Plus className="size-4" />
+                  {INVEST_EMPTY_BOOK.addLabel}
+                </Button>
+              }
+            />
+          </RetirePanel>
+          <InvestShelf />
+        </>
       ) : (
-        <RetirePanel className="px-5 py-4">
+        <RetirePanel className="px-4 py-3.5 sm:px-5">
           <h2 className="text-sm font-semibold">Book</h2>
           {quoteError ? (
             <p className="mt-1 text-xs text-muted-foreground">{quoteError}</p>
@@ -160,10 +170,10 @@ export function InvestHomeContent() {
               {cacheLine}
             </p>
           ) : null}
-          <div className="mt-4">
+          <div className="mt-3">
             <BookConcentrationBar rows={rows} />
           </div>
-          <div className="mt-5">
+          <div className="mt-3">
             <BookTable rows={rows} />
           </div>
         </RetirePanel>

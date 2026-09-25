@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DeskEmptyMark } from "@/components/layout/desk-empty-mark";
 import { cn } from "@/lib/utils";
 
 export function BudgetPageHeader({
@@ -11,7 +12,7 @@ export function BudgetPageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-1">
         <h1 className="page-title">
           {title}
@@ -38,22 +39,30 @@ export function BudgetPanel({
 }
 
 export function BudgetEmptyState({
+  icon,
+  mark = "budget",
   title,
   description,
   actions,
 }: {
   icon?: ReactNode;
+  mark?: "budget" | "invest" | "retire";
   title: string;
   description: string;
   actions?: ReactNode;
 }) {
   return (
     <div className="premium-empty">
-      <p className="text-[0.975rem] font-semibold tracking-tight">{title}</p>
-      <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
+      {icon ? (
+        <div className="desk-empty-icon">{icon}</div>
+      ) : (
+        <DeskEmptyMark kind={mark} />
+      )}
+      <p className="text-base font-semibold tracking-tight">{title}</p>
+      <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">
         {description}
       </p>
-      {actions ? <div className="mt-4 flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div> : null}
     </div>
   );
 }
@@ -93,9 +102,9 @@ export function BudgetMoney({
     <span
       className={cn(
         "tabular-nums tracking-tight",
-        tone === "in" && "text-[var(--brand-green)]",
-        tone === "out" && "text-[var(--brand-orange)]",
-        tone === "danger" && "text-[var(--brand-red)]",
+        tone === "in" && "text-[var(--brand-green-text)]",
+        tone === "out" && "text-[var(--brand-orange-text)]",
+        tone === "danger" && "text-[var(--fg-danger-text)]",
         className,
       )}
     >
@@ -118,30 +127,79 @@ export function BudgetAvailableChip({
 }) {
   const tone =
     status === "credit-overspent"
-      ? "credit"
+      ? "warn"
       : status === "overspent" || available < 0
-        ? "cash"
+        ? "bad"
         : available === 0
           ? "zero"
           : status === "low"
-            ? "low"
-            : "healthy";
+            ? "warn"
+            : "ok";
+
+  const cue =
+    tone === "ok"
+      ? "Funded"
+      : tone === "warn"
+        ? "Watch"
+        : tone === "bad"
+          ? "Overspent"
+          : "Zero";
 
   return (
     <span
       className={cn(
         "budget-available-chip",
-        tone === "cash" && "budget-available-chip--cash",
-        tone === "credit" && "budget-available-chip--credit",
-        tone === "low" && "budget-available-chip--low",
-        tone === "healthy" && "budget-available-chip--healthy",
+        tone === "ok" && "budget-available-chip--ok",
+        tone === "warn" && "budget-available-chip--warn",
+        tone === "bad" && "budget-available-chip--bad",
         tone === "zero" && "budget-available-chip--zero",
         className,
       )}
     >
-      {tone === "credit" ? <span className="sr-only">Credit overspent. </span> : null}
-      {tone === "cash" ? <span className="sr-only">Overspent. </span> : null}
+      <span className="sr-only">{cue}. </span>
+      <AvailableCue tone={tone} />
       {children}
+    </span>
+  );
+}
+
+function AvailableCue({ tone }: { tone: "ok" | "warn" | "bad" | "zero" }) {
+  return (
+    <span className="available-cue" aria-hidden>
+      {tone === "ok" ? (
+        <svg viewBox="0 0 12 12" fill="none">
+          <path
+            d="M2.2 6.2 4.7 8.7 9.8 3.3"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : null}
+      {tone === "warn" ? (
+        <svg viewBox="0 0 12 12" fill="none">
+          <path
+            d="M6 2.2 10.2 9.8H1.8L6 2.2Z"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinejoin="round"
+          />
+          <path d="M6 5.2v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+      ) : null}
+      {tone === "bad" ? (
+        <svg viewBox="0 0 12 12" fill="none">
+          <circle cx="6" cy="6" r="4.2" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M6 3.6v2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <circle cx="6" cy="8.5" r="0.6" fill="currentColor" />
+        </svg>
+      ) : null}
+      {tone === "zero" ? (
+        <svg viewBox="0 0 12 12" fill="none">
+          <path d="M3 6h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      ) : null}
     </span>
   );
 }

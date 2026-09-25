@@ -132,7 +132,7 @@ export function TickerScoreGraphic({ score }: { score: TickerScore }) {
             </p>
             <ul className="space-y-2">
               {axis.checks.map((item) => (
-                <li key={item.id} className="rounded-lg bg-white/[0.03] px-3 py-2">
+                <li key={item.id} className="rounded-lg bg-muted px-3 py-2">
                   <p className="text-sm">
                     {item.label}
                     <span className="ml-2 text-xs text-muted-foreground">

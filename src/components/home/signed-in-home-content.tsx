@@ -19,7 +19,7 @@ function HomeSpark({ value }: { value: number | null }) {
   if (value == null) return null;
   return (
     <div
-      className="mt-5 h-1 w-full bg-white/[0.06]"
+      className="mt-4 h-1 w-full rounded-full bg-muted"
       aria-hidden
     >
       <div
@@ -71,7 +71,13 @@ export function SignedInHomeContent() {
   const ready = budget.isLoaded && portfoliosLoaded && retireLoaded;
 
   if (!ready) {
-    return <PageLoading label="Loading Home…" />;
+    return (
+      <PageLoading
+        label="Loading Home"
+        layout="cards"
+        cards={["Budget", "Invest", "Retire"]}
+      />
+    );
   }
 
   return (
@@ -81,15 +87,14 @@ export function SignedInHomeContent() {
           key={card.pillar}
           href={card.href}
           data-home-card={card.pillar}
-          className="budget-panel block px-5 py-5 transition-colors hover:border-[var(--brand-green)]/35"
+          className="budget-panel block px-4 py-4 transition-colors hover:border-[var(--brand-green)]/35 sm:px-5"
         >
           <p className="budget-metric-label">{card.title}</p>
           <p
             className={cn(
-              "mt-3 text-[1.65rem] font-semibold tracking-tight",
               card.empty
-                ? "text-muted-foreground"
-                : "text-foreground tabular-nums",
+                ? "mt-2 text-base font-semibold text-muted-foreground"
+                : "budget-hero-value mt-2 text-foreground",
             )}
           >
             {card.metric}

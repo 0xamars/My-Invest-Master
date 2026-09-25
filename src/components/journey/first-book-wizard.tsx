@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { DeskEmptyMark } from "@/components/layout/desk-empty-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,8 +70,9 @@ export function FirstBookWizard({
       data-first-book-wizard="1"
       data-empty-state="invest-no-book"
     >
+      <DeskEmptyMark kind="invest" />
       <div>
-        <h2 className="text-[0.975rem] font-semibold tracking-tight">
+        <h2 className="text-base font-semibold tracking-tight">
           {INVEST_EMPTY_NO_BOOK.title}
         </h2>
         <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">

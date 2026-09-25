@@ -73,26 +73,28 @@ function HeatmapTooltip({
       style={{ left, top, width: tooltipWidth }}
       role="tooltip"
     >
-      <p className="text-[11px] font-medium uppercase tracking-wide text-white/55">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         {stock.sector}
       </p>
-      <p className="mt-1 truncate text-sm font-semibold text-white">{stock.name}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-foreground">{stock.name}</p>
       <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-lg font-bold tracking-wide text-white">
+        <span className="text-lg font-bold tracking-wide text-foreground">
           {stock.symbol}
         </span>
         <span
           className={cn(
             "text-sm font-semibold tabular-nums",
-            stock.changePercent >= 0 ? "text-emerald-300" : "text-rose-300",
+            stock.changePercent >= 0
+              ? "text-[var(--brand-green-text)]"
+              : "text-[var(--fg-danger-text)]",
           )}
         >
           {pctLabel}
         </span>
       </div>
-      <div className="mt-2 space-y-1 text-xs text-white/75">
+      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
         <p className="tabular-nums">
-          Price <span className="font-medium text-white">${stock.price.toFixed(2)}</span>
+          Price <span className="font-medium text-foreground">${stock.price.toFixed(2)}</span>
           {" · "}
           {changeLabel}
         </p>

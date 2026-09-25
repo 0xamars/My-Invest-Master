@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import {
@@ -41,35 +41,6 @@ import { formatBudgetDate, formatBudgetMoney } from "@/lib/budget/format";
 import { budgetHabitSnapshot } from "@/lib/budget/habit";
 import { getTransactionDisplay } from "@/lib/budget/transactions";
 
-function MonthNoteField({
-  value,
-  onCommit,
-}: {
-  value: string;
-  onCommit: (note: string) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-
-  return (
-    <textarea
-      id="budget-month-note"
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => {
-        if (draft !== value) onCommit(draft);
-      }}
-      rows={2}
-      maxLength={500}
-      placeholder="What should you remember about this month?"
-      className="mt-2 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    />
-  );
-}
-
 export function BudgetContent() {
   const {
     budget,
@@ -91,7 +62,6 @@ export function BudgetContent() {
     setCategoryGoal,
     removeCategoryGoal,
     addTransaction,
-    setMonthNote,
   } = useBudget();
   const { openAddGroup, openAddEnvelope } = useBudgetDialog();
   const { monthKey } = useBudgetMonth();
@@ -180,11 +150,11 @@ export function BudgetContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex flex-1 flex-col gap-3">
       {syncError && <BudgetSyncError message={syncError} />}
 
       {habit.needsAttention ? (
-        <BudgetPanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <BudgetPanel className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold">Needs a look</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -230,19 +200,6 @@ export function BudgetContent() {
           </div>
         </BudgetPanel>
       ) : null}
-
-      <BudgetPanel className="px-4 py-3 sm:px-5">
-        <label htmlFor="budget-month-note" className="text-sm font-semibold">
-          Month note
-        </label>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          A reminder for this month. It does not change leftover or envelopes.
-        </p>
-        <MonthNoteField
-          value={budget.monthBudgets[monthKey]?.note ?? ""}
-          onCommit={(note) => setMonthNote(monthKey, note)}
-        />
-      </BudgetPanel>
 
       <BudgetSummaryStats
         summary={summary}
@@ -307,7 +264,7 @@ export function BudgetContent() {
       />
 
       <BudgetPanel>
-        <div className="flex items-center justify-between px-4 py-3 sm:px-5">
+        <div className="flex items-center justify-between px-4 py-2.5 sm:px-5">
           <div>
             <h2 className="text-sm font-semibold tracking-tight">Recent</h2>
             <p className="text-xs text-muted-foreground">This month on the register</p>
@@ -323,7 +280,7 @@ export function BudgetContent() {
           </Button>
         </div>
         {recentTransactions.length === 0 ? (
-          <div className="px-4 pb-6 text-sm text-muted-foreground sm:px-5">
+          <div className="px-4 pb-4 text-sm text-muted-foreground sm:px-5">
             No activity this month yet.
           </div>
         ) : (
@@ -342,7 +299,7 @@ export function BudgetContent() {
               return (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
+                  className="flex items-center justify-between gap-3 px-4 py-2 sm:px-5"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

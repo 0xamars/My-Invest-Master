@@ -92,15 +92,15 @@ export function RetireHomeContent() {
     leftover.status !== "present" && book.status === "missing";
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex flex-1 flex-col gap-3.5">
       <RetirePageHeader
         title="Retire"
         description="One date from leftover and the book. Target, on-track, and the lever on this path."
         action={
           latest ? (
             <Button
-              variant="outline"
-              className="gap-2"
+              variant="ghost"
+              className="btn-quiet gap-2"
               render={<Link href="/retire/plans" />}
             >
               All plans
@@ -114,7 +114,7 @@ export function RetireHomeContent() {
       {!ready ? (
         <PageLoading label="Loading Retire…" />
       ) : inputsMissing && !latest ? (
-        <div data-empty-state="retire">
+        <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="retire">
           <RetireEmptyState
             title={FREEDOM_EMPTY.title}
             description={FREEDOM_EMPTY.description}
@@ -124,7 +124,8 @@ export function RetireHomeContent() {
                   {FREEDOM_EMPTY.leftoverLabel}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  className="btn-quiet"
                   render={<Link href={FREEDOM_EMPTY.bookHref} />}
                 >
                   {FREEDOM_EMPTY.bookLabel}
@@ -132,7 +133,7 @@ export function RetireHomeContent() {
               </>
             }
           />
-        </div>
+        </RetirePanel>
       ) : (
         <>
           <RetirementVerdictHero
@@ -154,7 +155,8 @@ export function RetireHomeContent() {
                   {FREEDOM_EMPTY.leftoverLabel}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  className="btn-quiet"
                   render={<Link href={FREEDOM_EMPTY.bookHref} />}
                 >
                   {FREEDOM_EMPTY.bookLabel}

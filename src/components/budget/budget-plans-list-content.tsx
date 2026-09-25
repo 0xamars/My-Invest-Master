@@ -82,11 +82,11 @@ export function BudgetPlansListContent() {
   }
 
   if (!isLoaded) {
-    return <PageLoading label="Loading Budget…" />;
+    return <PageLoading label="Loading Budget" />;
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-4">
       <BudgetPageHeader
         title="Budget"
         description="One spending account, envelopes, leftover, and a real month close."
@@ -104,7 +104,11 @@ export function BudgetPlansListContent() {
       {syncError && <BudgetSyncError message={syncError} tone="destructive" />}
 
       {summaries.length === 0 ? (
-        <div data-budget-first-run-kit="1" data-empty-state="budget">
+        <div
+          className="budget-panel px-4 py-4 sm:px-5"
+          data-budget-first-run-kit="1"
+          data-empty-state="budget"
+        >
           <BudgetEmptyState
             title={BUDGET_EMPTY.title}
             description={BUDGET_EMPTY.description}
@@ -150,9 +154,9 @@ export function BudgetPlansListContent() {
                       className={cn(
                         "mt-1 text-[1.65rem] font-semibold tracking-tight tabular-nums",
                         summary.availableToBudget < 0
-                          ? "text-[var(--brand-red)]"
+                          ? "text-[var(--fg-danger-text)]"
                           : summary.availableToBudget > 0
-                            ? "text-[var(--brand-green)]"
+                            ? "text-[var(--brand-green-text)]"
                             : "text-foreground",
                       )}
                     >
