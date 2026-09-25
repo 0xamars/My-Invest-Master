@@ -13,8 +13,8 @@ export const BRAND_SIZE = {
 export const SITE_TITLE = "InvestSalsa: Budget, Invest, Retire";
 
 export const SITE_DESCRIPTION =
-  "See when you can retire, and which accounts to draw from first, for one person or a couple. Built around RRSP, RRIF, TFSA and non-registered accounts. Educational, not advice.";
+  "See your leftover cash, follow what you own, and know when you can stop working. Budget, Invest, and Retire in one place. Educational, not advice.";
 
-/** Social image alt. Does not repeat the homepage headline. */
+/** Social image alt. Headline plus the Budget, Invest, and Retire line. */
 export const OG_IMAGE_ALT =
-  "InvestSalsa Retire planner for one person or a couple. An example compares lifetime tax across four withdrawal orders. Made-up numbers, amounts in CAD.";
+  "InvestSalsa. Budget, Invest, and Retire: leftover cash, the holdings you own, and when you can stop working.";

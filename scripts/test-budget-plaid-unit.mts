@@ -290,8 +290,8 @@ const marketing = readFileSync(
 assert(!marketing.includes("BrandStill"), "marketing has no hero still");
 assert(!marketing.includes("Learn"), "marketing does not revive Learn");
 assert(
-  marketing.includes("Know when you can stop working, and which order to draw from."),
-  "marketing Retire pillar is one sentence",
+  marketing.includes("See when you can stop working, with every assumption visible."),
+  "marketing Retire card is one sentence",
 );
 assert(
   marketing.includes("Freedom, Engineered."),
