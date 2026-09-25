@@ -1565,7 +1565,7 @@ assert(
 );
 const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 assert(css.includes(".empty-stack"), "empty states use a centered stack");
-assert(css.includes(".empty-stack-mark"), "empty mark sits in the stack");
+assert(css.includes(".empty-stack-art"), "empty art sits in the stack");
 assert(!css.includes(".art-wash"), "product chrome has no art wash");
 assert(
   css.includes("backdrop-filter: none") && !/backdrop-filter:\s*blur/.test(css),
@@ -1576,11 +1576,12 @@ const emptyArtUi = readFileSync(
   "utf8",
 );
 assert(
-  emptyArtUi.includes("DeskEmptyMark") &&
-    emptyArtUi.includes('data-empty-kit="mark"') &&
-    !emptyArtUi.includes("next/image") &&
-    !emptyArtUi.includes("empty-budget.png"),
-  "empty stack uses the SVG kit instead of the mismatched PNG plate",
+  emptyArtUi.includes("next/image") &&
+    emptyArtUi.includes("unoptimized") &&
+    emptyArtUi.includes("empty-stack-art") &&
+    !emptyArtUi.includes("DeskEmptyMark") &&
+    !emptyArtUi.includes("ArtWash"),
+  "empty stack paints the card-matched illustration without a wash",
 );
 assert(css.includes(".desk-stack"), "pages use a 24px section stack");
 assert(css.includes(".money-hero"), "monumental money class exists");

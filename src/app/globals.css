@@ -515,17 +515,7 @@
   .empty-stack-art {
     width: 7.5rem;
     margin-bottom: 1.5rem;
-  }
-
-  .empty-stack-mark {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-  }
-
-  .empty-stack-mark .desk-empty-mark,
-  .empty-stack-mark .desk-empty-icon {
-    margin-bottom: 0;
+    background: transparent;
   }
 
   .empty-stack-image {
@@ -533,6 +523,8 @@
     width: 100%;
     height: auto;
     background: transparent;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .empty-stack-title {

@@ -1,8 +1,6 @@
 /**
- * Imagine empty PNGs, kept on disk for a later drop-in.
- * They are not rendered: the canvas is a misty plate, not the card
- * (`--card` / #141518). The empty stack uses the SVG mark until a file
- * whose background matches the card replaces these.
+ * Imagine empty PNGs. The field is flat #141518, the same as the card,
+ * so a centered stack has no separate artboard edge.
  */
 export const EMPTY_ART = {
   budget: {

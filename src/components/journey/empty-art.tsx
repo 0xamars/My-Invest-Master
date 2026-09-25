@@ -1,25 +1,24 @@
-import { LayoutGrid, List } from "lucide-react";
-import { DeskEmptyMark } from "@/components/layout/desk-empty-mark";
-import type { EmptyArtKind } from "@/lib/journey/empty-art";
+import Image from "next/image";
+import { EMPTY_ART, type EmptyArtKind } from "@/lib/journey/empty-art";
 
 /**
- * Centered empty mark above the title. The Imagine PNGs stay unpainted
- * until their background matches the card, so this is the SVG / icon kit.
+ * Centered empty illustration, in normal flow above the title.
+ * The file is unoptimized so the flat #141518 field is not recompressed
+ * into a different plate.
  */
 export function EmptyArt({ kind }: { kind: EmptyArtKind }) {
+  const art = EMPTY_ART[kind];
   return (
-    <div className="empty-stack-mark" data-empty-art={kind} data-empty-kit="mark">
-      {kind === "home" ? (
-        <div className="desk-empty-icon" aria-hidden>
-          <LayoutGrid className="size-5" />
-        </div>
-      ) : kind === "transactions" ? (
-        <div className="desk-empty-icon" aria-hidden>
-          <List className="size-5" />
-        </div>
-      ) : (
-        <DeskEmptyMark kind={kind} />
-      )}
+    <div className="empty-stack-art" data-empty-art={kind}>
+      <Image
+        src={art.src}
+        alt={art.alt}
+        width={art.width}
+        height={art.height}
+        unoptimized
+        sizes="(min-width: 640px) 176px, 120px"
+        className="empty-stack-image"
+      />
     </div>
   );
 }
