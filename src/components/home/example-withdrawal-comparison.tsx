@@ -7,7 +7,11 @@ import {
   EXAMPLE_RATES,
   formatExampleCad,
 } from "@/lib/retirement/example-couple";
-import type { WithdrawalOrderComparison } from "@/lib/retirement/withdrawal-orders";
+import {
+  sharedTaxComparison,
+  type SharedOrderTax,
+  type WithdrawalOrderComparison,
+} from "@/lib/retirement/withdrawal-orders";
 import { cn } from "@/lib/utils";
 
 const MONEY = "px-3 py-2 text-right text-sm tabular-nums whitespace-nowrap";
@@ -61,14 +65,22 @@ export function ExampleWithdrawalComparison() {
     );
   }
 
-  const lowestTax = Math.min(...comparison.orders.map((order) => order.totals.totalTax));
+  const shared = sharedTaxComparison(comparison.orders);
+  const sharedTaxes = comparison.orders.map(
+    (order) => shared.taxes[order.id]?.totalTax ?? order.totals.totalTax,
+  );
+  const lowestTax = Math.min(...sharedTaxes);
   const highestEstate = Math.max(
     ...comparison.orders.map((order) => order.totals.endingAfterTaxEstate),
   );
   const tableOrder =
-    comparison.orders.find((order) => order.totals.totalTax === lowestTax) ??
-    comparison.orders[0];
+    comparison.orders.find(
+      (order) => (shared.taxes[order.id]?.totalTax ?? order.totals.totalTax) <= lowestTax + 0.01,
+    ) ?? comparison.orders[0];
   const preview = tableOrder.householdRows.slice(0, EXAMPLE_PREVIEW_YEARS);
+  const taxLabel = shared.throughYear == null ? "Lifetime tax" : `Tax through ${shared.throughYear}`;
+  const taxBadge =
+    shared.throughYear == null ? "Lowest lifetime tax" : `Lowest tax through ${shared.throughYear}`;
 
   return (
     <figure
@@ -126,15 +138,19 @@ export function ExampleWithdrawalComparison() {
           <OrderCard
             key={order.id}
             order={order}
-            lowTax={order.totals.totalTax === lowestTax}
+            tax={shared.taxes[order.id]}
+            taxLabel={taxLabel}
+            taxBadge={taxBadge}
+            lowTax={(shared.taxes[order.id]?.totalTax ?? order.totals.totalTax) <= lowestTax + 0.01}
             highEstate={order.totals.endingAfterTaxEstate === highestEstate}
             shown={order.id === tableOrder.id}
           />
         ))}
       </div>
       <p className="type-small mt-3 text-[var(--fg-muted)]">
-        Marks show the lowest lifetime tax and the highest ending estate. Neither mark
-        is a recommendation.
+        {shared.throughYear == null
+          ? "Marks show the lowest lifetime tax and the highest ending estate. Neither mark is a recommendation."
+          : `Tax is compared through ${shared.throughYear}, the last year every order still covered spending. An order is not marked lowest tax because it ran out sooner or lasted longer. The highest ending estate is the balance at the end of the plan. Neither mark is a recommendation.`}
       </p>
 
       <div className="surface-card mt-6 overflow-hidden">
@@ -216,15 +232,27 @@ export function ExampleWithdrawalComparison() {
 
 function OrderCard({
   order,
+  tax,
+  taxLabel,
+  taxBadge,
   lowTax,
   highEstate,
   shown,
 }: {
   order: WithdrawalOrderComparison;
+  tax: SharedOrderTax | undefined;
+  taxLabel: string;
+  taxBadge: string;
   lowTax: boolean;
   highEstate: boolean;
   shown: boolean;
 }) {
+  const shownTax = tax ?? {
+    federalTax: order.totals.federalTax,
+    provincialTax: order.totals.provincialTax,
+    oasClawback: order.totals.oasClawback,
+    totalTax: order.totals.totalTax,
+  };
   return (
     <div
       className={cn(
@@ -237,7 +265,7 @@ function OrderCard({
           <h3 className="text-sm font-semibold">{order.label}</h3>
           {lowTax ? (
             <span className="rounded-4xl bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-              Lowest lifetime tax
+              {taxBadge}
             </span>
           ) : null}
           {highEstate ? (
@@ -249,10 +277,10 @@ function OrderCard({
         <p className="text-xs leading-relaxed text-[var(--fg-muted)]">{order.summary}</p>
       </div>
       <dl className="mt-auto space-y-2 text-sm">
-        <Stat label="Lifetime tax" value={money(order.totals.totalTax)} />
-        <Stat label="Federal" value={money(order.totals.federalTax)} />
-        <Stat label="Ontario" value={money(order.totals.provincialTax)} />
-        <Stat label="OAS clawback" value={money(order.totals.oasClawback)} />
+        <Stat label={taxLabel} value={money(shownTax.totalTax)} />
+        <Stat label="Federal" value={money(shownTax.federalTax)} />
+        <Stat label="Ontario" value={money(shownTax.provincialTax)} />
+        <Stat label="OAS clawback" value={money(shownTax.oasClawback)} />
         <Stat
           label="Ending estate, after tax"
           value={money(order.totals.endingAfterTaxEstate)}
@@ -266,6 +294,12 @@ function OrderCard({
           }
         />
       </dl>
+      {order.totals.depletionYear != null ? (
+        <p className="text-xs leading-relaxed text-[var(--fg-muted)]">
+          Depleted in {order.totals.depletionYear}. This order does not cover spending
+          through the end of the plan.
+        </p>
+      ) : null}
       {shown ? (
         <p className="type-small text-[var(--brand-green-text)]">Shown year by year</p>
       ) : null}

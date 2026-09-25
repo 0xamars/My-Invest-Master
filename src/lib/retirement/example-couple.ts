@@ -14,7 +14,7 @@ export const EXAMPLE_COUPLE = {
   names: { person1: "Sam", person2: "Riley" },
   ages: { person1: 65, person2: 65 },
   endAge: 90,
-  spendingCad: 180_000,
+  spendingCad: 110_000,
   inflationPercent: 2,
   growthPercent: 4,
   gainShare: 0.5,

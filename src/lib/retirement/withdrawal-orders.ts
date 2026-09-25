@@ -1,5 +1,5 @@
 import { missingRetirementInputs } from "@/lib/retirement/inputs";
-import { findDepletionYear, computeRetirementProjections } from "@/lib/retirement/projections";
+import { computeRetirementProjections } from "@/lib/retirement/projections";
 import { normalizeRetirementPlan } from "@/lib/retirement/normalize";
 import {
   CA_ON_TAX_2026,
@@ -71,7 +71,7 @@ export const WITHDRAWAL_ORDER_DETAILS: readonly WithdrawalOrderDetail[] = [
     id: "meltdown",
     label: "RRSP meltdown",
     summary:
-      "Each retired year, draw RRSP and RRIF up to the target taxable income per person. Fund the rest of the gap from non-registered and cash, then TFSA. After-tax surplus goes to a TFSA up to the annual room, then non-registered.",
+      "Each retired year, draw RRSP and RRIF up to the target taxable income per person. Fund the rest of the gap from non-registered and cash, then TFSA. If spending is still short, draw more RRSP and RRIF. After-tax surplus goes to a TFSA up to the annual room, then non-registered.",
   },
 ];
 
@@ -106,6 +106,23 @@ export interface WithdrawalOrderEngineAssumptions {
 }
 
 const DRAW_EPSILON = 0.005;
+
+/** A year is funded when the unpaid gap is at most one cent. */
+export const FUNDING_SHORTFALL_TOLERANCE = 0.01;
+
+/** Cash that left the accounts and was not put back. That is what spending can use. */
+export function netWithdrawal(result: WithdrawalYearResult): number {
+  const withdrawn = Object.values(result.withdrawalByAccount).reduce(
+    (sum, value) => sum + Math.max(0, value),
+    0,
+  );
+  return withdrawn - Math.max(0, result.rrifSurplusReinvested);
+}
+
+/** Unpaid spending gap after surplus is put back. Zero when the year is fully funded. */
+export function fundingShortfallOf(result: WithdrawalYearResult): number {
+  return Math.max(0, result.portfolioWithdrawal - netWithdrawal(result));
+}
 
 function sumIds(values: Record<string, number>, ids: string[]): number {
   return ids.reduce((sum, id) => sum + Math.max(0, values[id] ?? 0), 0);
@@ -434,6 +451,8 @@ function applyOrderedWithdrawal(
   };
 
   const gap = Math.max(0, input.spendingGap);
+  const accountIds = input.accounts.map((account) => account.id);
+  const withdrawnNow = () => sumIds(taken, accountIds);
 
   if (order === "meltdown") {
     const retired = people
@@ -442,12 +461,16 @@ function applyOrderedWithdrawal(
       .sort(compareOwners);
     for (const owner of retired) drawRegisteredToTarget(owner);
 
-    let withdrawn = sumIds(taken, input.accounts.map((account) => account.id));
-    if (withdrawn < gap - DRAW_EPSILON) {
-      withdrawn += drawTier(["non_registered", "cash"], gap - withdrawn);
+    // The target is the preferred registered draw, not a cap that leaves
+    // spending unpaid while RRSP or RRIF money is still there.
+    if (withdrawnNow() < gap - DRAW_EPSILON) {
+      drawTier(["non_registered", "cash"], gap - withdrawnNow());
     }
-    if (withdrawn < gap - DRAW_EPSILON) {
-      drawTier(["tfsa"], gap - withdrawn);
+    if (withdrawnNow() < gap - DRAW_EPSILON) {
+      drawTier(["tfsa"], gap - withdrawnNow());
+    }
+    if (withdrawnNow() < gap - DRAW_EPSILON) {
+      drawTier(["rrsp", "rrif"], gap - withdrawnNow());
     }
   } else {
     let remaining = gap - Math.min(rrifMinimum, gap);
@@ -457,10 +480,7 @@ function applyOrderedWithdrawal(
     }
   }
 
-  const withdrawnTotal = sumIds(
-    taken,
-    input.accounts.map((account) => account.id),
-  );
+  const withdrawnTotal = sumIds(taken, accountIds);
   const surplus =
     order === "meltdown"
       ? Math.max(0, withdrawnTotal - gap)
@@ -468,6 +488,25 @@ function applyOrderedWithdrawal(
 
   let rrifSurplusReinvested = 0;
   let rrifSurplusLeftPlan = surplus;
+  const reinvestedByAccount: Record<string, number> = {};
+  for (const id of accountIds) reinvestedByAccount[id] = 0;
+
+  const credit = (amount: number, ids: string[]) => {
+    if (amount <= DRAW_EPSILON || ids.length === 0) return;
+    const total = sumIds(values, ids);
+    if (total > 0) {
+      for (const id of ids) {
+        const share = amount * (Math.max(0, values[id] ?? 0) / total);
+        reinvestedByAccount[id] = (reinvestedByAccount[id] ?? 0) + share;
+      }
+    } else {
+      const share = amount / ids.length;
+      for (const id of ids) {
+        reinvestedByAccount[id] = (reinvestedByAccount[id] ?? 0) + share;
+      }
+    }
+    addProRata(values, amount, ids);
+  };
 
   if (surplus > DRAW_EPSILON && order === "meltdown") {
     let left = surplus;
@@ -482,7 +521,7 @@ function applyOrderedWithdrawal(
       if (tfsaIds.length === 0) continue;
       const deposit = Math.min(left, Math.max(0, tfsaRoom));
       if (deposit <= 0) continue;
-      addProRata(values, deposit, tfsaIds);
+      credit(deposit, tfsaIds);
       left -= deposit;
     }
     if (left > DRAW_EPSILON) {
@@ -493,7 +532,7 @@ function applyOrderedWithdrawal(
         )
         .map((account) => account.id);
       if (destination.length > 0) {
-        addProRata(values, left, destination);
+        credit(left, destination);
         left = 0;
       }
     }
@@ -515,7 +554,7 @@ function applyOrderedWithdrawal(
           ? tfsa
           : [];
     if (destination.length > 0) {
-      addProRata(values, surplus, destination);
+      credit(surplus, destination);
       rrifSurplusReinvested = surplus;
       rrifSurplusLeftPlan = 0;
     }
@@ -534,6 +573,7 @@ function applyOrderedWithdrawal(
     rrifMinimum,
     rrifSurplusReinvested,
     rrifSurplusLeftPlan,
+    reinvestedByAccount,
   };
 }
 
@@ -608,16 +648,32 @@ export interface PersonWithdrawalYearRow {
   converged: boolean;
 }
 
+export interface AccountYearClose {
+  id: string;
+  /** Balance after this year's growth, before the contribution and the withdrawal. */
+  afterGrowth: number;
+  contribution: number;
+  withdrawal: number;
+  /** Surplus moved into this account, including a TFSA deposit. */
+  reinvested: number;
+  closing: number;
+}
+
 export interface HouseholdWithdrawalYearRow {
   year: number;
   withdrawals: WithdrawalKindAmounts;
   rrifMinimum: number;
+  /** Surplus put back into accounts. Matches the sum of `accounts[].reinvested`. */
+  surplusReinvested: number;
   taxableIncome: number;
   federalTax: number;
   provincialTax: number;
   oasClawback: number;
   totalTax: number;
   closingBalance: number;
+  /** Unpaid spending after surplus is put back. Zero when the year is fully funded. */
+  fundingShortfall: number;
+  accounts: AccountYearClose[];
   /** False when this year's tax and withdrawal did not settle within $0.01. */
   converged: boolean;
 }
@@ -860,16 +916,30 @@ function compareOneOrder(
         oasClawback += row.oasClawback;
         totalTax += row.totalTax;
       }
+      const trace = withdrawalByYear.get(projection.year);
+      const accounts: AccountYearClose[] = trace
+        ? trace.input.accounts.map((account) => ({
+            id: account.id,
+            afterGrowth: account.value,
+            contribution: account.contribution,
+            withdrawal: trace.result.withdrawalByAccount[account.id] ?? 0,
+            reinvested: trace.result.reinvestedByAccount?.[account.id] ?? 0,
+            closing: trace.result.closingByAccount[account.id] ?? 0,
+          }))
+        : [];
       return {
         year: projection.year,
         withdrawals,
         rrifMinimum,
+        surplusReinvested: trace?.result.rrifSurplusReinvested ?? 0,
         taxableIncome,
         federalTax,
         provincialTax,
         oasClawback,
         totalTax,
         closingBalance: projection.closingBalance,
+        fundingShortfall: trace ? fundingShortfallOf(trace.result) : 0,
+        accounts,
         converged: projection.taxWithdrawalConverged,
       };
     },
@@ -899,7 +969,9 @@ function compareOneOrder(
     taxByYear,
     assumptions,
   );
-  totals.depletionYear = findDepletionYear(projections);
+  totals.depletionYear =
+    householdRows.find((row) => row.fundingShortfall > FUNDING_SHORTFALL_TOLERANCE)
+      ?.year ?? null;
 
   return {
     id: order,
@@ -909,6 +981,62 @@ function compareOneOrder(
     householdRows,
     totals,
   };
+}
+
+export interface SharedOrderTax {
+  federalTax: number;
+  provincialTax: number;
+  oasClawback: number;
+  totalTax: number;
+}
+
+export interface SharedTaxComparison {
+  /**
+   * Last calendar year included in the tax comparison. Null when every order
+   * funds spending through the plan horizon, so the totals are lifetime totals.
+   * Otherwise the year before the earliest depletion, because a year that is
+   * only partly funded is not a full year of tax.
+   */
+  throughYear: number | null;
+  taxes: Partial<Record<WithdrawalOrderId, SharedOrderTax>>;
+}
+
+function sumOrderTax(rows: HouseholdWithdrawalYearRow[]): SharedOrderTax {
+  return rows.reduce<SharedOrderTax>(
+    (sum, row) => ({
+      federalTax: sum.federalTax + row.federalTax,
+      provincialTax: sum.provincialTax + row.provincialTax,
+      oasClawback: sum.oasClawback + row.oasClawback,
+      totalTax: sum.totalTax + row.totalTax,
+    }),
+    { federalTax: 0, provincialTax: 0, oasClawback: 0, totalTax: 0 },
+  );
+}
+
+/**
+ * Tax compared over the years every order still covered spending. An order
+ * that runs out sooner stops paying tax, and an order that lasts longer keeps
+ * paying it, so neither full-horizon total is a fair "lowest tax" mark.
+ */
+export function sharedTaxComparison(
+  orders: WithdrawalOrderComparison[],
+): SharedTaxComparison {
+  let earliest: number | null = null;
+  for (const order of orders) {
+    const year = order.totals.depletionYear;
+    if (year == null) continue;
+    if (earliest == null || year < earliest) earliest = year;
+  }
+  const throughYear = earliest == null ? null : earliest - 1;
+  const taxes: Partial<Record<WithdrawalOrderId, SharedOrderTax>> = {};
+  for (const order of orders) {
+    const rows =
+      throughYear == null
+        ? order.householdRows
+        : order.householdRows.filter((row) => row.year <= throughYear);
+    taxes[order.id] = sumOrderTax(rows);
+  }
+  return { throughYear, taxes };
 }
 
 /**

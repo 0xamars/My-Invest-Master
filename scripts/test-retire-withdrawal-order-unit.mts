@@ -11,8 +11,16 @@ import {
 } from "../src/lib/retirement/tax-ca.ts";
 import { normalizeRetirementPlan } from "../src/lib/retirement/normalize.ts";
 import {
+  EXAMPLE_CAD_PER_USD,
+  EXAMPLE_COUPLE_PLAN,
+  EXAMPLE_COUPLE_YEAR,
+} from "../src/lib/retirement/example-couple.ts";
+import {
   compareWithdrawalOrders,
   createWithdrawalOrderEngine,
+  FUNDING_SHORTFALL_TOLERANCE,
+  sharedTaxComparison,
+  type WithdrawalOrderComparison,
   type WithdrawalOrderEngineAssumptions,
 } from "../src/lib/retirement/withdrawal-orders.ts";
 import type {
@@ -207,6 +215,54 @@ near(meltdown.closingByAccount["taxable-1"], 83_046, "meltdown surplus above TFS
 const capped = taken("meltdown", 10_000, { meltdownTargetIncome: 18_500 });
 assert((capped.withdrawalByAccount["rrsp-1"] ?? 0) === 0, "meltdown does not draw once person 1 is already at the target");
 assert(capped.withdrawalByAccount["rrsp-2"] === 12_500, "meltdown draws person 2 only up to the target");
+
+// The bracket target is a preference. Once TFSA and non-registered are gone,
+// remaining RRSP and RRIF still fund the spending gap.
+const forced = createWithdrawalOrderEngine(
+  "meltdown",
+  engineAssumptions({ meltdownTargetIncome: 20_000, annualTfsaRoom: 0 }),
+)({
+  spendingGap: 80_000,
+  people: people(),
+  accounts: [
+    {
+      id: "rrsp-1",
+      owner: "person1",
+      kind: "rrsp",
+      value: 200_000,
+      contribution: 0,
+      rrifMinimum: 0,
+    },
+    {
+      id: "tfsa-1",
+      owner: "person1",
+      kind: "tfsa",
+      value: 5_000,
+      contribution: 0,
+      rrifMinimum: 0,
+    },
+    {
+      id: "taxable-1",
+      owner: "person1",
+      kind: "non_registered",
+      value: 5_000,
+      contribution: 0,
+      rrifMinimum: 0,
+    },
+  ],
+});
+const forcedDrawn =
+  (forced.withdrawalByAccount["rrsp-1"] ?? 0) +
+  (forced.withdrawalByAccount["tfsa-1"] ?? 0) +
+  (forced.withdrawalByAccount["taxable-1"] ?? 0) -
+  forced.rrifSurplusReinvested;
+assert(forced.withdrawalByAccount["tfsa-1"] === 5_000, "meltdown uses the TFSA when the target draw cannot fund the gap");
+assert(forced.withdrawalByAccount["taxable-1"] === 5_000, "meltdown uses non-registered when the target draw cannot fund the gap");
+assert(
+  (forced.withdrawalByAccount["rrsp-1"] ?? 0) > 20_000 - 18_500,
+  "meltdown draws RRSP above the target when spending is still short",
+);
+near(forcedDrawn, 80_000, "meltdown funds the full gap once extra RRSP is drawn", 0.01);
 
 // --- RRIF minimum is always taken ------------------------------------------
 
@@ -908,6 +964,148 @@ assert(legacy.withdrawalAssumptions.selectedOrder === "rrsp-first", "an old plan
 assert(legacy.withdrawalAssumptions.unrealizedGainShare === 0.5, "an old plan defaults the gain share");
 assert(legacy.withdrawalAssumptions.meltdownTargetIncome == null, "an old plan leaves the meltdown target on the published bracket");
 assert(legacy.withdrawalAssumptions.annualTfsaRoom == null, "an old plan leaves TFSA room on the published limit");
+
+// --- Account identity and funded spending ----------------------------------
+// Opening after growth + contribution + surplus moved in − withdrawal = closing.
+// Each year either pays the after-tax spending gap or is the depletion year.
+
+function assertOrderInvariants(
+  label: string,
+  orders: WithdrawalOrderComparison[],
+) {
+  assert(orders.length === 4, `${label} compares four orders`);
+  for (const order of orders) {
+    let firstShort: number | null = null;
+    let breaks = 0;
+    for (const row of order.householdRows) {
+      let reinvested = 0;
+      for (const account of row.accounts) {
+        reinvested += account.reinvested;
+        const expected =
+          account.afterGrowth +
+          account.contribution -
+          account.withdrawal +
+          account.reinvested;
+        if (Math.abs(account.closing - expected) > 0.01) {
+          breaks += 1;
+          failed += 1;
+          console.error(
+            `FAIL ${label} ${order.id} ${row.year} ${account.id} closes (got ${account.closing}, expected ${expected})`,
+          );
+        }
+      }
+      if (Math.abs(reinvested - row.surplusReinvested) > 0.01) {
+        breaks += 1;
+        failed += 1;
+        console.error(
+          `FAIL ${label} ${order.id} ${row.year} surplus matches the account credits (got ${reinvested}, expected ${row.surplusReinvested})`,
+        );
+      }
+      const short = row.fundingShortfall > FUNDING_SHORTFALL_TOLERANCE;
+      if (short && firstShort == null) firstShort = row.year;
+      if (!short && firstShort != null) {
+        breaks += 1;
+        failed += 1;
+        console.error(
+          `FAIL ${label} ${order.id} ${row.year} is funded after depletion began`,
+        );
+      }
+    }
+    if (order.totals.depletionYear !== firstShort) {
+      breaks += 1;
+      failed += 1;
+      console.error(
+        `FAIL ${label} ${order.id} depletion year is the first unfunded year (got ${order.totals.depletionYear}, expected ${firstShort})`,
+      );
+    }
+    assert(
+      breaks === 0,
+      `${label} ${order.id} identity and funding hold for ${order.householdRows.length} years`,
+    );
+  }
+}
+
+assertOrderInvariants("golden couple", compared.orders);
+const homepageExample = compareWithdrawalOrders(EXAMPLE_COUPLE_PLAN, {
+  currentYear: EXAMPLE_COUPLE_YEAR,
+  cadPerUsd: EXAMPLE_CAD_PER_USD,
+});
+assertOrderInvariants("homepage example", homepageExample.orders);
+assert(
+  homepageExample.orders.find((order) => order.id === "rrsp-first")?.totals.depletionYear ==
+    null,
+  "the homepage example funds RRSP first through the plan horizon",
+);
+assert(
+  sharedTaxComparison(homepageExample.orders).throughYear == null,
+  "the homepage example compares lifetime tax because every order funds the horizon",
+);
+
+const samRileyHighSpend = {
+  ...EXAMPLE_COUPLE_PLAN,
+  id: "sam-riley-180k",
+  annualLifestyleSpending: 180_000 / EXAMPLE_CAD_PER_USD,
+};
+const highSpend = compareWithdrawalOrders(samRileyHighSpend, {
+  currentYear: EXAMPLE_COUPLE_YEAR,
+  cadPerUsd: EXAMPLE_CAD_PER_USD,
+});
+assertOrderInvariants("Sam and Riley at $180k", highSpend.orders);
+
+const highRrsp = highSpend.orders.find((order) => order.id === "rrsp-first");
+const highMeltdown = highSpend.orders.find((order) => order.id === "meltdown");
+assert(
+  highRrsp?.totals.depletionYear != null && highMeltdown?.totals.depletionYear != null,
+  "at $180k both RRSP first and meltdown run out",
+);
+if (highRrsp?.totals.depletionYear != null && highMeltdown?.totals.depletionYear != null) {
+  assert(
+    Math.abs(highRrsp.totals.depletionYear - highMeltdown.totals.depletionYear) <= 3,
+    `meltdown depletion stays near RRSP first (RRSP first ${highRrsp.totals.depletionYear}, meltdown ${highMeltdown.totals.depletionYear})`,
+  );
+}
+
+const highShared = sharedTaxComparison(highSpend.orders);
+assert(highShared.throughYear != null, "a depleted comparison uses a shared tax window");
+if (highShared.throughYear != null && highRrsp && highMeltdown) {
+  const earliest = Math.min(
+    ...highSpend.orders
+      .map((order) => order.totals.depletionYear)
+      .filter((year): year is number => year != null),
+  );
+  assert(
+    highShared.throughYear === earliest - 1,
+    "the shared window stops the year before the first depletion",
+  );
+  const fullWinner = [...highSpend.orders].sort(
+    (a, b) => a.totals.totalTax - b.totals.totalTax,
+  )[0];
+  const sharedWinner = [...highSpend.orders].sort(
+    (a, b) =>
+      (highShared.taxes[a.id]?.totalTax ?? 0) - (highShared.taxes[b.id]?.totalTax ?? 0),
+  )[0];
+  assert(
+    fullWinner != null && sharedWinner != null && fullWinner.id !== sharedWinner.id,
+    "lowest full-horizon tax and lowest shared-window tax are different orders",
+  );
+  const afterWindow = highMeltdown.householdRows
+    .filter((row) => row.year > (highShared.throughYear ?? 0))
+    .reduce((sum, row) => sum + row.totalTax, 0);
+  near(
+    (highShared.taxes.meltdown?.totalTax ?? 0) + afterWindow,
+    highMeltdown.totals.totalTax,
+    "shared-window tax plus later years equals lifetime tax",
+    0.01,
+  );
+  assert(
+    afterWindow > 1_000,
+    "meltdown still pays tax after the shared window, so lifetime tax is not the comparison",
+  );
+  assert(
+    highMeltdown.totals.endingAfterTaxEstate < 1,
+    "meltdown does not finish the $180k plan with a leftover balance",
+  );
+}
 
 if (failed > 0) {
   console.error(`\n${failed} assertion(s) failed`);
