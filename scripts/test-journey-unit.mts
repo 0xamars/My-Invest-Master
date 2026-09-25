@@ -1421,21 +1421,21 @@ assert(!/YNAB|Freedom/i.test(checklistCopy), "checklist does not name YNAB or Fr
 assert(!/video|trailer/i.test(checklistCopy), "checklist has no trailer");
 
 const artCopy = emptyArtText();
-assert(artCopy.includes("/brand/empties/empty-budget.jpg"), "budget empty art path");
-assert(artCopy.includes("/brand/empties/empty-home.jpg"), "home empty art path");
-assert(artCopy.includes("/brand/empties/empty-invest.jpg"), "invest empty art path");
-assert(artCopy.includes("/brand/empties/empty-retire.jpg"), "retire empty art path");
+assert(artCopy.includes("/brand/empties/empty-budget.png"), "budget empty art path");
+assert(artCopy.includes("/brand/empties/empty-home.png"), "home empty art path");
+assert(artCopy.includes("/brand/empties/empty-invest.png"), "invest empty art path");
+assert(artCopy.includes("/brand/empties/empty-retire.png"), "retire empty art path");
 assert(
-  artCopy.includes("/brand/empties/empty-transactions.jpg"),
+  artCopy.includes("/brand/empties/empty-transactions.png"),
   "transactions empty art path",
 );
 assert(!/YNAB|Freedom/i.test(artCopy), "empty art alt text stays on-brand");
 for (const file of [
-  "empty-budget.jpg",
-  "empty-home.jpg",
-  "empty-invest.jpg",
-  "empty-retire.jpg",
-  "empty-transactions.jpg",
+  "empty-budget.png",
+  "empty-home.png",
+  "empty-invest.png",
+  "empty-retire.png",
+  "empty-transactions.png",
 ]) {
   assert(
     existsSync(join(process.cwd(), "public/brand/empties", file)),

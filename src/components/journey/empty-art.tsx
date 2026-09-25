@@ -10,7 +10,7 @@ export function EmptyArt({ kind }: { kind: EmptyArtKind }) {
         alt={art.alt}
         width={art.width}
         height={art.height}
-        sizes="264px"
+        sizes="288px"
         className="empty-art"
         style={{ width: "100%", height: "auto" }}
       />

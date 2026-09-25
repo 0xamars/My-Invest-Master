@@ -1,34 +1,34 @@
-/** Grok Imagine empty art. Sources were JPEG; shipped compressed. */
+/** Grok Imagine empty art, square PNGs. */
 export const EMPTY_ART = {
   budget: {
-    src: "/brand/empties/empty-budget.jpg",
+    src: "/brand/empties/empty-budget.png",
     alt: "Illustration of stacked envelopes",
-    width: 960,
-    height: 540,
+    width: 1408,
+    height: 1408,
   },
   invest: {
-    src: "/brand/empties/empty-invest.jpg",
+    src: "/brand/empties/empty-invest.png",
     alt: "Illustration of a rising chart",
-    width: 960,
-    height: 540,
+    width: 1408,
+    height: 1408,
   },
   retire: {
-    src: "/brand/empties/empty-retire.jpg",
+    src: "/brand/empties/empty-retire.png",
     alt: "Illustration of a path to a horizon",
-    width: 960,
-    height: 540,
+    width: 1408,
+    height: 1408,
   },
   home: {
-    src: "/brand/empties/empty-home.jpg",
+    src: "/brand/empties/empty-home.png",
     alt: "Illustration of Budget, Invest, and Retire tiles",
-    width: 960,
-    height: 540,
+    width: 1408,
+    height: 1408,
   },
   transactions: {
-    src: "/brand/empties/empty-transactions.jpg",
+    src: "/brand/empties/empty-transactions.png",
     alt: "Illustration of an empty list with an add mark",
-    width: 960,
-    height: 540,
+    width: 1408,
+    height: 1408,
   },
 } as const;
 

@@ -534,7 +534,7 @@
   }
 
   .empty-art-frame {
-    width: min(100%, 16.5rem);
+    width: min(100%, 18rem);
     margin-bottom: 0.85rem;
     overflow: hidden;
     border-radius: calc(var(--radius) + 2px);
