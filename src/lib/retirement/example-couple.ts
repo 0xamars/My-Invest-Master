@@ -10,13 +10,14 @@ import {
 } from "@/types/retirement";
 
 /**
- * Homepage illustration only. Names, ages, balances, and spending are
- * invented. Do not replace these with a real household.
+ * Fixture for tests. Names, ages, balances, and spending are invented.
+ * Do not show this on the marketing page, and do not replace these with a
+ * real household.
  */
 export const EXAMPLE_COUPLE_YEAR = 2026;
 export const EXAMPLE_CAD_PER_USD = DEFAULT_FX_RATES.CAD;
 
-/** Plain names for the homepage proof. The in-app comparison keeps its own labels. */
+/** Plain names for the example-plan fixture. Not shown on the marketing page. */
 export const EXAMPLE_HOME_ORDER_LABEL: Record<WithdrawalOrderId, string> = {
   "rrsp-first": "RRSP first",
   "tfsa-last": "TFSA last",
@@ -162,8 +163,8 @@ function wholeCad(usd: number): number {
 }
 
 /**
- * Lifetime tax for the homepage proof. Amounts are the engine result on
- * EXAMPLE_COUPLE_PLAN, rounded the same way the bars are labeled.
+ * Lifetime tax for the example-plan fixture. Not shown on the marketing page.
+ * Amounts are the engine result on EXAMPLE_COUPLE_PLAN.
  */
 export function exampleLifetimeTaxDisplay(): ExampleLifetimeTaxDisplay | null {
   const comparison = EXAMPLE_COUPLE_COMPARISON;

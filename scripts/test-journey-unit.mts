@@ -7,7 +7,6 @@ import { join } from "node:path";
 import {
   EXAMPLE_COUPLE,
   EXAMPLE_COUPLE_COMPARISON,
-  exampleLifetimeTaxDisplay,
 } from "../src/lib/retirement/example-couple.ts";
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
@@ -1217,43 +1216,38 @@ assert(
   "Freedom appears only in the homepage H1",
 );
 assert(
-  marketingSrc.includes("Retire planner for Canadians"),
-  "marketing eyebrow is a Retire planner for Canadians",
+  marketingSrc.includes("Budget · Invest · Retire"),
+  "marketing eyebrow names Budget, Invest, and Retire",
 );
 assert(
   marketingSrc.includes(
-    "See when you can retire, and which accounts to draw from first so you keep more of what you saved.",
+    "See your leftover cash, follow what you own, and know when you can stop working.",
   ),
-  "marketing benefit line is the outcome sentence",
+  "marketing benefit line is the whole-app outcome",
 );
 assert(
-  marketingSrc.includes(
-    "For one person or a couple. Built around RRSP, RRIF, TFSA and non-registered accounts.",
+  marketingSrc.includes("Leftover cash after the bills you enter.") &&
+    marketingSrc.includes("Follow the holdings you already own.") &&
+    marketingSrc.includes(
+      "See when you can stop working, with every assumption visible.",
+    ),
+  "marketing feature cards are one sentence each",
+);
+assert(
+  !/canad|\bCAD\b|RRSP|TFSA|RRIF|non-registered|clawback|meltdown|gross-up|the two of you|draw from first/i.test(
+    marketingSrc,
   ),
-  "marketing secondary line includes one person or a couple",
+  "marketing homepage has no Canada-only claim, account types, or order advice",
 );
 assert(
-  marketingSrc.includes("Educational, not advice. · Built for Canadians. Amounts in CAD."),
-  "marketing trust line sits with the hero CTAs",
-);
-assert(
-  marketingSrc.includes("Know when you can stop working, and which order to draw from.") &&
-    marketingSrc.includes("See leftover cash after the bills you already have.") &&
-    marketingSrc.includes("Follow the holdings you already own."),
-  "marketing pillars are one sentence each, with Retire leading",
-);
-assert(
-  !/clawback|meltdown|gross-up|the two of you/i.test(marketingSrc),
-  "marketing hero has no tax jargon and is not couples-only",
-);
-assert(
-  marketingSrc.includes('name: "RRSP"') &&
-    marketingSrc.includes('name: "TFSA"') &&
-    marketingSrc.includes('name: "Cash"') &&
-    marketingSrc.includes("<svg") &&
-    marketingSrc.includes("var(--primary)") &&
-    marketingSrc.includes("var(--chart-account-rrsp)"),
-  "marketing hero visual is inline SVG and CSS account cards",
+  marketingSrc.includes("<svg") &&
+    marketingSrc.includes("var(--brand-green-text)") &&
+    marketingSrc.includes("var(--brand-muted)") &&
+    marketingSrc.includes("surface-card") &&
+    !marketingSrc.includes('name: "RRSP"') &&
+    !marketingSrc.includes('name: "TFSA"') &&
+    !marketingSrc.includes('name: "Cash"'),
+  "marketing hero visual is a product mock of Budget, Invest, and Retire",
 );
 assert(
   !marketingSrc.includes("<img") &&
@@ -1281,16 +1275,35 @@ assert(
   "marketing notes that it is educational, not advice",
 );
 assert(
-  marketingSrc.includes("Built for Canadians. Amounts in CAD."),
-  "marketing says it is built for Canadians, in CAD",
+  (marketingSrc.match(/Educational, not advice\./g) ?? []).length >= 2,
+  "marketing trust line is Educational, not advice, in the hero and the close",
+);
+assert(
+  !marketingSrc.includes("Built for Canadians") &&
+    !marketingSrc.includes("Amounts in CAD") &&
+    !/\$\d/.test(marketingSrc) &&
+    !marketingSrc.includes("Same savings") &&
+    !marketingSrc.includes("lifetime tax") &&
+    !marketingSrc.includes("example-couple") &&
+    !marketingSrc.includes("example-withdrawal-comparison"),
+  "marketing has no example proof, Canada line, or made-up figures",
+);
+assert(
+  !marketingSrc.includes("use client"),
+  "marketing hero stays server-rendered",
 );
 assert(
   !marketingSrc.includes("Login") && !marketingSrc.includes("Sign up"),
   "marketing drops Login and Sign up",
 );
+assert(
+  !existsSync(
+    join(process.cwd(), "src/components/home/example-withdrawal-comparison.tsx"),
+  ),
+  "homepage example comparison is gone",
+);
 const homepageFiles = [
   "src/app/page.tsx",
-  "src/components/home/example-withdrawal-comparison.tsx",
   "src/components/home/signed-in-home-redirect.tsx",
   "src/lib/retirement/example-couple.ts",
   "src/lib/brand/assets.ts",
@@ -1315,41 +1328,6 @@ assert(
   ),
   "public chrome does not hide pages behind an auth spinner",
 );
-const exampleSrc = readFileSync(
-  join(process.cwd(), "src/components/home/example-withdrawal-comparison.tsx"),
-  "utf8",
-);
-assert(
-  exampleSrc.includes("Same savings. Different order.") &&
-    exampleSrc.includes("Example, made-up numbers. Not a recommendation.") &&
-    exampleSrc.includes("In this example, the order alone changes lifetime tax by"),
-  "homepage proof is a short lifetime-tax comparison",
-);
-assert(
-  !/\b(clawback|meltdown|gross-up|sam|riley|year by year|federal|estate|depletion)\b/i.test(
-    exampleSrc,
-  ),
-  "homepage proof hides the worksheet",
-);
-assert(
-  exampleSrc.includes("exampleLifetimeTaxDisplay") &&
-    exampleSrc.includes("bg-primary") &&
-    !exampleSrc.includes("<img") &&
-    !exampleSrc.includes(".svg"),
-  "homepage proof bars are CSS driven by the example plan",
-);
-const exampleTax = exampleLifetimeTaxDisplay();
-assert(
-  exampleTax != null &&
-    exampleTax.allFunded &&
-    exampleTax.rows.map((row) => row.label).join("|") ===
-      "RRSP first|TFSA last|Non-registered first|Spread RRSP early" &&
-    exampleTax.deltaCad ===
-      Math.max(...exampleTax.rows.map((row) => row.cad)) -
-        Math.min(...exampleTax.rows.map((row) => row.cad)) &&
-    exampleTax.deltaCad > 0,
-  "homepage proof tax comes from the funded example plan",
-);
 assert(
   EXAMPLE_COUPLE.names.person1 === "Sam" && EXAMPLE_COUPLE.names.person2 === "Riley",
   "example couple names are Sam and Riley",
@@ -1365,8 +1343,14 @@ assert(
   "site description avoids Ready to Assign and the book",
 );
 assert(
-  brandSrc.includes("for one person or a couple") && !/clawback|meltdown/i.test(brandSrc),
-  "site description is the inclusive outcome line",
+  brandSrc.includes(
+    "See your leftover cash, follow what you own, and know when you can stop working.",
+  ) &&
+    brandSrc.includes("Educational, not advice.") &&
+    !/canad|\bCAD\b|RRSP|TFSA|RRIF|clawback|meltdown|draw from first|lifetime tax/i.test(
+      brandSrc,
+    ),
+  "site description is the Budget, Invest, and Retire outcome",
 );
 assert(!/YNAB|Simply Wall St/i.test(marketingSrc), "marketing does not name competitors");
 assert(!marketingSrc.includes("Open Home"), "marketing has no Open Home CTA");

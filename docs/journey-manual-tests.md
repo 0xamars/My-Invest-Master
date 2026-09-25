@@ -37,7 +37,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 ## 6. Signed-out public page still works. Chat still gone.
 
-1. Open `/` signed out. Marketing loads in the first HTML, with no full-page spinner. Hero is **Freedom, Engineered.** The benefit line is when you can retire and which accounts to draw from first, for one person or a couple. CTAs are Create your Retire plan and Sign in. Budget, Invest, and Retire are three short lines. A made-up example shows four withdrawal orders and lifetime tax only.
+1. Open `/` signed out. Marketing loads in the first HTML, with no full-page spinner. Hero is **Freedom, Engineered.** The benefit line is leftover cash, what you own, and when you can stop working. CTAs are Create your Retire plan and Sign in. Trust is Educational, not advice. Budget, Invest, and Retire are three feature cards. No example numbers, no account-order comparison, and no Canada-only claim.
 2. `/chat` and `/assistant` redirect to Invest. No assistant FAB.
 3. `/freedom` redirects to Retire. `/money-profile` redirects to Home. Signed-out `/home` asks for sign-in.
 

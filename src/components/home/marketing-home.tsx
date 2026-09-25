@@ -1,81 +1,80 @@
 import Link from "next/link";
-import { ExampleWithdrawalComparison } from "@/components/home/example-withdrawal-comparison";
 import { PublicChrome } from "@/components/layout/public-chrome";
 import { buttonVariants } from "@/components/ui/button";
 import { LOGIN_PATH, SIGNUP_PATH } from "@/lib/routes";
 
+const EYEBROW = "Budget · Invest · Retire";
+
 const BENEFIT =
-  "See when you can retire, and which accounts to draw from first so you keep more of what you saved.";
+  "See your leftover cash, follow what you own, and know when you can stop working.";
 
-const SECONDARY =
-  "For one person or a couple. Built around RRSP, RRIF, TFSA and non-registered accounts.";
-
-const TRUST = "Educational, not advice. · Built for Canadians. Amounts in CAD.";
-
-const HERO_ACCOUNTS = [
-  { name: "RRSP", swatch: "var(--chart-account-rrsp)" },
-  { name: "TFSA", swatch: "var(--chart-account-tfsa)" },
-  { name: "Cash", swatch: "var(--chart-account-cash)" },
-] as const;
-
-const PILLARS = [
-  {
-    title: "Retire",
-    body: "Know when you can stop working, and which order to draw from.",
-  },
+const FEATURES = [
   {
     title: "Budget",
-    body: "See leftover cash after the bills you already have.",
+    body: "Leftover cash after the bills you enter.",
   },
   {
     title: "Invest",
     body: "Follow the holdings you already own.",
   },
+  {
+    title: "Retire",
+    body: "See when you can stop working, with every assumption visible.",
+  },
 ] as const;
 
-function HeroVisual() {
+function ProductMock() {
   return (
-    <div className="relative mx-auto w-full max-w-sm lg:mx-0">
-      <div
-        className="pointer-events-none absolute bottom-5 left-[5px] top-5 w-px -translate-x-1/2 bg-primary/80"
-        style={{ boxShadow: "0 0 16px 1px var(--primary)" }}
-        aria-hidden="true"
-      />
-      <svg
-        className="pointer-events-none absolute bottom-5 left-[5px] top-5 w-px -translate-x-1/2 overflow-visible"
-        viewBox="0 0 2 100"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <line
-          x1="1"
-          y1="0"
-          x2="1"
-          y2="100"
-          stroke="var(--primary)"
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-      <ol className="relative space-y-3" aria-label="Accounts">
-        {HERO_ACCOUNTS.map((account) => (
-          <li key={account.name} className="flex items-center gap-4">
-            <span
-              className="relative z-10 size-2.5 shrink-0 rounded-full bg-primary"
-              style={{ boxShadow: "0 0 12px var(--primary)" }}
-              aria-hidden="true"
+    <div
+      className="surface-card mx-auto w-full max-w-md overflow-hidden lg:mx-0 lg:max-w-none"
+      aria-hidden="true"
+    >
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <span className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-[var(--brand-muted)]" />
+          <span className="size-2 rounded-full bg-[var(--brand-muted)]" />
+          <span className="size-2 rounded-full bg-[var(--brand-muted)]" />
+        </span>
+        <span className="text-sm font-medium text-foreground">InvestSalsa</span>
+      </div>
+      <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div className="p-4 sm:p-5">
+          <p className="text-sm font-semibold">Budget</p>
+          <div className="mt-4 space-y-2.5">
+            <div className="h-2 rounded-full bg-[var(--brand-muted)]" />
+            <div className="h-2 w-4/5 rounded-full bg-[var(--brand-muted)]" />
+            <div className="h-2 w-3/5 rounded-full bg-[var(--brand-muted)]" />
+            <div className="h-2 w-2/5 rounded-full bg-[var(--brand-green-text)]" />
+          </div>
+        </div>
+        <div className="p-4 sm:p-5">
+          <p className="text-sm font-semibold">Invest</p>
+          <div className="mt-4 space-y-2.5">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="flex items-center gap-2">
+                <span className="size-2 shrink-0 rounded-full bg-[var(--brand-orange-text)]" />
+                <span className="h-2 flex-1 rounded-full bg-[var(--brand-muted)]" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="p-4 sm:p-5">
+          <p className="text-sm font-semibold">Retire</p>
+          <svg
+            viewBox="0 0 160 72"
+            className="mt-4 h-16 w-full"
+            fill="none"
+          >
+            <path
+              d="M8 36H152"
+              stroke="var(--brand-muted)"
+              strokeWidth="2"
+              strokeLinecap="round"
             />
-            <div className="surface-card flex min-w-0 flex-1 items-center gap-3 px-4 py-4">
-              <span
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: account.swatch }}
-                aria-hidden="true"
-              />
-              <span className="text-sm font-semibold tracking-tight">{account.name}</span>
-            </div>
-          </li>
-        ))}
-      </ol>
+            <circle cx="108" cy="36" r="4" fill="var(--brand-green-text)" />
+          </svg>
+        </div>
+      </div>
     </div>
   );
 }
@@ -85,15 +84,10 @@ export function MarketingHomePage() {
     <PublicChrome contentClassName="flex flex-col">
       <section className="mx-auto grid w-full max-w-5xl items-center gap-12 px-6 pb-6 pt-14 sm:px-8 sm:pt-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16 lg:pb-10 lg:pt-24">
         <div>
-          <p className="type-eyebrow text-[var(--fg-eyebrow)]">
-            Retire planner for Canadians
-          </p>
+          <p className="type-eyebrow text-[var(--fg-eyebrow)]">{EYEBROW}</p>
           <h1 className="type-display mt-3 max-w-xl text-balance">Freedom, Engineered.</h1>
           <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-foreground sm:text-lg">
             {BENEFIT}
-          </p>
-          <p className="mt-3 max-w-xl text-pretty text-base leading-relaxed text-[var(--fg-muted)]">
-            {SECONDARY}
           </p>
           <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Link
@@ -116,33 +110,28 @@ export function MarketingHomePage() {
               Sign in
             </Link>
           </div>
-          <p className="type-small mt-4 text-[var(--fg-muted)]">{TRUST}</p>
+          <p className="type-small mt-4 text-[var(--fg-muted)]">Educational, not advice.</p>
         </div>
-        <HeroVisual />
+        <ProductMock />
       </section>
 
       <section className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-8 sm:py-14">
         <h2 className="sr-only">Budget, Invest, and Retire</h2>
         <ul className="grid gap-4 sm:grid-cols-3">
-          {PILLARS.map((item) => (
+          {FEATURES.map((item) => (
             <li key={item.title} className="surface-card px-5 py-5 sm:px-6 sm:py-6">
-              <h3 className="text-sm font-semibold tracking-tight">{item.title}</h3>
-              <p className="type-small mt-2 leading-relaxed text-[var(--fg-muted)]">
-                {item.body}
-              </p>
+              <h3 className="text-lg font-semibold tracking-tight">{item.title}</h3>
+              <p className="mt-2 text-base leading-relaxed text-[var(--fg-muted)]">{item.body}</p>
             </li>
           ))}
         </ul>
       </section>
 
-      <ExampleWithdrawalComparison />
-
       <section className="flex flex-1 flex-col justify-center border-t border-border bg-card">
         <div className="mx-auto w-full max-w-5xl px-6 py-16 sm:px-8 sm:py-20">
-          <h2 className="type-h2 max-w-xl text-balance">Know when you can stop working.</h2>
-          <p className="mt-3 max-w-xl text-pretty text-base leading-relaxed text-[var(--fg-muted)]">
-            For one person or a couple.
-          </p>
+          <h2 className="type-h2 max-w-xl text-balance">
+            Leftover cash, what you own, and when you can stop working.
+          </h2>
           <div className="mt-8">
             <Link
               href={SIGNUP_PATH}
