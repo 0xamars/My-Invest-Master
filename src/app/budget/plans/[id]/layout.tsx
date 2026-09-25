@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { PageLoading } from "@/components/layout/page-loading";
 import { BudgetDialogProvider } from "@/components/budget/budget-dialog-provider";
 import { BudgetShell } from "@/components/budget/budget-shell";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
@@ -26,10 +27,7 @@ export default function BudgetPlanLayout({
 
   if (!isLoaded || !isPlanLoaded) {
     return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading budget plan…
-      </div>
+      <PageLoading label="Loading Budget" />
     );
   }
 

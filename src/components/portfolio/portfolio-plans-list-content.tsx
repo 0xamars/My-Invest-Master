@@ -16,6 +16,7 @@ import {
   BudgetPageHeader,
   BudgetPanel,
 } from "@/components/budget/budget-ui";
+import { PageLoading } from "@/components/layout/page-loading";
 import { Button } from "@/components/ui/button";
 import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
@@ -73,12 +74,7 @@ export function PortfolioPlansListContent() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading portfolios…
-      </div>
-    );
+    return <PageLoading label="Loading portfolios" layout="cards" />;
   }
 
   return (

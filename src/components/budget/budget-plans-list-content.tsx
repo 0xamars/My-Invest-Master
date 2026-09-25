@@ -82,7 +82,7 @@ export function BudgetPlansListContent() {
   }
 
   if (!isLoaded) {
-    return <PageLoading label="Loading Budget…" />;
+    return <PageLoading label="Loading Budget" />;
   }
 
   return (

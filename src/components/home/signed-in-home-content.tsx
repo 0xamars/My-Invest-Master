@@ -71,7 +71,13 @@ export function SignedInHomeContent() {
   const ready = budget.isLoaded && portfoliosLoaded && retireLoaded;
 
   if (!ready) {
-    return <PageLoading label="Loading Home…" />;
+    return (
+      <PageLoading
+        label="Loading Home"
+        layout="cards"
+        cards={["Budget", "Invest", "Retire"]}
+      />
+    );
   }
 
   return (
@@ -86,10 +92,9 @@ export function SignedInHomeContent() {
           <p className="budget-metric-label">{card.title}</p>
           <p
             className={cn(
-              "mt-3 text-[1.65rem] font-semibold tracking-tight",
               card.empty
-                ? "text-muted-foreground"
-                : "text-foreground tabular-nums",
+                ? "mt-2 text-base font-semibold text-muted-foreground"
+                : "budget-hero-value mt-2 text-foreground",
             )}
           >
             {card.metric}

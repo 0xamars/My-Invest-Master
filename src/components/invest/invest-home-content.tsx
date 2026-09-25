@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { PageLoading } from "@/components/layout/page-loading";
+import { InvestShelf, PageLoading } from "@/components/layout/page-loading";
 import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
@@ -89,7 +89,7 @@ export function InvestHomeContent() {
   }
 
   if (!isLoaded) {
-    return <PageLoading label="Loading Invest…" />;
+    return <PageLoading label="Loading Invest" layout="cards" />;
   }
 
   return (
@@ -130,29 +130,35 @@ export function InvestHomeContent() {
       </Link>
 
       {offerFirstBook ? (
-        <RetirePanel className="px-4 py-4 sm:px-5">
-          <FirstBookWizard
-            onCreate={onCreateFirstBook}
-            isSubmitting={creating}
-          />
-        </RetirePanel>
+        <>
+          <RetirePanel className="px-4 py-4 sm:px-5">
+            <FirstBookWizard
+              onCreate={onCreateFirstBook}
+              isSubmitting={creating}
+            />
+          </RetirePanel>
+          <InvestShelf />
+        </>
       ) : rows.length === 0 ? (
-        <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="invest">
-          <RetireEmptyState
-            mark="invest"
-            title={INVEST_EMPTY_BOOK.title}
-            description={INVEST_EMPTY_BOOK.description}
-            actions={
-              <Button
-                onClick={() => void onAddClick()}
-                disabled={creating}
-              >
-                <Plus className="size-4" />
-                {INVEST_EMPTY_BOOK.addLabel}
-              </Button>
-            }
-          />
-        </RetirePanel>
+        <>
+          <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="invest">
+            <RetireEmptyState
+              mark="invest"
+              title={INVEST_EMPTY_BOOK.title}
+              description={INVEST_EMPTY_BOOK.description}
+              actions={
+                <Button
+                  onClick={() => void onAddClick()}
+                  disabled={creating}
+                >
+                  <Plus className="size-4" />
+                  {INVEST_EMPTY_BOOK.addLabel}
+                </Button>
+              }
+            />
+          </RetirePanel>
+          <InvestShelf />
+        </>
       ) : (
         <RetirePanel className="px-4 py-3.5 sm:px-5">
           <h2 className="text-sm font-semibold">Book</h2>

@@ -15,6 +15,7 @@ import { PortfolioTable } from "@/components/portfolio/portfolio-table";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
 import { TargetMixPanel } from "@/components/invest/target-mix-panel";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
+import { PageLoading } from "@/components/layout/page-loading";
 import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { InlineTitle } from "@/components/ui/inline-title";
 import {
@@ -191,11 +192,7 @@ export function PortfolioContent() {
   const isActiveReady = activePortfolio?.id === portfolioId;
 
   if (!isLoaded || !isPlanLoaded) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24">
-        <RefreshCw className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoading label="Loading Invest" layout="cards" />;
   }
 
   return (
@@ -207,9 +204,7 @@ export function PortfolioContent() {
       listLabel="Back to Invest"
     >
       {!isCurrencyLoaded || !isActiveReady || !activePortfolio ? (
-        <div className="flex flex-1 items-center justify-center py-24">
-          <RefreshCw className="size-5 animate-spin text-muted-foreground" />
-        </div>
+        <PageLoading label="Loading Invest" layout="cards" />
       ) : (
         <div className="flex flex-1 flex-col gap-5">
           <PillarBackLink href={INVEST_PATH} label="Back to Invest" />

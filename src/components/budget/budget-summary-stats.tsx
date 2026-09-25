@@ -33,16 +33,16 @@ export function BudgetSummaryStats({
         ? "text-[var(--fg-danger-text)]"
         : "text-foreground";
 
-  const leftoverCaption = monthClosed
-    ? "This month is closed. Leftover already carried into the next month."
+  const secondary = monthClosed
+    ? "Carried into the next month"
     : ready > 0
-      ? "Unassigned money. Put it into envelopes, or leave it to carry when you close the month."
+      ? "Left to assign this month"
       : ready < 0
-        ? "Assigned more than has come in through this month. Move money or record missing income."
-        : null;
+        ? "Assigned more than came in"
+        : "Nothing left to assign";
 
   return (
-    <section className="budget-panel">
+    <section className="budget-panel budget-panel--raised">
       <div
         className={cn(
           "budget-leftover",
@@ -61,11 +61,7 @@ export function BudgetSummaryStats({
           >
             {formatBudgetMoney(ready, currency)}
           </p>
-          {leftoverCaption ? (
-            <p className="mt-1.5 max-w-md text-xs leading-snug text-muted-foreground">
-              {leftoverCaption}
-            </p>
-          ) : null}
+          <p className="budget-hero-sub">{secondary}</p>
           {openingLeftover != null && openingLeftover > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">
               Opened with {formatBudgetMoney(openingLeftover, currency)} leftover

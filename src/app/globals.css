@@ -88,6 +88,14 @@
   --fg-danger-text: #f26d6d;
   --brand-green-text: #64b860;
   --brand-orange-text: #f28c33;
+  --available-ok: #64b860;
+  --available-warn: #f28c33;
+  --available-bad: #f26d6d;
+  --available-zero: #9a9da6;
+  --surface-0: #0b0c0e;
+  --surface-1: #141518;
+  --surface-2: #1a1c21;
+  --nav-active: #1e2c22;
   --background: #0b0c0e;
   --foreground: #f2f3f5;
   --card: #141518;
@@ -175,6 +183,14 @@
   --fg-danger-text: #b42318;
   --brand-green-text: #3e723c;
   --brand-orange-text: #8f5418;
+  --available-ok: #3e723c;
+  --available-warn: #8f5418;
+  --available-bad: #b42318;
+  --available-zero: #5c5f69;
+  --surface-0: #f4f4f5;
+  --surface-1: #ffffff;
+  --surface-2: #ffffff;
+  --nav-active: #e5f2e4;
   --brand-green-deep: #4d9a4a;
   --border: rgb(18 18 18 / 10%);
   --input: #e4e4e7;
@@ -555,11 +571,32 @@
 
   .segmented-item[data-active="true"],
   .segmented-item[aria-current="page"] {
-    background: var(--background);
+    background: var(--nav-active);
     color: var(--foreground);
-    box-shadow:
-      inset 0 -2px 0 var(--brand-green),
-      0 1px 2px color-mix(in srgb, #000 16%, transparent);
+    font-weight: 650;
+    box-shadow: inset 0 -2px 0 var(--brand-green);
+  }
+
+  .desk-app {
+    background-color: var(--surface-0);
+  }
+
+  .desk-skeleton {
+    height: 0.65rem;
+    border-radius: 999px;
+    background: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .desk-skeleton {
+      animation: desk-skeleton-pulse 1.4s ease-in-out infinite;
+    }
+  }
+
+  @keyframes desk-skeleton-pulse {
+    50% {
+      opacity: 0.45;
+    }
   }
 
   .desk-app .page-title {
@@ -701,7 +738,7 @@
   .portal-header,
   .portal-sidebar,
   .portal-tabbar {
-    background-color: var(--card);
+    background-color: var(--surface-1);
   }
 
   .portal-header {
@@ -726,8 +763,10 @@
   }
 
   .portal-tabbar a[aria-current="page"] {
+    background: var(--nav-active);
     box-shadow: inset 0 2px 0 var(--brand-green);
     color: var(--foreground);
+    font-weight: 650;
   }
 
   [data-slot="chart"] .recharts-cartesian-axis-tick text,
@@ -763,7 +802,7 @@
   }
 
   .heatmap-sector-label {
-    @apply absolute left-2 top-1.5 z-10 max-w-[calc(100%-1rem)] truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80;
+    @apply absolute left-2 top-1.5 z-10 max-w-[calc(100%-1rem)] truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f2f3f5];
   }
 
   .heatmap-industry-frame {
@@ -868,39 +907,54 @@
   }
 
   .budget-hero-value {
-    font-size: 2.75rem;
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 1.75rem;
     font-weight: 650;
-    letter-spacing: -0.05em;
-    line-height: 0.98;
+    letter-spacing: -0.04em;
+    line-height: 1;
     font-variant-numeric: tabular-nums;
   }
 
   @media (min-width: 40rem) {
     .budget-hero-value {
-      font-size: 3.25rem;
+      font-size: 2.25rem;
     }
+  }
+
+  .budget-hero-sub {
+    margin-top: 0.35rem;
+    max-width: 28rem;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: var(--muted-foreground);
   }
 
   .budget-panel {
     position: relative;
     overflow: clip;
-    border-radius: 14px;
-    background-color: var(--card);
-    border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
-    box-shadow:
-      0 1px 2px color-mix(in srgb, #121212 5%, transparent),
-      0 12px 32px color-mix(in srgb, #121212 7%, transparent);
-    transition:
-      border-color 180ms ease,
-      box-shadow 180ms ease;
+    border-radius: 13px;
+    background-color: var(--surface-1);
+    border: 1px solid var(--border);
+    box-shadow: none;
   }
 
   .dark .budget-panel {
-    background-color: #1a1c21;
-    border-color: color-mix(in srgb, #fff 10%, transparent);
+    background-color: var(--surface-1);
+    border-color: rgb(255 255 255 / 10%);
+  }
+
+  .budget-panel--raised {
+    background-color: var(--surface-2);
     box-shadow:
-      0 1px 0 color-mix(in srgb, #fff 6%, transparent),
-      0 18px 40px color-mix(in srgb, #000 42%, transparent);
+      0 1px 2px rgb(18 18 18 / 6%),
+      0 12px 28px rgb(18 18 18 / 7%);
+  }
+
+  .dark .budget-panel--raised {
+    background-color: var(--surface-2);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 6%),
+      0 16px 36px rgb(0 0 0 / 38%);
   }
 
   .budget-leftover {
@@ -975,6 +1029,10 @@
     border-left: 3px solid var(--brand-green);
   }
 
+  .budget-group-head h3 {
+    font-weight: 700;
+  }
+
   .light .budget-group-head {
     background: #f0f0f2;
   }
@@ -987,7 +1045,7 @@
   }
 
   .dark .budget-colhead {
-    background: #1a1c21;
+    background: var(--surface-1);
   }
 
   .budget-metric {
@@ -1114,8 +1172,9 @@
   }
 
   .budget-nav-item--active {
-    background: var(--background);
+    background: var(--nav-active);
     color: var(--foreground);
+    font-weight: 650;
     box-shadow: inset 0 -2px 0 var(--brand-green);
   }
 
@@ -1163,25 +1222,42 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .budget-available-chip--healthy {
-    color: var(--brand-green-text);
+  .budget-available-chip--healthy,
+  .budget-available-chip--ok {
+    color: var(--available-ok);
     background: color-mix(in srgb, var(--brand-green) 16%, transparent);
   }
 
   .budget-available-chip--zero {
-    color: var(--muted-foreground);
+    color: var(--available-zero);
     background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
   }
 
-  .budget-available-chip--low {
-    color: var(--brand-orange-text);
+  .budget-available-chip--low,
+  .budget-available-chip--warn,
+  .budget-available-chip--credit {
+    color: var(--available-warn);
     background: color-mix(in srgb, var(--brand-orange) 16%, transparent);
   }
 
-  .budget-available-chip--credit,
-  .budget-available-chip--cash {
-    color: var(--fg-danger-text);
+  .budget-available-chip--cash,
+  .budget-available-chip--bad {
+    color: var(--available-bad);
     background: color-mix(in srgb, var(--fg-danger) 12%, transparent);
+  }
+
+  .available-cue {
+    display: inline-flex;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-right: 0.28rem;
+    flex: none;
+  }
+
+  .available-cue svg {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .budget-col-available {

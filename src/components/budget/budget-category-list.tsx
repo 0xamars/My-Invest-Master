@@ -269,7 +269,7 @@ export function BudgetCategoryList({
         <span>Envelope</span>
         <span className="text-right">Assigned</span>
         <span className="text-right">Activity</span>
-        <span className="budget-col-available text-right">Available</span>
+        <span className="text-right">Available</span>
         <span className="text-right">Actions</span>
       </div>
 
@@ -290,7 +290,7 @@ export function BudgetCategoryList({
             const paymentGroup = isCreditCardPaymentsGroup(group);
             return (
             <div key={group.id} className="border-b border-border last:border-b-0">
-              <div className="budget-group-head flex items-center justify-between gap-2 px-4 py-1.5 sm:px-5 md:grid md:gap-2 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(5.5rem,1fr))_2.75rem]">
+              <div className="budget-group-head flex items-center justify-between gap-2 px-4 py-1 sm:px-5 md:grid md:gap-2 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(5.5rem,1fr))_2.75rem]">
                 <div className="min-w-0">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground">
                     {group.name}
@@ -400,7 +400,7 @@ export function BudgetCategoryList({
                   <div
                     key={row.category.id}
                     className={cn(
-                      "budget-category-row grid min-h-10 items-center gap-2 px-4 py-1.5 sm:px-5",
+                      "budget-category-row grid min-h-9 items-center gap-2 px-4 py-1 sm:px-5",
                       ENVELOPE_GRID,
                       row.status === "overspent" && "budget-row-overspent",
                       row.status === "credit-overspent" &&

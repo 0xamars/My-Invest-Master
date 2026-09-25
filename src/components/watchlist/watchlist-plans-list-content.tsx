@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { DeleteWatchlistDialog } from "@/components/watchlist/delete-watchlist-dialog";
 import { WatchlistNameDialog } from "@/components/watchlist/watchlist-name-dialog";
+import { PageLoading } from "@/components/layout/page-loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -71,12 +72,7 @@ export function WatchlistPlansListContent() {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Loading watchlists…
-      </div>
-    );
+    return <PageLoading label="Loading watchlists" layout="cards" />;
   }
 
   return (
