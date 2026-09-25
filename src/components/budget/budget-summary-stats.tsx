@@ -50,7 +50,7 @@ export function BudgetSummaryStats({
           ready < 0 && "budget-leftover--out",
         )}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="budget-metric-label">Leftover</p>
           <p
             className={cn(
@@ -72,29 +72,31 @@ export function BudgetSummaryStats({
               from the closed month.
             </p>
           ) : null}
+          {onAssignLeftover ? (
+            <Button type="button" size="sm" className="mt-3" onClick={onAssignLeftover}>
+              Assign leftover
+            </Button>
+          ) : null}
         </div>
-        {onAssignLeftover ? (
-          <Button type="button" size="sm" onClick={onAssignLeftover}>
-            Assign leftover
-          </Button>
-        ) : null}
-      </div>
-      <div className="budget-summary-grid">
-        <Metric
-          label="Income"
-          value={formatBudgetMoney(summary.totalIncome, currency)}
-          isLoading={isLoading}
-        />
-        <Metric
-          label="Assigned"
-          value={formatBudgetMoney(summary.totalAssigned, currency)}
-          isLoading={isLoading}
-        />
-        <Metric
-          label="Spent"
-          value={formatBudgetMoney(summary.totalSpent, currency)}
-          isLoading={isLoading}
-        />
+        <div className="budget-summary-aside">
+          <div className="budget-summary-grid">
+            <Metric
+              label="Income"
+              value={formatBudgetMoney(summary.totalIncome, currency)}
+              isLoading={isLoading}
+            />
+            <Metric
+              label="Assigned"
+              value={formatBudgetMoney(summary.totalAssigned, currency)}
+              isLoading={isLoading}
+            />
+            <Metric
+              label="Spent"
+              value={formatBudgetMoney(summary.totalSpent, currency)}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
       </div>
       {ageOfMoney.status === "ready" && ageOfMoney.days != null ? (
         <div className="border-t border-border px-4 py-2 sm:px-5">

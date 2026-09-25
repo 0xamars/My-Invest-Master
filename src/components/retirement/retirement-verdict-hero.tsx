@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Wallet } from "lucide-react";
 import {
   RetireEmptyState,
   RetireMoney,
@@ -60,7 +59,6 @@ export function RetirementVerdictHero({
     return (
       <RetirePanel>
         <RetireEmptyState
-          icon={<Wallet className="size-5" />}
           title={inputPrompt.title}
           description={inputPrompt.description}
         />
@@ -82,7 +80,6 @@ export function RetirementVerdictHero({
     return (
       <RetirePanel>
         <RetireEmptyState
-          icon={<Wallet className="size-5" />}
           title={emptyTitle}
           description={emptyDescription}
           actions={emptyActions}

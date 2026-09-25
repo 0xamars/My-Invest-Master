@@ -8,7 +8,6 @@ import {
   Plus,
   Star,
   Trash2,
-  TrendingUp,
 } from "lucide-react";
 import { DeletePortfolioDialog } from "@/components/portfolio/delete-portfolio-dialog";
 import { PortfolioNameDialog } from "@/components/portfolio/portfolio-name-dialog";
@@ -110,7 +109,7 @@ export function PortfolioPlansListContent() {
       {summaries.length === 0 ? (
         <BudgetPanel>
           <BudgetEmptyState
-            icon={<TrendingUp className="size-5" />}
+            mark="invest"
             title="No books yet"
             description="Create a portfolio, then add holdings. You must keep at least one book after that."
             actions={

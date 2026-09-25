@@ -101,8 +101,9 @@ export function InvestHomeContent() {
         action={
           offerFirstBook ? null : (
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
+              className="btn-quiet"
               onClick={() => void onAddClick()}
               disabled={creating}
             >
@@ -129,13 +130,16 @@ export function InvestHomeContent() {
       </Link>
 
       {offerFirstBook ? (
-        <FirstBookWizard
-          onCreate={onCreateFirstBook}
-          isSubmitting={creating}
-        />
+        <RetirePanel className="px-4 py-4 sm:px-5">
+          <FirstBookWizard
+            onCreate={onCreateFirstBook}
+            isSubmitting={creating}
+          />
+        </RetirePanel>
       ) : rows.length === 0 ? (
         <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="invest">
           <RetireEmptyState
+            mark="invest"
             title={INVEST_EMPTY_BOOK.title}
             description={INVEST_EMPTY_BOOK.description}
             actions={

@@ -230,18 +230,30 @@ export function BudgetCategoryList({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!monthClosed && canResetAvailable ? (
-            <Button type="button" variant="outline" size="sm" onClick={onResetAvailable}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="btn-quiet"
+              onClick={onResetAvailable}
+            >
               <RotateCcw className="size-3.5" />
               Reset Available
             </Button>
           ) : null}
           {!monthClosed && canAutoAssign ? (
-            <Button type="button" size="sm" variant="outline" onClick={onAutoAssignUnderfunded}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="btn-quiet"
+              onClick={onAutoAssignUnderfunded}
+            >
               <Sparkles className="size-3.5" />
               Auto-Assign Underfunded
             </Button>
           ) : null}
-          <Button type="button" variant="ghost" size="sm" onClick={onAddGroup}>
+          <Button type="button" variant="ghost" size="sm" className="btn-quiet" onClick={onAddGroup}>
             <FolderPlus className="size-3.5" />
             Add group
           </Button>
@@ -250,7 +262,7 @@ export function BudgetCategoryList({
 
       <div
         className={cn(
-          "hidden gap-2 border-y border-border px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5",
+          "budget-colhead hidden gap-2 border-y border-border px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5",
           ENVELOPE_GRID,
         )}
       >
@@ -263,7 +275,6 @@ export function BudgetCategoryList({
 
       {flatCategories.length === 0 && groups.length === 0 ? (
         <BudgetEmptyState
-          icon={<FolderPlus className="size-5" />}
           title="Start with a group"
           description="Add an envelope group, then give every dollar a job."
           actions={

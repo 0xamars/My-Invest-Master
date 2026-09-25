@@ -226,7 +226,8 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
                 {monthClosed ? null : (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
+                    className="btn-quiet"
                     onClick={() => setCloseOpen(true)}
                   >
                     Close month
@@ -268,8 +269,9 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
               {monthClosed ? null : (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
+                  className="btn-quiet"
                   onClick={() => setCloseOpen(true)}
                 >
                   Close month

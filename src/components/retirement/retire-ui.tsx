@@ -1,4 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import {
+  DeskEmptyMark,
+} from "@/components/layout/desk-empty-mark";
 import { cn } from "@/lib/utils";
 import type { RetirementVerdict } from "@/lib/retirement/dashboard";
 
@@ -51,11 +54,13 @@ export function RetirePanel({
 
 export function RetireEmptyState({
   icon,
+  mark = "retire",
   title,
   description,
   actions,
 }: {
   icon?: ReactNode;
+  mark?: "budget" | "invest" | "retire";
   title: string;
   description: string;
   actions?: ReactNode;
@@ -63,15 +68,15 @@ export function RetireEmptyState({
   return (
     <div className="premium-empty">
       {icon ? (
-        <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-          {icon}
-        </div>
-      ) : null}
-      <p className="text-[0.975rem] font-semibold tracking-tight">{title}</p>
-      <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
+        <div className="desk-empty-icon">{icon}</div>
+      ) : (
+        <DeskEmptyMark kind={mark} />
+      )}
+      <p className="text-base font-semibold tracking-tight">{title}</p>
+      <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">
         {description}
       </p>
-      {actions ? <div className="mt-4 flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div> : null}
     </div>
   );
 }

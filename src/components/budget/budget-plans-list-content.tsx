@@ -104,7 +104,11 @@ export function BudgetPlansListContent() {
       {syncError && <BudgetSyncError message={syncError} tone="destructive" />}
 
       {summaries.length === 0 ? (
-        <div data-budget-first-run-kit="1" data-empty-state="budget">
+        <div
+          className="budget-panel px-4 py-4 sm:px-5"
+          data-budget-first-run-kit="1"
+          data-empty-state="budget"
+        >
           <BudgetEmptyState
             title={BUDGET_EMPTY.title}
             description={BUDGET_EMPTY.description}

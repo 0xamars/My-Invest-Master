@@ -99,8 +99,8 @@ export function RetireHomeContent() {
         action={
           latest ? (
             <Button
-              variant="outline"
-              className="gap-2"
+              variant="ghost"
+              className="btn-quiet gap-2"
               render={<Link href="/retire/plans" />}
             >
               All plans
@@ -124,7 +124,8 @@ export function RetireHomeContent() {
                   {FREEDOM_EMPTY.leftoverLabel}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  className="btn-quiet"
                   render={<Link href={FREEDOM_EMPTY.bookHref} />}
                 >
                   {FREEDOM_EMPTY.bookLabel}
@@ -154,7 +155,8 @@ export function RetireHomeContent() {
                   {FREEDOM_EMPTY.leftoverLabel}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  className="btn-quiet"
                   render={<Link href={FREEDOM_EMPTY.bookHref} />}
                 >
                   {FREEDOM_EMPTY.bookLabel}

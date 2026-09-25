@@ -17,7 +17,7 @@ export function BookConcentrationBar({ rows }: { rows: BookRow[] }) {
   return (
     <div>
       <div
-        className="flex h-3 overflow-hidden rounded-full bg-white/[0.06]"
+        className="flex h-3 overflow-hidden rounded-full bg-muted"
         role="img"
         aria-label="Book concentration"
       >
