@@ -45,6 +45,7 @@ export const IMAGINE_SLOTS: Record<ImagineSlotId, ImagineFile> = {
     alt: "Checklist with a green progress mark",
     ...square,
   },
+  // On disk for a later wash. Not shown: a spark badge does not lead a next action.
   "accent-spark": {
     src: "/images/imagine/accent-spark.png",
     alt: "Small green spark badge",

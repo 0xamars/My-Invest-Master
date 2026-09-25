@@ -19,15 +19,15 @@ export function ImagineSlot({
     <div
       className={cn("imagine-slot", `imagine-slot--${size}`, className)}
       data-imagine-slot={slot}
+      aria-hidden
     >
       <Image
         src={art.src}
-        alt={art.alt}
+        alt=""
         width={art.width}
         height={art.height}
-        sizes={size === "accent" ? "64px" : "208px"}
-        className="empty-art"
-        style={{ width: "100%", height: "auto" }}
+        sizes={size === "accent" ? "48px" : "208px"}
+        className="imagine-slot-image"
       />
     </div>
   );

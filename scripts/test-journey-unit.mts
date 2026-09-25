@@ -1532,20 +1532,33 @@ assert(
     join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
     "utf8",
   ).includes('slot="hero-invest"') &&
-    readFileSync(
+    !readFileSync(
       join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
       "utf8",
-    ).includes('slot="accent-spark"'),
-  "Invest shows the ribbon and the spark accent",
+    ).includes("accent-spark"),
+  "Invest washes the ribbon behind the total and skips the spark badge",
+);
+assert(
+  !readFileSync(
+    join(process.cwd(), "src/components/home/signed-in-home-content.tsx"),
+    "utf8",
+  ).includes("accent-spark"),
+  "Home cards do not carry a spark badge",
 );
 assert(
   readFileSync(
-    join(process.cwd(), "src/components/retire/retire-home-content.tsx"),
+    join(process.cwd(), "src/components/retirement/retirement-verdict-hero.tsx"),
     "utf8",
-  ).includes('slot="hero-retire"'),
-  "Retire header uses the path hero",
+  ).includes('slot="hero-retire"') &&
+    !readFileSync(
+      join(process.cwd(), "src/components/retire/retire-home-content.tsx"),
+      "utf8",
+    ).includes("ImagineSlot"),
+  "Retire date washes the path behind the number",
 );
 const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+assert(css.includes(".art-wash"), "Imagine art washes inside the card");
+assert(css.includes("mix-blend-mode: screen"), "washes screen out the black canvas");
 assert(css.includes(".money-hero"), "monumental money class exists");
 assert(css.includes(".nav-active-green"), "active nav uses the green treatment");
 assert(css.includes("chart-draw"), "charts draw with CSS motion");

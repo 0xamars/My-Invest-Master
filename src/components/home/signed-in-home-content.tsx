@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ImagineSlot } from "@/components/brand/imagine-slot";
 import { HomeChecklist } from "@/components/home/home-checklist";
 import { EmptyArt } from "@/components/journey/empty-art";
 import { PageLoading } from "@/components/layout/page-loading";
@@ -105,8 +104,10 @@ export function SignedInHomeContent() {
       {checklist ? (
         <HomeChecklist items={checklist} />
       ) : homeEmpty ? (
-        <div className="premium-empty" data-empty-state="home">
-          <EmptyArt kind="home" />
+        <div className="budget-panel" data-empty-state="home">
+          <div className="premium-empty premium-empty--integrated has-art-wash">
+            <EmptyArt kind="home" />
+          </div>
         </div>
       ) : null}
       <div className="grid content-start gap-3 sm:grid-cols-3">
@@ -117,12 +118,7 @@ export function SignedInHomeContent() {
             data-home-card={card.pillar}
             className="budget-panel block px-4 py-4 transition-colors hover:border-[var(--brand-green)]/35 sm:px-5"
           >
-            <div className="flex items-start justify-between gap-2">
-              <p className="budget-metric-label">{card.title}</p>
-              {card.pillar === "invest" ? (
-                <ImagineSlot slot="accent-spark" size="accent" />
-              ) : null}
-            </div>
+            <p className="budget-metric-label">{card.title}</p>
             <MotionValue
               value={card.metric}
               className={cn(

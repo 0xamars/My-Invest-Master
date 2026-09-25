@@ -7,7 +7,7 @@ import { InvestShelf, PageLoading } from "@/components/layout/page-loading";
 import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
-import { ImagineSlot } from "@/components/brand/imagine-slot";
+import { ArtWash } from "@/components/brand/art-wash";
 import { EmptyArt } from "@/components/journey/empty-art";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
 import { QuietSparkline } from "@/components/invest/quiet-sparkline";
@@ -110,22 +110,18 @@ export function InvestHomeContent() {
         title="Invest"
         description="The public-stock book. Search a name or ticker."
         action={
-          <div className="flex items-center gap-3">
-            <ImagineSlot slot="accent-spark" size="accent" />
-            <ImagineSlot slot="hero-invest" size="hero" />
-            {offerFirstBook ? null : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="btn-quiet"
-                onClick={() => void onAddClick()}
-                disabled={creating}
-              >
-                <Plus className="size-4" />
-                Add a name
-              </Button>
-            )}
-          </div>
+          offerFirstBook ? null : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="btn-quiet"
+              onClick={() => void onAddClick()}
+              disabled={creating}
+            >
+              <Plus className="size-4" />
+              Add a name
+            </Button>
+          )
         }
       />
 
@@ -176,8 +172,11 @@ export function InvestHomeContent() {
           <InvestShelf />
         </>
       ) : (
-        <RetirePanel className="px-4 py-3.5 sm:px-5">
-          <div className="flex items-start justify-between gap-3">
+        <RetirePanel className="has-art-wash px-4 py-3.5 sm:px-5">
+          {shareTotal != null ? (
+            <ArtWash slot="hero-invest" strength="ambient" />
+          ) : null}
+          <div className="relative z-[1] flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold">Book</h2>
               {shareTotal != null ? (
@@ -190,10 +189,7 @@ export function InvestHomeContent() {
                 </>
               ) : null}
             </div>
-            <div className="flex items-center gap-3">
-              <ImagineSlot slot="accent-spark" size="accent" />
-              <QuietSparkline points={bookSpark} label="Book day move" />
-            </div>
+            <QuietSparkline points={bookSpark} label="Book day move" />
           </div>
           {quoteError ? (
             <p className="mt-1 text-xs text-muted-foreground">{quoteError}</p>

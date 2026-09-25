@@ -68,7 +68,12 @@ export function RetireEmptyState({
   art?: ReactNode;
 }) {
   return (
-    <div className="premium-empty">
+    <div
+      className={cn(
+        "premium-empty",
+        art && "premium-empty--integrated has-art-wash",
+      )}
+    >
       {art ? (
         art
       ) : icon ? (
@@ -76,11 +81,15 @@ export function RetireEmptyState({
       ) : (
         <DeskEmptyMark kind={mark} />
       )}
-      <p className="text-base font-semibold tracking-tight">{title}</p>
-      <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
-        {description}
-      </p>
-      {actions ? <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div> : null}
+      <div className={cn(art && "premium-empty-copy")}>
+        <p className="text-base font-semibold tracking-tight">{title}</p>
+        <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+        {actions ? (
+          <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div>
+        ) : null}
+      </div>
     </div>
   );
 }

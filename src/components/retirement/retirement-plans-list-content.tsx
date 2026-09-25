@@ -12,7 +12,6 @@ import {
   Trash2,
   TrendingUp,
 } from "lucide-react";
-import { ImagineSlot } from "@/components/brand/imagine-slot";
 import { EmptyArt } from "@/components/journey/empty-art";
 import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
@@ -120,7 +119,6 @@ export function RetirementPlansListContent() {
         description="Create from a blank model, or import holdings from Invest. Create as many plans as you need."
         action={
         <div className="flex flex-wrap items-center gap-2">
-          <ImagineSlot slot="hero-retire" size="hero" />
           <Button
             onClick={() => void handleCreateNew()}
             className="gap-2"

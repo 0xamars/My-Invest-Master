@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagineSlot } from "@/components/brand/imagine-slot";
+import { ArtWash } from "@/components/brand/art-wash";
 import { MotionValue } from "@/components/ui/motion-value";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { AgeOfMoneyResult } from "@/lib/budget/age-of-money";
@@ -44,7 +44,8 @@ export function BudgetSummaryStats({
         : "Nothing left to assign";
 
   return (
-    <section className="budget-panel budget-panel--raised">
+    <section className="budget-panel budget-panel--raised has-art-wash">
+      <ArtWash slot="hero-budget" strength="ambient" />
       <div
         className={cn(
           "budget-leftover",
@@ -52,19 +53,16 @@ export function BudgetSummaryStats({
           ready < 0 && "budget-leftover--out",
         )}
       >
-        <div className="min-w-0 flex-1">
+        <div className="relative z-[1] min-w-0 flex-1">
           <p className="budget-metric-label">Leftover</p>
-          <div className="mt-1 flex items-end justify-between gap-4">
-            <MotionValue
-              value={formatBudgetMoney(ready, currency)}
-              className={cn(
-                "money-hero",
-                readyTone,
-                isLoading && "animate-pulse",
-              )}
-            />
-            <ImagineSlot slot="hero-budget" size="hero" />
-          </div>
+          <MotionValue
+            value={formatBudgetMoney(ready, currency)}
+            className={cn(
+              "money-hero mt-1",
+              readyTone,
+              isLoading && "animate-pulse",
+            )}
+          />
           <p className="budget-hero-sub">{secondary}</p>
           {openingLeftover != null && openingLeftover > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PageLoading } from "@/components/layout/page-loading";
-import { ImagineSlot } from "@/components/brand/imagine-slot";
 import { EmptyArt } from "@/components/journey/empty-art";
 import { RetirementDisclaimer } from "@/components/retirement/retirement-disclaimer";
 import {
@@ -99,19 +98,16 @@ export function RetireHomeContent() {
         title="Retire"
         description="One date from leftover and the book. Target, on-track, and the lever on this path."
         action={
-          <div className="flex items-center gap-3">
-            <ImagineSlot slot="hero-retire" size="hero" />
-            {latest ? (
-              <Button
-                variant="ghost"
-                className="btn-quiet gap-2"
-                render={<Link href="/retire/plans" />}
-              >
-                All plans
-                <ArrowRight className="size-4" />
-              </Button>
-            ) : null}
-          </div>
+          latest ? (
+            <Button
+              variant="ghost"
+              className="btn-quiet gap-2"
+              render={<Link href="/retire/plans" />}
+            >
+              All plans
+              <ArrowRight className="size-4" />
+            </Button>
+          ) : null
         }
       />
       <RetirementDisclaimer />

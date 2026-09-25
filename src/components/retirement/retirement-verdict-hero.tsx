@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Wallet } from "lucide-react";
-import { ImagineSlot } from "@/components/brand/imagine-slot";
+import { ArtWash } from "@/components/brand/art-wash";
 import { EmptyArt } from "@/components/journey/empty-art";
 import {
   RetireEmptyState,
@@ -108,17 +108,17 @@ export function RetirementVerdictHero({
   return (
     <div className="budget-panel">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-      <section className="border-b border-border px-4 py-4 lg:border-b-0 lg:border-r sm:px-5">
-        <div className="flex flex-wrap items-center gap-2">
+      <section className="has-art-wash relative border-b border-border px-4 py-4 lg:border-b-0 lg:border-r sm:px-5">
+        <ArtWash slot="hero-retire" strength="ambient" />
+        <div className="relative z-[1] flex flex-wrap items-center gap-2">
           <RetireVerdictChip verdict={dashboard.verdict} />
           {planName ? (
             <span className="text-xs text-muted-foreground">{planName}</span>
           ) : null}
         </div>
-        <div className="mt-3 flex items-end justify-between gap-4">
         <p
           className={cn(
-            "hero-lead",
+            "hero-lead relative z-[1] mt-3",
             dashboard.verdict === "behind" || dashboard.verdict === "empty"
               ? "text-[var(--brand-orange-text)]"
               : "text-[var(--brand-green-text)]",
@@ -126,8 +126,6 @@ export function RetirementVerdictHero({
         >
           {dashboard.verdict === "empty" ? "No date yet" : dateLabel}
         </p>
-        <ImagineSlot slot="hero-retire" size="hero" />
-        </div>
         <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
           {impliedPathSentence(dashboard, money)}
         </p>
