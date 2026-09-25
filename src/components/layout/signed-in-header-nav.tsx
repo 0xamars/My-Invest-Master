@@ -23,7 +23,7 @@ export function SignedInHeaderNav() {
   return (
     <nav
       aria-label="Budget, Invest, Retire"
-      className="flex min-w-0 flex-1 items-center justify-center"
+      className="hidden min-w-0 flex-1 items-center justify-center md:flex"
     >
       <div className="segmented">
         {SIGNED_IN_PRIMARY_NAV.map((item) => {

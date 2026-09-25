@@ -102,7 +102,7 @@ export function RetirementVerdictHero({
   return (
     <div className="budget-panel">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-      <section className="border-b border-border px-5 py-5 lg:border-b-0 lg:border-r sm:px-6">
+      <section className="border-b border-border px-4 py-4 lg:border-b-0 lg:border-r sm:px-5">
         <div className="flex flex-wrap items-center gap-2">
           <RetireVerdictChip verdict={dashboard.verdict} />
           {planName ? (
@@ -113,8 +113,8 @@ export function RetirementVerdictHero({
           className={cn(
             "budget-hero-value mt-3",
             dashboard.verdict === "behind" || dashboard.verdict === "empty"
-              ? "text-[var(--brand-orange)]"
-              : "text-[var(--brand-green)]",
+              ? "text-[var(--brand-orange-text)]"
+              : "text-[var(--brand-green-text)]",
           )}
         >
           {dashboard.verdict === "empty" ? "No date yet" : dateLabel}

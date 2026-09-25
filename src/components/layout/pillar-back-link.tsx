@@ -30,7 +30,7 @@ export function PillarBackLink({
       variant="ghost"
       size="sm"
       className={cn(
-        "-ml-2 h-9 w-fit gap-1.5 text-muted-foreground hover:text-foreground",
+        "-ml-2 h-8 w-fit gap-1.5 text-muted-foreground hover:text-foreground",
         className,
       )}
       render={<Link href={target} />}

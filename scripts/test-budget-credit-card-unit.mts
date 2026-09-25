@@ -15,7 +15,7 @@ import {
   getReadyToAssign,
 } from "../src/lib/budget/calculations.ts";
 import { paymentCategoryForAccount } from "../src/lib/budget/credit-card-payments.ts";
-import { applyMonthClose, applyMonthNote } from "../src/lib/budget/month-close.ts";
+import { applyMonthClose } from "../src/lib/budget/month-close.ts";
 import { normalizeBudgetPlan } from "../src/lib/budget/migrate-plan.ts";
 import {
   buildStartingBalanceTransaction,
@@ -500,24 +500,15 @@ const withClose = makePlan({
       assignments: { groceries: 10 },
       closedAt: "2026-02-01T00:00:00.000Z",
       opening: { leftover: 5, envelopes: { groceries: 10, dining: 2 } },
-      note: "Rent posted late",
     },
   },
 });
 const deleted = removeCategoryFromBudget(withClose, "dining");
 assert(
   deleted.monthBudgets["2026-01"]?.closedAt === "2026-02-01T00:00:00.000Z" &&
-    deleted.monthBudgets["2026-01"]?.note === "Rent posted late" &&
     deleted.monthBudgets["2026-01"]?.opening?.envelopes.groceries === 10 &&
     deleted.monthBudgets["2026-01"]?.opening?.envelopes.dining === undefined,
-  "Deleting an envelope keeps the month close, note, and other opening balances",
-);
-
-const noted = applyMonthNote(funded, "2026-01", "  Wait for the refund  ");
-assert(
-  noted.monthBudgets["2026-01"]?.note === "Wait for the refund" &&
-    getReadyToAssign(noted, "2026-01") === getReadyToAssign(funded, "2026-01"),
-  "A month note is stored and does not change leftover",
+  "Deleting an envelope keeps the month close and other opening balances",
 );
 
 const reordered = moveCategoryInBudget(funded, "dining", "up");

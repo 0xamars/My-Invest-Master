@@ -260,10 +260,6 @@ function normalizeMonthBudgets(
           ? month.closedAt
           : undefined,
       opening: normalizeOpening(month.opening),
-      note:
-        typeof month.note === "string" && month.note.trim()
-          ? month.note.trim()
-          : undefined,
     };
   }
   return next;

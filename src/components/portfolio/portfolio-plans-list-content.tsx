@@ -83,7 +83,7 @@ export function PortfolioPlansListContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-4">
       <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
       <BudgetPageHeader
         title="Portfolios"

@@ -168,8 +168,6 @@ export interface MonthBudget {
   closedAt?: string;
   /** Opening leftover and envelope available after the previous month close. */
   opening?: MonthOpening;
-  /** Free-text note for this month. Does not affect the math. */
-  note?: string;
 }
 
 export type CategoryGoalType =

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { RetirementVerdict } from "@/lib/retirement/dashboard";
 
@@ -14,7 +14,7 @@ export function RetirePageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {typeof title === "string" ? (
@@ -40,11 +40,13 @@ export function RetirePageHeader({
 export function RetirePanel({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={cn("budget-panel", className)}>{children}</div>;
+  ...rest
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("budget-panel", className)} {...rest}>
+      {children}
+    </div>
+  );
 }
 
 export function RetireEmptyState({
@@ -119,9 +121,9 @@ export function RetireMoney({
     <span
       className={cn(
         "tabular-nums tracking-tight",
-        tone === "in" && "text-[var(--brand-green)]",
-        tone === "out" && "text-[var(--brand-orange)]",
-        tone === "danger" && "text-[var(--brand-red)]",
+        tone === "in" && "text-[var(--brand-green-text)]",
+        tone === "out" && "text-[var(--brand-orange-text)]",
+        tone === "danger" && "text-[var(--fg-danger-text)]",
         className,
       )}
     >

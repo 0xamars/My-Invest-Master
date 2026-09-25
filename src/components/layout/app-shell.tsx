@@ -20,7 +20,7 @@ import {
 
 function AppShellHeader() {
   return (
-    <header className="portal-header sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 px-5 sm:px-6 lg:px-8">
+    <header className="portal-header portal-header--app sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 px-4 sm:px-5 lg:px-7">
       <BrandHomeLink className="flex min-w-0 items-center gap-2.5">
         <BrandLogo variant="sidebar" priority />
         <span className="sr-only">InvestSalsa</span>
@@ -55,7 +55,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-svh flex-col bg-background">
       <AppShellHeader />
-      <main className="relative flex flex-1 flex-col px-5 py-6 pb-24 sm:px-6 lg:px-8 lg:py-8 md:pb-10">
+      <main className="relative flex flex-1 flex-col px-4 py-4 pb-24 sm:px-5 lg:px-7 lg:py-5 md:pb-8">
         <div className="page-shell">{children}</div>
       </main>
       <footer className="relative hidden border-t border-border px-6 py-4 text-xs text-muted-foreground md:block lg:px-8">

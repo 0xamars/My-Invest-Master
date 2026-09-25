@@ -110,7 +110,6 @@ interface BudgetContextValue {
     onBudget?: boolean,
     startingBalance?: { amount: number; date: string },
   ) => void;
-  setMonthNote: (monthKey: string, note: string) => void;
   updateAccount: (
     accountId: string,
     updates: { name?: string; type?: BudgetAccountType; onBudget?: boolean },

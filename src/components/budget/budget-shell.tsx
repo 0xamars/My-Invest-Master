@@ -188,7 +188,7 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
 
   return (
     <BudgetMonthContext.Provider value={{ monthKey, setMonthKey }}>
-      <div className="mb-5 space-y-4">
+      <div className="mb-3 space-y-2.5">
         <div className="flex flex-col gap-3">
           <PillarBackLink href="/budget" label="Back to Budget" />
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -251,8 +251,8 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-8 rounded-md px-3",
-                    isActive && "bg-card text-foreground",
+                    "h-8 rounded-full px-3",
+                    isActive && "budget-nav-item--active",
                   )}
                   render={<Link href={item.href} />}
                 >

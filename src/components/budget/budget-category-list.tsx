@@ -219,7 +219,7 @@ export function BudgetCategoryList({
 
   return (
     <BudgetPanel>
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:px-5">
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Envelopes</h2>
           <p className="text-xs text-muted-foreground">
@@ -250,14 +250,14 @@ export function BudgetCategoryList({
 
       <div
         className={cn(
-          "hidden gap-3 border-y border-border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5",
+          "hidden gap-2 border-y border-border px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground md:grid sm:px-5",
           ENVELOPE_GRID,
         )}
       >
         <span>Envelope</span>
         <span className="text-right">Assigned</span>
         <span className="text-right">Activity</span>
-        <span className="text-right">Available</span>
+        <span className="budget-col-available text-right">Available</span>
         <span className="text-right">Actions</span>
       </div>
 
@@ -279,9 +279,9 @@ export function BudgetCategoryList({
             const paymentGroup = isCreditCardPaymentsGroup(group);
             return (
             <div key={group.id} className="border-b border-border last:border-b-0">
-              <div className="flex items-center justify-between gap-2 bg-muted/50 px-4 py-2 sm:px-5 md:grid md:gap-3 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(5.5rem,1fr))_2.75rem]">
+              <div className="budget-group-head flex items-center justify-between gap-2 px-4 py-1.5 sm:px-5 md:grid md:gap-2 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(5.5rem,1fr))_2.75rem]">
                 <div className="min-w-0">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground">
                     {group.name}
                   </h3>
                   {paymentGroup ? (
@@ -389,7 +389,7 @@ export function BudgetCategoryList({
                   <div
                     key={row.category.id}
                     className={cn(
-                      "budget-category-row grid min-h-12 items-center gap-2 px-4 py-2 md:gap-3 sm:px-5",
+                      "budget-category-row grid min-h-10 items-center gap-2 px-4 py-1.5 sm:px-5",
                       ENVELOPE_GRID,
                       row.status === "overspent" && "budget-row-overspent",
                       row.status === "credit-overspent" &&
@@ -415,8 +415,8 @@ export function BudgetCategoryList({
                               className={cn(
                                 "text-[10px] font-semibold uppercase tracking-[0.06em]",
                                 row.goalProgress.status === "on-track"
-                                  ? "text-[var(--brand-green)]"
-                                  : "text-[var(--brand-orange)]",
+                                  ? "text-[var(--brand-green-text)]"
+                                  : "text-[var(--brand-orange-text)]",
                               )}
                             >
                               {row.goalProgress.status === "on-track"
@@ -434,11 +434,11 @@ export function BudgetCategoryList({
                             : ""}
                         </p>
                       ) : row.overspendKind === "credit" ? (
-                        <p className="mt-0.5 text-[11px] text-[var(--brand-orange)]">
+                        <p className="mt-0.5 text-[11px] text-[var(--brand-orange-text)]">
                           Credit overspend stays on the card. It does not reduce leftover next month.
                         </p>
                       ) : row.overspendKind === "cash" ? (
-                        <p className="mt-0.5 text-[11px] text-[var(--brand-red)]">
+                        <p className="mt-0.5 text-[11px] text-[var(--fg-danger-text)]">
                           Cash overspend. Cover it, or leftover drops when you close the month.
                         </p>
                       ) : null}
@@ -505,7 +505,7 @@ export function BudgetCategoryList({
                       <span className="text-[11px] text-muted-foreground md:hidden">
                         Activity
                       </span>
-                      <span className="text-sm tabular-nums text-muted-foreground">
+                      <span className="budget-activity-value text-sm">
                         {row.activity === 0
                           ? "—"
                           : row.isPaymentCategory

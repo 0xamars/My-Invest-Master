@@ -11,7 +11,7 @@ export function BudgetPageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-1">
         <h1 className="page-title">
           {title}
@@ -93,9 +93,9 @@ export function BudgetMoney({
     <span
       className={cn(
         "tabular-nums tracking-tight",
-        tone === "in" && "text-[var(--brand-green)]",
-        tone === "out" && "text-[var(--brand-orange)]",
-        tone === "danger" && "text-[var(--brand-red)]",
+        tone === "in" && "text-[var(--brand-green-text)]",
+        tone === "out" && "text-[var(--brand-orange-text)]",
+        tone === "danger" && "text-[var(--fg-danger-text)]",
         className,
       )}
     >

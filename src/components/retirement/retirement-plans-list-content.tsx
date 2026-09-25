@@ -106,7 +106,7 @@ export function RetirementPlansListContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex flex-1 flex-col gap-3.5">
       <PillarBackLink href="/retire" label="Back to Retire" />
       <RetirePageHeader
         title="Retire plans"

@@ -86,7 +86,7 @@ export function BudgetPlansListContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-4">
       <BudgetPageHeader
         title="Budget"
         description="One spending account, envelopes, leftover, and a real month close."
@@ -150,9 +150,9 @@ export function BudgetPlansListContent() {
                       className={cn(
                         "mt-1 text-[1.65rem] font-semibold tracking-tight tabular-nums",
                         summary.availableToBudget < 0
-                          ? "text-[var(--brand-red)]"
+                          ? "text-[var(--fg-danger-text)]"
                           : summary.availableToBudget > 0
-                            ? "text-[var(--brand-green)]"
+                            ? "text-[var(--brand-green-text)]"
                             : "text-foreground",
                       )}
                     >

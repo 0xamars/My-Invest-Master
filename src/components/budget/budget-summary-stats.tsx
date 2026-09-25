@@ -3,6 +3,7 @@
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { AgeOfMoneyResult } from "@/lib/budget/age-of-money";
 import type { MonthBudgetSummary } from "@/lib/budget/calculations";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface BudgetSummaryStatsProps {
@@ -27,9 +28,9 @@ export function BudgetSummaryStats({
   const ready = summary.readyToAssign;
   const readyTone =
     ready > 0
-      ? "text-[var(--brand-green)]"
+      ? "text-[var(--brand-green-text)]"
       : ready < 0
-        ? "text-[var(--brand-red)]"
+        ? "text-[var(--fg-danger-text)]"
         : "text-foreground";
 
   const leftoverCaption = monthClosed
@@ -42,12 +43,18 @@ export function BudgetSummaryStats({
 
   return (
     <section className="budget-panel">
-      <div className="grid grid-cols-2 divide-y divide-border md:grid-cols-4 md:divide-x md:divide-y-0">
-        <div className="flex flex-col justify-center px-5 py-4">
+      <div
+        className={cn(
+          "budget-leftover",
+          ready > 0 && "budget-leftover--in",
+          ready < 0 && "budget-leftover--out",
+        )}
+      >
+        <div className="min-w-0">
           <p className="budget-metric-label">Leftover</p>
           <p
             className={cn(
-              "budget-hero-value mt-1.5",
+              "budget-hero-value mt-1",
               readyTone,
               isLoading && "animate-pulse",
             )}
@@ -55,26 +62,24 @@ export function BudgetSummaryStats({
             {formatBudgetMoney(ready, currency)}
           </p>
           {leftoverCaption ? (
-            <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-1.5 max-w-md text-xs leading-snug text-muted-foreground">
               {leftoverCaption}
             </p>
           ) : null}
           {openingLeftover != null && openingLeftover > 0 ? (
-            <p className="mt-1.5 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               Opened with {formatBudgetMoney(openingLeftover, currency)} leftover
               from the closed month.
             </p>
           ) : null}
-          {onAssignLeftover ? (
-            <button
-              type="button"
-              onClick={onAssignLeftover}
-              className="mt-2 w-fit text-sm font-medium text-[var(--brand-green)] underline-offset-2 hover:underline"
-            >
-              Assign leftover
-            </button>
-          ) : null}
         </div>
+        {onAssignLeftover ? (
+          <Button type="button" size="sm" onClick={onAssignLeftover}>
+            Assign leftover
+          </Button>
+        ) : null}
+      </div>
+      <div className="budget-summary-grid">
         <Metric
           label="Income"
           value={formatBudgetMoney(summary.totalIncome, currency)}
@@ -92,7 +97,7 @@ export function BudgetSummaryStats({
         />
       </div>
       {ageOfMoney.status === "ready" && ageOfMoney.days != null ? (
-        <div className="border-t border-border px-5 py-3">
+        <div className="border-t border-border px-4 py-2 sm:px-5">
           <p className="text-xs text-muted-foreground">
             Age of Money{" "}
             <span className="font-medium tabular-nums text-foreground">
@@ -119,11 +124,11 @@ function Metric({
   isLoading?: boolean;
 }) {
   return (
-    <div className="flex flex-col justify-center px-5 py-4">
+    <div className="flex min-w-0 flex-col justify-center">
       <p className="budget-metric-label">{label}</p>
       <p
         className={cn(
-          "mt-1.5 text-xl font-semibold tracking-tight tabular-nums",
+          "budget-metric-value mt-0.5",
           isLoading && "animate-pulse text-muted-foreground",
         )}
       >
