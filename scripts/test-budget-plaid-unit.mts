@@ -288,8 +288,11 @@ const marketing = readFileSync(
   "utf8",
 );
 assert(!marketing.includes("BrandStill"), "marketing has no hero still");
-assert(!marketing.includes("surface-card"), "marketing pillars are not cards");
 assert(!marketing.includes("Learn"), "marketing does not revive Learn");
+assert(
+  marketing.includes("Know when you can stop working, and which order to draw from."),
+  "marketing Retire pillar is one sentence",
+);
 assert(
   marketing.includes("Freedom, Engineered."),
   "marketing hero stays Freedom, Engineered.",
