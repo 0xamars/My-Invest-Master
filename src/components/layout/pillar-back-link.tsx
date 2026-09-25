@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { pillarHomePath } from "@/lib/chrome/nav";
 import { cn } from "@/lib/utils";
 
@@ -16,28 +14,30 @@ const PILLAR_LABEL: Record<string, string> = {
 export function PillarBackLink({
   href,
   label,
+  current,
   className,
 }: {
   href?: string;
   label?: string;
+  current?: string;
   className?: string;
 }) {
   const target = href ?? "/budget";
-  const text = label ?? `Back to ${PILLAR_LABEL[target] ?? "Budget"}`;
+  const raw = label ?? `Back to ${PILLAR_LABEL[target] ?? "Budget"}`;
+  const parent = raw.replace(/^Back to\s+/i, "");
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className={cn(
-        "-ml-2 h-8 w-fit gap-1.5 text-muted-foreground hover:text-foreground",
-        className,
-      )}
-      render={<Link href={target} />}
-    >
-      <ArrowLeft className="size-4" />
-      {text}
-    </Button>
+    <nav aria-label="Breadcrumb" className={cn("product-crumb", className)}>
+      <Link href={target} className="hover:text-foreground">
+        {parent}
+      </Link>
+      {current ? (
+        <>
+          <span aria-hidden="true">/</span>
+          <span className="truncate text-foreground">{current}</span>
+        </>
+      ) : null}
+    </nav>
   );
 }
 

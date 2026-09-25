@@ -44,22 +44,26 @@ export function BudgetEmptyState({
   title,
   description,
   actions,
+  art,
 }: {
   icon?: ReactNode;
   mark?: "budget" | "invest" | "retire";
   title: string;
   description: string;
   actions?: ReactNode;
+  art?: ReactNode;
 }) {
   return (
     <div className="premium-empty">
-      {icon ? (
+      {art ? (
+        art
+      ) : icon ? (
         <div className="desk-empty-icon">{icon}</div>
       ) : (
         <DeskEmptyMark kind={mark} />
       )}
       <p className="text-base font-semibold tracking-tight">{title}</p>
-      <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">
+      <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
         {description}
       </p>
       {actions ? <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div> : null}

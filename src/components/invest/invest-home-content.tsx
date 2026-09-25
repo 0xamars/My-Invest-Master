@@ -7,7 +7,9 @@ import { InvestShelf, PageLoading } from "@/components/layout/page-loading";
 import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
+import { QuietSparkline } from "@/components/invest/quiet-sparkline";
 import {
   RetireEmptyState,
   RetirePageHeader,
@@ -21,6 +23,7 @@ import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { explainAddHoldingFields } from "@/lib/journey/density";
 import { INVEST_EMPTY_BOOK } from "@/lib/journey/empty-states";
+import { bookDayMovePoints } from "@/lib/invest/sparkline";
 import { INVEST_EARLY_OPP_PATH } from "@/lib/chrome/nav";
 import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
 import { buildBookRows, formatBookCacheLine } from "@/lib/ticker/book";
@@ -57,6 +60,7 @@ export function InvestHomeContent() {
     error: quoteError,
   } = useBookTickerQuotes(stockSymbols);
   const rows = useMemo(() => buildBookRows(holdings, quotes), [holdings, quotes]);
+  const bookSpark = useMemo(() => bookDayMovePoints(rows), [rows]);
   const cacheLine = useMemo(
     () => formatBookCacheLine(Object.values(quotes), { isLoaded: quotesLoaded }),
     [quotes, quotesLoaded],
@@ -143,6 +147,7 @@ export function InvestHomeContent() {
         <>
           <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="invest">
             <RetireEmptyState
+              art={<EmptyArt kind="invest" />}
               mark="invest"
               title={INVEST_EMPTY_BOOK.title}
               description={INVEST_EMPTY_BOOK.description}
@@ -161,7 +166,10 @@ export function InvestHomeContent() {
         </>
       ) : (
         <RetirePanel className="px-4 py-3.5 sm:px-5">
-          <h2 className="text-sm font-semibold">Book</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Book</h2>
+            <QuietSparkline points={bookSpark} label="Book day move" />
+          </div>
           {quoteError ? (
             <p className="mt-1 text-xs text-muted-foreground">{quoteError}</p>
           ) : null}

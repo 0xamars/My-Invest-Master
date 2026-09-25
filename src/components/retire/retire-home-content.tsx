@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PageLoading } from "@/components/layout/page-loading";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { RetirementDisclaimer } from "@/components/retirement/retirement-disclaimer";
 import {
   RetireEmptyState,
@@ -116,6 +117,7 @@ export function RetireHomeContent() {
       ) : inputsMissing && !latest ? (
         <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="retire">
           <RetireEmptyState
+            art={<EmptyArt kind="retire" />}
             title={FREEDOM_EMPTY.title}
             description={FREEDOM_EMPTY.description}
             actions={

@@ -161,24 +161,25 @@
 }
 
 .light {
-  --background: #f4f4f5;
-  --foreground: #121212;
-  --card: #ffffff;
-  --card-foreground: #121212;
-  --popover: #ffffff;
-  --popover-foreground: #121212;
+  /* Warm paper, not a cool-gray invert of dark. Text stays above 4.5:1. */
+  --background: #f6f1ea;
+  --foreground: #1c1612;
+  --card: #fffaf4;
+  --card-foreground: #1c1612;
+  --popover: #fffaf4;
+  --popover-foreground: #1c1612;
   --primary: #64b860;
   --primary-foreground: #0b0c0e;
-  --secondary: #ececee;
-  --secondary-foreground: #121212;
-  --muted: #ececee;
-  --muted-foreground: #5c5f69;
-  --accent: #ececee;
-  --accent-foreground: #121212;
+  --secondary: #f3eadf;
+  --secondary-foreground: #1c1612;
+  --muted: #f3eadf;
+  --muted-foreground: #5c5148;
+  --accent: #f3eadf;
+  --accent-foreground: #1c1612;
   --destructive: #e5484d;
-  --fg-muted: #3c3f46;
-  --fg-footer: #5c5f69;
-  --fg-eyebrow: #454850;
+  --fg-muted: #3f3832;
+  --fg-footer: #5c5148;
+  --fg-eyebrow: #4a4038;
   --fg-danger: #b42318;
   --fg-danger-text: #b42318;
   --brand-green-text: #3e723c;
@@ -192,28 +193,28 @@
   --surface-2: #ffffff;
   --nav-active: #e5f2e4;
   --brand-green-deep: #4d9a4a;
-  --border: rgb(18 18 18 / 10%);
-  --input: #e4e4e7;
+  --border: rgb(92 58 28 / 16%);
+  --input: #e7d9c8;
   --ring: color-mix(in srgb, #64b860 55%, transparent);
   --chart-1: #3e8a3c;
   --chart-2: #d67a22;
   --chart-3: #2f6ea8;
   --chart-4: #5c5f69;
   --chart-5: #2f7a32;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #5c5f69;
+  --sidebar: #fffaf4;
+  --sidebar-foreground: #5c5148;
   --sidebar-primary: #64b860;
   --sidebar-primary-foreground: #0b0c0e;
-  --sidebar-accent: #ececee;
-  --sidebar-accent-foreground: #121212;
-  --sidebar-border: rgb(18 18 18 / 10%);
+  --sidebar-accent: #f3eadf;
+  --sidebar-accent-foreground: #1c1612;
+  --sidebar-border: rgb(92 58 28 / 16%);
   --sidebar-ring: color-mix(in srgb, #64b860 55%, transparent);
-  --chart-label: #121212;
-  --chart-label-muted: #5c5f69;
-  --chart-label-line: color-mix(in srgb, #5c5f69 65%, transparent);
-  --chart-axis: #5c5f69;
-  --chart-grid: color-mix(in srgb, #121212 8%, transparent);
-  --chart-slice-stroke: #ffffff;
+  --chart-label: #1c1612;
+  --chart-label-muted: #5c5148;
+  --chart-label-line: color-mix(in srgb, #5c5148 65%, transparent);
+  --chart-axis: #5c5148;
+  --chart-grid: color-mix(in srgb, #5c4030 12%, transparent);
+  --chart-slice-stroke: #fffaf4;
   --chart-positive: #2f6b34;
   --chart-negative: #c4363a;
   --chart-neutral: #5c5f69;
@@ -342,15 +343,15 @@
 
   .page-title {
     font-family: var(--font-heading);
-    font-size: var(--type-h2);
+    font-size: 1.35rem;
     font-weight: 600;
-    letter-spacing: -0.032em;
-    line-height: 1.25;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
     color: var(--foreground);
   }
 
   .page-description {
-    @apply mt-1 max-w-xl leading-relaxed text-muted-foreground;
+    @apply mt-0.5 max-w-xl leading-relaxed text-muted-foreground;
     font-size: var(--type-small);
     letter-spacing: 0;
   }
@@ -520,6 +521,73 @@
   a.btn-quiet:hover {
     background: var(--muted);
     color: var(--foreground);
+  }
+
+  .product-crumb {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--muted-foreground);
+  }
+
+  .empty-art-frame {
+    width: min(100%, 16.5rem);
+    margin-bottom: 0.85rem;
+    overflow: hidden;
+    border-radius: calc(var(--radius) + 2px);
+    border: 1px solid var(--border);
+    background: #0b0c0e;
+  }
+
+  .empty-art {
+    display: block;
+  }
+
+  .quiet-sparkline {
+    width: 4.5rem;
+    height: 1.375rem;
+    flex: none;
+  }
+
+  .light .budget-panel,
+  .light .empty-art-frame {
+    box-shadow:
+      0 1px 2px rgb(72 42 16 / 5%),
+      0 10px 28px rgb(72 42 16 / 6%);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .budget-panel,
+    .premium-empty {
+      animation: motion-panel-in 180ms ease both;
+    }
+
+    .motion-value--shift {
+      animation: motion-value-in 160ms ease;
+    }
+  }
+
+  @keyframes motion-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes motion-value-in {
+    from {
+      opacity: 0.4;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .desk-table {

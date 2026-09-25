@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { QuietSparkline } from "@/components/invest/quiet-sparkline";
+import { dayMovePoints } from "@/lib/invest/sparkline";
 import { getChartSeriesColor } from "@/lib/portfolio/chart-theme";
 import { formatTickerPrice, TICKER_UNKNOWN } from "@/lib/ticker/format";
 import type { BookRow } from "@/lib/ticker/book";
@@ -99,7 +101,13 @@ export function BookTable({ rows }: { rows: BookRow[] }) {
                   {row.weight == null ? TICKER_UNKNOWN : `${row.weight.toFixed(0)}%`}
                 </td>
                 <td className="py-2.5 pr-3 tabular-nums">
-                  {formatTickerPrice(row.price)}
+                  <span className="inline-flex items-center justify-end gap-2">
+                    <QuietSparkline
+                      points={dayMovePoints(row.price, row.change)}
+                      label={`${row.ticker} day move`}
+                    />
+                    {formatTickerPrice(row.price)}
+                  </span>
                 </td>
                 <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">
                   {row.healthMark}

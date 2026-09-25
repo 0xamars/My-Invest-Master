@@ -11,6 +11,7 @@ import {
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
+import { emptyArtText } from "../src/lib/journey/empty-art.ts";
 import {
   BUDGET_EMPTY,
   FREEDOM_EMPTY,
@@ -20,6 +21,11 @@ import {
   JOURNEY_HOME_EMPTY,
   emptyStateCopyText,
 } from "../src/lib/journey/empty-states.ts";
+import {
+  HOME_CHECKLIST_NOTE,
+  HOME_CHECKLIST_TITLE,
+  buildHomeChecklist,
+} from "../src/lib/journey/home-checklist.ts";
 import {
   MIDDLEWARE_HARD_BLOCKS_INVEST_DO,
   isBypassedJourneyPath,
@@ -1377,6 +1383,113 @@ for (const file of leftoverUi) {
     `leftover UI is gone: ${file}`,
   );
 }
+
+const firstRunChecklist = buildHomeChecklist({
+  hasBudget: false,
+  hasBook: false,
+  hasRetirePlan: false,
+});
+assert(firstRunChecklist?.length === 3, "first-run Home checklist has three steps");
+assert(
+  firstRunChecklist?.every((item) => item.done === false) === true,
+  "first-run checklist starts undone",
+);
+assert(
+  firstRunChecklist?.map((item) => item.href).join(",") === "/budget,/invest,/retire",
+  "checklist uses Budget, Invest, and Retire routes",
+);
+assert(
+  buildHomeChecklist({
+    hasBudget: true,
+    hasBook: false,
+    hasRetirePlan: false,
+  })?.[0]?.done === true,
+  "a saved budget marks Create a budget done",
+);
+assert(
+  buildHomeChecklist({
+    hasBudget: true,
+    hasBook: true,
+    hasRetirePlan: true,
+  }) === null,
+  "checklist hides once budget, book, and Retire exist",
+);
+const checklistCopy = `${HOME_CHECKLIST_TITLE} ${HOME_CHECKLIST_NOTE} ${firstRunChecklist
+  ?.map((item) => item.label)
+  .join(" ")}`;
+assert(!/YNAB|Freedom/i.test(checklistCopy), "checklist does not name YNAB or Freedom");
+assert(!/video|trailer/i.test(checklistCopy), "checklist has no trailer");
+
+const artCopy = emptyArtText();
+assert(artCopy.includes("/brand/empties/empty-budget.jpg"), "budget empty art path");
+assert(artCopy.includes("/brand/empties/empty-home.jpg"), "home empty art path");
+assert(artCopy.includes("/brand/empties/empty-invest.jpg"), "invest empty art path");
+assert(artCopy.includes("/brand/empties/empty-retire.jpg"), "retire empty art path");
+assert(
+  artCopy.includes("/brand/empties/empty-transactions.jpg"),
+  "transactions empty art path",
+);
+assert(!/YNAB|Freedom/i.test(artCopy), "empty art alt text stays on-brand");
+for (const file of [
+  "empty-budget.jpg",
+  "empty-home.jpg",
+  "empty-invest.jpg",
+  "empty-retire.jpg",
+  "empty-transactions.jpg",
+]) {
+  assert(
+    existsSync(join(process.cwd(), "public/brand/empties", file)),
+    `empty art file exists: ${file}`,
+  );
+}
+
+const homeSrc = readFileSync(
+  join(process.cwd(), "src/components/home/signed-in-home-content.tsx"),
+  "utf8",
+);
+assert(homeSrc.includes('kind="home"'), "Home empty shows the home illustration");
+assert(homeSrc.includes("HomeChecklist"), "Home renders the first-run checklist");
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/budget/budget-plans-list-content.tsx"),
+    "utf8",
+  ).includes('kind="budget"'),
+  "Budget empty shows the budget illustration",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
+    "utf8",
+  ).includes('kind="invest"'),
+  "Invest empty shows the invest illustration",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/retire/retire-home-content.tsx"),
+    "utf8",
+  ).includes('kind="retire"'),
+  "Retire empty shows the retire illustration",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/budget/budget-transactions-content.tsx"),
+    "utf8",
+  ).includes('kind="transactions"'),
+  "Transactions empty shows the list illustration",
+);
+assert(
+  !readFileSync(
+    join(process.cwd(), "src/components/home/marketing-home.tsx"),
+    "utf8",
+  ).includes("empty-art"),
+  "marketing homepage does not take the empty art",
+);
+assert(
+  readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8").includes(
+    "prefers-reduced-motion",
+  ),
+  "motion respects prefers-reduced-motion",
+);
 
 if (failed > 0) {
   console.error(`\n${failed} journey assertion(s) failed`);

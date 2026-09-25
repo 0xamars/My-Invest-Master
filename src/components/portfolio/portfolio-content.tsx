@@ -206,8 +206,8 @@ export function PortfolioContent() {
       {!isCurrencyLoaded || !isActiveReady || !activePortfolio ? (
         <PageLoading label="Loading Invest" layout="cards" />
       ) : (
-        <div className="flex flex-1 flex-col gap-5">
-          <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
+        <div className="flex flex-1 flex-col gap-3">
+          <PillarBackLink href={INVEST_PATH} label="Invest" current="Portfolio" />
           <RetirePageHeader
             title={
               <InlineTitle

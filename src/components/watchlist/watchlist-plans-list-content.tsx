@@ -76,11 +76,11 @@ export function WatchlistPlansListContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-8">
-      <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Watchlists</h1>
+    <div className="flex flex-1 flex-col gap-3">
+      <PillarBackLink href={INVEST_PATH} label="Invest" current="Watchlists" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-0.5">
+          <h1 className="page-title">Watchlists</h1>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Stage tickers you are researching — not holdings you own. Create
             as many lists as you need.

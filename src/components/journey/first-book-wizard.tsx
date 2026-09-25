@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { DeskEmptyMark } from "@/components/layout/desk-empty-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { INVEST_EMPTY_NO_BOOK } from "@/lib/journey/empty-states";
 import { displayCurrencyOrDefault } from "@/lib/journey/first-run";
 import {
@@ -70,8 +70,8 @@ export function FirstBookWizard({
       data-first-book-wizard="1"
       data-empty-state="invest-no-book"
     >
-      <DeskEmptyMark kind="invest" />
-      <div>
+      <div className="premium-empty">
+        <EmptyArt kind="invest" />
         <h2 className="text-base font-semibold tracking-tight">
           {INVEST_EMPTY_NO_BOOK.title}
         </h2>

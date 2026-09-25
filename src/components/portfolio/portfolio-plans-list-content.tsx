@@ -78,8 +78,8 @@ export function PortfolioPlansListContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
-      <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
+    <div className="flex flex-1 flex-col gap-3.5">
+      <PillarBackLink href={INVEST_PATH} label="Invest" current="Portfolios" />
       <BudgetPageHeader
         title="Portfolios"
         description="Each book is a plan. Primary is the checkup default on Invest. Open a book to manage holdings, mix, and leverage."

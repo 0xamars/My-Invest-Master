@@ -1,5 +1,6 @@
 "use client";
 
+import { MotionValue } from "@/components/ui/motion-value";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { AgeOfMoneyResult } from "@/lib/budget/age-of-money";
 import type { MonthBudgetSummary } from "@/lib/budget/calculations";
@@ -52,15 +53,14 @@ export function BudgetSummaryStats({
       >
         <div className="min-w-0 flex-1">
           <p className="budget-metric-label">Leftover</p>
-          <p
+          <MotionValue
+            value={formatBudgetMoney(ready, currency)}
             className={cn(
               "budget-hero-value mt-1",
               readyTone,
               isLoading && "animate-pulse",
             )}
-          >
-            {formatBudgetMoney(ready, currency)}
-          </p>
+          />
           <p className="budget-hero-sub">{secondary}</p>
           {openingLeftover != null && openingLeftover > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">

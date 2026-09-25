@@ -27,6 +27,7 @@ import {
   BudgetPageHeader,
   BudgetPanel,
 } from "@/components/budget/budget-ui";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -572,6 +573,11 @@ export function BudgetTransactionsContent() {
           ) : (
           <BudgetEmptyState
             icon={hasAnyTransactions ? <Search className="size-5" /> : <Upload className="size-5" />}
+            art={
+              !hasAnyTransactions && !filtersActive ? (
+                <EmptyArt kind="transactions" />
+              ) : undefined
+            }
             title={
               hasAnyTransactions || filtersActive
                 ? "Nothing matches"

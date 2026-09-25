@@ -186,11 +186,19 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
     },
   ];
 
+  const sectionCrumb = navItems.find((item) =>
+    item.exact ? pathname === item.href : pathname.startsWith(item.href),
+  );
+
   return (
     <BudgetMonthContext.Provider value={{ monthKey, setMonthKey }}>
       <div className="mb-3 space-y-2.5">
-        <div className="flex flex-col gap-3">
-          <PillarBackLink href="/budget" label="Back to Budget" />
+        <div className="flex flex-col gap-2">
+          <PillarBackLink
+            href="/budget"
+            label="Budget"
+            current={sectionCrumb && !sectionCrumb.exact ? sectionCrumb.title : undefined}
+          />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <InlineTitle

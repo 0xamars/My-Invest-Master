@@ -107,7 +107,7 @@ export function RetirementPlansListContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-3.5">
-      <PillarBackLink href="/retire" label="Back to Retire" />
+      <PillarBackLink href="/retire" label="Retire" current="Plans" />
       <RetirePageHeader
         title="Retire plans"
         description="Create from a blank model, or import holdings from Invest. Create as many plans as you need."

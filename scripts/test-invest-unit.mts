@@ -29,6 +29,7 @@ import {
   resolvePageTitle,
 } from "../src/lib/chrome/nav.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
+import { bookDayMovePoints, dayMovePoints } from "../src/lib/invest/sparkline.ts";
 import {
   isPortfolioDetailPath,
   resolvePortfolioViewScope,
@@ -1062,6 +1063,29 @@ const localHeaders = buildSecurityHeaders({ production: false });
 assert(
   !localHeaders.some((h) => h.key === "Strict-Transport-Security"),
   "no HSTS outside production",
+);
+
+assert(dayMovePoints(null, 1) === null, "sparkline skips a missing price");
+assert(dayMovePoints(10, null) === null, "sparkline skips a missing change");
+assert(
+  dayMovePoints(10, 1)?.join(",") === "9,10",
+  "sparkline is previous close then last price",
+);
+assert(
+  dayMovePoints(10, -2)?.join(",") === "12,10",
+  "sparkline keeps a down day",
+);
+assert(dayMovePoints(10, 10) === null, "sparkline drops a zero previous close");
+assert(
+  bookDayMovePoints([
+    { price: 10, change: 1, quantity: 2 },
+    { price: 20, change: null, quantity: 5 },
+  ])?.join(",") === "18,20",
+  "book sparkline uses only rows that have a change",
+);
+assert(
+  bookDayMovePoints([{ price: null, change: null }]) === null,
+  "book sparkline stays empty without prices",
 );
 
 if (failed > 0) {

@@ -2,12 +2,16 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { HomeChecklist } from "@/components/home/home-checklist";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { PageLoading } from "@/components/layout/page-loading";
+import { MotionValue } from "@/components/ui/motion-value";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
 import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
+import { buildHomeChecklist } from "@/lib/journey/home-checklist";
 import {
   buildSignedInHomeCards,
   signedInHomeAssignedFromPlans,
@@ -32,7 +36,11 @@ function HomeSpark({ value }: { value: number | null }) {
 
 export function SignedInHomeContent() {
   const budget = useBudgetPlans();
-  const { primaryPortfolio, isLoaded: portfoliosLoaded } = usePortfolioPlans();
+  const {
+    primaryPortfolio,
+    portfolios,
+    isLoaded: portfoliosLoaded,
+  } = usePortfolioPlans();
   const { plans: retirePlans, isLoaded: retireLoaded } =
     useRetirementPlansStorage();
   const { rates } = useFxRate();
@@ -54,6 +62,15 @@ export function SignedInHomeContent() {
       [...retirePlans].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))[0] ??
       null,
     [retirePlans],
+  );
+  const checklist = useMemo(
+    () =>
+      buildHomeChecklist({
+        hasBudget: budget.plans.length > 0,
+        hasBook: portfolios.length > 0,
+        hasRetirePlan: retirePlans.length > 0,
+      }),
+    [budget.plans.length, portfolios.length, retirePlans.length],
   );
   const cards = useMemo(
     () =>
@@ -80,29 +97,39 @@ export function SignedInHomeContent() {
     );
   }
 
+  const homeEmpty = cards.every((card) => card.empty);
+
   return (
-    <div className="grid flex-1 content-start gap-3 sm:grid-cols-3">
-      {cards.map((card) => (
-        <Link
-          key={card.pillar}
-          href={card.href}
-          data-home-card={card.pillar}
-          className="budget-panel block px-4 py-4 transition-colors hover:border-[var(--brand-green)]/35 sm:px-5"
-        >
-          <p className="budget-metric-label">{card.title}</p>
-          <p
-            className={cn(
-              card.empty
-                ? "mt-2 text-base font-semibold text-muted-foreground"
-                : "budget-hero-value mt-2 text-foreground",
-            )}
+    <div className="flex flex-1 flex-col gap-4">
+      {homeEmpty ? (
+        <div className="premium-empty" data-empty-state="home">
+          <EmptyArt kind="home" />
+        </div>
+      ) : null}
+      {checklist ? <HomeChecklist items={checklist} /> : null}
+      <div className="grid content-start gap-3 sm:grid-cols-3">
+        {cards.map((card) => (
+          <Link
+            key={card.pillar}
+            href={card.href}
+            data-home-card={card.pillar}
+            className="budget-panel block px-4 py-4 transition-colors hover:border-[var(--brand-green)]/35 sm:px-5"
           >
-            {card.metric}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">{card.caption}</p>
-          <HomeSpark value={card.spark} />
-        </Link>
-      ))}
+            <p className="budget-metric-label">{card.title}</p>
+            <MotionValue
+              value={card.metric}
+              className={cn(
+                "mt-2 text-[1.45rem] font-semibold tracking-tight",
+                card.empty
+                  ? "text-muted-foreground"
+                  : "text-foreground tabular-nums",
+              )}
+            />
+            <p className="mt-1.5 text-sm text-muted-foreground">{card.caption}</p>
+            <HomeSpark value={card.spark} />
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
