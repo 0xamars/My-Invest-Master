@@ -4,6 +4,10 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  EXAMPLE_COUPLE,
+  EXAMPLE_COUPLE_COMPARISON,
+} from "../src/lib/retirement/example-couple.ts";
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
@@ -1208,22 +1212,98 @@ assert(
   "marketing hero is exactly Freedom, Engineered.",
 );
 assert(
-  marketingSrc.includes("Budget → Invest → Retire"),
-  "marketing subtitle/pillars stay Budget → Invest → Retire",
+  (marketingSrc.match(/Freedom/g) ?? []).length === 1,
+  "Freedom appears only in the homepage H1",
+);
+assert(
+  marketingSrc.includes(
+    "Plan how the two of you draw down RRSP, RRIF, TFSA, and non-registered accounts.",
+  ),
+  "marketing subline is the couples draw-down line",
+);
+assert(
+  marketingSrc.includes(
+    "Compare withdrawal orders with federal and Ontario tax and OAS clawback, year by year, with every assumption visible.",
+  ),
+  "marketing subline names tax, OAS clawback, and visible assumptions",
+);
+assert(
+  !marketingSrc.includes("Budget → Invest → Retire"),
+  "marketing drops the Budget arrow subline",
 );
 assert(
   /title: "Budget"/.test(marketingSrc) &&
     /title: "Invest"/.test(marketingSrc) &&
     /title: "Retire"/.test(marketingSrc),
-  "marketing pillars stay Budget, Invest, Retire",
+  "marketing still names Budget, Invest, and Retire",
 );
 assert(
-  marketingSrc.includes("Sign in") && marketingSrc.includes("Create account"),
-  "marketing CTAs are Sign in and Create account",
+  marketingSrc.includes("Sign in") &&
+    marketingSrc.includes("Create your Retire plan"),
+  "marketing CTAs are Sign in and Create your Retire plan",
+);
+assert(
+  marketingSrc.includes("Educational, not advice."),
+  "marketing notes that it is educational, not advice",
+);
+assert(
+  marketingSrc.includes("Built for Canadians. Amounts in CAD."),
+  "marketing says it is built for Canadians, in CAD",
 );
 assert(
   !marketingSrc.includes("Login") && !marketingSrc.includes("Sign up"),
   "marketing drops Login and Sign up",
+);
+const homepageFiles = [
+  "src/app/page.tsx",
+  "src/components/home/example-withdrawal-comparison.tsx",
+  "src/components/home/signed-in-home-redirect.tsx",
+  "src/lib/retirement/example-couple.ts",
+  "src/lib/brand/assets.ts",
+];
+for (const file of homepageFiles) {
+  const src = readFileSync(join(process.cwd(), file), "utf8");
+  assert(!src.includes("Freedom"), `${file} does not say Freedom`);
+  assert(!/YNAB|Simply Wall St/i.test(src), `${file} does not name competitors`);
+}
+assert(
+  readFileSync(join(process.cwd(), "src/app/page.tsx"), "utf8").includes(
+    "MarketingHomePage",
+  ) &&
+    !readFileSync(join(process.cwd(), "src/app/page.tsx"), "utf8").includes(
+      "RefreshCw",
+    ),
+  "homepage renders the hero without a client spinner",
+);
+assert(
+  !readFileSync(join(process.cwd(), "src/components/layout/app-shell.tsx"), "utf8").includes(
+    "animate-spin",
+  ),
+  "public chrome does not hide pages behind an auth spinner",
+);
+const exampleSrc = readFileSync(
+  join(process.cwd(), "src/components/home/example-withdrawal-comparison.tsx"),
+  "utf8",
+);
+assert(
+  exampleSrc.includes("Example plan, fictional numbers") &&
+    exampleSrc.includes("Sam & Riley"),
+  "homepage example is labelled and names Sam and Riley",
+);
+assert(
+  EXAMPLE_COUPLE.names.person1 === "Sam" && EXAMPLE_COUPLE.names.person2 === "Riley",
+  "example couple names are Sam and Riley",
+);
+assert(
+  EXAMPLE_COUPLE_COMPARISON.status === "ready" &&
+    EXAMPLE_COUPLE_COMPARISON.orders.length === 4,
+  "example plan runs the four withdrawal orders",
+);
+assert(
+  !/Ready to Assign|\bthe book\b/i.test(
+    readFileSync(join(process.cwd(), "src/lib/brand/assets.ts"), "utf8"),
+  ),
+  "site description avoids Ready to Assign and the book",
 );
 assert(!marketingSrc.includes("Open Home"), "marketing has no Open Home CTA");
 assert(

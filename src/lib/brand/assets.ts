@@ -13,4 +13,8 @@ export const BRAND_SIZE = {
 export const SITE_TITLE = "InvestSalsa: Budget, Invest, Retire";
 
 export const SITE_DESCRIPTION =
-  "Plan your budget, investments and retirement in one place. Built for Canadians. Educational, not advice.";
+  "Couples Retire planner for Canadians. Plan how the two of you draw down RRSP, RRIF, TFSA, and non-registered accounts, and compare withdrawal orders with federal and Ontario tax and OAS clawback, year by year. Educational, not advice.";
+
+/** Social image alt. The picture is the fictional Sam & Riley comparison. */
+export const OG_IMAGE_ALT =
+  "Example Retire plan for Sam and Riley comparing withdrawal orders. Fictional numbers, amounts in CAD.";

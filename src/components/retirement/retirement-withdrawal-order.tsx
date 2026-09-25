@@ -38,6 +38,7 @@ import { missingRetirementInputs } from "@/lib/retirement/inputs";
 import {
   compareWithdrawalOrders,
   resolveWithdrawalAssumptions,
+  sharedTaxComparison,
   WITHDRAWAL_ORDER_DETAILS,
   WITHDRAWAL_OWNER_RULE,
   type PersonWithdrawalYearRow,
@@ -117,14 +118,27 @@ export function RetirementWithdrawalOrder({
     comparison?.orders[0] ??
     null;
 
-  const lowestTax = comparison
-    ? Math.min(...comparison.orders.map((order) => order.totals.totalTax))
-    : 0;
+  const comparedOrders = comparison?.orders ?? [];
+  const shared = comparison ? sharedTaxComparison(comparedOrders) : null;
+  const lowestTax =
+    shared && comparedOrders.length > 0
+      ? Math.min(
+          ...comparedOrders.map(
+            (order) => shared.taxes[order.id]?.totalTax ?? order.totals.totalTax,
+          ),
+        )
+      : 0;
   const highestEstate = comparison
     ? Math.max(
         ...comparison.orders.map((order) => order.totals.endingAfterTaxEstate),
       )
     : 0;
+  const taxLabel =
+    shared?.throughYear == null ? "Lifetime tax" : `Tax through ${shared.throughYear}`;
+  const taxBadge =
+    shared?.throughYear == null
+      ? "Lowest lifetime tax"
+      : `Lowest tax through ${shared.throughYear}`;
 
   const you = personLabel(plan, "person1");
   const spouse = personLabel(plan, "person2");
@@ -141,8 +155,10 @@ export function RetirementWithdrawalOrder({
         </h2>
         <p className="type-small max-w-3xl text-muted-foreground">
           Four ways to draw the accounts, with federal tax, Ontario tax, and
-          the OAS recovery tax each year. The lowest lifetime tax and the
-          highest ending estate are marked. Neither mark is a recommendation.
+          the OAS recovery tax each year.{" "}
+          {shared?.throughYear == null
+            ? "The lowest lifetime tax and the highest ending estate are marked. Neither mark is a recommendation."
+            : `Tax is compared through ${shared.throughYear}, the last year every order still covered spending. An order is not marked lowest tax because it ran out sooner or lasted longer. The highest ending estate is the balance at the end of the plan. Neither mark is a recommendation.`}
         </p>
       </div>
 
@@ -169,7 +185,9 @@ export function RetirementWithdrawalOrder({
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {comparison.orders.map((order) => {
-              const lowTax = order.totals.totalTax === lowestTax;
+              const orderTax = shared?.taxes[order.id];
+              const lowTax =
+                (orderTax?.totalTax ?? order.totals.totalTax) <= lowestTax + 0.01;
               const highEstate =
                 order.totals.endingAfterTaxEstate === highestEstate;
               const active = order.id === selectedOrder.id;
@@ -187,7 +205,7 @@ export function RetirementWithdrawalOrder({
                         {order.label}
                       </CardTitle>
                       {lowTax ? (
-                        <Badge variant="secondary">Lowest lifetime tax</Badge>
+                        <Badge variant="secondary">{taxBadge}</Badge>
                       ) : null}
                       {highEstate ? (
                         <Badge variant="outline">Highest ending estate</Badge>
@@ -199,21 +217,43 @@ export function RetirementWithdrawalOrder({
                   </CardHeader>
                   <CardContent className="space-y-2 px-4 pb-4">
                     <OrderStat
-                      label="Lifetime tax"
-                      value={money(order.totals.totalTax, currency, rates)}
+                      label={taxLabel}
+                      value={money(
+                        orderTax?.totalTax ?? order.totals.totalTax,
+                        currency,
+                        rates,
+                      )}
                     />
                     <OrderStat
                       label="Federal"
-                      value={money(order.totals.federalTax, currency, rates)}
+                      value={money(
+                        orderTax?.federalTax ?? order.totals.federalTax,
+                        currency,
+                        rates,
+                      )}
                     />
                     <OrderStat
                       label="Ontario"
-                      value={money(order.totals.provincialTax, currency, rates)}
+                      value={money(
+                        orderTax?.provincialTax ?? order.totals.provincialTax,
+                        currency,
+                        rates,
+                      )}
                     />
                     <OrderStat
                       label="OAS clawback"
-                      value={money(order.totals.oasClawback, currency, rates)}
+                      value={money(
+                        orderTax?.oasClawback ?? order.totals.oasClawback,
+                        currency,
+                        rates,
+                      )}
                     />
+                    {order.totals.depletionYear != null ? (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        Depleted in {order.totals.depletionYear}. This order does not
+                        cover spending through the end of the plan.
+                      </p>
+                    ) : null}
                     <OrderStat
                       label="Ending estate, after tax"
                       value={money(

@@ -2,7 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppShell } from "@/components/layout/app-shell";
-import { BRAND, BRAND_SIZE, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/brand/assets";
+import {
+  BRAND,
+  BRAND_SIZE,
+  OG_IMAGE_ALT,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+} from "@/lib/brand/assets";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,7 +47,7 @@ export const metadata: Metadata = {
         url: BRAND.ogImage,
         width: BRAND_SIZE.ogImage.width,
         height: BRAND_SIZE.ogImage.height,
-        alt: SITE_TITLE,
+        alt: OG_IMAGE_ALT,
       },
     ],
   },

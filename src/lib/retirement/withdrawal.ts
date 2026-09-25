@@ -56,6 +56,11 @@ export interface WithdrawalYearResult {
   rrifMinimum: number;
   rrifSurplusReinvested: number;
   rrifSurplusLeftPlan: number;
+  /**
+   * Surplus credited back to each account after the withdrawal. Ordered
+   * engines set this. Absent means nothing was put back.
+   */
+  reinvestedByAccount?: Record<string, number>;
 }
 
 export type WithdrawalEngine = (input: WithdrawalYearInput) => WithdrawalYearResult;
