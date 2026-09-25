@@ -12,8 +12,11 @@ const SECONDARY =
 
 const TRUST = "Educational, not advice. · Built for Canadians. Amounts in CAD.";
 
-const HERO_ALT =
-  "Illustration of a Retire plan showing which accounts to draw from, for one person or a couple.";
+const HERO_ACCOUNTS = [
+  { name: "RRSP", swatch: "var(--chart-account-rrsp)" },
+  { name: "TFSA", swatch: "var(--chart-account-tfsa)" },
+  { name: "Cash", swatch: "var(--chart-account-cash)" },
+] as const;
 
 const PILLARS = [
   {
@@ -32,26 +35,47 @@ const PILLARS = [
 
 function HeroVisual() {
   return (
-    <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none">
-      {/* next/image rejects SVG sources. The mark is a small original illustration. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/marketing/retire-hero-dark.svg"
-        alt={HERO_ALT}
-        width={560}
-        height={488}
-        decoding="async"
-        className="hidden w-full dark:block"
+    <div className="relative mx-auto w-full max-w-sm lg:mx-0">
+      <div
+        className="pointer-events-none absolute bottom-5 left-[5px] top-5 w-px -translate-x-1/2 bg-primary/80"
+        style={{ boxShadow: "0 0 16px 1px var(--primary)" }}
+        aria-hidden="true"
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/marketing/retire-hero-light.svg"
-        alt={HERO_ALT}
-        width={560}
-        height={488}
-        decoding="async"
-        className="block w-full dark:hidden"
-      />
+      <svg
+        className="pointer-events-none absolute bottom-5 left-[5px] top-5 w-px -translate-x-1/2 overflow-visible"
+        viewBox="0 0 2 100"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <line
+          x1="1"
+          y1="0"
+          x2="1"
+          y2="100"
+          stroke="var(--primary)"
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <ol className="relative space-y-3" aria-label="Accounts">
+        {HERO_ACCOUNTS.map((account) => (
+          <li key={account.name} className="flex items-center gap-4">
+            <span
+              className="relative z-10 size-2.5 shrink-0 rounded-full bg-primary"
+              style={{ boxShadow: "0 0 12px var(--primary)" }}
+              aria-hidden="true"
+            />
+            <div className="surface-card flex min-w-0 flex-1 items-center gap-3 px-4 py-4">
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: account.swatch }}
+                aria-hidden="true"
+              />
+              <span className="text-sm font-semibold tracking-tight">{account.name}</span>
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

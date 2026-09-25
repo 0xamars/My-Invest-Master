@@ -1247,6 +1247,21 @@ assert(
   "marketing hero has no tax jargon and is not couples-only",
 );
 assert(
+  marketingSrc.includes('name: "RRSP"') &&
+    marketingSrc.includes('name: "TFSA"') &&
+    marketingSrc.includes('name: "Cash"') &&
+    marketingSrc.includes("<svg") &&
+    marketingSrc.includes("var(--primary)") &&
+    marketingSrc.includes("var(--chart-account-rrsp)"),
+  "marketing hero visual is inline SVG and CSS account cards",
+);
+assert(
+  !marketingSrc.includes("<img") &&
+    !marketingSrc.includes(".svg") &&
+    !/maple|Canadian Retire/i.test(marketingSrc),
+  "marketing hero does not use an image file, a maple, or an invented wordmark",
+);
+assert(
   !marketingSrc.includes("Budget → Invest → Retire"),
   "marketing drops the Budget arrow subline",
 );
@@ -1315,6 +1330,13 @@ assert(
     exampleSrc,
   ),
   "homepage proof hides the worksheet",
+);
+assert(
+  exampleSrc.includes("exampleLifetimeTaxDisplay") &&
+    exampleSrc.includes("bg-primary") &&
+    !exampleSrc.includes("<img") &&
+    !exampleSrc.includes(".svg"),
+  "homepage proof bars are CSS driven by the example plan",
 );
 const exampleTax = exampleLifetimeTaxDisplay();
 assert(
