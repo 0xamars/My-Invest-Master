@@ -11,6 +11,7 @@ import {
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
+import { emptyArtText } from "../src/lib/journey/empty-art.ts";
 import {
   BUDGET_EMPTY,
   FREEDOM_EMPTY,
@@ -20,6 +21,11 @@ import {
   JOURNEY_HOME_EMPTY,
   emptyStateCopyText,
 } from "../src/lib/journey/empty-states.ts";
+import {
+  HOME_CHECKLIST_NOTE,
+  HOME_CHECKLIST_TITLE,
+  buildHomeChecklist,
+} from "../src/lib/journey/home-checklist.ts";
 import {
   MIDDLEWARE_HARD_BLOCKS_INVEST_DO,
   isBypassedJourneyPath,
@@ -1377,6 +1383,224 @@ for (const file of leftoverUi) {
     `leftover UI is gone: ${file}`,
   );
 }
+
+const firstRunChecklist = buildHomeChecklist({
+  hasBudget: false,
+  hasBook: false,
+  hasRetirePlan: false,
+});
+assert(firstRunChecklist?.length === 3, "first-run Home checklist has three steps");
+assert(
+  firstRunChecklist?.every((item) => item.done === false) === true,
+  "first-run checklist starts undone",
+);
+assert(
+  firstRunChecklist?.map((item) => item.href).join(",") === "/budget,/invest,/retire",
+  "checklist uses Budget, Invest, and Retire routes",
+);
+assert(
+  buildHomeChecklist({
+    hasBudget: true,
+    hasBook: false,
+    hasRetirePlan: false,
+  })?.[0]?.done === true,
+  "a saved budget marks Create a budget done",
+);
+assert(
+  buildHomeChecklist({
+    hasBudget: true,
+    hasBook: true,
+    hasRetirePlan: true,
+  }) === null,
+  "checklist hides once budget, book, and Retire exist",
+);
+const checklistCopy = `${HOME_CHECKLIST_TITLE} ${HOME_CHECKLIST_NOTE} ${firstRunChecklist
+  ?.map((item) => item.label)
+  .join(" ")}`;
+assert(!/YNAB|Freedom/i.test(checklistCopy), "checklist does not name YNAB or Freedom");
+assert(!/video|trailer/i.test(checklistCopy), "checklist has no trailer");
+
+const artCopy = emptyArtText();
+assert(artCopy.includes("/brand/empties/empty-budget.png"), "budget empty art path");
+assert(artCopy.includes("/brand/empties/empty-home.png"), "home empty art path");
+assert(artCopy.includes("/brand/empties/empty-invest.png"), "invest empty art path");
+assert(artCopy.includes("/brand/empties/empty-retire.png"), "retire empty art path");
+assert(
+  artCopy.includes("/brand/empties/empty-transactions.png"),
+  "transactions empty art path",
+);
+assert(!/YNAB|Freedom/i.test(artCopy), "empty art alt text stays on-brand");
+for (const file of [
+  "empty-budget.png",
+  "empty-home.png",
+  "empty-invest.png",
+  "empty-retire.png",
+  "empty-transactions.png",
+]) {
+  assert(
+    existsSync(join(process.cwd(), "public/brand/empties", file)),
+    `empty art file exists: ${file}`,
+  );
+}
+
+const homeSrc = readFileSync(
+  join(process.cwd(), "src/components/home/signed-in-home-content.tsx"),
+  "utf8",
+);
+assert(homeSrc.includes('kind="home"'), "Home empty shows the home illustration");
+assert(homeSrc.includes("HomeChecklist"), "Home renders the first-run checklist");
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/budget/budget-plans-list-content.tsx"),
+    "utf8",
+  ).includes('kind="budget"'),
+  "Budget empty shows the budget illustration",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
+    "utf8",
+  ).includes('kind="invest"'),
+  "Invest empty shows the invest illustration",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/retire/retire-home-content.tsx"),
+    "utf8",
+  ).includes('kind="retire"'),
+  "Retire empty shows the retire illustration",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/budget/budget-transactions-content.tsx"),
+    "utf8",
+  ).includes('kind="transactions"'),
+  "Transactions empty shows the list illustration",
+);
+assert(
+  !readFileSync(
+    join(process.cwd(), "src/components/home/marketing-home.tsx"),
+    "utf8",
+  ).includes("empty-art"),
+  "marketing homepage does not take the empty art",
+);
+assert(
+  readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8").includes(
+    "prefers-reduced-motion",
+  ),
+  "motion respects prefers-reduced-motion",
+);
+const imagineSlots = readFileSync(
+  join(process.cwd(), "src/lib/brand/imagine-slots.ts"),
+  "utf8",
+);
+for (const file of [
+  "hero-budget.png",
+  "hero-invest.png",
+  "hero-retire.png",
+  "first-run-welcome.png",
+  "accent-checklist.png",
+  "accent-spark.png",
+]) {
+  assert(
+    existsSync(join(process.cwd(), "public/images/imagine", file)),
+    `Imagine file ${file} is in place`,
+  );
+  assert(imagineSlots.includes(`/images/imagine/${file}`), `${file} is slotted`);
+}
+assert(!/YNAB|Freedom/i.test(imagineSlots), "Imagine slots do not name brands");
+const checklistSrc = readFileSync(
+  join(process.cwd(), "src/components/home/home-checklist.tsx"),
+  "utf8",
+);
+assert(
+  checklistSrc.includes('kind="home"') &&
+    checklistSrc.includes("empty-stack") &&
+    !checklistSrc.includes('slot="first-run-welcome"'),
+  "first-run checklist centers the home empty illustration",
+);
+assert(
+  !checklistSrc.includes("accent-checklist") && !checklistSrc.includes("accent-spark"),
+  "first-run checklist does not bolt on accent badges",
+);
+const budgetHeroSrc = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-summary-stats.tsx"),
+  "utf8",
+);
+assert(
+  budgetHeroSrc.includes("money-hero") && !budgetHeroSrc.includes("hero-budget"),
+  "Budget leftover is a clean number with no art behind it",
+);
+const investSrc = readFileSync(
+  join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
+  "utf8",
+);
+assert(
+  investSrc.includes('kind="invest"') &&
+    !investSrc.includes("hero-invest") &&
+    !investSrc.includes("accent-spark") &&
+    !investSrc.includes("ArtWash") &&
+    readFileSync(
+      join(process.cwd(), "src/components/retirement/retire-ui.tsx"),
+      "utf8",
+    ).includes("empty-stack"),
+  "Invest empty uses the stack and the total has no ribbon",
+);
+assert(
+  !readFileSync(
+    join(process.cwd(), "src/components/home/signed-in-home-content.tsx"),
+    "utf8",
+  ).includes("accent-spark"),
+  "Home cards do not carry a spark badge",
+);
+const retireDateSrc = readFileSync(
+  join(process.cwd(), "src/components/retirement/retirement-verdict-hero.tsx"),
+  "utf8",
+);
+assert(
+  retireDateSrc.includes("hero-lead") &&
+    !retireDateSrc.includes("hero-retire") &&
+    !retireDateSrc.includes("ArtWash"),
+  "Retire date sits on a clean surface",
+);
+const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+assert(css.includes(".empty-stack"), "empty states use a centered stack");
+assert(css.includes(".empty-stack-art"), "empty art sits in the stack");
+assert(!css.includes(".art-wash"), "product chrome has no art wash");
+assert(
+  css.includes("backdrop-filter: none") && !/backdrop-filter:\s*blur/.test(css),
+  "product chrome has no frost or glass wallpaper",
+);
+const emptyArtUi = readFileSync(
+  join(process.cwd(), "src/components/journey/empty-art.tsx"),
+  "utf8",
+);
+assert(
+  emptyArtUi.includes("next/image") &&
+    emptyArtUi.includes("unoptimized") &&
+    emptyArtUi.includes("empty-stack-art") &&
+    !emptyArtUi.includes("DeskEmptyMark") &&
+    !emptyArtUi.includes("ArtWash"),
+  "empty stack paints the card-matched illustration without a wash",
+);
+assert(css.includes(".desk-stack"), "pages use a 24px section stack");
+assert(css.includes(".money-hero"), "monumental money class exists");
+assert(css.includes(".nav-active-green"), "active nav uses the green treatment");
+assert(css.includes("chart-draw"), "charts draw with CSS motion");
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/budget/budget-category-list.tsx"),
+    "utf8",
+  ).includes("groupEnvelopeRollup"),
+  "Budget groups roll up Available",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/home/home-checklist.tsx"),
+    "utf8",
+  ).includes('kind="home"'),
+  "first-run checklist carries the home illustration",
+);
 
 if (failed > 0) {
   console.error(`\n${failed} journey assertion(s) failed`);

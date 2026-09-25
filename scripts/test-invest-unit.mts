@@ -29,6 +29,8 @@ import {
   resolvePageTitle,
 } from "../src/lib/chrome/nav.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
+import { bookDayMovePoints, dayMovePoints } from "../src/lib/invest/sparkline.ts";
+import { formatShareSum, pricedShareTotal } from "../src/lib/ticker/book.ts";
 import {
   isPortfolioDetailPath,
   resolvePortfolioViewScope,
@@ -1063,6 +1065,42 @@ assert(
   !localHeaders.some((h) => h.key === "Strict-Transport-Security"),
   "no HSTS outside production",
 );
+
+assert(dayMovePoints(null, 1) === null, "sparkline skips a missing price");
+assert(dayMovePoints(10, null) === null, "sparkline skips a missing change");
+assert(
+  dayMovePoints(10, 1)?.join(",") === "9,10",
+  "sparkline is previous close then last price",
+);
+assert(
+  dayMovePoints(10, -2)?.join(",") === "12,10",
+  "sparkline keeps a down day",
+);
+assert(dayMovePoints(10, 10) === null, "sparkline drops a zero previous close");
+assert(
+  bookDayMovePoints([
+    { price: 10, change: 1, quantity: 2 },
+    { price: 20, change: null, quantity: 5 },
+  ])?.join(",") === "18,20",
+  "book sparkline uses only rows that have a change",
+);
+assert(
+  bookDayMovePoints([{ price: null, change: null }]) === null,
+  "book sparkline stays empty without prices",
+);
+assert(
+  pricedShareTotal([
+    { type: "stock", value: 12.5 },
+    { type: "cash", value: 100 },
+    { type: "stock", value: null },
+  ]) === 12.5,
+  "priced share total skips cash and unpriced rows",
+);
+assert(
+  pricedShareTotal([{ type: "stock", value: 0 }]) === null,
+  "priced share total stays empty at zero",
+);
+assert(formatShareSum(12.5) === "12.50", "share sum has no currency symbol");
 
 if (failed > 0) {
   console.error(`\n${failed} failing assertion(s)`);

@@ -150,7 +150,7 @@ export function BudgetContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className="desk-stack">
       {syncError && <BudgetSyncError message={syncError} />}
 
       {habit.needsAttention ? (

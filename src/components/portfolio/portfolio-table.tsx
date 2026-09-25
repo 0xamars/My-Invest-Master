@@ -89,7 +89,7 @@ function stickyToneClass(note: ReturnType<typeof concentrationNoteForWeight>) {
   return "bg-card group-hover:bg-muted/30";
 }
 
-const CELL = "px-4 py-3.5";
+const CELL = "px-4 py-2.5";
 const NUMERIC = cn(CELL, "text-right text-sm tabular-nums");
 
 const COLUMNS: {

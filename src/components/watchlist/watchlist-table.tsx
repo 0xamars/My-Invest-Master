@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { MoreHorizontal, Trash2 } from "lucide-react";
+import { QuietSparkline } from "@/components/invest/quiet-sparkline";
 import { investTickerPath } from "@/lib/chrome/nav";
+import { dayMovePoints } from "@/lib/invest/sparkline";
 import { AssetLogo } from "@/components/portfolio/asset-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,7 @@ function watchlistKey(symbol: string, type: string) {
   return `${symbol.toUpperCase()}:${type}`;
 }
 
-const CELL = "px-4 py-3.5";
+const CELL = "px-4 py-2.5";
 const NUMERIC = cn(CELL, "text-right text-sm tabular-nums");
 
 function typeLabel(type: "stock" | "crypto") {
@@ -189,7 +191,13 @@ export function WatchlistTable({
                         ) : item.changePercent == null ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
-                          formatPercent(item.changePercent)
+                          <span className="inline-flex items-center justify-end gap-2">
+                            <QuietSparkline
+                              points={dayMovePoints(item.currentPrice, item.change)}
+                              label={`${item.symbol} day move`}
+                            />
+                            {formatPercent(item.changePercent)}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className={cn(CELL, "pr-5 text-right")}>

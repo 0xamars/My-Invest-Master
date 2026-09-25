@@ -362,6 +362,7 @@ const weighted = buildBookRows(
       symbol: "MSFT",
       name: "Microsoft",
       price: 10,
+      change: null,
       healthMark: "2 / 6",
       fetchedAt: assembled.fetchedAt,
       cacheStatus: "fresh",

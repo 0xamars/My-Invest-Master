@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { DeskEmptyMark } from "@/components/layout/desk-empty-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { INVEST_EMPTY_NO_BOOK } from "@/lib/journey/empty-states";
 import { displayCurrencyOrDefault } from "@/lib/journey/first-run";
 import {
@@ -66,21 +66,18 @@ export function FirstBookWizard({
 
   return (
     <div
-      className="flex flex-1 flex-col gap-4"
+      className="flex flex-1 flex-col gap-6"
       data-first-book-wizard="1"
       data-empty-state="invest-no-book"
     >
-      <DeskEmptyMark kind="invest" />
-      <div>
-        <h2 className="text-base font-semibold tracking-tight">
-          {INVEST_EMPTY_NO_BOOK.title}
-        </h2>
-        <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
-          {INVEST_EMPTY_NO_BOOK.description}
-        </p>
+      <div className="empty-stack">
+        <EmptyArt kind="invest" />
+        <h2 className="empty-stack-title">{INVEST_EMPTY_NO_BOOK.title}</h2>
+        <p className="empty-stack-line">{INVEST_EMPTY_NO_BOOK.description}</p>
       </div>
+      <div className="desk-card-rule" />
 
-      <div className="grid max-w-xl gap-4 sm:grid-cols-2">
+      <div className="grid max-w-xl gap-4 px-6 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="first-book-name">Name</Label>
           <Input
@@ -129,7 +126,7 @@ export function FirstBookWizard({
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <div>
+      <div className="px-6 pb-8">
         <Button
           type="button"
           disabled={isSubmitting}

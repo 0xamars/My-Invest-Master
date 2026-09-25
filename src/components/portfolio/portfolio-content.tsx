@@ -206,8 +206,8 @@ export function PortfolioContent() {
       {!isCurrencyLoaded || !isActiveReady || !activePortfolio ? (
         <PageLoading label="Loading Invest" layout="cards" />
       ) : (
-        <div className="flex flex-1 flex-col gap-5">
-          <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
+        <div className="flex flex-1 flex-col gap-3">
+          <PillarBackLink href={INVEST_PATH} label="Invest" current="Portfolio" />
           <RetirePageHeader
             title={
               <InlineTitle
@@ -444,16 +444,16 @@ function BookHero({
   const money = (value: number) => formatDisplayMoney(value, currency, rates);
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-      <section className="budget-hero px-5 py-5 sm:px-7 sm:py-6">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <section className="budget-panel px-6 py-6">
+        <div className="flex flex-wrap items-center gap-4">
           <InvestRiskChip chip={checkup.riskChip} />
           <LeverageUtilChip
             flag={leverageUtil.flag}
             percent={leverageUtil.utilizationPercent}
           />
         </div>
-        <p className="budget-hero-value mt-3">
+        <p className="money-hero mt-6">
           {isLoading ? "…" : money(checkup.totalValue)}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">

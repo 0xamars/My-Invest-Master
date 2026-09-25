@@ -7,6 +7,7 @@ import { PageLoading } from "@/components/layout/page-loading";
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { DeleteBudgetPlanDialog } from "@/components/budget/delete-budget-plan-dialog";
 import { BudgetEmptyState, BudgetPageHeader } from "@/components/budget/budget-ui";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { BudgetSyncError } from "@/components/budget/budget-sync-error";
 import { Button } from "@/components/ui/button";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
@@ -105,11 +106,12 @@ export function BudgetPlansListContent() {
 
       {summaries.length === 0 ? (
         <div
-          className="budget-panel px-4 py-4 sm:px-5"
+          className="budget-panel"
           data-budget-first-run-kit="1"
           data-empty-state="budget"
         >
           <BudgetEmptyState
+            art={<EmptyArt kind="budget" />}
             title={BUDGET_EMPTY.title}
             description={BUDGET_EMPTY.description}
             actions={

@@ -9,6 +9,8 @@ export type BookTickerQuote = {
   symbol: string;
   name: string | null;
   price: number | null;
+  /** Dollar change versus the previous close. Null when the cache has no change. */
+  change: number | null;
   healthMark: string;
   fetchedAt: string | null;
   cacheStatus: TickerCacheStatus | "miss";
@@ -25,6 +27,7 @@ export type BookRow = {
   weight: number | null;
   healthMark: string;
   href: string | null;
+  change: number | null;
 };
 
 export function quoteFromSnapshot(
@@ -37,6 +40,7 @@ export function quoteFromSnapshot(
       symbol,
       name: null,
       price: null,
+      change: null,
       healthMark: TICKER_UNKNOWN,
       fetchedAt: null,
       cacheStatus: "miss",
@@ -46,6 +50,7 @@ export function quoteFromSnapshot(
     symbol: snapshot.symbol,
     name: snapshot.profile.name,
     price: snapshot.quote.price,
+    change: snapshot.quote.change,
     healthMark: formatScoreMark(scoreAxis(snapshot.score, "health")),
     fetchedAt: snapshot.fetchedAt,
     cacheStatus: status,
@@ -112,6 +117,12 @@ export function buildBookRows(
       holding.type === "cash"
         ? `Cash (${getCashCurrency(holding)})`
         : holding.name || holding.symbol;
+    const change =
+      holding.type === "stock" &&
+      quote?.change != null &&
+      Number.isFinite(quote.change)
+        ? quote.change
+        : null;
     return {
       id: holding.id,
       name,
@@ -123,6 +134,7 @@ export function buildBookRows(
       weight: null as number | null,
       healthMark,
       href,
+      change,
     };
   });
 
@@ -136,4 +148,27 @@ export function buildBookRows(
     weight:
       row.value != null && knownTotal > 0 ? (row.value / knownTotal) * 100 : null,
   }));
+}
+
+/** Last price × shares for priced stock rows. Cash is excluded. Null when nothing is priced. */
+export function pricedShareTotal(
+  rows: readonly Pick<BookRow, "type" | "value">[],
+): number | null {
+  let total = 0;
+  let priced = false;
+  for (const row of rows) {
+    if (row.type !== "stock") continue;
+    if (row.value == null || !Number.isFinite(row.value) || row.value <= 0) continue;
+    total += row.value;
+    priced = true;
+  }
+  return priced ? total : null;
+}
+
+/** Grouped amount with no currency symbol. Mixed quote currencies are not converted. */
+export function formatShareSum(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }

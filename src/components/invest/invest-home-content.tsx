@@ -7,7 +7,9 @@ import { InvestShelf, PageLoading } from "@/components/layout/page-loading";
 import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
+import { QuietSparkline } from "@/components/invest/quiet-sparkline";
 import {
   RetireEmptyState,
   RetirePageHeader,
@@ -21,9 +23,15 @@ import { useDisplayCurrency } from "@/hooks/use-display-currency";
 import { useMoneyProfile } from "@/hooks/use-money-profile";
 import { explainAddHoldingFields } from "@/lib/journey/density";
 import { INVEST_EMPTY_BOOK } from "@/lib/journey/empty-states";
+import { bookDayMovePoints } from "@/lib/invest/sparkline";
 import { INVEST_EARLY_OPP_PATH } from "@/lib/chrome/nav";
 import { shouldOfferFirstBookWizard } from "@/lib/journey/first-run";
-import { buildBookRows, formatBookCacheLine } from "@/lib/ticker/book";
+import {
+  buildBookRows,
+  formatBookCacheLine,
+  formatShareSum,
+  pricedShareTotal,
+} from "@/lib/ticker/book";
 import { isHoldingVisible } from "@/lib/portfolio/transactions";
 import type { DisplayCurrency } from "@/types/currency";
 import type { AddTransactionInput } from "@/types/portfolio";
@@ -57,6 +65,8 @@ export function InvestHomeContent() {
     error: quoteError,
   } = useBookTickerQuotes(stockSymbols);
   const rows = useMemo(() => buildBookRows(holdings, quotes), [holdings, quotes]);
+  const bookSpark = useMemo(() => bookDayMovePoints(rows), [rows]);
+  const shareTotal = useMemo(() => pricedShareTotal(rows), [rows]);
   const cacheLine = useMemo(
     () => formatBookCacheLine(Object.values(quotes), { isLoaded: quotesLoaded }),
     [quotes, quotesLoaded],
@@ -93,7 +103,7 @@ export function InvestHomeContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3.5">
+    <div className="desk-stack">
       <InvestToolsNav />
       <RetirePageHeader
         title="Invest"
@@ -131,7 +141,7 @@ export function InvestHomeContent() {
 
       {offerFirstBook ? (
         <>
-          <RetirePanel className="px-4 py-4 sm:px-5">
+          <RetirePanel>
             <FirstBookWizard
               onCreate={onCreateFirstBook}
               isSubmitting={creating}
@@ -141,8 +151,9 @@ export function InvestHomeContent() {
         </>
       ) : rows.length === 0 ? (
         <>
-          <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="invest">
+          <RetirePanel data-empty-state="invest">
             <RetireEmptyState
+              art={<EmptyArt kind="invest" />}
               mark="invest"
               title={INVEST_EMPTY_BOOK.title}
               description={INVEST_EMPTY_BOOK.description}
@@ -160,8 +171,26 @@ export function InvestHomeContent() {
           <InvestShelf />
         </>
       ) : (
-        <RetirePanel className="px-4 py-3.5 sm:px-5">
-          <h2 className="text-sm font-semibold">Book</h2>
+        <RetirePanel>
+          <header className="desk-card-header">
+            <h2 className="text-sm font-semibold text-foreground">Book</h2>
+          </header>
+          <div className="desk-card-rule" />
+          <div className="desk-card-body">
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0">
+              {shareTotal != null ? (
+                <>
+                  <p className="money-hero mt-2">{formatShareSum(shareTotal)}</p>
+                  <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                    Sum of last price × shares. Cash is left out, and mixed
+                    quote currencies are not converted.
+                  </p>
+                </>
+              ) : null}
+            </div>
+            <QuietSparkline points={bookSpark} label="Book day move" />
+          </div>
           {quoteError ? (
             <p className="mt-1 text-xs text-muted-foreground">{quoteError}</p>
           ) : null}
@@ -170,11 +199,12 @@ export function InvestHomeContent() {
               {cacheLine}
             </p>
           ) : null}
-          <div className="mt-3">
+          <div className="mt-6">
             <BookConcentrationBar rows={rows} />
           </div>
-          <div className="mt-3">
+          <div className="mt-6">
             <BookTable rows={rows} />
+          </div>
           </div>
         </RetirePanel>
       )}

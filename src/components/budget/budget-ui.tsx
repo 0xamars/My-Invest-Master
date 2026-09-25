@@ -44,13 +44,26 @@ export function BudgetEmptyState({
   title,
   description,
   actions,
+  art,
 }: {
   icon?: ReactNode;
   mark?: "budget" | "invest" | "retire";
   title: string;
   description: string;
   actions?: ReactNode;
+  art?: ReactNode;
 }) {
+  if (art) {
+    return (
+      <div className="empty-stack">
+        {art}
+        <p className="empty-stack-title">{title}</p>
+        <p className="empty-stack-line">{description}</p>
+        {actions ? <div className="empty-stack-actions">{actions}</div> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="premium-empty">
       {icon ? (
@@ -59,10 +72,10 @@ export function BudgetEmptyState({
         <DeskEmptyMark kind={mark} />
       )}
       <p className="text-base font-semibold tracking-tight">{title}</p>
-      <p className="mt-1 max-w-sm text-sm leading-snug text-muted-foreground">
+      <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
         {description}
       </p>
-      {actions ? <div className="mt-3.5 flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="mt-6 flex flex-wrap gap-4">{actions}</div> : null}
     </div>
   );
 }

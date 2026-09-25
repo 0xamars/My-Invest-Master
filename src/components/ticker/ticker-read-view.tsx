@@ -66,7 +66,7 @@ export function TickerReadView({
           {profile.sector ? ` · ${profile.sector}` : ""}
         </p>
         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="budget-hero-value">{formatTickerPrice(quote.price)}</p>
+          <p className="hero-lead">{formatTickerPrice(quote.price)}</p>
           {change != null ? (
             <p className={cn("text-sm font-medium tabular-nums", profitLossClass(change))}>
               {quote.change != null

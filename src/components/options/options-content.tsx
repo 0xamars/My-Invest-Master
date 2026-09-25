@@ -135,8 +135,8 @@ export function OptionsContent() {
 
   if (gated) {
     return (
-      <div className="flex flex-1 flex-col gap-6">
-        <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
+      <div className="flex flex-1 flex-col gap-3">
+        <PillarBackLink href={INVEST_PATH} label="Invest" current="Options" />
         <OptionsConfirmGate
           isSaving={isSaving}
           onConfirm={async () => {
@@ -151,8 +151,8 @@ export function OptionsContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <PillarBackLink href={INVEST_PATH} label="Back to Invest" />
+    <div className="flex flex-1 flex-col gap-3">
+      <PillarBackLink href={INVEST_PATH} label="Invest" current="Options" />
       <RetirePageHeader
         title="Options"
         titleAddon={
