@@ -106,7 +106,7 @@ export function BudgetPlansListContent() {
 
       {summaries.length === 0 ? (
         <div
-          className="budget-panel px-4 py-4 sm:px-5"
+          className="budget-panel"
           data-budget-first-run-kit="1"
           data-empty-state="budget"
         >

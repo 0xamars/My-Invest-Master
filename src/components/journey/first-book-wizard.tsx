@@ -66,23 +66,18 @@ export function FirstBookWizard({
 
   return (
     <div
-      className="flex flex-1 flex-col gap-4"
+      className="flex flex-1 flex-col gap-6"
       data-first-book-wizard="1"
       data-empty-state="invest-no-book"
     >
-      <div className="premium-empty premium-empty--integrated premium-empty--band has-art-wash">
+      <div className="empty-stack">
         <EmptyArt kind="invest" />
-        <div className="premium-empty-copy">
-          <h2 className="text-base font-semibold tracking-tight">
-            {INVEST_EMPTY_NO_BOOK.title}
-          </h2>
-          <p className="mt-1.5 max-w-md text-sm leading-relaxed text-muted-foreground">
-            {INVEST_EMPTY_NO_BOOK.description}
-          </p>
-        </div>
+        <h2 className="empty-stack-title">{INVEST_EMPTY_NO_BOOK.title}</h2>
+        <p className="empty-stack-line">{INVEST_EMPTY_NO_BOOK.description}</p>
       </div>
+      <div className="desk-card-rule" />
 
-      <div className="grid max-w-xl gap-4 sm:grid-cols-2">
+      <div className="grid max-w-xl gap-4 px-6 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="first-book-name">Name</Label>
           <Input
@@ -131,7 +126,7 @@ export function FirstBookWizard({
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <div>
+      <div className="px-6 pb-8">
         <Button
           type="button"
           disabled={isSubmitting}

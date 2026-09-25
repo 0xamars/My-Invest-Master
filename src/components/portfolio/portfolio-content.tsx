@@ -12,7 +12,6 @@ import { EditHoldingDialog } from "@/components/portfolio/edit-holding-dialog";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
 import { LeveragePanel } from "@/components/portfolio/leverage-panel";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
-import { ArtWash } from "@/components/brand/art-wash";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
 import { TargetMixPanel } from "@/components/invest/target-mix-panel";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
@@ -445,17 +444,16 @@ function BookHero({
   const money = (value: number) => formatDisplayMoney(value, currency, rates);
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-      <section className="budget-hero has-art-wash px-5 py-5 sm:px-7 sm:py-6">
-        <ArtWash slot="hero-invest" strength="ambient" />
-        <div className="relative z-[1] flex flex-wrap items-center gap-2">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <section className="budget-panel px-6 py-6">
+        <div className="flex flex-wrap items-center gap-4">
           <InvestRiskChip chip={checkup.riskChip} />
           <LeverageUtilChip
             flag={leverageUtil.flag}
             percent={leverageUtil.utilizationPercent}
           />
         </div>
-        <p className="money-hero relative z-[1] mt-3">
+        <p className="money-hero mt-6">
           {isLoading ? "…" : money(checkup.totalValue)}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">

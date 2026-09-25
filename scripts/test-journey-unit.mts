@@ -1509,34 +1509,41 @@ for (const file of [
   assert(imagineSlots.includes(`/images/imagine/${file}`), `${file} is slotted`);
 }
 assert(!/YNAB|Freedom/i.test(imagineSlots), "Imagine slots do not name brands");
+const checklistSrc = readFileSync(
+  join(process.cwd(), "src/components/home/home-checklist.tsx"),
+  "utf8",
+);
 assert(
-  readFileSync(
-    join(process.cwd(), "src/components/home/home-checklist.tsx"),
-    "utf8",
-  ).includes('slot="first-run-welcome"') &&
+  checklistSrc.includes('slot="first-run-welcome"') &&
+    checklistSrc.includes("empty-stack"),
+  "first-run checklist centers the welcome illustration",
+);
+assert(
+  !checklistSrc.includes("accent-checklist") && !checklistSrc.includes("accent-spark"),
+  "first-run checklist does not bolt on accent badges",
+);
+const budgetHeroSrc = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-summary-stats.tsx"),
+  "utf8",
+);
+assert(
+  budgetHeroSrc.includes("money-hero") && !budgetHeroSrc.includes("hero-budget"),
+  "Budget leftover is a clean number with no art behind it",
+);
+const investSrc = readFileSync(
+  join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
+  "utf8",
+);
+assert(
+  investSrc.includes('kind="invest"') &&
+    !investSrc.includes("hero-invest") &&
+    !investSrc.includes("accent-spark") &&
+    !investSrc.includes("ArtWash") &&
     readFileSync(
-      join(process.cwd(), "src/components/home/home-checklist.tsx"),
+      join(process.cwd(), "src/components/retirement/retire-ui.tsx"),
       "utf8",
-    ).includes('slot="accent-checklist"'),
-  "first-run checklist uses the welcome art and checklist accent",
-);
-assert(
-  readFileSync(
-    join(process.cwd(), "src/components/budget/budget-summary-stats.tsx"),
-    "utf8",
-  ).includes('slot="hero-budget"'),
-  "Budget leftover hero uses the orb",
-);
-assert(
-  readFileSync(
-    join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
-    "utf8",
-  ).includes('slot="hero-invest"') &&
-    !readFileSync(
-      join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
-      "utf8",
-    ).includes("accent-spark"),
-  "Invest washes the ribbon behind the total and skips the spark badge",
+    ).includes("empty-stack"),
+  "Invest empty uses the stack and the total has no ribbon",
 );
 assert(
   !readFileSync(
@@ -1545,20 +1552,20 @@ assert(
   ).includes("accent-spark"),
   "Home cards do not carry a spark badge",
 );
+const retireDateSrc = readFileSync(
+  join(process.cwd(), "src/components/retirement/retirement-verdict-hero.tsx"),
+  "utf8",
+);
 assert(
-  readFileSync(
-    join(process.cwd(), "src/components/retirement/retirement-verdict-hero.tsx"),
-    "utf8",
-  ).includes('slot="hero-retire"') &&
-    !readFileSync(
-      join(process.cwd(), "src/components/retire/retire-home-content.tsx"),
-      "utf8",
-    ).includes("ImagineSlot"),
-  "Retire date washes the path behind the number",
+  retireDateSrc.includes("hero-lead") &&
+    !retireDateSrc.includes("hero-retire") &&
+    !retireDateSrc.includes("ArtWash"),
+  "Retire date sits on a clean surface",
 );
 const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
-assert(css.includes(".art-wash"), "Imagine art washes inside the card");
-assert(css.includes("mix-blend-mode: screen"), "washes screen out the black canvas");
+assert(css.includes(".empty-stack"), "empty states use a centered stack");
+assert(!css.includes(".art-wash"), "product chrome has no art wash");
+assert(css.includes(".desk-stack"), "pages use a 24px section stack");
 assert(css.includes(".money-hero"), "monumental money class exists");
 assert(css.includes(".nav-active-green"), "active nav uses the green treatment");
 assert(css.includes("chart-draw"), "charts draw with CSS motion");

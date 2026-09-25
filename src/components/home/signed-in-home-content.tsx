@@ -100,23 +100,23 @@ export function SignedInHomeContent() {
   const homeEmpty = cards.every((card) => card.empty);
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
+    <div className="desk-stack">
       {checklist ? (
         <HomeChecklist items={checklist} />
       ) : homeEmpty ? (
         <div className="budget-panel" data-empty-state="home">
-          <div className="premium-empty premium-empty--integrated has-art-wash">
+          <div className="empty-stack">
             <EmptyArt kind="home" />
           </div>
         </div>
       ) : null}
-      <div className="grid content-start gap-3 sm:grid-cols-3">
+      <div className="grid content-start gap-6 sm:grid-cols-3">
         {cards.map((card) => (
           <Link
             key={card.pillar}
             href={card.href}
             data-home-card={card.pillar}
-            className="budget-panel block px-4 py-4 transition-colors hover:border-[var(--brand-green)]/35 sm:px-5"
+            className="budget-panel block px-6 py-6 transition-colors hover:border-[var(--brand-green)]/35"
           >
             <p className="budget-metric-label">{card.title}</p>
             <MotionValue

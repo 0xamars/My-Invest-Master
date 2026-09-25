@@ -93,7 +93,7 @@ export function RetireHomeContent() {
     leftover.status !== "present" && book.status === "missing";
 
   return (
-    <div className="flex flex-1 flex-col gap-3.5">
+    <div className="desk-stack">
       <RetirePageHeader
         title="Retire"
         description="One date from leftover and the book. Target, on-track, and the lever on this path."
@@ -115,7 +115,7 @@ export function RetireHomeContent() {
       {!ready ? (
         <PageLoading label="Loading Retire…" />
       ) : inputsMissing && !latest ? (
-        <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="retire">
+        <RetirePanel data-empty-state="retire">
           <RetireEmptyState
             art={<EmptyArt kind="retire" />}
             title={FREEDOM_EMPTY.title}

@@ -1,6 +1,5 @@
 "use client";
 
-import { ArtWash } from "@/components/brand/art-wash";
 import { MotionValue } from "@/components/ui/motion-value";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { AgeOfMoneyResult } from "@/lib/budget/age-of-money";
@@ -44,8 +43,11 @@ export function BudgetSummaryStats({
         : "Nothing left to assign";
 
   return (
-    <section className="budget-panel budget-panel--raised has-art-wash">
-      <ArtWash slot="hero-budget" strength="ambient" />
+    <section className="budget-panel budget-panel--raised">
+      <header className="desk-card-header">
+        <p className="budget-metric-label">Leftover</p>
+      </header>
+      <div className="desk-card-rule" />
       <div
         className={cn(
           "budget-leftover",
@@ -53,8 +55,7 @@ export function BudgetSummaryStats({
           ready < 0 && "budget-leftover--out",
         )}
       >
-        <div className="relative z-[1] min-w-0 flex-1">
-          <p className="budget-metric-label">Leftover</p>
+        <div className="min-w-0 flex-1">
           <MotionValue
             value={formatBudgetMoney(ready, currency)}
             className={cn(

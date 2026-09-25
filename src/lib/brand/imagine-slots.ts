@@ -1,6 +1,7 @@
 /**
- * Signed-in Imagine art that is not an empty state.
- * Files live in public/images/imagine/. Empty states stay in public/brand/empties/.
+ * Imagine files that are not the five empty PNGs.
+ * first-run-welcome is the centered Home first-run illustration.
+ * Hero and accent files stay on disk and are not drawn behind numbers.
  */
 export type ImagineSlotId =
   | "hero-budget"

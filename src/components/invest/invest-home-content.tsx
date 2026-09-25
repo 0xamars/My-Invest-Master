@@ -7,7 +7,6 @@ import { InvestShelf, PageLoading } from "@/components/layout/page-loading";
 import { InvestToolsNav } from "@/components/layout/invest-tools-nav";
 import { FirstBookWizard } from "@/components/journey/first-book-wizard";
 import { AddTransactionDialog } from "@/components/portfolio/add-transaction-dialog";
-import { ArtWash } from "@/components/brand/art-wash";
 import { EmptyArt } from "@/components/journey/empty-art";
 import { BookConcentrationBar, BookTable } from "@/components/invest/invest-book";
 import { QuietSparkline } from "@/components/invest/quiet-sparkline";
@@ -104,7 +103,7 @@ export function InvestHomeContent() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3.5">
+    <div className="desk-stack">
       <InvestToolsNav />
       <RetirePageHeader
         title="Invest"
@@ -142,7 +141,7 @@ export function InvestHomeContent() {
 
       {offerFirstBook ? (
         <>
-          <RetirePanel className="px-4 py-4 sm:px-5">
+          <RetirePanel>
             <FirstBookWizard
               onCreate={onCreateFirstBook}
               isSubmitting={creating}
@@ -152,7 +151,7 @@ export function InvestHomeContent() {
         </>
       ) : rows.length === 0 ? (
         <>
-          <RetirePanel className="px-4 py-4 sm:px-5" data-empty-state="invest">
+          <RetirePanel data-empty-state="invest">
             <RetireEmptyState
               art={<EmptyArt kind="invest" />}
               mark="invest"
@@ -172,13 +171,14 @@ export function InvestHomeContent() {
           <InvestShelf />
         </>
       ) : (
-        <RetirePanel className="has-art-wash px-4 py-3.5 sm:px-5">
-          {shareTotal != null ? (
-            <ArtWash slot="hero-invest" strength="ambient" />
-          ) : null}
-          <div className="relative z-[1] flex items-start justify-between gap-3">
+        <RetirePanel>
+          <header className="desk-card-header">
+            <h2 className="text-sm font-semibold text-foreground">Book</h2>
+          </header>
+          <div className="desk-card-rule" />
+          <div className="desk-card-body">
+          <div className="flex items-start justify-between gap-6">
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold">Book</h2>
               {shareTotal != null ? (
                 <>
                   <p className="money-hero mt-2">{formatShareSum(shareTotal)}</p>
@@ -199,11 +199,12 @@ export function InvestHomeContent() {
               {cacheLine}
             </p>
           ) : null}
-          <div className="mt-3">
+          <div className="mt-6">
             <BookConcentrationBar rows={rows} />
           </div>
-          <div className="mt-3">
+          <div className="mt-6">
             <BookTable rows={rows} />
+          </div>
           </div>
         </RetirePanel>
       )}

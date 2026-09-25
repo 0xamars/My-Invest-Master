@@ -167,7 +167,7 @@ export function RetirementPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <RetirePanel className="px-5 py-5">
+        <RetirePanel>
           <RetireEmptyState
             art={<EmptyArt kind="retire" />}
             title="Map the path."

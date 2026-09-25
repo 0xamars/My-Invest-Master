@@ -480,126 +480,91 @@
     color: var(--brand-orange-text);
   }
 
+  .desk-stack {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .desk-card-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .desk-card-rule {
+    height: 1px;
+    background: var(--border);
+  }
+
+  .desk-card-body {
+    padding: 1.5rem;
+  }
+
   .premium-empty {
-    @apply flex flex-col items-start px-1 py-1 text-left;
+    @apply flex flex-col items-start px-6 py-6 text-left;
   }
 
-  .premium-empty--integrated {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-height: 11.5rem;
-    margin: -1rem -1rem;
-    padding: 1.35rem 1.2rem 1.45rem;
+  .empty-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1.5rem;
+    text-align: center;
   }
 
-  .premium-empty--band {
-    margin-bottom: 0.35rem;
-    min-height: 8.5rem;
+  .empty-stack-art {
+    width: 7.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .empty-stack-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+
+  .empty-stack-title {
+    max-width: 28rem;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .empty-stack-line {
+    max-width: 28rem;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+  }
+
+  .empty-stack-steps {
+    width: min(100%, 22rem);
+    margin-top: 1.5rem;
+    text-align: left;
+  }
+
+  .empty-stack-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .empty-stack-note {
+    max-width: 28rem;
+    margin-top: 1.5rem;
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
   }
 
   @media (min-width: 40rem) {
-    .premium-empty--integrated {
-      margin-left: -1.25rem;
-      margin-right: -1.25rem;
+    .empty-stack-art {
+      width: 11rem;
     }
-  }
-
-  .premium-empty-copy {
-    position: relative;
-    z-index: 1;
-    max-width: 34rem;
-  }
-
-  .has-art-wash {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-  }
-
-  .art-wash {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-    pointer-events: none;
-  }
-
-  .has-art-wash > :not(.art-wash) {
-    position: relative;
-    z-index: 1;
-  }
-
-  .art-wash-image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    object-fit: cover;
-    mix-blend-mode: screen;
-    pointer-events: none;
-  }
-
-  .art-wash--empty[data-empty-art="retire"] .art-wash-image,
-  .art-wash--empty[data-empty-art="home"] .art-wash-image {
-    object-position: 50% 72%;
-  }
-
-  .art-wash--ambient[data-art-wash="hero-retire"] .art-wash-image {
-    object-position: 50% 58%;
-  }
-
-  .art-wash--empty .art-wash-image {
-    object-position: 62% 42%;
-    -webkit-mask-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgb(0 0 0 / 0.2) 24%,
-      rgb(0 0 0 / 0.95) 62%,
-      rgb(0 0 0 / 0.8) 100%
-    );
-    mask-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgb(0 0 0 / 0.2) 24%,
-      rgb(0 0 0 / 0.95) 62%,
-      rgb(0 0 0 / 0.8) 100%
-    );
-  }
-
-  .art-wash--ambient .art-wash-image {
-    object-position: 30% 42%;
-    -webkit-mask-image: radial-gradient(
-      ellipse 70% 130% at 28% 55%,
-      rgb(0 0 0 / 0.85) 0%,
-      rgb(0 0 0 / 0.4) 48%,
-      transparent 76%
-    );
-    mask-image: radial-gradient(
-      ellipse 70% 130% at 28% 55%,
-      rgb(0 0 0 / 0.85) 0%,
-      rgb(0 0 0 / 0.4) 48%,
-      transparent 76%
-    );
-  }
-
-  .art-wash--welcome .art-wash-image {
-    object-position: 72% 48%;
-    -webkit-mask-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      transparent 32%,
-      rgb(0 0 0 / 0.35) 58%,
-      rgb(0 0 0 / 0.9) 100%
-    );
-    mask-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      transparent 32%,
-      rgb(0 0 0 / 0.35) 58%,
-      rgb(0 0 0 / 0.9) 100%
-    );
   }
 
   .desk-empty-mark {
@@ -661,27 +626,6 @@
     width: 4.5rem;
     height: 1.375rem;
     flex: none;
-  }
-
-  .imagine-slot {
-    overflow: hidden;
-    flex: none;
-    border: 0;
-    background: transparent;
-  }
-
-  .imagine-slot--accent {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 999px;
-  }
-
-  .imagine-slot--accent .imagine-slot-image {
-    width: 1.75rem;
-    height: 1.75rem;
-    object-fit: cover;
-    object-position: center 42%;
-    mix-blend-mode: screen;
   }
 
   .surface-0 {

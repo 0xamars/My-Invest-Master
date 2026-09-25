@@ -20,7 +20,6 @@ import {
   BudgetGoalBar,
   BudgetPanel,
 } from "@/components/budget/budget-ui";
-import { EmptyArt } from "@/components/journey/empty-art";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -305,7 +304,6 @@ export function BudgetCategoryList({
       {flatCategories.length === 0 && groups.length === 0 ? (
         <div className="px-5 py-5">
           <BudgetEmptyState
-            art={<EmptyArt kind="budget" />}
             title="Start with a group"
             description="Add an envelope group, then give every dollar a job."
             actions={

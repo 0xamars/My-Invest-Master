@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { ArtWash } from "@/components/brand/art-wash";
-import { ImagineSlot } from "@/components/brand/imagine-slot";
-import { EmptyArt } from "@/components/journey/empty-art";
+import { Button } from "@/components/ui/button";
+import { EmptyArt, StackArt } from "@/components/journey/empty-art";
 import { IMAGINE_SLOTS } from "@/lib/brand/imagine-slots";
 import {
   HOME_CHECKLIST_NOTE,
@@ -13,35 +12,32 @@ import { JOURNEY_EDUCATIONAL_FOOTER } from "@/lib/journey/empty-states";
 import { cn } from "@/lib/utils";
 
 export function HomeChecklist({ items }: { items: HomeChecklistItem[] }) {
+  const undone = items.find((item) => !item.done) ?? items[0];
+
   return (
     <section
-      className="budget-panel has-art-wash"
+      className="budget-panel"
       data-home-checklist="1"
       aria-labelledby="home-checklist-title"
     >
-      {IMAGINE_SLOTS["first-run-welcome"] ? (
-        <ArtWash slot="first-run-welcome" strength="welcome" />
-      ) : (
-        <EmptyArt kind="home" />
-      )}
-      <div className="relative z-[1] px-4 py-4 sm:px-5">
-        <div className="flex items-center gap-2">
-          <ImagineSlot slot="accent-checklist" size="accent" />
-          <h2 id="home-checklist-title" className="text-sm font-semibold tracking-tight">
-            {HOME_CHECKLIST_TITLE}
-          </h2>
-        </div>
-        <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
-          {HOME_CHECKLIST_NOTE}
-        </p>
-        <ol className="mt-3 max-w-md space-y-0.5">
+      <div className="empty-stack">
+        {IMAGINE_SLOTS["first-run-welcome"] ? (
+          <StackArt slot="first-run-welcome" />
+        ) : (
+          <EmptyArt kind="home" />
+        )}
+        <h2 id="home-checklist-title" className="empty-stack-title">
+          {HOME_CHECKLIST_TITLE}
+        </h2>
+        <p className="empty-stack-line">{HOME_CHECKLIST_NOTE}</p>
+        <ol className="empty-stack-steps">
           {items.map((item, index) => (
             <li key={item.id}>
               <Link
                 href={item.href}
                 data-checklist-item={item.id}
                 data-done={item.done ? "true" : "false"}
-                className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-sm hover:bg-muted/70"
+                className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm hover:bg-muted/70"
               >
                 <span
                   aria-hidden
@@ -62,9 +58,12 @@ export function HomeChecklist({ items }: { items: HomeChecklistItem[] }) {
             </li>
           ))}
         </ol>
-        <p className="mt-3 max-w-md text-[11px] leading-relaxed text-muted-foreground">
-          {JOURNEY_EDUCATIONAL_FOOTER}
-        </p>
+        {undone ? (
+          <div className="empty-stack-actions">
+            <Button render={<Link href={undone.href} />}>{undone.label}</Button>
+          </div>
+        ) : null}
+        <p className="empty-stack-note">{JOURNEY_EDUCATIONAL_FOOTER}</p>
       </div>
     </section>
   );
