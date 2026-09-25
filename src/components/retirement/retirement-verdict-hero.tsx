@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Wallet } from "lucide-react";
+import { ImagineSlot } from "@/components/brand/imagine-slot";
 import { EmptyArt } from "@/components/journey/empty-art";
 import {
   RetireEmptyState,
@@ -114,9 +115,10 @@ export function RetirementVerdictHero({
             <span className="text-xs text-muted-foreground">{planName}</span>
           ) : null}
         </div>
+        <div className="mt-3 flex items-end justify-between gap-4">
         <p
           className={cn(
-            "hero-lead mt-3",
+            "hero-lead",
             dashboard.verdict === "behind" || dashboard.verdict === "empty"
               ? "text-[var(--brand-orange-text)]"
               : "text-[var(--brand-green-text)]",
@@ -124,6 +126,8 @@ export function RetirementVerdictHero({
         >
           {dashboard.verdict === "empty" ? "No date yet" : dateLabel}
         </p>
+        <ImagineSlot slot="hero-retire" size="hero" />
+        </div>
         <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
           {impliedPathSentence(dashboard, money)}
         </p>

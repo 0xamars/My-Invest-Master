@@ -110,18 +110,22 @@ export function InvestHomeContent() {
         title="Invest"
         description="The public-stock book. Search a name or ticker."
         action={
-          offerFirstBook ? null : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="btn-quiet"
-              onClick={() => void onAddClick()}
-              disabled={creating}
-            >
-              <Plus className="size-4" />
-              Add a name
-            </Button>
-          )
+          <div className="flex items-center gap-3">
+            <ImagineSlot slot="accent-spark" size="accent" />
+            <ImagineSlot slot="hero-invest" size="hero" />
+            {offerFirstBook ? null : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="btn-quiet"
+                onClick={() => void onAddClick()}
+                disabled={creating}
+              >
+                <Plus className="size-4" />
+                Add a name
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -187,7 +191,7 @@ export function InvestHomeContent() {
               ) : null}
             </div>
             <div className="flex items-center gap-3">
-              <ImagineSlot slot="hero-invest" />
+              <ImagineSlot slot="accent-spark" size="accent" />
               <QuietSparkline points={bookSpark} label="Book day move" />
             </div>
           </div>

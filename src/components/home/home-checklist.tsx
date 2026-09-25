@@ -12,8 +12,9 @@ import { JOURNEY_EDUCATIONAL_FOOTER } from "@/lib/journey/empty-states";
 import { cn } from "@/lib/utils";
 
 function FirstRunArt() {
-  if (IMAGINE_SLOTS["first-run"]) return <ImagineSlot slot="first-run" />;
-  if (IMAGINE_SLOTS["hero-home"]) return <ImagineSlot slot="hero-home" />;
+  if (IMAGINE_SLOTS["first-run-welcome"]) {
+    return <ImagineSlot slot="first-run-welcome" size="welcome" />;
+  }
   return <EmptyArt kind="home" />;
 }
 
@@ -24,11 +25,14 @@ export function HomeChecklist({ items }: { items: HomeChecklistItem[] }) {
       data-home-checklist="1"
       aria-labelledby="home-checklist-title"
     >
-      <div className="grid sm:grid-cols-[minmax(0,1fr)_13.5rem]">
+      <div className="grid sm:grid-cols-[minmax(0,1fr)_15.5rem]">
       <div className="px-4 py-4 sm:px-5">
-      <h2 id="home-checklist-title" className="text-sm font-semibold tracking-tight">
-        {HOME_CHECKLIST_TITLE}
-      </h2>
+      <div className="flex items-center gap-3">
+        <ImagineSlot slot="accent-checklist" size="accent" />
+        <h2 id="home-checklist-title" className="text-sm font-semibold tracking-tight">
+          {HOME_CHECKLIST_TITLE}
+        </h2>
+      </div>
       <p className="mt-1 max-w-md text-sm leading-relaxed text-muted-foreground">
         {HOME_CHECKLIST_NOTE}
       </p>

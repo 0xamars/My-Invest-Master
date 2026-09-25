@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { ImagineSlot } from "@/components/brand/imagine-slot";
 import { HomeChecklist } from "@/components/home/home-checklist";
 import { EmptyArt } from "@/components/journey/empty-art";
 import { PageLoading } from "@/components/layout/page-loading";
@@ -116,7 +117,12 @@ export function SignedInHomeContent() {
             data-home-card={card.pillar}
             className="budget-panel block px-4 py-4 transition-colors hover:border-[var(--brand-green)]/35 sm:px-5"
           >
-            <p className="budget-metric-label">{card.title}</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="budget-metric-label">{card.title}</p>
+              {card.pillar === "invest" ? (
+                <ImagineSlot slot="accent-spark" size="accent" />
+              ) : null}
+            </div>
             <MotionValue
               value={card.metric}
               className={cn(

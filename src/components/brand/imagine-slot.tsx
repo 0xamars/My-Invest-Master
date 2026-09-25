@@ -7,21 +7,26 @@ import { cn } from "@/lib/utils";
 
 export function ImagineSlot({
   slot,
+  size = "hero",
   className,
 }: {
   slot: ImagineSlotId;
+  size?: "hero" | "welcome" | "accent";
   className?: string;
 }) {
   const art = IMAGINE_SLOTS[slot];
-  if (!art) return null;
   return (
-    <div className={cn("imagine-slot", className)} data-imagine-slot={slot}>
+    <div
+      className={cn("imagine-slot", `imagine-slot--${size}`, className)}
+      data-imagine-slot={slot}
+    >
       <Image
         src={art.src}
         alt={art.alt}
         width={art.width}
         height={art.height}
-        sizes="240px"
+        sizes={size === "accent" ? "64px" : "208px"}
+        className="empty-art"
         style={{ width: "100%", height: "auto" }}
       />
     </div>

@@ -458,7 +458,7 @@ function BookHero({
           <p className="money-hero">
             {isLoading ? "…" : money(checkup.totalValue)}
           </p>
-          <ImagineSlot slot="hero-invest" />
+          <ImagineSlot slot="hero-invest" size="hero" />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           Book value · {currency}

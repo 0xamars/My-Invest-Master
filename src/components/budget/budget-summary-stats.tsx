@@ -63,7 +63,7 @@ export function BudgetSummaryStats({
                 isLoading && "animate-pulse",
               )}
             />
-            <ImagineSlot slot="hero-budget" />
+            <ImagineSlot slot="hero-budget" size="hero" />
           </div>
           <p className="budget-hero-sub">{secondary}</p>
           {openingLeftover != null && openingLeftover > 0 ? (

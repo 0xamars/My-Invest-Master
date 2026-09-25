@@ -555,14 +555,29 @@
   }
 
   .imagine-slot {
-    width: min(100%, 9rem);
     overflow: hidden;
+    flex: none;
     border-radius: calc(var(--radius) + 2px);
+    border: 1px solid var(--border);
+    background: #0b0c0e;
+  }
+
+  .imagine-slot--hero {
+    width: min(100%, 10.5rem);
+  }
+
+  .imagine-slot--welcome {
+    width: min(100%, 13rem);
+  }
+
+  .imagine-slot--accent {
+    width: 3.25rem;
+    border-radius: calc(var(--radius) + 4px);
   }
 
   .checklist-art .empty-art-frame,
-  .checklist-art .imagine-slot {
-    width: min(100%, 12.5rem);
+  .checklist-art .imagine-slot--welcome {
+    width: min(100%, 13rem);
     margin-bottom: 0;
   }
 

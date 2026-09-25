@@ -1494,16 +1494,57 @@ const imagineSlots = readFileSync(
   join(process.cwd(), "src/lib/brand/imagine-slots.ts"),
   "utf8",
 );
-assert(
-  existsSync(join(process.cwd(), "public/images/imagine/.gitkeep")),
-  "Imagine drop folder exists",
-);
-assert(
-  imagineSlots.includes('"hero-budget": null') &&
-    imagineSlots.includes('"first-run": null'),
-  "Imagine hero slots stay empty until art lands",
-);
+for (const file of [
+  "hero-budget.png",
+  "hero-invest.png",
+  "hero-retire.png",
+  "first-run-welcome.png",
+  "accent-checklist.png",
+  "accent-spark.png",
+]) {
+  assert(
+    existsSync(join(process.cwd(), "public/images/imagine", file)),
+    `Imagine file ${file} is in place`,
+  );
+  assert(imagineSlots.includes(`/images/imagine/${file}`), `${file} is slotted`);
+}
 assert(!/YNAB|Freedom/i.test(imagineSlots), "Imagine slots do not name brands");
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/home/home-checklist.tsx"),
+    "utf8",
+  ).includes('slot="first-run-welcome"') &&
+    readFileSync(
+      join(process.cwd(), "src/components/home/home-checklist.tsx"),
+      "utf8",
+    ).includes('slot="accent-checklist"'),
+  "first-run checklist uses the welcome art and checklist accent",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/budget/budget-summary-stats.tsx"),
+    "utf8",
+  ).includes('slot="hero-budget"'),
+  "Budget leftover hero uses the orb",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
+    "utf8",
+  ).includes('slot="hero-invest"') &&
+    readFileSync(
+      join(process.cwd(), "src/components/invest/invest-home-content.tsx"),
+      "utf8",
+    ).includes('slot="accent-spark"'),
+  "Invest shows the ribbon and the spark accent",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/retire/retire-home-content.tsx"),
+    "utf8",
+  ).includes('slot="hero-retire"'),
+  "Retire header uses the path hero",
+);
 const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
 assert(css.includes(".money-hero"), "monumental money class exists");
 assert(css.includes(".nav-active-green"), "active nav uses the green treatment");
