@@ -517,11 +517,22 @@
     margin-bottom: 1.5rem;
   }
 
+  .empty-stack-mark {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .empty-stack-mark .desk-empty-mark,
+  .empty-stack-mark .desk-empty-icon {
+    margin-bottom: 0;
+  }
+
   .empty-stack-image {
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 12px;
+    background: transparent;
   }
 
   .empty-stack-title {

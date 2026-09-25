@@ -1,7 +1,7 @@
 /**
  * Imagine files that are not the five empty PNGs.
- * First-run uses empty-home in the centered stack. These stay on disk
- * and are not drawn behind numbers or as page backgrounds.
+ * These stay on disk and are not drawn behind numbers, as page
+ * backgrounds, or as plates on the card.
  */
 export type ImagineSlotId =
   | "hero-budget"
