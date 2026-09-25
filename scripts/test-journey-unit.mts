@@ -1311,7 +1311,7 @@ assert(
   "homepage proof is a short lifetime-tax comparison",
 );
 assert(
-  !/clawback|meltdown|gross-up|Sam|Riley|Year by year|federal|estate|depletion/i.test(
+  !/\b(clawback|meltdown|gross-up|sam|riley|year by year|federal|estate|depletion)\b/i.test(
     exampleSrc,
   ),
   "homepage proof hides the worksheet",

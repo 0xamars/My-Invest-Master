@@ -19,7 +19,7 @@ export function ExampleWithdrawalComparison() {
             <p className="type-small mt-8 text-right text-[var(--fg-muted)]">Lifetime tax</p>
             <ol className="mt-3 space-y-4">
               {display.rows.map((row) => (
-                <li key={row.id}>
+                <li key={row.label}>
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-sm font-medium">{row.label}</span>
                     <span className="text-sm tabular-nums">
@@ -33,7 +33,7 @@ export function ExampleWithdrawalComparison() {
                   >
                     <div
                       className="h-full rounded-full bg-primary"
-                      style={{ width: `${(row.cad / max) * 100}%` }}
+                      style={{ width: `${Math.round((row.cad / max) * 1000) / 10}%` }}
                     />
                   </div>
                 </li>
