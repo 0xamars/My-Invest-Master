@@ -1,7 +1,7 @@
 /**
  * Imagine files that are not the five empty PNGs.
- * first-run-welcome is the centered Home first-run illustration.
- * Hero and accent files stay on disk and are not drawn behind numbers.
+ * First-run uses empty-home in the centered stack. These stay on disk
+ * and are not drawn behind numbers or as page backgrounds.
  */
 export type ImagineSlotId =
   | "hero-budget"

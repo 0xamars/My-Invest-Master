@@ -1514,9 +1514,10 @@ const checklistSrc = readFileSync(
   "utf8",
 );
 assert(
-  checklistSrc.includes('slot="first-run-welcome"') &&
-    checklistSrc.includes("empty-stack"),
-  "first-run checklist centers the welcome illustration",
+  checklistSrc.includes('kind="home"') &&
+    checklistSrc.includes("empty-stack") &&
+    !checklistSrc.includes('slot="first-run-welcome"'),
+  "first-run checklist centers the home empty illustration",
 );
 assert(
   !checklistSrc.includes("accent-checklist") && !checklistSrc.includes("accent-spark"),

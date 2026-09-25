@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmptyArt, StackArt } from "@/components/journey/empty-art";
-import { IMAGINE_SLOTS } from "@/lib/brand/imagine-slots";
+import { EmptyArt } from "@/components/journey/empty-art";
 import {
   HOME_CHECKLIST_NOTE,
   HOME_CHECKLIST_TITLE,
@@ -21,11 +20,7 @@ export function HomeChecklist({ items }: { items: HomeChecklistItem[] }) {
       aria-labelledby="home-checklist-title"
     >
       <div className="empty-stack">
-        {IMAGINE_SLOTS["first-run-welcome"] ? (
-          <StackArt slot="first-run-welcome" />
-        ) : (
-          <EmptyArt kind="home" />
-        )}
+        <EmptyArt kind="home" />
         <h2 id="home-checklist-title" className="empty-stack-title">
           {HOME_CHECKLIST_TITLE}
         </h2>
