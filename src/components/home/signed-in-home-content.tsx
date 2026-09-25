@@ -101,12 +101,13 @@ export function SignedInHomeContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-4">
-      {homeEmpty ? (
+      {checklist ? (
+        <HomeChecklist items={checklist} />
+      ) : homeEmpty ? (
         <div className="premium-empty" data-empty-state="home">
           <EmptyArt kind="home" />
         </div>
       ) : null}
-      {checklist ? <HomeChecklist items={checklist} /> : null}
       <div className="grid content-start gap-3 sm:grid-cols-3">
         {cards.map((card) => (
           <Link
@@ -119,10 +120,10 @@ export function SignedInHomeContent() {
             <MotionValue
               value={card.metric}
               className={cn(
-                "mt-2 text-[1.45rem] font-semibold tracking-tight",
+                "mt-2",
                 card.empty
-                  ? "text-muted-foreground"
-                  : "text-foreground tabular-nums",
+                  ? "text-[1.35rem] font-semibold tracking-tight text-muted-foreground"
+                  : "money-hero money-hero--card text-foreground",
               )}
             />
             <p className="mt-1.5 text-sm text-muted-foreground">{card.caption}</p>

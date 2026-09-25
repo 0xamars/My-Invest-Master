@@ -8,8 +8,6 @@ import {
   isInvestPath,
   isRetirePath,
 } from "@/lib/chrome/nav";
-import { cn } from "@/lib/utils";
-
 function isPrimaryActive(pathname: string, category: string): boolean {
   if (category === "budget") return isBudgetPath(pathname);
   if (category === "invest") return isInvestPath(pathname);
@@ -32,7 +30,7 @@ export function SignedInHeaderNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={cn("segmented-item", active && "text-foreground")}
+              className="segmented-item"
               data-active={active ? "true" : "false"}
               aria-current={active ? "page" : undefined}
             >

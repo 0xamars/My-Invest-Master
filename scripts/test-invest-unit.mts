@@ -30,6 +30,7 @@ import {
 } from "../src/lib/chrome/nav.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
 import { bookDayMovePoints, dayMovePoints } from "../src/lib/invest/sparkline.ts";
+import { formatShareSum, pricedShareTotal } from "../src/lib/ticker/book.ts";
 import {
   isPortfolioDetailPath,
   resolvePortfolioViewScope,
@@ -1087,6 +1088,19 @@ assert(
   bookDayMovePoints([{ price: null, change: null }]) === null,
   "book sparkline stays empty without prices",
 );
+assert(
+  pricedShareTotal([
+    { type: "stock", value: 12.5 },
+    { type: "cash", value: 100 },
+    { type: "stock", value: null },
+  ]) === 12.5,
+  "priced share total skips cash and unpriced rows",
+);
+assert(
+  pricedShareTotal([{ type: "stock", value: 0 }]) === null,
+  "priced share total stays empty at zero",
+);
+assert(formatShareSum(12.5) === "12.50", "share sum has no currency symbol");
 
 if (failed > 0) {
   console.error(`\n${failed} failing assertion(s)`);

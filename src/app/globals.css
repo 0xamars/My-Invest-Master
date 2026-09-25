@@ -95,6 +95,7 @@
   --surface-0: #0b0c0e;
   --surface-1: #141518;
   --surface-2: #1a1c21;
+  --surface-3: #26272d;
   --nav-active: #1e2c22;
   --background: #0b0c0e;
   --foreground: #f2f3f5;
@@ -188,9 +189,10 @@
   --available-warn: #8f5418;
   --available-bad: #b42318;
   --available-zero: #5c5f69;
-  --surface-0: #f4f4f5;
-  --surface-1: #ffffff;
-  --surface-2: #ffffff;
+  --surface-0: #f6f1ea;
+  --surface-1: #fffaf4;
+  --surface-2: #fffdf9;
+  --surface-3: #f3eadf;
   --nav-active: #e5f2e4;
   --brand-green-deep: #4d9a4a;
   --border: rgb(92 58 28 / 16%);
@@ -552,6 +554,55 @@
     flex: none;
   }
 
+  .imagine-slot {
+    width: min(100%, 9rem);
+    overflow: hidden;
+    border-radius: calc(var(--radius) + 2px);
+  }
+
+  .checklist-art .empty-art-frame,
+  .checklist-art .imagine-slot {
+    width: min(100%, 12.5rem);
+    margin-bottom: 0;
+  }
+
+  .surface-0 {
+    background-color: var(--surface-0);
+  }
+
+  .surface-1 {
+    background-color: var(--surface-1);
+  }
+
+  .surface-2 {
+    background-color: var(--surface-2);
+  }
+
+  .surface-3 {
+    background-color: var(--surface-3);
+  }
+
+  .money-hero {
+    font-size: clamp(2.4rem, 4.2vw, 3.25rem);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .money-hero--card {
+    font-size: clamp(1.55rem, 2.2vw, 1.85rem);
+    line-height: 1.1;
+  }
+
+  .hero-lead {
+    font-size: clamp(1.85rem, 3vw, 2.15rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+
   .light .budget-panel,
   .light .empty-art-frame {
     box-shadow:
@@ -567,6 +618,15 @@
 
     .motion-value--shift {
       animation: motion-value-in 160ms ease;
+    }
+
+    [data-slot="chart"],
+    .quiet-sparkline {
+      animation: chart-draw 560ms ease both;
+    }
+
+    [data-slot="button"]:active {
+      transform: scale(0.98);
     }
   }
 
@@ -587,6 +647,15 @@
     }
     to {
       opacity: 1;
+    }
+  }
+
+  @keyframes chart-draw {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
     }
   }
 
@@ -639,10 +708,14 @@
 
   .segmented-item[data-active="true"],
   .segmented-item[aria-current="page"] {
-    background: var(--nav-active);
-    color: var(--foreground);
+    background: color-mix(in srgb, var(--brand-green) 18%, var(--background));
+    color: var(--brand-green-text);
     font-weight: 650;
-    box-shadow: inset 0 -2px 0 var(--brand-green);
+  }
+
+  .nav-active-green {
+    background: color-mix(in srgb, var(--brand-green) 18%, var(--background));
+    color: var(--brand-green-text);
   }
 
   .desk-app {
@@ -696,9 +769,9 @@
   }
 
   .nav-item-active {
-    background-color: var(--muted);
-    color: var(--foreground);
-    box-shadow: inset 2px 0 0 var(--foreground);
+    background: color-mix(in srgb, var(--brand-green) 14%, var(--muted));
+    color: var(--brand-green-text);
+    box-shadow: inset 2px 0 0 var(--brand-green);
   }
 
   .nav-category-header {

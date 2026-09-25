@@ -20,6 +20,7 @@ import {
   BudgetGoalBar,
   BudgetPanel,
 } from "@/components/budget/budget-ui";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,7 +30,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import type { CategoryBudgetRow } from "@/lib/budget/calculations";
+import type {
+  CategoryBudgetRow,
+  CategoryBudgetStatus,
+} from "@/lib/budget/calculations";
 import { isCreditCardPaymentsGroup } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney, formatBudgetMoneySigned } from "@/lib/budget/format";
 import { GOAL_TYPE_LABELS } from "@/lib/budget/goals";
@@ -38,6 +42,31 @@ import type { BudgetCategoryGroup } from "@/types/budget";
 
 const ENVELOPE_GRID =
   "md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(5.5rem,1fr))_2.75rem]";
+
+function groupEnvelopeRollup(categories: CategoryBudgetRow[]) {
+  let assigned = 0;
+  let available = 0;
+  let credit = false;
+  let over = false;
+  let low = false;
+  for (const row of categories) {
+    assigned += row.assigned;
+    available += row.available;
+    if (row.status === "credit-overspent") credit = true;
+    if (row.status === "overspent" || row.available < 0) over = true;
+    else if (row.status === "low") low = true;
+  }
+  const status: CategoryBudgetStatus = credit
+    ? "credit-overspent"
+    : over
+      ? "overspent"
+      : low
+        ? "low"
+        : "healthy";
+  const fill =
+    assigned > 0 ? Math.min(1, Math.max(0, available / assigned)) : null;
+  return { assigned, available, status, fill };
+}
 
 function EnvelopeRowMenu({
   name,
@@ -274,20 +303,24 @@ export function BudgetCategoryList({
       </div>
 
       {flatCategories.length === 0 && groups.length === 0 ? (
-        <BudgetEmptyState
-          title="Start with a group"
-          description="Add an envelope group, then give every dollar a job."
-          actions={
-            <Button type="button" onClick={onAddGroup}>
-              <FolderPlus className="size-4" />
-              Add group
-            </Button>
-          }
-        />
+        <div className="px-5 py-5">
+          <BudgetEmptyState
+            art={<EmptyArt kind="budget" />}
+            title="Start with a group"
+            description="Add an envelope group, then give every dollar a job."
+            actions={
+              <Button type="button" onClick={onAddGroup}>
+                <FolderPlus className="size-4" />
+                Add group
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <div>
           {groups.map(({ group, categories }, groupIndex) => {
             const paymentGroup = isCreditCardPaymentsGroup(group);
+            const rollup = groupEnvelopeRollup(categories);
             return (
             <div key={group.id} className="border-b border-border last:border-b-0">
               <div className="budget-group-head flex items-center justify-between gap-2 px-4 py-1 sm:px-5 md:grid md:gap-2 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(5.5rem,1fr))_2.75rem]">
@@ -300,10 +333,40 @@ export function BudgetCategoryList({
                       Funded card spend moves money here. Unfunded charges and a starting balance owed stay as debt until you assign money here. Paying the card is a transfer.
                     </p>
                   ) : null}
+                  {rollup.fill != null ? (
+                    <div
+                      className="budget-goal-bar mt-1.5 max-w-40"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(rollup.fill * 100)}
+                      aria-label={`${group.name} available of assigned`}
+                    >
+                      <span
+                        className={cn(
+                          "budget-goal-bar-fill",
+                          rollup.available < 0
+                            ? "budget-goal-bar-fill--low"
+                            : "budget-goal-bar-fill--ok",
+                        )}
+                        style={{ width: `${Math.round(rollup.fill * 100)}%` }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
                 <span className="hidden md:block" />
                 <span className="hidden md:block" />
-                <span className="hidden md:block" />
+                <span className="hidden justify-end md:flex">
+                  {categories.length > 0 ? (
+                    <BudgetAvailableChip
+                      status={rollup.status}
+                      available={rollup.available}
+                    >
+                      {rollup.available < 0 ? "−" : ""}
+                      {formatBudgetMoney(rollup.available, currency)}
+                    </BudgetAvailableChip>
+                  ) : null}
+                </span>
                 <div className="flex justify-end">
                   {paymentGroup ? null : (
                     <DropdownMenu>

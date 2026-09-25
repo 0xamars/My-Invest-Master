@@ -12,11 +12,17 @@ import {
   Trash2,
   TrendingUp,
 } from "lucide-react";
+import { EmptyArt } from "@/components/journey/empty-art";
 import { PillarBackLink } from "@/components/layout/pillar-back-link";
 import { CreateRetirementFromPortfolioDialog } from "@/components/retirement/create-retirement-from-portfolio-dialog";
 import { DeleteRetirementPlanDialog } from "@/components/retirement/delete-retirement-plan-dialog";
 import { RetirementDisclaimer } from "@/components/retirement/retirement-disclaimer";
-import { RetirePageHeader, RetireVerdictChip } from "@/components/retirement/retire-ui";
+import {
+  RetireEmptyState,
+  RetirePageHeader,
+  RetirePanel,
+  RetireVerdictChip,
+} from "@/components/retirement/retire-ui";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -161,41 +167,42 @@ export function RetirementPlansListContent() {
       )}
 
       {summaries.length === 0 ? (
-        <Card className="surface-card border-dashed shadow-none">
-          <CardHeader className="text-center">
-            <CardTitle>Map the path.</CardTitle>
-            <CardDescription>
-              Start a plan, or import holdings from an Invest book.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap justify-center gap-3 pb-8">
-            <Button
-              onClick={() => void handleCreateNew()}
-              className="gap-2"
-              disabled={isCreating || !isPlanReady}
-            >
-              {isCreating ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-              Create New Plan
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleOpenImportFromPortfolio}
-              disabled={
-                isCreatingFromPortfolio ||
-                !isPlanReady ||
-                !hasImportablePortfolio
-              }
-            >
-              <Copy className="size-4" />
-              Import from Portfolio
-            </Button>
-          </CardContent>
-        </Card>
+        <RetirePanel className="px-5 py-5">
+          <RetireEmptyState
+            art={<EmptyArt kind="retire" />}
+            title="Map the path."
+            description="Start a plan, or import holdings from an Invest book."
+            actions={
+              <>
+                <Button
+                  onClick={() => void handleCreateNew()}
+                  className="gap-2"
+                  disabled={isCreating || !isPlanReady}
+                >
+                  {isCreating ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Plus className="size-4" />
+                  )}
+                  Create New Plan
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handleOpenImportFromPortfolio}
+                  disabled={
+                    isCreatingFromPortfolio ||
+                    !isPlanReady ||
+                    !hasImportablePortfolio
+                  }
+                >
+                  <Copy className="size-4" />
+                  Import from Portfolio
+                </Button>
+              </>
+            }
+          />
+        </RetirePanel>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {summaries.map((summary) => {
@@ -208,7 +215,7 @@ export function RetirementPlansListContent() {
             return (
               <Card
                 key={summary.id}
-                className="surface-card gap-0 py-0 shadow-none transition-colors hover:border-border"
+                className="budget-panel gap-0 py-0 shadow-none transition-colors hover:border-[var(--brand-green)]/35"
               >
                 <CardHeader className="border-b border-border/60 px-5 py-4">
                   <div className="flex items-start justify-between gap-2">
@@ -231,7 +238,7 @@ export function RetirementPlansListContent() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="stat-label">Portfolio value</p>
-                      <p className="stat-value text-xl">
+                      <p className="money-hero money-hero--card mt-1">
                         {formatDisplayMoney(
                           summary.totalPortfolioValue,
                           normalized?.currency ?? "CAD",

@@ -35,13 +35,13 @@ export function MobileTabBar() {
                 href={item.href}
                 className={cn(
                   "type-small flex h-full min-h-11 flex-col items-center justify-center gap-1 font-medium text-muted-foreground transition-colors duration-200",
-                  active && "text-foreground",
+                  active && "text-[var(--brand-green-text)]",
                 )}
                 aria-current={active ? "page" : undefined}
               >
                 <NavCategoryIcon
                   category={item.category}
-                  className={cn(active && "text-primary")}
+                  className={cn(active && "text-[var(--brand-green-text)]")}
                 />
                 {item.title}
               </Link>

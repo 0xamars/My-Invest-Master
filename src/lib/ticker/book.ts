@@ -149,3 +149,26 @@ export function buildBookRows(
       row.value != null && knownTotal > 0 ? (row.value / knownTotal) * 100 : null,
   }));
 }
+
+/** Last price × shares for priced stock rows. Cash is excluded. Null when nothing is priced. */
+export function pricedShareTotal(
+  rows: readonly Pick<BookRow, "type" | "value">[],
+): number | null {
+  let total = 0;
+  let priced = false;
+  for (const row of rows) {
+    if (row.type !== "stock") continue;
+    if (row.value == null || !Number.isFinite(row.value) || row.value <= 0) continue;
+    total += row.value;
+    priced = true;
+  }
+  return priced ? total : null;
+}
+
+/** Grouped amount with no currency symbol. Mixed quote currencies are not converted. */
+export function formatShareSum(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}

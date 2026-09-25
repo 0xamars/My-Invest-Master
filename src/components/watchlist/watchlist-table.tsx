@@ -44,7 +44,7 @@ function watchlistKey(symbol: string, type: string) {
   return `${symbol.toUpperCase()}:${type}`;
 }
 
-const CELL = "px-4 py-3.5";
+const CELL = "px-4 py-2.5";
 const NUMERIC = cn(CELL, "text-right text-sm tabular-nums");
 
 function typeLabel(type: "stock" | "crypto") {

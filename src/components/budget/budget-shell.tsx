@@ -261,7 +261,7 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
                   size="sm"
                   className={cn(
                     "h-8 rounded-full px-3",
-                    isActive && "budget-nav-item--active",
+                    isActive && "nav-active-green",
                   )}
                   render={<Link href={item.href} />}
                 >

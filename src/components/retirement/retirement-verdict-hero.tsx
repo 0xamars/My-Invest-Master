@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Wallet } from "lucide-react";
+import { EmptyArt } from "@/components/journey/empty-art";
 import {
   RetireEmptyState,
   RetireMoney,
@@ -57,8 +59,10 @@ export function RetirementVerdictHero({
 
   if (inputPrompt) {
     return (
-      <RetirePanel>
+      <RetirePanel className="px-5 py-5">
         <RetireEmptyState
+          art={<EmptyArt kind="retire" />}
+          icon={<Wallet className="size-5" />}
           title={inputPrompt.title}
           description={inputPrompt.description}
         />
@@ -79,11 +83,15 @@ export function RetirementVerdictHero({
   if (dashboard.verdict === "empty" && !hasInputs) {
     return (
       <RetirePanel>
+        <div className="px-5 py-5">
         <RetireEmptyState
+          art={<EmptyArt kind="retire" />}
+          icon={<Wallet className="size-5" />}
           title={emptyTitle}
           description={emptyDescription}
           actions={emptyActions}
         />
+        </div>
         <div className="border-t border-border/60 px-5 py-4 text-sm text-muted-foreground">
           You need{" "}
           <span className="font-semibold text-foreground">
@@ -108,7 +116,7 @@ export function RetirementVerdictHero({
         </div>
         <p
           className={cn(
-            "budget-hero-value mt-3",
+            "hero-lead mt-3",
             dashboard.verdict === "behind" || dashboard.verdict === "empty"
               ? "text-[var(--brand-orange-text)]"
               : "text-[var(--brand-green-text)]",

@@ -59,7 +59,7 @@ interface RetirementPlanAssetsTableProps {
 const SELECT =
   "h-8 w-full rounded-lg border border-border bg-muted px-2 text-xs";
 
-const CELL = "px-4 py-3.5";
+const CELL = "px-4 py-2.5";
 const NUMERIC = cn(CELL, "text-right text-sm tabular-nums");
 
 export function RetirementPlanAssetsTable({

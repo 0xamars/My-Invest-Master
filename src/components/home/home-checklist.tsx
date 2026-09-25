@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
+import { ImagineSlot } from "@/components/brand/imagine-slot";
+import { EmptyArt } from "@/components/journey/empty-art";
+import { IMAGINE_SLOTS } from "@/lib/brand/imagine-slots";
 import {
   HOME_CHECKLIST_NOTE,
   HOME_CHECKLIST_TITLE,
@@ -8,13 +11,21 @@ import {
 import { JOURNEY_EDUCATIONAL_FOOTER } from "@/lib/journey/empty-states";
 import { cn } from "@/lib/utils";
 
+function FirstRunArt() {
+  if (IMAGINE_SLOTS["first-run"]) return <ImagineSlot slot="first-run" />;
+  if (IMAGINE_SLOTS["hero-home"]) return <ImagineSlot slot="hero-home" />;
+  return <EmptyArt kind="home" />;
+}
+
 export function HomeChecklist({ items }: { items: HomeChecklistItem[] }) {
   return (
     <section
-      className="budget-panel px-4 py-4 sm:px-5"
+      className="budget-panel"
       data-home-checklist="1"
       aria-labelledby="home-checklist-title"
     >
+      <div className="grid sm:grid-cols-[minmax(0,1fr)_13.5rem]">
+      <div className="px-4 py-4 sm:px-5">
       <h2 id="home-checklist-title" className="text-sm font-semibold tracking-tight">
         {HOME_CHECKLIST_TITLE}
       </h2>
@@ -52,6 +63,11 @@ export function HomeChecklist({ items }: { items: HomeChecklistItem[] }) {
       <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
         {JOURNEY_EDUCATIONAL_FOOTER}
       </p>
+      </div>
+      <div className="checklist-art surface-0 flex items-center border-t border-border px-4 py-4 sm:border-t-0 sm:border-l sm:px-3">
+        <FirstRunArt />
+      </div>
+      </div>
     </section>
   );
 }

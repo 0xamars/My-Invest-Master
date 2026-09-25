@@ -12,6 +12,7 @@ import { EditHoldingDialog } from "@/components/portfolio/edit-holding-dialog";
 import { CurrencyToggle } from "@/components/portfolio/currency-toggle";
 import { LeveragePanel } from "@/components/portfolio/leverage-panel";
 import { PortfolioTable } from "@/components/portfolio/portfolio-table";
+import { ImagineSlot } from "@/components/brand/imagine-slot";
 import { InvestRiskChip, LeverageUtilChip } from "@/components/invest/risk-chip";
 import { TargetMixPanel } from "@/components/invest/target-mix-panel";
 import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-guard";
@@ -453,9 +454,12 @@ function BookHero({
             percent={leverageUtil.utilizationPercent}
           />
         </div>
-        <p className="budget-hero-value mt-3">
-          {isLoading ? "…" : money(checkup.totalValue)}
-        </p>
+        <div className="mt-3 flex items-end justify-between gap-4">
+          <p className="money-hero">
+            {isLoading ? "…" : money(checkup.totalValue)}
+          </p>
+          <ImagineSlot slot="hero-invest" />
+        </div>
         <p className="mt-2 text-sm text-muted-foreground">
           Book value · {currency}
         </p>

@@ -1490,6 +1490,38 @@ assert(
   ),
   "motion respects prefers-reduced-motion",
 );
+const imagineSlots = readFileSync(
+  join(process.cwd(), "src/lib/brand/imagine-slots.ts"),
+  "utf8",
+);
+assert(
+  existsSync(join(process.cwd(), "public/images/imagine/.gitkeep")),
+  "Imagine drop folder exists",
+);
+assert(
+  imagineSlots.includes('"hero-budget": null') &&
+    imagineSlots.includes('"first-run": null'),
+  "Imagine hero slots stay empty until art lands",
+);
+assert(!/YNAB|Freedom/i.test(imagineSlots), "Imagine slots do not name brands");
+const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+assert(css.includes(".money-hero"), "monumental money class exists");
+assert(css.includes(".nav-active-green"), "active nav uses the green treatment");
+assert(css.includes("chart-draw"), "charts draw with CSS motion");
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/budget/budget-category-list.tsx"),
+    "utf8",
+  ).includes("groupEnvelopeRollup"),
+  "Budget groups roll up Available",
+);
+assert(
+  readFileSync(
+    join(process.cwd(), "src/components/home/home-checklist.tsx"),
+    "utf8",
+  ).includes('kind="home"'),
+  "first-run checklist carries the home illustration",
+);
 
 if (failed > 0) {
   console.error(`\n${failed} journey assertion(s) failed`);

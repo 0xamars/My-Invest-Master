@@ -1,5 +1,6 @@
 "use client";
 
+import { ImagineSlot } from "@/components/brand/imagine-slot";
 import { MotionValue } from "@/components/ui/motion-value";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import type { AgeOfMoneyResult } from "@/lib/budget/age-of-money";
@@ -53,14 +54,17 @@ export function BudgetSummaryStats({
       >
         <div className="min-w-0 flex-1">
           <p className="budget-metric-label">Leftover</p>
-          <MotionValue
-            value={formatBudgetMoney(ready, currency)}
-            className={cn(
-              "budget-hero-value mt-1",
-              readyTone,
-              isLoading && "animate-pulse",
-            )}
-          />
+          <div className="mt-1 flex items-end justify-between gap-4">
+            <MotionValue
+              value={formatBudgetMoney(ready, currency)}
+              className={cn(
+                "money-hero",
+                readyTone,
+                isLoading && "animate-pulse",
+              )}
+            />
+            <ImagineSlot slot="hero-budget" />
+          </div>
           <p className="budget-hero-sub">{secondary}</p>
           {openingLeftover != null && openingLeftover > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">
