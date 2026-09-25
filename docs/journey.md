@@ -30,7 +30,7 @@ Learn/Do tabs and the Money Profile quiz are unshipped. `/money-profile` redirec
 
 ## Middleware and landing
 
-- Signed-out public marketing (`/`) leads with the couples Retire planner. The only **Freedom** is the hero **Freedom, Engineered.** The subline is the RRSP, RRIF, TFSA, and non-registered draw-down comparison. CTAs are Create your Retire plan and Sign in. Budget and Invest stay as a short row below the comparison. After logout, marketing shows Sign in.
+- Signed-out public marketing (`/`) leads with the Retire planner for one person or a couple. The only **Freedom** is the hero **Freedom, Engineered.** The benefit line is when you can retire and which accounts to draw from first. CTAs are Create your Retire plan and Sign in. Budget, Invest, and Retire are three short lines below the hero, then one made-up withdrawal-order example. After logout, marketing shows Sign in.
 - Signed-in `/` goes to Home (`/home`).
 - Logo click when signed in goes to Home. Logo when signed out goes to `/`.
 - Signed-in header is Logo, Budget | Invest | Retire, and an account menu with Settings and Sign out. Home is not a nav pillar.

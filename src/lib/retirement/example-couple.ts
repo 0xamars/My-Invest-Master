@@ -1,6 +1,13 @@
-import { compareWithdrawalOrders } from "@/lib/retirement/withdrawal-orders";
+import { convertFromUsd } from "@/lib/portfolio/prices/fx";
+import {
+  compareWithdrawalOrders,
+  sharedTaxComparison,
+} from "@/lib/retirement/withdrawal-orders";
 import { DEFAULT_FX_RATES, type FxRates } from "@/types/currency";
-import { DEFAULT_WITHDRAWAL_ASSUMPTIONS } from "@/types/retirement";
+import {
+  DEFAULT_WITHDRAWAL_ASSUMPTIONS,
+  type WithdrawalOrderId,
+} from "@/types/retirement";
 
 /**
  * Homepage illustration only. Names, ages, balances, and spending are
@@ -8,7 +15,14 @@ import { DEFAULT_WITHDRAWAL_ASSUMPTIONS } from "@/types/retirement";
  */
 export const EXAMPLE_COUPLE_YEAR = 2026;
 export const EXAMPLE_CAD_PER_USD = DEFAULT_FX_RATES.CAD;
-export const EXAMPLE_PREVIEW_YEARS = 4;
+
+/** Plain names for the homepage proof. The in-app comparison keeps its own labels. */
+export const EXAMPLE_HOME_ORDER_LABEL: Record<WithdrawalOrderId, string> = {
+  "rrsp-first": "RRSP first",
+  "tfsa-last": "TFSA last",
+  "non-registered-first": "Non-registered first",
+  meltdown: "Spread RRSP early",
+};
 
 export const EXAMPLE_COUPLE = {
   names: { person1: "Sam", person2: "Riley" },
@@ -126,6 +140,51 @@ export function exampleCoupleComparison() {
 }
 
 export const EXAMPLE_COUPLE_COMPARISON = exampleCoupleComparison();
+
+export interface ExampleLifetimeTaxRow {
+  id: WithdrawalOrderId;
+  label: string;
+  /** Whole Canadian dollars of tax over the plan. */
+  cad: number;
+  funded: boolean;
+}
+
+export interface ExampleLifetimeTaxDisplay {
+  rows: ExampleLifetimeTaxRow[];
+  /** Highest lifetime tax minus lowest, in whole Canadian dollars. */
+  deltaCad: number;
+  /** True when every order covers spending through the plan horizon. */
+  allFunded: boolean;
+}
+
+function wholeCad(usd: number): number {
+  return Math.round(convertFromUsd(usd, "CAD", EXAMPLE_RATES));
+}
+
+/**
+ * Lifetime tax for the homepage proof. Amounts are the engine result on
+ * EXAMPLE_COUPLE_PLAN, rounded the same way the bars are labeled.
+ */
+export function exampleLifetimeTaxDisplay(): ExampleLifetimeTaxDisplay | null {
+  const comparison = EXAMPLE_COUPLE_COMPARISON;
+  if (comparison.status !== "ready" || comparison.orders.length === 0) return null;
+  const shared = sharedTaxComparison(comparison.orders);
+  const rows = comparison.orders.map((order) => {
+    const usd = shared.taxes[order.id]?.totalTax ?? order.totals.totalTax;
+    return {
+      id: order.id,
+      label: EXAMPLE_HOME_ORDER_LABEL[order.id],
+      cad: wholeCad(usd),
+      funded: order.totals.depletionYear == null,
+    };
+  });
+  const amounts = rows.map((row) => row.cad);
+  return {
+    rows,
+    deltaCad: Math.max(...amounts) - Math.min(...amounts),
+    allFunded: shared.throughYear == null && rows.every((row) => row.funded),
+  };
+}
 
 export function formatExampleCad(amount: number): string {
   return new Intl.NumberFormat("en-CA", {

@@ -7,6 +7,7 @@ import { join } from "node:path";
 import {
   EXAMPLE_COUPLE,
   EXAMPLE_COUPLE_COMPARISON,
+  exampleLifetimeTaxDisplay,
 } from "../src/lib/retirement/example-couple.ts";
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
@@ -1216,16 +1217,34 @@ assert(
   "Freedom appears only in the homepage H1",
 );
 assert(
-  marketingSrc.includes(
-    "Plan how the two of you draw down RRSP, RRIF, TFSA, and non-registered accounts.",
-  ),
-  "marketing subline is the couples draw-down line",
+  marketingSrc.includes("Retire planner for Canadians"),
+  "marketing eyebrow is a Retire planner for Canadians",
 );
 assert(
   marketingSrc.includes(
-    "Compare withdrawal orders with federal and Ontario tax and OAS clawback, year by year, with every assumption visible.",
+    "See when you can retire, and which accounts to draw from first so you keep more of what you saved.",
   ),
-  "marketing subline names tax, OAS clawback, and visible assumptions",
+  "marketing benefit line is the outcome sentence",
+);
+assert(
+  marketingSrc.includes(
+    "For one person or a couple. Built around RRSP, RRIF, TFSA and non-registered accounts.",
+  ),
+  "marketing secondary line includes one person or a couple",
+);
+assert(
+  marketingSrc.includes("Educational, not advice. · Built for Canadians. Amounts in CAD."),
+  "marketing trust line sits with the hero CTAs",
+);
+assert(
+  marketingSrc.includes("Know when you can stop working, and which order to draw from.") &&
+    marketingSrc.includes("See leftover cash after the bills you already have.") &&
+    marketingSrc.includes("Follow the holdings you already own."),
+  "marketing pillars are one sentence each, with Retire leading",
+);
+assert(
+  !/clawback|meltdown|gross-up|the two of you/i.test(marketingSrc),
+  "marketing hero has no tax jargon and is not couples-only",
 );
 assert(
   !marketingSrc.includes("Budget → Invest → Retire"),
@@ -1286,9 +1305,28 @@ const exampleSrc = readFileSync(
   "utf8",
 );
 assert(
-  exampleSrc.includes("Example plan, fictional numbers") &&
-    exampleSrc.includes("Sam & Riley"),
-  "homepage example is labelled and names Sam and Riley",
+  exampleSrc.includes("Same savings. Different order.") &&
+    exampleSrc.includes("Example, made-up numbers. Not a recommendation.") &&
+    exampleSrc.includes("In this example, the order alone changes lifetime tax by"),
+  "homepage proof is a short lifetime-tax comparison",
+);
+assert(
+  !/clawback|meltdown|gross-up|Sam|Riley|Year by year|federal|estate|depletion/i.test(
+    exampleSrc,
+  ),
+  "homepage proof hides the worksheet",
+);
+const exampleTax = exampleLifetimeTaxDisplay();
+assert(
+  exampleTax != null &&
+    exampleTax.allFunded &&
+    exampleTax.rows.map((row) => row.label).join("|") ===
+      "RRSP first|TFSA last|Non-registered first|Spread RRSP early" &&
+    exampleTax.deltaCad ===
+      Math.max(...exampleTax.rows.map((row) => row.cad)) -
+        Math.min(...exampleTax.rows.map((row) => row.cad)) &&
+    exampleTax.deltaCad > 0,
+  "homepage proof tax comes from the funded example plan",
 );
 assert(
   EXAMPLE_COUPLE.names.person1 === "Sam" && EXAMPLE_COUPLE.names.person2 === "Riley",
@@ -1299,12 +1337,16 @@ assert(
     EXAMPLE_COUPLE_COMPARISON.orders.length === 4,
   "example plan runs the four withdrawal orders",
 );
+const brandSrc = readFileSync(join(process.cwd(), "src/lib/brand/assets.ts"), "utf8");
 assert(
-  !/Ready to Assign|\bthe book\b/i.test(
-    readFileSync(join(process.cwd(), "src/lib/brand/assets.ts"), "utf8"),
-  ),
+  !/Ready to Assign|\bthe book\b/i.test(brandSrc),
   "site description avoids Ready to Assign and the book",
 );
+assert(
+  brandSrc.includes("for one person or a couple") && !/clawback|meltdown/i.test(brandSrc),
+  "site description is the inclusive outcome line",
+);
+assert(!/YNAB|Simply Wall St/i.test(marketingSrc), "marketing does not name competitors");
 assert(!marketingSrc.includes("Open Home"), "marketing has no Open Home CTA");
 assert(
   !marketingSrc.includes("Learn/Do") &&
