@@ -11,9 +11,7 @@ interface BrandLogoProps {
 
 const TAGLINE = "Retire, engineered.";
 
-const ICON = BRAND.logoMark;
-
-/** Growth line + salsa swooshes — the locked InvestSalsa mark. */
+/** Brush S from the wordmark. Outline letters disappear at this size. */
 export function SalsaMark({
   className,
   size = 32,
@@ -27,7 +25,7 @@ export function SalsaMark({
     // next/image rejects SVG sources. The mark is a few-KB transparent file.
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={ICON}
+      src={BRAND.logoMark}
       alt=""
       width={size}
       height={size}
@@ -47,17 +45,28 @@ export function CometMark(props: {
   return <SalsaMark {...props} />;
 }
 
-export function BrandWordmark({ className }: { className?: string }) {
+/** Full InvestSalsa wordmark. Paths only — no webfont. */
+export function BrandWordmark({
+  className,
+  priority = false,
+}: {
+  className?: string;
+  priority?: boolean;
+}) {
   return (
-    <span
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={BRAND.wordmark}
+      alt="InvestSalsa"
+      width={858}
+      height={252}
+      decoding="async"
+      fetchPriority={priority ? "high" : "auto"}
       className={cn(
-        "brand-wordmark inline-flex items-baseline whitespace-nowrap font-semibold",
+        "brand-wordmark-svg h-8 w-auto min-w-0 max-w-full object-contain sm:h-10",
         className,
       )}
-    >
-      <span className="brand-text-invest">Invest</span>
-      <span className="brand-text-salsa">Salsa</span>
-    </span>
+    />
   );
 }
 
@@ -82,40 +91,19 @@ export function BrandLogo({
       content = <SalsaMark className={className} priority={priority} />;
       break;
 
-    case "lockup":
-      content = (
-        <div className={cn("flex min-w-0 items-center gap-2.5", className)}>
-          <SalsaMark priority={priority} />
-          <BrandWordmark className="type-body leading-none" />
-        </div>
-      );
-      break;
-
     case "hero":
       content = (
-        <div className={cn("flex items-center gap-3", className)}>
-          <SalsaMark className="size-16" size={64} priority={priority} />
-          <div className="flex flex-col items-start gap-1">
-            <BrandWordmark className="type-h1 leading-none" />
-            <BrandTagline className="text-sm" />
-          </div>
+        <div className={cn("flex flex-col items-start gap-2", className)}>
+          <BrandWordmark className="h-16 max-w-none sm:h-20" priority={priority} />
+          <BrandTagline className="text-sm" />
         </div>
       );
       break;
 
     default:
       content = (
-        <div
-          className={cn(
-            "flex min-w-0 items-center gap-2.5 group-data-[collapsible=icon]:justify-center",
-            className,
-          )}
-        >
-          <SalsaMark
-            className="size-8 group-data-[collapsible=icon]:size-8"
-            priority={priority}
-          />
-          <BrandWordmark className="type-body leading-none group-data-[collapsible=icon]:hidden" />
+        <div className={cn("flex min-w-0 items-center", className)}>
+          <BrandWordmark priority={priority} />
         </div>
       );
       break;
@@ -123,7 +111,7 @@ export function BrandLogo({
 
   if (asLink) {
     return (
-      <MarketingHomeLink className="inline-flex transition-opacity duration-200 hover:opacity-80">
+      <MarketingHomeLink className="inline-flex min-w-0 shrink items-center transition-opacity duration-200 hover:opacity-80">
         {content}
       </MarketingHomeLink>
     );
