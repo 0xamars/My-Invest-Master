@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PublicChrome } from "@/components/layout/public-chrome";
 import { buttonVariants } from "@/components/ui/button";
-import { LOGIN_PATH, SIGNUP_PATH } from "@/lib/routes";
+import { SIGNUP_PATH } from "@/lib/routes";
 
 const EYEBROW = "Budget · Invest · Retire";
 
@@ -59,17 +59,7 @@ export function MarketingHomePage() {
                 className: "premium-cta w-full sm:w-auto",
               })}
             >
-              Create your Retire plan
-            </Link>
-            <Link
-              href={LOGIN_PATH}
-              className={buttonVariants({
-                variant: "outline",
-                size: "lg",
-                className: "w-full border border-border bg-muted sm:w-auto",
-              })}
-            >
-              Sign in
+              Create account
             </Link>
           </div>
           <p className="type-small mt-4 text-[var(--fg-muted)]">Educational, not advice.</p>

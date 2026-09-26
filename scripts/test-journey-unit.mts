@@ -1286,9 +1286,10 @@ assert(
   "marketing still names Budget, Invest, and Retire",
 );
 assert(
-  marketingSrc.includes("Sign in") &&
-    marketingSrc.includes("Create your Retire plan"),
-  "marketing CTAs are Sign in and Create your Retire plan",
+  (marketingSrc.match(/Create account/g) ?? []).length === 1 &&
+    (marketingSrc.match(/Create your Retire plan/g) ?? []).length === 1 &&
+    !marketingSrc.includes("Sign in"),
+  "hero CTA is Create account; close CTA stays Create your Retire plan; hero has no Sign in",
 );
 assert(
   marketingSrc.includes("Educational, not advice."),
