@@ -58,12 +58,12 @@ export function BrandWordmark({
     <img
       src={BRAND.wordmark}
       alt="InvestSalsa"
-      width={858}
-      height={252}
+      width={417}
+      height={100}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
       className={cn(
-        "brand-wordmark-svg h-8 w-auto min-w-0 max-w-full object-contain sm:h-10",
+        "brand-wordmark-svg h-9 w-auto shrink-0 object-contain md:h-11",
         className,
       )}
     />
@@ -94,7 +94,7 @@ export function BrandLogo({
     case "hero":
       content = (
         <div className={cn("flex flex-col items-start gap-2", className)}>
-          <BrandWordmark className="h-16 max-w-none sm:h-20" priority={priority} />
+          <BrandWordmark className="h-16 max-w-none sm:h-20 md:h-20" priority={priority} />
           <BrandTagline className="text-sm" />
         </div>
       );
@@ -111,7 +111,7 @@ export function BrandLogo({
 
   if (asLink) {
     return (
-      <MarketingHomeLink className="inline-flex min-w-0 shrink items-center transition-opacity duration-200 hover:opacity-80">
+      <MarketingHomeLink className="inline-flex shrink-0 items-center transition-opacity duration-200 hover:opacity-80">
         {content}
       </MarketingHomeLink>
     );

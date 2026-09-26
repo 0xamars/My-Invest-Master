@@ -4,7 +4,7 @@ import { PublicFooter, PublicHeader } from "@/components/layout/public-chrome";
 function AuthPanelMark() {
   return (
     <BrandWordmark
-      className="h-14 w-auto max-w-[18rem] sm:h-[4.5rem]"
+      className="h-14 w-auto max-w-[18rem] sm:h-[4.5rem] md:h-[4.5rem]"
       priority
     />
   );
