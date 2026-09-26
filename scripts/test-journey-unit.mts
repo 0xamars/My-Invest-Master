@@ -1246,20 +1246,26 @@ assert(
   "marketing homepage has no Canada-only claim, account types, or order advice",
 );
 assert(
-  marketingSrc.includes("<svg") &&
-    marketingSrc.includes("var(--brand-green-text)") &&
-    marketingSrc.includes("var(--brand-muted)") &&
+  marketingSrc.includes('alt="InvestSalsa Budget showing leftover cash"') &&
+    marketingSrc.includes("/brand/marketing/hero-product.png") &&
+    marketingSrc.includes("unoptimized") &&
     marketingSrc.includes("surface-card") &&
+    !marketingSrc.includes("function ProductMock") &&
+    !marketingSrc.includes("<svg") &&
     !marketingSrc.includes('name: "RRSP"') &&
     !marketingSrc.includes('name: "TFSA"') &&
     !marketingSrc.includes('name: "Cash"'),
-  "marketing hero visual is a product mock of Budget, Invest, and Retire",
+  "marketing hero shows the Budget leftover screenshot, not an abstract mock",
+);
+assert(
+  existsSync(join(process.cwd(), "public/brand/marketing/hero-product.png")),
+  "marketing hero product screenshot is a static file",
 );
 assert(
   !marketingSrc.includes("<img") &&
     !marketingSrc.includes(".svg") &&
     !/maple|Canadian Retire/i.test(marketingSrc),
-  "marketing hero does not use an image file, a maple, or an invented wordmark",
+  "marketing hero uses next/image, not a raw image tag, a maple, or an invented wordmark",
 );
 assert(
   !marketingSrc.includes("Budget → Invest → Retire"),

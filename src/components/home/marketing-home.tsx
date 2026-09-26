@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { PublicChrome } from "@/components/layout/public-chrome";
 import { buttonVariants } from "@/components/ui/button";
@@ -23,59 +24,20 @@ const FEATURES = [
   },
 ] as const;
 
-function ProductMock() {
+function HeroProduct() {
   return (
-    <div
-      className="surface-card mx-auto w-full max-w-md overflow-hidden lg:mx-0 lg:max-w-none"
-      aria-hidden="true"
-    >
-      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-[var(--brand-muted)]" />
-          <span className="size-2 rounded-full bg-[var(--brand-muted)]" />
-          <span className="size-2 rounded-full bg-[var(--brand-muted)]" />
-        </span>
-        <span className="text-sm font-medium text-foreground">InvestSalsa</span>
-      </div>
-      <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-        <div className="p-4 sm:p-5">
-          <p className="text-sm font-semibold">Budget</p>
-          <div className="mt-4 space-y-2.5">
-            <div className="h-2 rounded-full bg-[var(--brand-muted)]" />
-            <div className="h-2 w-4/5 rounded-full bg-[var(--brand-muted)]" />
-            <div className="h-2 w-3/5 rounded-full bg-[var(--brand-muted)]" />
-            <div className="h-2 w-2/5 rounded-full bg-[var(--brand-green-text)]" />
-          </div>
-        </div>
-        <div className="p-4 sm:p-5">
-          <p className="text-sm font-semibold">Invest</p>
-          <div className="mt-4 space-y-2.5">
-            {[0, 1, 2].map((row) => (
-              <div key={row} className="flex items-center gap-2">
-                <span className="size-2 shrink-0 rounded-full bg-[var(--brand-orange-text)]" />
-                <span className="h-2 flex-1 rounded-full bg-[var(--brand-muted)]" />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="p-4 sm:p-5">
-          <p className="text-sm font-semibold">Retire</p>
-          <svg
-            viewBox="0 0 160 72"
-            className="mt-4 h-16 w-full"
-            fill="none"
-          >
-            <path
-              d="M8 36H152"
-              stroke="var(--brand-muted)"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <circle cx="108" cy="36" r="4" fill="var(--brand-green-text)" />
-          </svg>
-        </div>
-      </div>
-    </div>
+    <figure className="mx-auto w-full overflow-hidden rounded-[var(--radius)] border border-border bg-background lg:mx-0">
+      <Image
+        src="/brand/marketing/hero-product.png"
+        alt="InvestSalsa Budget showing leftover cash"
+        width={1680}
+        height={767}
+        unoptimized
+        priority
+        sizes="(min-width: 1024px) 34rem, 100vw"
+        className="h-auto w-full"
+      />
+    </figure>
   );
 }
 
@@ -112,7 +74,7 @@ export function MarketingHomePage() {
           </div>
           <p className="type-small mt-4 text-[var(--fg-muted)]">Educational, not advice.</p>
         </div>
-        <ProductMock />
+        <HeroProduct />
       </section>
 
       <section className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-8 sm:py-14">
