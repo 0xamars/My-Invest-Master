@@ -1,12 +1,12 @@
-import { BrandWordmark, SalsaMark } from "@/components/layout/brand-logo";
+import { BrandWordmark } from "@/components/layout/brand-logo";
 import { PublicFooter, PublicHeader } from "@/components/layout/public-chrome";
 
 function AuthPanelMark() {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <SalsaMark className="size-28" size={112} priority />
-      <BrandWordmark className="type-h1" />
-    </div>
+    <BrandWordmark
+      className="h-14 w-auto max-w-[18rem] sm:h-[4.5rem] md:h-[4.5rem]"
+      priority
+    />
   );
 }
 

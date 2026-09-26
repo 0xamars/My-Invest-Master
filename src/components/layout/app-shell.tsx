@@ -21,9 +21,8 @@ import {
 function AppShellHeader() {
   return (
     <header className="portal-header portal-header--app sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 px-4 sm:px-5 lg:px-7">
-      <BrandHomeLink className="flex min-w-0 items-center gap-2.5">
+      <BrandHomeLink className="flex shrink-0 items-center">
         <BrandLogo variant="sidebar" priority />
-        <span className="sr-only">InvestSalsa</span>
       </BrandHomeLink>
       <SignedInHeaderNav />
       <div className="ml-auto">

@@ -1,5 +1,6 @@
-/** Public mark and social image. Raster lockups are generated from these. */
+/** Wordmark, small S mark, and social image. */
 export const BRAND = {
+  wordmark: "/brand/logo-wordmark.svg",
   logoMark: "/brand/logo-mark.svg",
   favicon: "/favicon.svg",
   appIcon: "/brand/app-icon.png",

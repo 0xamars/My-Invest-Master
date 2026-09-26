@@ -26,7 +26,7 @@ function PublicHeader({ innerClassName }: { innerClassName?: string }) {
     <header className="portal-header sticky top-0 z-20">
       <div
         className={cn(
-          "mx-auto flex h-14 w-full items-center justify-between gap-2 px-4 sm:h-16 sm:px-6",
+          "mx-auto flex min-h-14 w-full flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 sm:px-6 md:h-16 md:flex-nowrap md:py-0",
           innerClassName,
         )}
       >
