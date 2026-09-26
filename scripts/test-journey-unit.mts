@@ -1246,20 +1246,28 @@ assert(
   "marketing homepage has no Canada-only claim, account types, or order advice",
 );
 assert(
-  marketingSrc.includes('alt="InvestSalsa Budget showing leftover cash"') &&
-    marketingSrc.includes("/brand/marketing/hero-product.png") &&
+  marketingSrc.includes(
+    'alt="Illustration of financial freedom — a clear path toward the horizon"',
+  ) &&
+    marketingSrc.includes("/brand/marketing/hero-freedom.png") &&
     marketingSrc.includes("unoptimized") &&
     marketingSrc.includes("surface-card") &&
     !marketingSrc.includes("function ProductMock") &&
+    !marketingSrc.includes("function HeroProduct") &&
+    !marketingSrc.includes("/brand/marketing/hero-product.png") &&
     !marketingSrc.includes("<svg") &&
     !marketingSrc.includes('name: "RRSP"') &&
     !marketingSrc.includes('name: "TFSA"') &&
     !marketingSrc.includes('name: "Cash"'),
-  "marketing hero shows the Budget leftover screenshot, not an abstract mock",
+  "marketing hero shows the freedom illustration, not a product screenshot",
 );
 assert(
-  existsSync(join(process.cwd(), "public/brand/marketing/hero-product.png")),
-  "marketing hero product screenshot is a static file",
+  existsSync(join(process.cwd(), "public/brand/marketing/hero-freedom.png")),
+  "marketing hero freedom illustration is a static file",
+);
+assert(
+  !existsSync(join(process.cwd(), "public/brand/marketing/hero-product.png")),
+  "marketing hero product screenshot is gone",
 );
 assert(
   !marketingSrc.includes("<img") &&
