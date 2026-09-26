@@ -24,14 +24,14 @@ const FEATURES = [
   },
 ] as const;
 
-function HeroProduct() {
+function HeroArt() {
   return (
-    <figure className="mx-auto w-full overflow-hidden rounded-[var(--radius)] border border-border bg-background lg:mx-0">
+    <figure className="mx-auto w-full overflow-hidden rounded-[var(--radius)] lg:mx-0">
       <Image
-        src="/brand/marketing/hero-product.png"
-        alt="InvestSalsa Budget showing leftover cash"
-        width={1680}
-        height={767}
+        src="/brand/marketing/hero-freedom.png"
+        alt="Illustration of financial freedom — a clear path toward the horizon"
+        width={1280}
+        height={720}
         unoptimized
         priority
         sizes="(min-width: 1024px) 34rem, 100vw"
@@ -74,7 +74,7 @@ export function MarketingHomePage() {
           </div>
           <p className="type-small mt-4 text-[var(--fg-muted)]">Educational, not advice.</p>
         </div>
-        <HeroProduct />
+        <HeroArt />
       </section>
 
       <section className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-8 sm:py-14">
