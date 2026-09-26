@@ -58,7 +58,7 @@ export function BrandWordmark({
     <img
       src={BRAND.wordmark}
       alt="InvestSalsa"
-      width={417}
+      width={456}
       height={100}
       decoding="async"
       fetchPriority={priority ? "high" : "auto"}
