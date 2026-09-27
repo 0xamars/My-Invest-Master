@@ -2,6 +2,14 @@
 
 InvestSalsa is one product with three pillars: **Budget**, **Invest**, and **Retire**. Chrome is Budget | Invest | Retire. Home is not a fourth nav item. The user-facing product word is **Retire**, never Freedom. Marketing `/` hero is **Freedom, Engineered.** — brand title only.
 
+## Homepage and marketing copy (owner, 25 Sep 2026)
+- Do not pitch the product as Canada-only or couples-only.
+- Show no example dollar numbers on the homepage or in marketing copy.
+- Nav is Budget, Invest, Retire.
+- Copy says Retire, not Freedom. "Freedom, Engineered." as the homepage headline is the only allowed use of Freedom.
+- Content is educational, not advice.
+- Never name YNAB or Simply Wall St in the product.
+
 Educational footer, everywhere it is shown:
 
 > Educational. Not financial advice. You can lose money.
@@ -30,7 +38,7 @@ Learn/Do tabs and the Money Profile quiz are unshipped. `/money-profile` redirec
 
 ## Middleware and landing
 
-- Signed-out public marketing (`/`) leads with Budget, Invest, and Retire. The only **Freedom** is the hero **Freedom, Engineered.** The benefit line is leftover cash, what you own, and when you can stop working. CTAs are Create your Retire plan and Sign in. Trust is Educational, not advice. Three feature cards are the page focus. No example plan and no Canada-only claim. After logout, marketing shows Sign in.
+- Signed-out public marketing (`/`) leads with Budget, Invest, and Retire. The only **Freedom** is the hero **Freedom, Engineered.** The benefit line is leftover cash, what you own, and when you can stop working. CTAs are Create your Retire plan and Sign in. Trust is Educational, not advice. Three feature cards are the page focus. No example plan, no example dollar numbers, no Canada-only claim, and no couples-only pitch. After logout, marketing shows Sign in.
 - Signed-in `/` goes to Home (`/home`).
 - Logo click when signed in goes to Home. Logo when signed out goes to `/`.
 - Signed-in header is Logo, Budget | Invest | Retire, and an account menu with Settings and Sign out. Home is not a nav pillar.

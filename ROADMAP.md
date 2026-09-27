@@ -1,10 +1,14 @@
 # InvestSalsa Roadmap
 
-Owner: InvestSalsa CEO agent. Last updated: 24 Sep 2026.
+Owner: InvestSalsa CEO agent. Last updated: 27 Sep 2026.
 Every cloud agent working in this repo should read this file first.
 
 ## Goal
-Real strangers paying a monthly price. The 90-day paying-stranger clock starts the day we declare go-to-market ready (see the readiness bar below), not before.
+100 strangers paying a real monthly price by day 90, with 40% still active at day 60.
+
+The 90-day paying-stranger scoreboard is fixed. Day 0 is 24 Sep 2026. Day 90 is 23 Dec 2026. The clock does not wait for launch or for go-to-market readiness, and no document may move these dates.
+
+Kill signal: under 25 paying strangers by day 90, or customer acquisition cost above 12 months of payments.
 
 ## Who we build for first
 Canadian DIY households, especially couples, who manage their own RRSP/TFSA and need to plan how to draw them down in retirement.
@@ -17,13 +21,22 @@ Budget and Invest stay in the app. Budget becomes the retention layer later (Ret
 Price to test: CA$99/year as the main offer, CA$12/month as the alternative. A planner is used a few times a year, so annual fits the usage.
 
 ## Product rules (apply to every change)
+- Nav is Budget, Invest, Retire.
 - Copy says Retire, not Freedom. "Freedom, Engineered." (homepage headline) is the only allowed use of Freedom.
-- Never name competitor products in the product UI or copy.
+- Never name YNAB or Simply Wall St in the product. Never name competitor products in the product UI or copy.
 - Content is educational, not advice. Every Retire screen carries that disclaimer.
 - Never invent income, positions, leftover cash, or a retire date. Defaults must be clearly generic.
 - Stock and market data come from Financial Modeling Prep (FMP) only, cached.
 - Never use the founder's real financial data in fixtures, demos, or screenshots.
 - Don't turn on pricing, payments, plan enforcement, or new public pages in production. Build them behind flags that stay off.
+
+## Homepage and marketing copy (owner, 25 Sep 2026)
+- Do not pitch the product as Canada-only or couples-only.
+- Show no example dollar numbers on the homepage or in marketing copy.
+- Nav is Budget, Invest, Retire.
+- Copy says Retire, not Freedom. "Freedom, Engineered." as the homepage headline is the only allowed use of Freedom.
+- Content is educational, not advice.
+- Never name YNAB or Simply Wall St in the product.
 
 ## Ranked roadmap
 
@@ -57,17 +70,18 @@ Sizes: S = under a day, M = a few days, L = a week or more (for a cloud agent pl
 | 20 | Household sharing plus optional personal sub-budget | Partners are a top loved feature in budgeting apps | L | Later | [#77](https://github.com/0xamars/My-Invest-Master/issues/77) |
 | B1 | FMP data display: FMP individual plans reportedly don't permit showing data to other users. Gate FMP-backed pages to the founder unless a display licence is approved | Legal use of data | S (gate) | Blocked on decision | [#78](https://github.com/0xamars/My-Invest-Master/issues/78) |
 
-## Go-to-market readiness bar (all must be true before we declare ready)
+## Go-to-market readiness bar (all must be true before launch)
+This checklist decides when to launch. It does not start, pause, or move the paying-stranger clock. Day 0 stays 24 Sep 2026.
 1. Planner correctness: 3 reference couples match an independent calculation within a stated tolerance, or differences are explained in the assumptions panel.
 2. Disclaimer on every Retire screen; all assumptions visible and editable.
 3. Onboarding: 5 unpaid testers each get a couples withdrawal-order result in 10 minutes or less without help.
 4. Account basics solid: signup confirmation, export, deletion, no self-upgrade (0d).
-5. FMP resolved: display licence approved, or FMP-backed pages gated to the founder.
-6. Founder's employer conflict-of-interest check cleared.
+5. FMP stock-data licence: cleared on a founder-only basis. Invest stock pages stay founder-only through launch, with no commercial FMP display licence and nothing public showing FMP data.
+6. Manulife conflict-of-interest check: cleared.
 7. Payments ready in CAD with sales tax (turning on needs founder approval).
 8. Measurement: visit, signup, first plan result, and paid events tracked; a written day-60 "active" definition.
-9. Copy check: all public copy passes the product rules.
-First checkpoint after launch: 300 waitlist signups and 30 prepaid by day 30, or rethink the wedge.
+9. Copy check: all public copy passes the product rules and the homepage and marketing copy rules.
+First checkpoint after launch: 300 waitlist signups and 30 prepaid by day 30 after launch, or rethink the wedge. That checkpoint does not move the fixed scoreboard.
 
 ## Deferred
 Stock pages for strangers (until B1 is resolved), Budget as a go-to-market wedge, Monte Carlo upgrades, glide path.
