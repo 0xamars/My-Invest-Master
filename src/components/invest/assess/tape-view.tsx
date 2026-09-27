@@ -99,7 +99,7 @@ export function TapeView({ tape }: { tape: TapeSeriesMeta }) {
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        Not investment advice. Tape uses warehouse filings only — missing series are skipped, not invented.
+        Educational, not advice. Tape uses warehouse filings only. Missing series are skipped.
       </p>
     </div>
   );

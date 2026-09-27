@@ -92,7 +92,7 @@ export function MarketingHomePage() {
                 className: "premium-cta w-full sm:w-auto",
               })}
             >
-              Create your Retire plan
+              Create account
             </Link>
           </div>
           <p className="type-small mt-4 text-[var(--fg-muted)]">Educational, not advice.</p>

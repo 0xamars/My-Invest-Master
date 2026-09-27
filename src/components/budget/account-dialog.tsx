@@ -139,8 +139,8 @@ export function AccountDialog({
               {onBudget && isCreditCardPaymentAccount({ type, onBudget })
                 ? "A payment envelope is created automatically. Card spend moves dollars there; paying the card uses that envelope."
                 : onBudget
-                  ? "Inflows go to leftover. Spending hits envelope Activity."
-                  : "Off-budget. Activity does not change leftover or envelope Activity. Transfers in or out of the budget do."}
+                  ? "Inflows go to Ready to Assign. Spending hits envelope Activity."
+                  : "Off-budget. Activity does not change Ready to Assign or envelope Activity. Transfers in or out of the budget do."}
             </p>
           </div>
 
@@ -174,8 +174,8 @@ export function AccountDialog({
                 {isCreditCardPaymentAccount({ type, onBudget })
                   ? "Existing debt is not funded. Assign money to the payment envelope when you are ready to pay it. Interest and fees are later transactions on this card."
                   : onBudget
-                    ? "A positive balance is income in leftover, ready to give a job."
-                    : "Tracking only. This balance does not change leftover."}
+                    ? "A positive balance is income in Ready to Assign, ready to give a job."
+                    : "Tracking only. This balance does not change Ready to Assign."}
               </p>
             </div>
           ) : null}

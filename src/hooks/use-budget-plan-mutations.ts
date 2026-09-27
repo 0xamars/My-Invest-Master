@@ -620,7 +620,7 @@ export function useBudgetPlanMutations(planId: string) {
     (monthKey: string, allocations: Array<{ categoryId: string; amount: number }>) => {
       commitPlan(
         (current) => applyAssignLeftover(current, monthKey, allocations),
-        { label: "Undo assign leftover" },
+        { label: "Undo assign money" },
       );
     },
     [commitPlan],

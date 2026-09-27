@@ -69,7 +69,7 @@ export function WatchlistTable({
             <TableRow className="hover:bg-transparent">
               <TableHead className={cn(CELL, "pl-5")}>Ticker</TableHead>
               <TableHead className={CELL}>Type</TableHead>
-              <TableHead className={CELL}>In book</TableHead>
+              <TableHead className={CELL}>In portfolio</TableHead>
               <TableHead className={NUMERIC}>Price</TableHead>
               <TableHead className={NUMERIC}>Change</TableHead>
               <TableHead className={NUMERIC}>Change %</TableHead>
@@ -159,7 +159,7 @@ export function WatchlistTable({
                             variant="outline"
                             className="border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-[var(--brand-green)]"
                           >
-                            In book
+                            In portfolio
                           </Badge>
                         ) : (
                           <span className="text-xs text-muted-foreground">

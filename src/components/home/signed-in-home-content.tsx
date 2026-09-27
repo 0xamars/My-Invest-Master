@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { HomeChecklist } from "@/components/home/home-checklist";
 import { EmptyArt } from "@/components/journey/empty-art";
@@ -8,10 +8,17 @@ import { PageLoading } from "@/components/layout/page-loading";
 import { MotionValue } from "@/components/ui/motion-value";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { usePortfolioPlans } from "@/contexts/portfolio-plans-context";
+import { useAuth } from "@/hooks/use-auth";
 import { useFxRate } from "@/hooks/use-fx-rate";
 import { useRetirementPlansStorage } from "@/hooks/use-retirement-plans-storage";
-import { leftoverPresenceFromBudgetPlans } from "@/lib/invest/leftover";
+import { useUserPlan } from "@/hooks/use-user-preferences";
+import {
+  readLastOpenedBudgetPlanId,
+  selectHomeBudgetPlan,
+} from "@/lib/budget/plan-navigation";
+import { leftoverPresenceFromBudgetPlan } from "@/lib/invest/leftover";
 import { buildHomeChecklist } from "@/lib/journey/home-checklist";
+import { canOpenBudgetPlanOnPlan } from "@/lib/plans/free-access";
 import {
   buildSignedInHomeCards,
   signedInHomeAssignedFromPlans,
@@ -35,7 +42,9 @@ function HomeSpark({ value }: { value: number | null }) {
 }
 
 export function SignedInHomeContent() {
+  const { user } = useAuth();
   const budget = useBudgetPlans();
+  const { plan: tier, isLoaded: tierLoaded } = useUserPlan();
   const {
     primaryPortfolio,
     portfolios,
@@ -44,18 +53,39 @@ export function SignedInHomeContent() {
   const { plans: retirePlans, isLoaded: retireLoaded } =
     useRetirementPlansStorage();
   const { rates } = useFxRate();
+  const [lastOpenedId, setLastOpenedId] = useState<string | null>(null);
+  const [rememberedReady, setRememberedReady] = useState(false);
 
+  useEffect(() => {
+    setLastOpenedId(
+      readLastOpenedBudgetPlanId(window.localStorage, user?.id),
+    );
+    setRememberedReady(true);
+  }, [user?.id]);
+
+  const selectedBudgetPlan = useMemo(
+    () =>
+      selectHomeBudgetPlan(budget.plans, lastOpenedId, (planId) =>
+        canOpenBudgetPlanOnPlan(tier, budget.plans, planId),
+      ),
+    [budget.plans, lastOpenedId, tier],
+  );
   const leftover = useMemo(
-    () => leftoverPresenceFromBudgetPlans(budget.plans),
-    [budget.plans],
+    () => leftoverPresenceFromBudgetPlan(selectedBudgetPlan),
+    [selectedBudgetPlan],
   );
   const book = useMemo(
     () => bookPresenceFromPortfolio(primaryPortfolio),
     [primaryPortfolio],
   );
   const assigned = useMemo(
-    () => signedInHomeAssignedFromPlans(budget.plans),
-    [budget.plans],
+    () =>
+      signedInHomeAssignedFromPlans(
+        budget.plans,
+        undefined,
+        selectedBudgetPlan?.id ?? null,
+      ),
+    [budget.plans, selectedBudgetPlan],
   );
   const latestRetire = useMemo(
     () =>
@@ -78,14 +108,19 @@ export function SignedInHomeContent() {
         leftover,
         book,
         assigned: assigned.assigned,
-        budgetPlanId: assigned.planId,
+        budgetPlanId: selectedBudgetPlan?.id ?? null,
         assumptions: latestRetire,
         rates,
       }),
-    [leftover, book, assigned, latestRetire, rates],
+    [leftover, book, assigned, selectedBudgetPlan, latestRetire, rates],
   );
 
-  const ready = budget.isLoaded && portfoliosLoaded && retireLoaded;
+  const ready =
+    budget.isLoaded &&
+    portfoliosLoaded &&
+    retireLoaded &&
+    tierLoaded &&
+    rememberedReady;
 
   if (!ready) {
     return (

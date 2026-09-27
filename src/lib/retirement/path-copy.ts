@@ -22,7 +22,7 @@ export function impliedPathSentence(
     return "Enter your yearly spending in retirement.";
   }
   if (dashboard.verdict === "empty") {
-    return "Leftover or the book is missing. Retire will not invent cash.";
+    return "Your budget or your investments are missing.";
   }
 
   const target =

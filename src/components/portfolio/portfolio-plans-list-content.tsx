@@ -82,7 +82,7 @@ export function PortfolioPlansListContent() {
       <PillarBackLink href={INVEST_PATH} label="Invest" current="Portfolios" />
       <BudgetPageHeader
         title="Portfolios"
-        description="Each book is a plan. Primary is the checkup default on Invest. Open a book to manage holdings, mix, and leverage."
+        description="Each portfolio is a plan. Primary is the checkup default on Invest. Open a portfolio to manage holdings, mix, and leverage."
         action={
           <Button onClick={openCreate} disabled={isCreating}>
             {isCreating ? (
@@ -90,7 +90,7 @@ export function PortfolioPlansListContent() {
             ) : (
               <Plus className="size-4" />
             )}
-            New book
+            New portfolio
           </Button>
         }
       />
@@ -106,12 +106,12 @@ export function PortfolioPlansListContent() {
         <BudgetPanel>
           <BudgetEmptyState
             mark="invest"
-            title="No books yet"
-            description="Create a portfolio, then add holdings. You must keep at least one book after that."
+            title="No portfolios yet"
+            description="Create a portfolio, then add holdings. You must keep at least one portfolio after that."
             actions={
               <Button onClick={openCreate} disabled={isCreating}>
                 <Plus className="size-4" />
-                Create your first book
+                Create your first portfolio
               </Button>
             }
           />
@@ -174,7 +174,7 @@ export function PortfolioPlansListContent() {
                       size="sm"
                       onClick={() => portfolio && openPortfolio(portfolio)}
                     >
-                      Open book
+                      Open portfolio
                     </Button>
                     <Button
                       variant="ghost"
@@ -199,8 +199,8 @@ export function PortfolioPlansListContent() {
                       disabled={!canDelete}
                       title={
                         canDelete
-                          ? "Delete book"
-                          : "You must keep at least one book"
+                          ? "Delete portfolio"
+                          : "You must keep at least one portfolio"
                       }
                       onClick={() => portfolio && setDeleting(portfolio)}
                       aria-label={`Delete ${summary.name}`}
@@ -219,8 +219,8 @@ export function PortfolioPlansListContent() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         title="Create portfolio"
-        description="Give this book a name so you can find it on Invest."
-        confirmLabel="Create book"
+        description="Give this portfolio a name so you can find it on Invest."
+        confirmLabel="Create portfolio"
         onConfirm={handleCreate}
         isSubmitting={isCreating}
       />
@@ -229,7 +229,7 @@ export function PortfolioPlansListContent() {
         open={Boolean(renaming)}
         onOpenChange={(open) => !open && setRenaming(null)}
         title="Rename portfolio"
-        description="Update the display name for this book."
+        description="Update the display name for this portfolio."
         confirmLabel="Save name"
         defaultName={renaming?.name ?? ""}
         onConfirm={async (name) => {

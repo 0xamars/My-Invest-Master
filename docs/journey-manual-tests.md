@@ -6,7 +6,7 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 1. Sign in as a user with no budget plan.
 2. You land on **Home**, not Budget and not a Money Profile wizard.
-3. Home shows three blocks only: Budget to-assign, Invest top weight, Retire path to target. Empties stay labeled. No invented leftover, book, or percent.
+3. Home shows three blocks only: Budget to-assign, Invest top weight, Retire path to target. Empty cards say **Not set up** and a different one-line caption (Budget: create a budget to see money left to assign. Invest: add a holding to see your mix. Retire names the missing step). No invented dollar amount, portfolio weight, or percent.
 4. Open Budget from Home. Empty Budget offers the first-run kit. Accepting the kit must not invent leftover.
 5. Nav is only Budget, Invest, Retire. No Learn/Do. No Freedom label. Home is not a fourth tab.
 
@@ -37,10 +37,23 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 ## 6. Signed-out public page still works. Chat still gone.
 
-1. Open `/` signed out. Marketing loads in the first HTML, with no full-page spinner. Hero is **Freedom, Engineered.** The benefit line is leftover cash, what you own, and when you can stop working. CTAs are Create your Retire plan and Sign in. Trust is Educational, not advice. Budget, Invest, and Retire are three feature cards. No example dollar numbers, no account-order comparison, no Canada-only claim, and no couples-only pitch.
+1. Open `/` signed out. Marketing loads in the first HTML, with no full-page spinner. Hero is **Freedom, Engineered.** The benefit line is leftover cash, what you own, and when you can stop working. The hero and the bottom CTA are Create account. Trust is Educational, not advice. Budget, Invest, and Retire are three feature cards. No example dollar numbers, no account-order comparison, no Canada-only claim, and no couples-only pitch.
 2. `/chat` and `/assistant` redirect to Invest. No assistant FAB.
 3. `/freedom` redirects to Retire. `/money-profile` redirects to Home. Signed-out `/home` asks for sign-in.
 
-## 7. Typecheck and units
+## 7. Budget plan switcher and last opened plan
+
+1. With two budget plans, open one. The plan name stays editable. A menu beside it lists both plans, **All plans**, and **New plan**.
+2. From Accounts, Transactions, Payee rules, or Reports, switch plans. You land on that same section of the other plan.
+3. With only one plan, there is no menu.
+4. Open a plan, go Home, and open Budget from the Home card. It opens that plan, not whichever plan was edited most recently, as long as the plan still exists and can be opened.
+
+## 8. Home empty states
+
+1. With no budget, no holdings, and no Retire plan, each Home card metric is **Not set up** and the caption is a different sentence.
+2. Assign every dollar in a budget that also has a holding. The Retire card does not say the setup is missing just because Ready to Assign is zero.
+3. With a saved Retire plan that has a real path, the Retire card uses that plan.
+
+## 9. Typecheck and units
 
 `npx tsc --noEmit` and the journey / invest / ticker / budget / retire / early-opp unit scripts pass.

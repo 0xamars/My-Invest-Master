@@ -22,7 +22,7 @@ export function DisplayCurrencyCard() {
         <CardTitle className="text-lg">Display currency</CardTitle>
         <CardDescription>
           Used on Invest and Retire screens. Budget keeps the currency already
-          set on that plan. Amounts are not invented.
+          set on that plan. Amounts come from what you enter and from cached prices.
         </CardDescription>
       </CardHeader>
       <CardContent>

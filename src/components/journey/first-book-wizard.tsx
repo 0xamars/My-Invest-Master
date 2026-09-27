@@ -45,7 +45,7 @@ export function FirstBookWizard({
   const defaultCurrency = displayCurrencyOrDefault(
     profile?.currency ?? displayCurrency,
   );
-  const [name, setName] = useState("Book");
+  const [name, setName] = useState("Portfolio");
   const [currency, setCurrency] = useState<DisplayCurrency>(defaultCurrency);
   const [error, setError] = useState<string | null>(null);
   const options = useMemo(() => currenciesForSelect(), []);
@@ -57,7 +57,7 @@ export function FirstBookWizard({
   async function handleSubmit() {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("Name the book.");
+      setError("Name your portfolio.");
       return;
     }
     setError(null);
@@ -133,7 +133,7 @@ export function FirstBookWizard({
           onClick={() => void handleSubmit()}
         >
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-          Create the book
+          Create portfolio
         </Button>
       </div>
     </div>

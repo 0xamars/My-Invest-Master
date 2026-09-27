@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -10,7 +11,9 @@ import { FreeResourceOpenGuard } from "@/components/plans/free-resource-open-gua
 import { Button } from "@/components/ui/button";
 import { BudgetPlanProvider } from "@/contexts/budget-context";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
+import { useAuth } from "@/hooks/use-auth";
 import { useUserPlan } from "@/hooks/use-user-preferences";
+import { writeLastOpenedBudgetPlanId } from "@/lib/budget/plan-navigation";
 import { canOpenBudgetPlanOnPlan } from "@/lib/plans/free-access";
 
 export default function BudgetPlanLayout({
@@ -20,10 +23,16 @@ export default function BudgetPlanLayout({
 }) {
   const params = useParams<{ id: string }>();
   const planId = params.id;
+  const { user } = useAuth();
   const { getPlan, plans, isLoaded } = useBudgetPlans();
   const { plan: userPlan, isLoaded: isPlanLoaded } = useUserPlan();
   const plan = getPlan(planId);
   const canOpen = canOpenBudgetPlanOnPlan(userPlan, plans, planId);
+
+  useEffect(() => {
+    if (!isLoaded || !isPlanLoaded || !plan || !canOpen) return;
+    writeLastOpenedBudgetPlanId(window.localStorage, user?.id, planId);
+  }, [isLoaded, isPlanLoaded, plan, canOpen, user?.id, planId]);
 
   if (!isLoaded || !isPlanLoaded) {
     return (

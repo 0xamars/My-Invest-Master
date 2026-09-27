@@ -7,7 +7,7 @@ import {
 } from "@/lib/retirement/freedom-path";
 import { createEmptyPlan, type RetirementPlan } from "@/types/retirement";
 
-export const FREEDOM_DATE_NEEDS_INPUTS = "Needs leftover and a book";
+export const FREEDOM_DATE_NEEDS_INPUTS = "Needs a budget and investments";
 
 export type JourneyFreedomDate =
   | { status: "needs-inputs"; label: typeof FREEDOM_DATE_NEEDS_INPUTS }

@@ -9,9 +9,10 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  Check,
   ChevronDown,
   FolderPlus,
   Landmark,
@@ -22,6 +23,7 @@ import {
   Undo2,
   Wallet,
 } from "lucide-react";
+import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
 import { CloseMonthDialog } from "@/components/budget/budget-dialogs";
 import { BudgetMonthNav } from "@/components/budget/budget-month-nav";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
@@ -31,6 +33,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { InlineTitle } from "@/components/ui/inline-title";
@@ -44,6 +47,7 @@ import {
 import { useBudget } from "@/contexts/budget-context";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import { getCurrentMonthKey } from "@/lib/budget/calculations";
+import { budgetPlanSwitchPath } from "@/lib/budget/plan-navigation";
 import { isMonthClosed } from "@/lib/budget/closed-months";
 import { previewMonthClose } from "@/lib/budget/month-close";
 import { cn } from "@/lib/utils";
@@ -118,7 +122,10 @@ interface BudgetShellProps {
 
 export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
   const pathname = usePathname();
-  const { renamePlan } = useBudgetPlans();
+  const router = useRouter();
+  const { plans, renamePlan, createPlanAndSave, isPlanReady } = useBudgetPlans();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const {
     budget,
     setPlanCurrency,
@@ -189,6 +196,18 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
   const sectionCrumb = navItems.find((item) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href),
   );
+  const switchablePlans = plans.length > 1;
+
+  async function handleCreatePlan(name: string) {
+    setIsCreating(true);
+    try {
+      const plan = await createPlanAndSave(name);
+      setCreateOpen(false);
+      router.push(`/budget/plans/${plan.id}`);
+    } finally {
+      setIsCreating(false);
+    }
+  }
 
   return (
     <BudgetMonthContext.Provider value={{ monthKey, setMonthKey }}>
@@ -206,6 +225,52 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
                 onCommit={(next) => renamePlan(planId, next)}
                 ariaLabel="Budget plan name"
               />
+              {switchablePlans ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Switch budget plan"
+                        data-budget-plan-switcher=""
+                      >
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    }
+                  />
+                  <DropdownMenuContent align="start" className="min-w-56">
+                    {plans.map((plan) => (
+                      <DropdownMenuItem
+                        key={plan.id}
+                        onClick={() => {
+                          if (plan.id === planId) return;
+                          router.push(
+                            budgetPlanSwitchPath(pathname, planId, plan.id),
+                          );
+                        }}
+                      >
+                        <span className="min-w-0 flex-1 truncate">{plan.name}</span>
+                        {plan.id === planId ? (
+                          <Check className="size-3.5 text-[var(--brand-green)]" />
+                        ) : null}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem render={<Link href="/budget" />}>
+                      All plans
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={!isPlanReady || isCreating}
+                      onClick={() => setCreateOpen(true)}
+                    >
+                      <Plus className="size-4" />
+                      New plan
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
               <Select
                 value={currency}
                 onValueChange={(value) =>
@@ -312,6 +377,16 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
           <BudgetAddMenu iconOnly />
         </div>
       ) : null}
+
+      <BudgetPlanNameDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Create Budget Plan"
+        description="Give your plan a name so you can find it on Budget."
+        confirmLabel="Create plan"
+        onConfirm={handleCreatePlan}
+        isSubmitting={isCreating}
+      />
 
       <CloseMonthDialog
         open={closeOpen}

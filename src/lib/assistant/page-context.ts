@@ -120,7 +120,7 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       path: pathname,
       title: "Invest",
       description:
-        "Research routes fold into the Invest book — checkup, mix, leftover, and owned names.",
+        "Research routes fold into Invest — checkup, mix, Ready to Assign, and owned names.",
     };
   }
   if (
@@ -180,7 +180,7 @@ export function resolveAssistantPage(pathname: string): AssistantPageInfo {
       id: "budget-plan",
       path: pathname,
       title: "Budget Plan",
-      description: "Envelope budgeting for one plan — Ready to Assign and leftover that carries.",
+      description: "Envelope budgeting for one plan — Ready to Assign that carries.",
     };
   }
   if (pathname === "/budget" || pathname.startsWith("/budget/")) {

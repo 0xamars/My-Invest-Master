@@ -95,7 +95,7 @@ export function HoldingExpandPanel({
         ) : null}
         {holding.portfolioPercent != null ? (
           <span className="ml-2 text-muted-foreground">
-            {holding.portfolioPercent.toFixed(1)}% of book
+            {holding.portfolioPercent.toFixed(1)}% of portfolio
           </span>
         ) : null}
       </p>

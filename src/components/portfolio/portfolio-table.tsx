@@ -260,7 +260,7 @@ export function PortfolioTable({
       <RetireEmptyState
         icon={<Plus className="size-5" />}
         title="No assets yet"
-        description="Add a holding to start tracking value, weight, and concentration on this book."
+        description="Add a holding to start tracking value, weight, and concentration in this portfolio."
         actions={
           onAdd ? (
             <Button size="sm" onClick={onAdd}>

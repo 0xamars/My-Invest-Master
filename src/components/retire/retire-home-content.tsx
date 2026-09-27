@@ -96,7 +96,7 @@ export function RetireHomeContent() {
     <div className="desk-stack">
       <RetirePageHeader
         title="Retire"
-        description="One date from leftover and the book. Target, on-track, and the lever on this path."
+        description="One date from your budget and your investments. Target, on-track, and the lever on this path."
         action={
           latest ? (
             <Button
@@ -169,8 +169,7 @@ export function RetireHomeContent() {
 
           {!basePath.assumptions && basePath.path.assets.length > 0 ? (
             <p className="text-xs text-muted-foreground">
-              Spending is an assumption until you save a plan. Retire does
-              not invent leftover or book cash.
+              Spending is an assumption until you save a plan.
             </p>
           ) : null}
 

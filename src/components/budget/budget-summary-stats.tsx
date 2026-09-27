@@ -45,7 +45,7 @@ export function BudgetSummaryStats({
   return (
     <section className="budget-panel budget-panel--raised">
       <header className="desk-card-header">
-        <p className="budget-metric-label">Leftover</p>
+        <p className="budget-metric-label">Ready to Assign</p>
       </header>
       <div className="desk-card-rule" />
       <div
@@ -67,13 +67,13 @@ export function BudgetSummaryStats({
           <p className="budget-hero-sub">{secondary}</p>
           {openingLeftover != null && openingLeftover > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              Opened with {formatBudgetMoney(openingLeftover, currency)} leftover
-              from the closed month.
+              Opened with {formatBudgetMoney(openingLeftover, currency)} from
+              the closed month.
             </p>
           ) : null}
           {onAssignLeftover ? (
             <Button type="button" size="sm" className="mt-3" onClick={onAssignLeftover}>
-              Assign leftover
+              Assign money left to assign
             </Button>
           ) : null}
         </div>

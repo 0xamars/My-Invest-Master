@@ -171,7 +171,7 @@ export function RetirementPlansListContent() {
           <RetireEmptyState
             art={<EmptyArt kind="retire" />}
             title="Map the path."
-            description="Start a plan, or import holdings from an Invest book."
+            description="Start a plan, or import holdings from your investments."
             actions={
               <>
                 <Button

@@ -380,19 +380,19 @@ export function buildBookAndPlan(input: {
   } else {
     const pct =
       input.portfolioPercent != null
-        ? `${input.portfolioPercent.toFixed(1)}% of the book`
-        : "unknown % of the book";
+        ? `${input.portfolioPercent.toFixed(1)}% of your portfolio`
+        : "unknown share of your portfolio";
     const val =
       input.positionValue != null
         ? `position value loaded`
         : "position value unknown";
-    parts.push(`Primary book: ${pct}, ${val}.`);
+    parts.push(`Primary portfolio: ${pct}, ${val}.`);
   }
 
   if (input.leftoverLine) {
     parts.push(input.leftoverLine);
   } else {
-    parts.push("Budget leftover: unknown or none this month.");
+    parts.push("Ready to Assign: unknown or nothing left this month.");
   }
 
   return parts.join(" ");

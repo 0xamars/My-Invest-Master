@@ -279,7 +279,7 @@ const firstBook = readFileSync(
   join(process.cwd(), "src/components/journey/first-book-wizard.tsx"),
   "utf8",
 );
-assert(firstBook.includes("Create the book"), "first book keeps the create action");
+assert(firstBook.includes("Create portfolio"), "first book keeps the create action");
 assert(!firstBook.includes("learnLabel"), "first book has no Open Invest self-link");
 assert(!firstBook.includes("BrandStill"), "first book has no decorative still");
 

@@ -21,7 +21,7 @@ export function BookConcentrationBar({ rows }: { rows: BookRow[] }) {
       <div
         className="flex h-3 overflow-hidden rounded-full bg-muted"
         role="img"
-        aria-label="Book concentration"
+        aria-label="Portfolio concentration"
       >
         {slices.map((row, index) => (
           <span

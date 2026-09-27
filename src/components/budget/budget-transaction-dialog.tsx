@@ -455,24 +455,24 @@ export function BudgetTransactionDialog({
       ? payingCard
         ? "This pays the card. It uses the card payment envelope. Leftover does not change."
         : cashAdvance
-          ? "Cash advance. Leftover goes up and the balance owed goes up. Assign leftover to the payment envelope to cover it."
+          ? "Cash advance. Ready to Assign goes up and the balance owed goes up. Assign that money to the payment envelope to cover it."
           : transferCrossesBudget
             ? selectedOnBudget && selectedAccount && isCreditCardPaymentAccount(selectedAccount)
-              ? "Spending off-budget with this card pulls leftover into the payment envelope."
+              ? "Spending off-budget with this card pulls Ready to Assign into the payment envelope."
               : selectedOnBudget
                 ? "This leaves the budget. Leftover goes down by the transfer amount."
                 : "This enters the budget. Leftover goes up by the transfer amount."
-            : "Move money between accounts. Transfers between the same budget side do not change leftover."
+            : "Move money between accounts. Transfers between the same budget side do not change Ready to Assign."
       : type === "inflow"
         ? returningOnCard
-          ? "A return to an envelope puts those dollars back and takes them out of the payment envelope. Leave it unassigned to free leftover, but only up to what that envelope already holds."
+          ? "A return to an envelope puts those dollars back and takes them out of the payment envelope. Leave it unassigned to free Ready to Assign, but only up to what that envelope already holds."
           : selectedOnBudget
-            ? "Unassigned inflows go to leftover. Pick an envelope to put a refund or reimbursement back there instead."
-            : "Tracking inflow. This changes the account balance only — not leftover."
+            ? "Unassigned inflows go to Ready to Assign. Pick an envelope to put a refund or reimbursement back there instead."
+            : "Tracking inflow. This changes the account balance only — not Ready to Assign."
         : spendingOnCard
           ? "Funded card spend moves dollars into the payment envelope. Unfunded spend, interest, and fees become card debt."
           : !selectedOnBudget
-            ? "Tracking outflow. This changes the account balance only — not leftover or envelope Activity."
+            ? "Tracking outflow. This changes the account balance only — not Ready to Assign or envelope Activity."
             : splitEnabled
               ? "Split this outflow across envelopes. Lines must add up to the total."
               : "Record spending, linked to an account and envelope.";

@@ -30,7 +30,7 @@ export function RefreshRetireAction() {
 
   async function handleRefresh() {
     if (!retirePlan || !canRefresh) {
-      setStatus("Add holdings to the book, then refresh Retire.");
+      setStatus("Add holdings to your portfolio, then refresh Retire.");
       return;
     }
     setBusy(true);
@@ -43,13 +43,13 @@ export function RefreshRetireAction() {
     );
     retirement.updatePlan(retirePlan.id, (plan) => ({ ...plan, assets }));
     setBusy(false);
-    setStatus("Retire quantities and prices updated from this book.");
+    setStatus("Retire quantities and prices updated from this portfolio.");
   }
 
   return (
     <RetirePanel className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
       <div className="min-w-0">
-        <p className="text-sm font-medium">Refresh Retire from this book</p>
+        <p className="text-sm font-medium">Refresh Retire from this portfolio</p>
         <p className="text-xs text-muted-foreground">
           Updates matched quantities and prices on {retirePlan.name}. Expected
           growth on each holding stays yours.
@@ -69,7 +69,7 @@ export function RefreshRetireAction() {
           ) : (
             <RefreshCw className="size-3.5" />
           )}
-          Refresh Retire from this book
+          Refresh Retire from this portfolio
         </Button>
         <Button
           size="sm"

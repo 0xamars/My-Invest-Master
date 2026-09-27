@@ -107,7 +107,7 @@ export function InvestHomeContent() {
       <InvestToolsNav />
       <RetirePageHeader
         title="Invest"
-        description="The public-stock book. Search a name or ticker."
+        description="Your investments. Search a name or ticker."
         action={
           offerFirstBook ? null : (
             <Button
@@ -173,7 +173,7 @@ export function InvestHomeContent() {
       ) : (
         <RetirePanel>
           <header className="desk-card-header">
-            <h2 className="text-sm font-semibold text-foreground">Book</h2>
+            <h2 className="text-sm font-semibold text-foreground">Portfolio</h2>
           </header>
           <div className="desk-card-rule" />
           <div className="desk-card-body">
@@ -189,7 +189,7 @@ export function InvestHomeContent() {
                 </>
               ) : null}
             </div>
-            <QuietSparkline points={bookSpark} label="Book day move" />
+            <QuietSparkline points={bookSpark} label="Portfolio day move" />
           </div>
           {quoteError ? (
             <p className="mt-1 text-xs text-muted-foreground">{quoteError}</p>

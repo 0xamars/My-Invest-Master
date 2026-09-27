@@ -51,7 +51,7 @@ assert(
       fetchedAt: null,
       cacheStatus: "miss",
     },
-  ]) === "Prices · cache miss",
+  ]) === "Prices unavailable",
   "book cache miss is labeled",
 );
 assert(
@@ -65,7 +65,7 @@ assert(
       fetchedAt: new Date().toISOString(),
       cacheStatus: "stale",
     },
-  ])?.includes("stale"),
+  ])?.includes("refreshing"),
   "stale book quotes say refreshing",
 );
 

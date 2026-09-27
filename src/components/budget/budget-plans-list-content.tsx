@@ -90,7 +90,7 @@ export function BudgetPlansListContent() {
     <div className="flex flex-1 flex-col gap-4">
       <BudgetPageHeader
         title="Budget"
-        description="One spending account, envelopes, leftover, and a real month close."
+        description="One spending account, envelopes, and money left to assign."
         action={
           <Button
             onClick={openCreate}

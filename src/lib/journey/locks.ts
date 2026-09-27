@@ -3,7 +3,7 @@ import { isLessonComplete } from "@/lib/journey/profile";
 import { lessonsForPillar } from "@/lib/journey/lessons";
 
 export const INVEST_DO_SKIP_WARNING =
-  "Leftover and the book will not stay in sync if you skip Budget.";
+  "Your budget and your investments can drift apart if you skip Budget.";
 
 export function trackUnlocksAllDo(
   profile: Pick<MoneyProfile, "track"> | null | undefined,

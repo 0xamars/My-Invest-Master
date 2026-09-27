@@ -193,8 +193,7 @@ export function EarlyOppScreen({ symbol }: { symbol: string }) {
         {!payload.meta.ai.configured ? (
           <p className="mt-4 text-xs text-muted-foreground">
             Qualitative steps (theme, stack, moat, why it is moving) stay on loaded
-            statements until an AI key is configured. Scores never invent Financial
-            Modeling Prep figures.
+            statements until an AI key is configured. Missing figures stay unknown.
           </p>
         ) : null}
         {payload.meta.packageDegraded && payload.meta.confidenceNote ? (
