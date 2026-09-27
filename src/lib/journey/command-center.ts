@@ -113,7 +113,7 @@ export function commandCenterNextAction(
     return {
       pillar: "budget",
       href: budgetDoHref(live.leftover.budgetPlanId),
-      label: "Assign leftover",
+      label: "Assign money left to assign",
     };
   }
 

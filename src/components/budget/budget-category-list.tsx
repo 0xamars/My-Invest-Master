@@ -507,11 +507,11 @@ export function BudgetCategoryList({
                         </p>
                       ) : row.overspendKind === "credit" ? (
                         <p className="mt-0.5 text-[11px] text-[var(--brand-orange-text)]">
-                          Credit overspend stays on the card. It does not reduce leftover next month.
+                          Credit overspend stays on the card. It does not reduce Ready to Assign next month.
                         </p>
                       ) : row.overspendKind === "cash" ? (
                         <p className="mt-0.5 text-[11px] text-[var(--fg-danger-text)]">
-                          Cash overspend. Cover it, or leftover drops when you close the month.
+                          Cash overspend. Cover it, or Ready to Assign drops when you close the month.
                         </p>
                       ) : null}
                       </div>

@@ -34,9 +34,9 @@ export function RetirementVerdictHero({
   leftover,
   book,
   lever,
-  portfolioLabel = "Book + leftover",
-  emptyTitle = "Leftover or the book is missing",
-  emptyDescription = "Retire uses Budget leftover plus the Invest book. It will not invent cash.",
+  portfolioLabel = "Portfolio",
+  emptyTitle = "Your budget or investments are missing",
+  emptyDescription = "Retire uses Ready to Assign plus your investments.",
   currentYear = new Date().getFullYear(),
 }: {
   dashboard: RetirementDashboard;
@@ -211,16 +211,16 @@ function FreedomInputsStrip({
   return (
     <div className="grid grid-cols-1 divide-y divide-border border-b border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
       <InputStatus
-        label="Leftover"
+        label="Ready to Assign"
         value={leftoverLabel(leftover)}
-        missing={leftover.status !== "present"}
+        missing={leftover.status === "missing-budget"}
       />
       <InputStatus
-        label="Book"
+        label="Portfolio"
         value={
           book.status === "present"
             ? book.portfolioName
-            : "Missing — add holdings in Invest"
+            : "Add holdings in Invest"
         }
         hint={
           book.status === "present"
@@ -234,8 +234,8 @@ function FreedomInputsStrip({
 }
 
 function leftoverLabel(leftover: LeftoverPresence): string {
-  if (leftover.status === "missing-budget") return "Missing — no Budget yet";
-  if (leftover.status === "none") return "Missing — none this month";
+  if (leftover.status === "missing-budget") return "No budget yet";
+  if (leftover.status === "none") return "Nothing left to assign";
   return `${formatBudgetMoney(leftover.amount, leftover.currency)} this month`;
 }
 

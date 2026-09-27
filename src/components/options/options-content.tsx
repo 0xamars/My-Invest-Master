@@ -170,7 +170,7 @@ export function OptionsContent() {
             ? "Fetching live stock prices…"
             : lastUpdated
               ? `Ledger of calls and puts. Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}.`
-              : "Premium ledger vs the primary book. No invented greeks."
+              : "Calls and puts against your primary portfolio."
         }
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -197,16 +197,16 @@ export function OptionsContent() {
             <Layers className="mt-0.5 size-4 shrink-0 text-primary" />
             <div>
               <p className="text-sm">
-                <span className="font-medium">Vs primary book</span>
+                <span className="font-medium">Vs primary portfolio</span>
                 <span className="text-muted-foreground">
                   {" "}
                   · net premium {summary.netPremium >= 0 ? "+" : "−"}
                   {formatDisplayMoney(Math.abs(summary.netPremium), currency, rates)}
                   {premiumOfBook != null
-                    ? ` (${formatPercent(premiumOfBook)} of book)`
+                    ? ` (${formatPercent(premiumOfBook)} of portfolio)`
                     : primaryBook.portfolioId
-                      ? " (book has no priced value yet)"
-                      : " (no primary book yet)"}
+                      ? " (portfolio has no priced value yet)"
+                      : " (no primary portfolio yet)"}
                 </span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -228,7 +228,7 @@ export function OptionsContent() {
             className="h-7 px-2 text-xs"
             render={<Link href={bookHref} />}
           >
-            Open book
+            Open portfolio
           </Button>
         </RetirePanel>
       ) : null}

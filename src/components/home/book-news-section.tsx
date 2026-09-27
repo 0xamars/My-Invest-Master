@@ -58,14 +58,14 @@ export function BookNewsSection({ symbols }: { symbols: string[] }) {
 
   return (
     <div>
-      <p className="budget-metric-label">Book headlines</p>
+      <p className="budget-metric-label">Portfolio headlines</p>
       {isLoading ? (
         <p className="mt-2 text-xs text-muted-foreground">Loading headlines…</p>
       ) : notice ? (
         <p className="mt-2 text-xs text-muted-foreground">{notice}</p>
       ) : items.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">
-          No headlines on names in the book.
+          No headlines for names in your portfolio.
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-border/60">

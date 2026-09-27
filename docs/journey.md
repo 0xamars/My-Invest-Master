@@ -20,7 +20,7 @@ This is not advice. The app will not invent leftover, income, holdings, cash, or
 
 **Sign in → Home → Budget / Invest / Retire.**
 
-1. **Home** (`/home`) — signed-in hub. Three blocks only: Budget to-assign, Invest top weight, Retire path to target. One number + one spark each. Missing values stay labeled. Not a fourth nav item.
+1. **Home** (`/home`) — signed-in hub. Three blocks only: Budget to-assign, Invest top weight, Retire path to target. One number + one spark each. Empty cards use a short status and a different one-line caption. Ready to Assign of zero is not a missing Retire setup. The Budget card opens the last plan you opened when that plan still exists and can be opened. Not a fourth nav item.
 2. **Budget** (`/budget`) — leftover, envelopes, register, Plaid Connect, credit-card payment envelopes. Empty offers the first-run kit.
 3. **Invest** (`/invest`) — the public-stock book. Search a name or ticker. Rating Engine (section scores, spider/radar, street forecast) sits above Score and Past / Now / Future. Empty offers the first-book wizard. An existing book is never hidden or deleted. **Early Opp** (`/invest/early-opp`) is the 16-step decision aid under Invest — not a fourth nav pillar.
 4. **Retire** (`/retire`) — one date from leftover and the book. Target, on-track, and the lever. A date still needs leftover and the book.
@@ -38,7 +38,7 @@ Learn/Do tabs and the Money Profile quiz are unshipped. `/money-profile` redirec
 
 ## Middleware and landing
 
-- Signed-out public marketing (`/`) leads with Budget, Invest, and Retire. The only **Freedom** is the hero **Freedom, Engineered.** The benefit line is leftover cash, what you own, and when you can stop working. CTAs are Create your Retire plan and Sign in. Trust is Educational, not advice. Three feature cards are the page focus. No example plan, no example dollar numbers, no Canada-only claim, and no couples-only pitch. After logout, marketing shows Sign in.
+- Signed-out public marketing (`/`) leads with Budget, Invest, and Retire. The only **Freedom** is the hero **Freedom, Engineered.** The benefit line is leftover cash, what you own, and when you can stop working. The hero and the bottom CTA are Create account. Trust is Educational, not advice. Three feature cards are the page focus. No example plan, no example dollar numbers, no Canada-only claim, and no couples-only pitch. After logout, marketing shows Sign in.
 - Signed-in `/` goes to Home (`/home`).
 - Logo click when signed in goes to Home. Logo when signed out goes to `/`.
 - Signed-in header is Logo, Budget | Invest | Retire, and an account menu with Settings and Sign out. Home is not a nav pillar.

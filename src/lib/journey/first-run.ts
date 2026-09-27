@@ -13,16 +13,17 @@ export const STARTER_ENVELOPE_NAMES = [
 
 export const STARTER_SPENDING_ACCOUNT_NAME = "Spending";
 
-export const FIRST_BOOK_FREEDOM_LINE = "this is the book Retire will use.";
+export const FIRST_BOOK_FREEDOM_LINE =
+  "This portfolio is what Retire will use.";
 
 export const SHOW_THE_DETAILS_LABEL = "Show the details";
 
 export const ADD_HOLDING_FIELD_HELP = {
-  type: "Buy adds shares to the book. Sell takes them off. Quantity and average cost stay honest.",
-  asset: "Search a public name or ticker. This is the line on the book — not a recommendation.",
+  type: "Buy adds shares to your portfolio. Sell takes them off. Quantity and average cost stay as you enter them.",
+  asset: "Search a public name or ticker. This is a line in your portfolio — not a recommendation.",
   sector: "A label for grouping. It does not change quantity or cost.",
   quantity: "How many shares or units you hold. Do not invent a count.",
-  price: "What you paid per unit. This is average cost on the book, not today's price.",
+  price: "What you paid per unit. This is average cost, not today's price.",
   date: "The day you bought or sold. Use the real date if you have it.",
 } as const;
 
@@ -116,7 +117,7 @@ export function applyFirstBookIfMissing(
   name: string,
 ): UserPortfolio[] {
   if (books.length > 0) return [...books];
-  return [createEmptyPortfolio(name.trim() || "Book", { isPrimary: true })];
+  return [createEmptyPortfolio(name.trim() || "Portfolio", { isPrimary: true })];
 }
 
 export function firstBookWizardCopy(): { freedomLine: string } {

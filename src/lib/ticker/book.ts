@@ -82,7 +82,7 @@ export function formatBookCacheLine(
   const allMiss = list.every(
     (quote) => quote.cacheStatus === "miss" || !quote.fetchedAt,
   );
-  if (allMiss) return "Prices · cache miss";
+  if (allMiss) return "Prices unavailable";
   const stale = list.some((quote) => quote.cacheStatus === "stale");
   const fetched = list
     .map((quote) => quote.fetchedAt)
@@ -90,7 +90,7 @@ export function formatBookCacheLine(
   const oldest = fetched.reduce((min, at) =>
     Date.parse(at) < Date.parse(min) ? at : min,
   );
-  return `Prices cached ${formatTickerCacheAge(oldest)}${stale ? " · stale, refreshing" : ""}`;
+  return `Prices from ${formatTickerCacheAge(oldest)}${stale ? " · refreshing" : ""}`;
 }
 
 export function buildBookRows(

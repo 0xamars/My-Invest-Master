@@ -9,6 +9,13 @@ import {
   EXAMPLE_COUPLE_COMPARISON,
 } from "../src/lib/retirement/example-couple.ts";
 import { leftoverPresenceFromBudgetPlan } from "../src/lib/invest/leftover.ts";
+import {
+  budgetPlanSwitchPath,
+  lastOpenedBudgetPlanStorageKey,
+  readLastOpenedBudgetPlanId,
+  selectHomeBudgetPlan,
+  writeLastOpenedBudgetPlanId,
+} from "../src/lib/budget/plan-navigation.ts";
 import { destinationForLegacyInvestPath } from "../src/lib/invest/legacy-redirects.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
 import { emptyArtText } from "../src/lib/journey/empty-art.ts";
@@ -642,8 +649,8 @@ assert(
   "skip sets budgetElsewhere",
 );
 assert(
-  INVEST_DO_SKIP_WARNING.includes("will not stay in sync"),
-  "skip warning says leftover and the book will not stay in sync",
+  INVEST_DO_SKIP_WARNING.includes("drift apart"),
+  "skip warning says budget and investments can drift apart",
 );
 
 const skipped = confirmBudgetElsewhere(draft);
@@ -710,8 +717,8 @@ assert(
   "first book copy includes the Freedom line",
 );
 assert(
-  FIRST_BOOK_FREEDOM_LINE === "this is the book Retire will use.",
-  "Retire line is the required sentence",
+  FIRST_BOOK_FREEDOM_LINE === "This portfolio is what Retire will use.",
+  "Retire line names the portfolio",
 );
 assert(shouldOfferFirstBookWizard([]), "no book offers the first-book wizard");
 const existingBook = createEmptyPortfolio("Keep me", { isPrimary: true });
@@ -958,9 +965,11 @@ assert(
   "Journey footer stays educational",
 );
 assert(
-  JOURNEY_HOME_EMPTY.freedomLabel === FREEDOM_DATE_NEEDS_INPUTS &&
-    JOURNEY_HOME_EMPTY.leftoverMetric === "No budget yet" &&
-    JOURNEY_HOME_EMPTY.bookMetric === "No holdings",
+  JOURNEY_HOME_EMPTY.freedomLabel === "Not set up" &&
+    JOURNEY_HOME_EMPTY.leftoverMetric === "Not set up" &&
+    JOURNEY_HOME_EMPTY.bookMetric === "Not set up" &&
+    JOURNEY_HOME_EMPTY.leftoverLabel === "Assign money left to assign" &&
+    JOURNEY_HOME_EMPTY.bookLabel === "Open your investments",
   "Journey Home empty metrics are labeled, not guessed",
 );
 assert(
@@ -968,18 +977,19 @@ assert(
   "empty Budget points to Learn",
 );
 assert(
-  BUDGET_EMPTY.description.includes("Leftover") &&
+  BUDGET_EMPTY.description.includes("Ready to Assign") &&
     BUDGET_EMPTY.description.includes("empty"),
-  "empty Budget does not invent leftover",
+  "empty Budget does not invent Ready to Assign",
 );
 assert(
   INVEST_EMPTY_NO_BOOK.description.includes(FIRST_BOOK_FREEDOM_LINE),
   "empty Invest with no book points at the first-book wizard",
 );
 assert(
-  INVEST_EMPTY_BOOK.description.includes("invented") &&
+  INVEST_EMPTY_BOOK.description.includes("Add a public stock") &&
+    !INVEST_EMPTY_BOOK.description.includes("Missing cache") &&
     INVEST_EMPTY_BOOK.learnHref === "/invest",
-  "empty book points to Learn and does not invent holdings",
+  "empty portfolio points to Invest and does not invent holdings",
 );
 assert(
   FREEDOM_EMPTY.leftoverHref === "/budget" &&
@@ -1022,7 +1032,10 @@ const leftoverNext = commandCenterNextAction(
     budgetWorking: true,
   }),
 );
-assert(leftoverNext.label === "Assign leftover", "leftover > 0 next is Assign leftover");
+assert(
+  leftoverNext.label === "Assign money left to assign",
+  "leftover > 0 next assigns money left to assign",
+);
 assert(
   leftoverNext.href === `/budget/plans/${leftoverPresent.budgetPlanId}`,
   "assign leftover opens the live plan",
@@ -1172,10 +1185,15 @@ assert(
   "signed-in Home cards are Budget, Invest, Retire",
 );
 assert(
-  emptyHomeCards.every((card) => card.empty && card.spark === null) &&
-    emptyHomeCards[0]?.metric === HOME_EMPTY.budget &&
-    emptyHomeCards[1]?.metric === HOME_EMPTY.invest &&
-    emptyHomeCards[2]?.metric === HOME_EMPTY.retire,
+  emptyHomeCards.every(
+    (card) => card.empty && card.spark === null && card.metric !== card.caption,
+  ) &&
+    emptyHomeCards[0]?.metric === HOME_EMPTY.metric &&
+    emptyHomeCards[0]?.caption === HOME_EMPTY.budget &&
+    emptyHomeCards[1]?.metric === HOME_EMPTY.metric &&
+    emptyHomeCards[1]?.caption === HOME_EMPTY.invest &&
+    emptyHomeCards[2]?.metric === HOME_EMPTY.metric &&
+    emptyHomeCards[2]?.caption === HOME_EMPTY.retireInvestments,
   "signed-in Home empty cards stay labeled with no spark",
 );
 assert(
@@ -1207,6 +1225,169 @@ assert(
     liveHomeCards[2]?.caption === "Path to target" &&
     liveHomeCards[2]?.spark != null,
   "signed-in Home Retire is path progress from leftover + book",
+);
+assert(
+  liveHomeCards[0]?.href === `/budget/plans/${plan.id}`,
+  "Budget card opens the selected plan",
+);
+
+const rememberedHome = buildSignedInHomeCards({
+  leftover: leftoverPresent,
+  book: bookOnly,
+  budgetPlanId: "remembered-plan",
+  assumptions,
+  currentYear: 2026,
+});
+assert(
+  rememberedHome[0]?.href === "/budget/plans/remembered-plan",
+  "Budget card uses the last-opened plan id",
+);
+
+const assignedHome = buildSignedInHomeCards({
+  leftover: { status: "none", budgetPlanId: plan.id, currency: "USD" },
+  book: bookOnly,
+  assigned: 400,
+  assumptions,
+  currentYear: 2026,
+});
+assert(
+  assignedHome[0]?.empty === false && assignedHome[0]?.caption === "To assign",
+  "Ready to Assign of zero still shows the Budget number",
+);
+assert(
+  assignedHome[2]?.empty === false &&
+    assignedHome[2]?.caption === "Path to target" &&
+    assignedHome[2]?.metric !== assignedHome[2]?.caption,
+  "Ready to Assign of zero is not missing Retire setup",
+);
+
+const holdingsOnlyHome = buildSignedInHomeCards({
+  leftover: { status: "missing-budget" },
+  book: bookOnly,
+});
+assert(
+  holdingsOnlyHome[2]?.metric === HOME_EMPTY.metric &&
+    holdingsOnlyHome[2]?.caption === HOME_EMPTY.retirePlan &&
+    holdingsOnlyHome[2]?.metric !== holdingsOnlyHome[2]?.caption,
+  "holdings without a budget or Retire plan ask you to start a plan",
+);
+
+const savedRetire = createEmptyPlan("Saved");
+savedRetire.currentAge = 40;
+savedRetire.retirementAge = 65;
+savedRetire.retirementYear = 2026 + 25;
+savedRetire.annualLifestyleSpending = 40_000;
+savedRetire.assets = [
+  {
+    id: "cash-1",
+    symbol: "CASH",
+    name: "Cash",
+    type: "cash",
+    unitPrice: 1,
+    quantity: 2_000_000,
+    expectedCagr: 0,
+    accountKind: "cash",
+    owner: "person1",
+    annualContribution: 0,
+  },
+];
+const preferredHome = buildSignedInHomeCards({
+  leftover: { status: "none", budgetPlanId: plan.id, currency: "USD" },
+  book: { status: "missing" },
+  assumptions: savedRetire,
+  currentYear: 2026,
+});
+assert(
+  preferredHome[2]?.empty === false &&
+    preferredHome[2]?.metric !== HOME_EMPTY.metric &&
+    preferredHome[2]?.metric !== liveHomeCards[2]?.metric,
+  "a saved Retire plan is preferred and does not invent a setup gap",
+);
+
+const olderPlan = {
+  id: "old",
+  createdAt: "2020-01-01T00:00:00.000Z",
+  updatedAt: "2020-06-01T00:00:00.000Z",
+};
+const newerPlan = {
+  id: "new",
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+const rememberedPlans = [olderPlan, newerPlan];
+assert(
+  selectHomeBudgetPlan(rememberedPlans, "old")?.id === "old",
+  "last opened plan wins when it still exists",
+);
+assert(
+  selectHomeBudgetPlan(rememberedPlans, "gone")?.id === "new",
+  "a missing last opened plan falls back to the latest plan",
+);
+assert(
+  selectHomeBudgetPlan(rememberedPlans, null)?.id === "new",
+  "no remembered plan falls back to the latest plan",
+);
+assert(
+  selectHomeBudgetPlan(rememberedPlans, "new", (id) => id === "old")?.id === "old",
+  "a plan the tier cannot open falls back to an openable plan",
+);
+assert(selectHomeBudgetPlan([], "old") === null, "no plans leave the Budget list");
+
+const memory = new Map<string, string>();
+const planStorage = {
+  getItem: (key: string) => memory.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    memory.set(key, value);
+  },
+};
+writeLastOpenedBudgetPlanId(planStorage, "user-a", "plan-a");
+writeLastOpenedBudgetPlanId(planStorage, "user-b", "plan-b");
+assert(
+  readLastOpenedBudgetPlanId(planStorage, "user-a") === "plan-a",
+  "last opened plan is stored per user",
+);
+assert(
+  readLastOpenedBudgetPlanId(planStorage, "user-b") === "plan-b",
+  "another user keeps a different last opened plan",
+);
+assert(
+  lastOpenedBudgetPlanStorageKey("user-a") !==
+    lastOpenedBudgetPlanStorageKey("user-b"),
+  "storage keys include the user id",
+);
+assert(
+  lastOpenedBudgetPlanStorageKey(null) !==
+    lastOpenedBudgetPlanStorageKey("user-a"),
+  "a missing user id does not share a signed-in key",
+);
+assert(
+  budgetPlanSwitchPath("/budget/plans/a/transactions", "a", "b") ===
+    "/budget/plans/b/transactions",
+  "plan switch keeps Transactions",
+);
+assert(
+  budgetPlanSwitchPath("/budget/plans/a/accounts", "a", "b") ===
+    "/budget/plans/b/accounts",
+  "plan switch keeps Accounts",
+);
+assert(
+  budgetPlanSwitchPath("/budget/plans/a/payee-rules", "a", "b") ===
+    "/budget/plans/b/payee-rules",
+  "plan switch keeps Payee rules",
+);
+assert(
+  budgetPlanSwitchPath("/budget/plans/a/reports", "a", "b") ===
+    "/budget/plans/b/reports",
+  "plan switch keeps Reports",
+);
+assert(
+  budgetPlanSwitchPath("/budget/plans/a", "a", "b") === "/budget/plans/b",
+  "the plan overview stays the overview",
+);
+assert(
+  budgetPlanSwitchPath("/budget/plans/a/not-a-section", "a", "b") ===
+    "/budget/plans/b",
+  "an unknown section opens the plan root",
 );
 
 const marketingSrc = readFileSync(
@@ -1286,10 +1467,10 @@ assert(
   "marketing still names Budget, Invest, and Retire",
 );
 assert(
-  (marketingSrc.match(/Create account/g) ?? []).length === 1 &&
-    (marketingSrc.match(/Create your Retire plan/g) ?? []).length === 1 &&
+  (marketingSrc.match(/Create account/g) ?? []).length === 2 &&
+    (marketingSrc.match(/Create your Retire plan/g) ?? []).length === 0 &&
     !marketingSrc.includes("Sign in"),
-  "hero CTA is Create account; close CTA stays Create your Retire plan; hero has no Sign in",
+  "hero and close CTAs are Create account; hero has no Sign in",
 );
 assert(
   marketingSrc.includes("Educational, not advice."),

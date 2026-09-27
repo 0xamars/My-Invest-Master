@@ -87,7 +87,7 @@ export function MoveMoneyDialog({
         <DialogHeader>
           <DialogTitle>Move Money</DialogTitle>
           <DialogDescription>
-            Move leftover Available. Assigned this month can go negative.
+            Move money left in Available. Assigned this month can go negative.
           </DialogDescription>
         </DialogHeader>
 
@@ -114,7 +114,7 @@ export function MoveMoneyDialog({
                 <SelectValue placeholder="Select destination" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={READY_TO_ASSIGN_ID}>Leftover</SelectItem>
+                <SelectItem value={READY_TO_ASSIGN_ID}>Ready to Assign</SelectItem>
                 {destinationOptions.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -226,7 +226,7 @@ export function CoverOverspendDialog({
           <BudgetEmptyState
             icon={<ShieldAlert className="size-5" />}
             title="Nothing to cover with"
-            description="Assign leftover to another envelope, or add income, then cover this overspend."
+            description="Assign money left to assign to another envelope, or add income, then cover this overspend."
           />
         ) : (
           <div className="space-y-4 py-1">
@@ -324,7 +324,7 @@ export function AutoAssignUnderfundedDialog({
         <DialogHeader>
           <DialogTitle>Auto-Assign Underfunded</DialogTitle>
           <DialogDescription>
-            Put leftover on underfunded envelopes. Payment envelopes first,
+            Put money left to assign on underfunded envelopes. Payment envelopes first,
             then the rest of the list.
           </DialogDescription>
         </DialogHeader>
@@ -333,7 +333,7 @@ export function AutoAssignUnderfundedDialog({
           <BudgetEmptyState
             icon={<Sparkles className="size-5" />}
             title="Nothing underfunded"
-            description="When leftover is waiting and a goal or card payment still needs money, Auto-Assign will fill it here."
+            description="When money is left to assign and a goal or card payment still needs money, Auto-Assign will fill it here."
           />
         ) : (
           <div className="space-y-3 py-1">
@@ -354,7 +354,7 @@ export function AutoAssignUnderfundedDialog({
             </ul>
             {preview.leftover > 0 ? (
               <p className="text-xs text-muted-foreground">
-                {formatBudgetMoney(preview.leftover, currency)} stays as leftover.
+                {formatBudgetMoney(preview.leftover, currency)} stays in Ready to Assign.
               </p>
             ) : null}
           </div>
@@ -424,7 +424,7 @@ export function ResetAvailableDialog({
         <DialogHeader>
           <DialogTitle>Reset Available</DialogTitle>
           <DialogDescription>
-            Move leftover Available back to leftover so this month starts
+            Move Available back to Ready to Assign so this month starts
             clean. Payment envelopes stay put.
           </DialogDescription>
         </DialogHeader>
@@ -433,7 +433,7 @@ export function ResetAvailableDialog({
           <BudgetEmptyState
             icon={<Sparkles className="size-5" />}
             title="Nothing to reset"
-            description="Positive leftover Available will show up here. Overspent rows stay unless you include Cover."
+            description="Positive Available will show up here. Overspent rows stay unless you include Cover."
           />
         ) : (
           <div className="space-y-3 py-1">
@@ -476,7 +476,7 @@ export function ResetAvailableDialog({
                   onChange={(event) => setCoverOverspend(event.target.checked)}
                 />
                 <span>
-                  Also cover overspend from leftover
+                  Also cover overspend from Ready to Assign
                   <span className="mt-0.5 block text-xs text-muted-foreground">
                     Overspent rows stay negative unless this is on.
                   </span>
@@ -703,9 +703,9 @@ export function AssignLeftoverDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="budget-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Assign leftover</DialogTitle>
+          <DialogTitle>Assign money left to assign</DialogTitle>
           <DialogDescription>
-            Put unassigned money into envelopes. Leftover you leave here stays
+            Put unassigned money into envelopes. Money you leave here stays
             unassigned until you close the month.
           </DialogDescription>
         </DialogHeader>
@@ -713,19 +713,19 @@ export function AssignLeftoverDialog({
         {leftover <= 0 ? (
           <BudgetEmptyState
             icon={<Sparkles className="size-5" />}
-            title="No leftover"
+            title="Nothing left to assign"
             description="Income that is not assigned yet will show up here."
           />
         ) : (
           <div className="space-y-3 py-1">
             <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm">
-              Leftover{" "}
+              Ready to Assign{" "}
               <span className="font-semibold tabular-nums">
                 {formatBudgetMoney(leftover, currency)}
               </span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 Remaining {formatBudgetMoney(Math.max(0, remaining), currency)}
-                {remaining < 0 ? " · over leftover" : ""}
+                {remaining < 0 ? " · over Ready to Assign" : ""}
               </span>
             </div>
             <ul className="max-h-64 space-y-2 overflow-y-auto">
@@ -809,21 +809,21 @@ export function CloseMonthDialog({
         <DialogHeader>
           <DialogTitle>Close {monthLabel}</DialogTitle>
           <DialogDescription>
-            Lock this month. Leftover and envelope balances become the opening
+            Lock this month. Ready to Assign and envelope balances become the opening
             of the next month.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-1">
           <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 text-sm">
-            Leftover that carries{" "}
+            Ready to Assign that carries{" "}
             <span className="font-semibold tabular-nums">
               {formatBudgetMoney(leftover, currency)}
             </span>
             {cashOverspend > 0 ? (
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 {formatBudgetMoney(cashOverspend, currency)} cash overspend
-                will be absorbed from leftover.
+                will be absorbed from Ready to Assign.
               </span>
             ) : null}
           </div>
@@ -843,7 +843,7 @@ export function CloseMonthDialog({
             </ul>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Envelope balances are zero. Next month starts clean except leftover.
+              Envelope balances are zero. Next month starts clean except Ready to Assign.
             </p>
           )}
           {reason ? (

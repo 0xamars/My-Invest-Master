@@ -23,7 +23,7 @@ export const KNOWLEDGE_CHECKS: readonly KnowledgeCheck[] = [
   {
     id: "budget_leftover",
     pillar: "budget",
-    prompt: "Leftover (Ready to Assign) is…",
+    prompt: "Ready to Assign is…",
     options: [
       { id: "assigned", label: "Money already given a job" },
       { id: "unassigned", label: "Money not yet given a job" },
@@ -36,7 +36,7 @@ export const KNOWLEDGE_CHECKS: readonly KnowledgeCheck[] = [
     pillar: "budget",
     prompt: "Closing a month…",
     options: [
-      { id: "carry", label: "Carries leftover forward" },
+      { id: "carry", label: "Carries Ready to Assign forward" },
       { id: "zero", label: "Starts you at zero" },
       { id: "delete", label: "Deletes last month" },
     ],
@@ -69,8 +69,8 @@ export const KNOWLEDGE_CHECKS: readonly KnowledgeCheck[] = [
     pillar: "freedom",
     prompt: "A Retire date here comes from…",
     options: [
-      { id: "leftover_book", label: "Leftover and the book" },
-      { id: "times_twelve", label: "Leftover × 12 as yearly savings" },
+      { id: "leftover_book", label: "Ready to Assign and your investments" },
+      { id: "times_twelve", label: "Ready to Assign × 12 as yearly savings" },
       { id: "guess", label: "An AI guess" },
     ],
     correctId: "leftover_book",
@@ -78,7 +78,7 @@ export const KNOWLEDGE_CHECKS: readonly KnowledgeCheck[] = [
   {
     id: "freedom_missing",
     pillar: "freedom",
-    prompt: "If leftover or the book is missing…",
+    prompt: "If Ready to Assign or your investments are missing…",
     options: [
       { id: "unknown", label: "The date is unknown" },
       { id: "invent", label: "We invent a date" },

@@ -41,7 +41,7 @@ export function LeftoverAction() {
 
   async function handleApply() {
     if (!leftover || !primaryPortfolio) {
-      setStatus("Create a portfolio first, then apply leftover to book cash.");
+      setStatus("Create a portfolio first, then add Ready to Assign as cash.");
       return;
     }
     setBusy(true);
@@ -67,8 +67,8 @@ export function LeftoverAction() {
     setBusy(false);
     setStatus(
       willRefreshRetire
-        ? "Added leftover to book cash and refreshed Retire from the book. Budget leftover is unchanged."
-        : "Added leftover to book cash. Budget leftover is unchanged.",
+        ? "Added Ready to Assign as portfolio cash and refreshed Retire from your investments. Budget is unchanged."
+        : "Added Ready to Assign as portfolio cash. Budget is unchanged.",
     );
   }
 
@@ -79,12 +79,12 @@ export function LeftoverAction() {
           <span className="font-medium text-[var(--brand-green)]">
             {formatBudgetMoney(leftover.amount, leftover.currency)}
           </span>{" "}
-          leftover in Budget
+          left to assign in Budget
         </p>
         <p className="text-xs text-muted-foreground">
           Same Ready to Assign figure from Budget. Applying adds cash to
-          the primary book
-          {willRefreshRetire ? " and refreshes Retire from that book" : ""}.
+          your portfolio
+          {willRefreshRetire ? " and refreshes Retire from those investments" : ""}.
           Budget math does not change.
         </p>
         {status ? (
@@ -98,7 +98,7 @@ export function LeftoverAction() {
           disabled={busy || !canApply}
         >
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
-          Apply leftover to book cash
+          Add Ready to Assign as cash
           {willRefreshRetire ? " + refresh Retire" : ""}
         </Button>
         {!canApply ? (

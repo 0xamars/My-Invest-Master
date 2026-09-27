@@ -504,7 +504,7 @@ assert(applied.retirementYear === CURRENT_YEAR + 27, "applying retire-later sync
 
 const emptyPath = impliedPathSentence(emptyDash, (value) => `$${value}`);
 assert(
-  emptyPath.includes("Leftover or the book is missing"),
+  emptyPath.includes("Your budget or your investments are missing"),
   "empty path does not invent cash",
 );
 assert(!/cagr/i.test(emptyPath), "empty path does not invent a CAGR");

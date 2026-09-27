@@ -43,9 +43,9 @@ export function AssessScreen({ symbol }: { symbol: string }) {
   const leftoverPresence = leftoverPresenceFromBudgetPlans(budgetPlans);
   const leftoverLine =
     leftoverPresence.status === "present"
-      ? `Budget leftover (Ready to Assign): ${leftoverPresence.amount.toLocaleString("en-US", { style: "currency", currency: leftoverPresence.currency })}.`
+      ? `Ready to Assign: ${leftoverPresence.amount.toLocaleString("en-US", { style: "currency", currency: leftoverPresence.currency })}.`
       : leftoverPresence.status === "none"
-        ? "Budget leftover: none this month."
+        ? "Ready to Assign: nothing left this month."
         : null;
 
   const load = useCallback(async () => {

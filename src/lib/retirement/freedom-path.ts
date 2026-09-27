@@ -80,7 +80,7 @@ export function leftoverCashAsset(
   return {
     id: FREEDOM_LEFTOVER_ASSET_ID,
     symbol: "CASH",
-    name: `Leftover (${leftover.currency})`,
+    name: `Ready to Assign (${leftover.currency})`,
     type: "cash",
     unitPrice: convertToUsd(1, leftover.currency, rates),
     quantity: leftover.amount,
@@ -201,14 +201,14 @@ export function pickFreedomLever(
 export function freedomLeverSentence(lever: FreedomLever): string {
   switch (lever) {
     case "missing-book":
-      return "The book is missing. Add holdings in Invest.";
+      return "Your investments are missing. Add a holding in Invest.";
     case "missing-leftover":
-      return "Leftover is missing. Save more in Budget, or spend less.";
+      return "Save more in Budget, or spend less.";
     case "save-more":
-      return "Save more — leftover on this path is the cash you can add.";
+      return "Save more. Ready to Assign is the cash you can add.";
     case "spend-less":
       return "Spend less to pull the date closer, or save more.";
     case "book-path":
-      return "The book path. Stay with this mix, or spend less to pull the date closer.";
+      return "This portfolio. Stay with this mix, or spend less to pull the date closer.";
   }
 }

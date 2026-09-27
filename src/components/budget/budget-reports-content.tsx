@@ -242,7 +242,7 @@ export function BudgetReportsContent() {
         description="Balance over the last 6 months"
       >
         {availableSeries.every((row) => row.available === 0) ? (
-          <ChartEmpty message="Assign income to envelopes to track leftover." />
+          <ChartEmpty message="Assign income to envelopes to track Ready to Assign." />
         ) : (
           <ChartContainer config={availableConfig} className="aspect-[16/7] h-[280px] w-full">
             <ComposedChart data={availableSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>

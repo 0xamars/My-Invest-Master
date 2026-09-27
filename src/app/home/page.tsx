@@ -5,7 +5,7 @@ import { SignedInHomeContent } from "@/components/home/signed-in-home-content";
 export const metadata: Metadata = {
   title: "Home — InvestSalsa",
   description:
-    "Signed-in overview of Budget leftover, the Invest book, and Retire. Not investment advice.",
+    "Signed-in overview of Budget, Invest, and Retire. Educational, not advice.",
 };
 
 export default function SignedInHomePage() {

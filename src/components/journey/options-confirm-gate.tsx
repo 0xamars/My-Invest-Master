@@ -44,7 +44,7 @@ export function OptionsConfirmGate({
           Options can lose more than you put in
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          This is a premium ledger against the book — not a strategy picker.
+          This is a premium ledger against your portfolio — not a strategy picker.
           Confirm you want to use it. Fast Track and tools skip this step.
         </p>
       </div>

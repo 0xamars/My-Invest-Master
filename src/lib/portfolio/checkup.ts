@@ -172,7 +172,7 @@ function resolveNextAction(input: {
   if (input.riskChip === "concentrated" && input.topHolding) {
     return {
       code: "review-concentration",
-      label: `Review ${input.topHolding.label} in the book`,
+      label: `Review ${input.topHolding.label} in your portfolio`,
       href: input.portfolioHref,
     };
   }
@@ -187,7 +187,7 @@ function resolveNextAction(input: {
 
   return {
     code: "open-portfolio",
-    label: "Open book",
+    label: "Open portfolio",
     href: input.portfolioHref,
   };
 }
@@ -287,10 +287,10 @@ export function riskChipLabel(chip: CheckupRiskChip): string {
 
 export function riskChipDescription(chip: CheckupRiskChip): string {
   if (chip === "concentrated") {
-    return `One name is ${CONCENTRATION_FLAG_PCT}% or more of the book.`;
+    return `One name is ${CONCENTRATION_FLAG_PCT}% or more of your portfolio.`;
   }
   if (chip === "cash-heavy") {
-    return `Cash is ${CASH_HEAVY_PCT}% or more of the book.`;
+    return `Cash is ${CASH_HEAVY_PCT}% or more of your portfolio.`;
   }
   return "No single name at the 25% flag, and cash is below 40%.";
 }

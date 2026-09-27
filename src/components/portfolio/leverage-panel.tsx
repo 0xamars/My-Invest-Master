@@ -55,7 +55,7 @@ export function LeveragePanel({
             <h2 className="text-sm font-semibold">Leverage / margin</h2>
             <p className="text-xs text-muted-foreground">
               Type figures from IBKR or Wealthsimple. Utilization is margin used
-              ÷ (margin used + equity, or book cash if equity is blank). 50%
+              ÷ (margin used + equity, or portfolio cash if equity is blank). 50%
               caution, 70% high. No broker sync.
             </p>
           </div>
@@ -176,13 +176,13 @@ export function LeveragePanel({
           />
         </div>
         {preview.utilizationPercent == null ? (
-          "Add margin used and equity (or hold cash in the book) to see utilization."
+          "Add margin used and equity (or hold cash in your portfolio) to see utilization."
         ) : (
           <>
             {preview.utilizationPercent.toFixed(1)}% utilized
             {preview.cushionSource === "equity"
               ? " vs typed equity"
-              : " vs cash in the book"}
+              : " vs cash in your portfolio"}
             {preview.cushion != null
               ? ` · cushion ${formatDisplayMoney(preview.cushion, currency, rates)}`
               : ""}

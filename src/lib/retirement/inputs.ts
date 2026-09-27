@@ -55,19 +55,17 @@ export function retirementInputPrompt(missing: RetirementInputGap[]): {
   if (missing.includes("age") && missing.includes("spending")) {
     return {
       title: "Enter your age to see your plan",
-      description:
-        "Enter your yearly spending in retirement. Retire will not fill either one in.",
+      description: "Enter your yearly spending in retirement.",
     };
   }
   if (missing.includes("age")) {
     return {
       title: "Enter your age to see your plan",
-      description: "Each person needs an age. Retire will not choose one.",
+      description: "Enter each person's age.",
     };
   }
   return {
     title: "Enter your yearly spending in retirement",
-    description:
-      "Spending is the amount the plan draws. Retire will not assume one.",
+    description: "Enter the amount the plan draws each year.",
   };
 }

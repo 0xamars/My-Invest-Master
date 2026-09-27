@@ -3,11 +3,11 @@ import { BUDGET_PATH, INVEST_PATH, RETIRE_PATH } from "@/lib/chrome/nav";
 export const HOME_CHECKLIST_TITLE = "First steps";
 
 export const HOME_CHECKLIST_NOTE =
-  "Three moves. Nothing here invents leftover, holdings, or a Retire date.";
+  "Three moves to set up Budget, Invest, and Retire.";
 
 const STEPS = [
   { id: "budget", label: "Create a budget", href: BUDGET_PATH },
-  { id: "book", label: "Name the book", href: INVEST_PATH },
+  { id: "book", label: "Add your investments", href: INVEST_PATH },
   { id: "retire", label: "Start Retire", href: RETIRE_PATH },
 ] as const;
 

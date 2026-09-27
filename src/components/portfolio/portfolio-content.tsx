@@ -230,7 +230,7 @@ export function PortfolioContent() {
               isLoading
                 ? "Fetching live prices…"
                 : lastUpdated
-                  ? `The book — holdings, mix, and the leverage numbers you typed. Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}.`
+                  ? `Your portfolio — holdings, mix, and the leverage numbers you typed. Updated ${lastUpdated.toLocaleTimeString()}${isRefreshing ? " · refreshing" : ""}.`
                   : "Holdings, concentration, target mix, and leverage you type from the broker. This page does not place trades."
             }
             action={
@@ -255,11 +255,11 @@ export function PortfolioContent() {
           {activePortfolio.isPrimary ? (
             <span className="inline-flex w-fit items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[0.7rem] font-medium text-primary">
               <Star className="size-3 fill-primary" />
-              Primary book
+              Primary portfolio
             </span>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Viewing this book — Primary is the checkup default.
+              Viewing this portfolio — Primary is the checkup default.
             </p>
           )}
 
@@ -302,7 +302,7 @@ export function PortfolioContent() {
               <RetireEmptyState
                 icon={<Plus className="size-5" />}
                 title="No holdings yet"
-                description="Add a stock, crypto, cash, or custom asset to start the book. Buy and sell stay on this page."
+                description="Add a stock, crypto, cash, or custom asset to start your portfolio. Buy and sell stay on this page."
                 actions={
                   <AddTransactionButton onClick={() => setDialogOpen(true)} />
                 }
@@ -332,7 +332,7 @@ export function PortfolioContent() {
               <div className="border-b border-border/60 px-5 py-4">
                 <h2 className="text-sm font-semibold">Holdings</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Weight is % of this book. 10%+ is a note, 25%+ is a flag.
+                  Weight is % of this portfolio. 10%+ is a note, 25%+ is a flag.
                   Expand a name for facts.
                 </p>
               </div>

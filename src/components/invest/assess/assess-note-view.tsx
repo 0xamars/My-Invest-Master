@@ -162,7 +162,7 @@ export function AssessNoteView({
         <p>{note.technicals}</p>
       </Section>
 
-      <Section title="Book and plan">
+      <Section title="Portfolio and plan">
         <p>{bookPlan}</p>
       </Section>
 

@@ -1,8 +1,6 @@
 import { LEARN_DISCLAIMER } from "@/lib/journey/lessons";
-import { FREEDOM_DATE_NEEDS_INPUTS } from "@/lib/journey/freedom-date";
 import {
   FIRST_BOOK_FREEDOM_LINE,
-  STARTER_ENVELOPE_NAMES,
   STARTER_SPENDING_ACCOUNT_NAME,
 } from "@/lib/journey/first-run";
 
@@ -10,7 +8,7 @@ export const JOURNEY_EDUCATIONAL_FOOTER = LEARN_DISCLAIMER;
 
 export const BUDGET_EMPTY = {
   title: "Start with starter envelopes",
-  description: `Housing, Food, Transport, Debt, Fun, and Buffer on one ${STARTER_SPENDING_ACCOUNT_NAME.toLowerCase()} account. Leftover and month close stay empty until you enter them.`,
+  description: `Housing, Food, Transport, Debt, Fun, and Buffer on one ${STARTER_SPENDING_ACCOUNT_NAME.toLowerCase()} account. Ready to Assign stays empty until you enter money.`,
   kitHref: "/budget",
   learnHref: "/budget",
   kitLabel: "Use these envelopes",
@@ -18,41 +16,41 @@ export const BUDGET_EMPTY = {
 } as const;
 
 export const INVEST_EMPTY_NO_BOOK = {
-  title: "Name the book",
+  title: "Add your investments",
   description: `${FIRST_BOOK_FREEDOM_LINE} No holdings are added until you say so.`,
   learnHref: "/invest",
   learnLabel: "Open Invest",
 } as const;
 
 export const INVEST_EMPTY_BOOK = {
-  title: "The book is empty.",
+  title: "Your portfolio is empty.",
   description:
-    "This book stays. Search still works. Add a public stock when you have one. Missing cache prints Unknown. No holdings are invented.",
+    "Search still works. Add a public stock when you have one.",
   addLabel: "Add a name",
   learnHref: "/invest",
   learnLabel: "Open Invest",
 } as const;
 
 export const FREEDOM_EMPTY = {
-  title: "Leftover and the book are missing",
+  title: "Your budget or investments are missing",
   description:
-    "A Retire date needs leftover and the book. This page will not invent cash, holdings, or a year. Assign leftover in Budget or name the book in Invest.",
+    "A Retire date needs a budget and your investments. Assign money left to assign in Budget, or add holdings in Invest.",
   leftoverHref: "/budget",
-  leftoverLabel: "Assign leftover",
+  leftoverLabel: "Assign money left to assign",
   bookHref: "/invest",
-  bookLabel: "Open the book",
+  bookLabel: "Open your investments",
   learnHref: "/retire",
   learnLabel: "Open Retire",
 } as const;
 
 export const JOURNEY_HOME_EMPTY = {
-  leftoverMetric: "No budget yet",
-  bookMetric: "No holdings",
-  freedomLabel: FREEDOM_DATE_NEEDS_INPUTS,
+  leftoverMetric: "Not set up",
+  bookMetric: "Not set up",
+  freedomLabel: "Not set up",
   leftoverHref: "/budget",
-  leftoverLabel: "Assign leftover",
+  leftoverLabel: "Assign money left to assign",
   bookHref: "/invest",
-  bookLabel: "Open the book",
+  bookLabel: "Open your investments",
 } as const;
 
 export const EMPTY_STATE_COPY = [
