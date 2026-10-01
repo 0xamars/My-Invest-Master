@@ -273,6 +273,20 @@ export interface Database {
         };
         Relationships: [];
       };
+      app_admin_emails: {
+        Row: {
+          email: string;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+        };
+        Relationships: [];
+      };
       app_admins: {
         Row: {
           user_id: string;

@@ -1,6 +1,6 @@
 -- Admin role, per-user feature flags, and an audit log.
--- Apply in the Supabase SQL editor (or CLI). Then insert admins by hand.
--- There is no in-app way to become an admin.
+-- Apply in the Supabase SQL editor (or CLI), then apply 019_admin_email.sql.
+-- 019 seeds admin@investsalsa.com. There is no in-app way to become an admin.
 --
 -- app_admins, feature_flag_overrides, and admin_audit_log:
 -- row level security is on and there are no policies, so the anon and

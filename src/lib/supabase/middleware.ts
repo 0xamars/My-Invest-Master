@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { grantListedAdminOnSignIn } from "@/lib/admin/is-admin";
 import {
   isBypassedJourneyPath,
   shouldRedirectSignedInFromMarketing,
@@ -75,6 +76,14 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user?.email_confirmed_at) {
+    try {
+      await grantListedAdminOnSignIn(user);
+    } catch {
+      // Sign-in still proceeds. /admin checks the allowlist again.
+    }
+  }
 
   const pathname = request.nextUrl.pathname;
   const signinQuery = request.nextUrl.searchParams.get("signin");

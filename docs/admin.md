@@ -1,25 +1,27 @@
 # Admin
 
-`/admin` is for the founder and anyone else added by hand. Everyone else gets a 404, including a signed-out visitor. There is no button in the app to become an admin.
+`/admin` is for the dedicated admin login and anyone else added in SQL. Everyone else gets a 404, including a signed-out visitor. There is no button in the app to become an admin.
 
 Admins can turn a feature on for one account and can see counts for support. They cannot see transaction details, balances, holdings, or bank links.
 
 ## 1. Apply the migration
 
-In the Supabase SQL editor, run `supabase/migrations/018_admin_and_flags.sql`.
+In the Supabase SQL editor, run these in order:
 
-That creates three tables. Row level security is on and there are no policies for the browser roles, so a signed-in user cannot read or write them. The server uses the service role key.
+1. `supabase/migrations/018_admin_and_flags.sql`
+2. `supabase/migrations/019_admin_email.sql`
 
-`SUPABASE_SERVICE_ROLE_KEY` must be set on the server. Without it, `/admin` stays a 404 even after you insert a row.
+Row level security is on and there are no policies for the browser roles, so a signed-in user cannot read or write `app_admins` or `app_admin_emails`. The server uses the service role key.
 
-## 2. Add an admin
+`SUPABASE_SERVICE_ROLE_KEY` must be set on the server. Without it, `/admin` stays a 404.
 
-Find the account, then insert that user id. Replace the email. Do not commit a real address.
+`019` seeds `admin@investsalsa.com` in `app_admin_emails`. That address is the dedicated test/admin login, not Amar's personal account. If that user already exists and the email is confirmed, the migration also inserts their user id into `app_admins`.
 
-```sql
-insert into public.app_admins (user_id)
-select id from auth.users where email = 'you@example.com';
-```
+## 2. The admin login
+
+Sign up as `admin@investsalsa.com` and confirm the email if that account does not exist yet. The first sign-in with that exact confirmed email becomes an admin. An unconfirmed signup does not.
+
+You do not insert Amar's personal user id. Admin is this shared login, or an email you add in SQL.
 
 Check:
 
@@ -29,14 +31,28 @@ from public.app_admins a
 join auth.users u on u.id = a.user_id;
 ```
 
-To remove an admin:
+To add another admin, insert the email. There is no screen for this. If that person has already confirmed their email, the second statement links them now. If they have not signed up yet, their first confirmed sign-in links them.
 
 ```sql
-delete from public.app_admins
-where user_id = (select id from auth.users where email = 'you@example.com');
+insert into public.app_admin_emails (email) values ('other@example.com');
+
+insert into public.app_admins (user_id)
+select id from auth.users
+where lower(btrim(email)) = 'other@example.com'
+  and email_confirmed_at is not null
+on conflict (user_id) do nothing;
 ```
 
-Sign in as that account and open `/admin`.
+To remove an admin, delete the email and the user id. Deleting only the user id lets the next confirmed sign-in grant it again while the email is still listed.
+
+```sql
+delete from public.app_admin_emails where email = 'other@example.com';
+
+delete from public.app_admins
+where user_id = (select id from auth.users where lower(email) = 'other@example.com');
+```
+
+Sign in as `admin@investsalsa.com` and open `/admin`.
 
 ## 3. Add a tester
 

@@ -51,6 +51,7 @@ const RESET_NEVER = [
   "user_plaid_items",
   "user_plaid_accounts",
   "app_admins",
+  "app_admin_emails",
   "feature_flag_overrides",
   "admin_audit_log",
 ] as const;

@@ -23,6 +23,11 @@ import {
   healthExposesMoneyOrSecrets,
   isUserHealth,
 } from "../src/lib/admin/health.ts";
+import {
+  INITIAL_ADMIN_EMAIL,
+  isListedAdminEmail,
+  normalizeAdminEmail,
+} from "../src/lib/admin/admin-email.ts";
 import { isTestAccountEmail, normalizeLookupEmail } from "../src/lib/admin/test-account.ts";
 import {
   FEATURE_FLAG_IDS,
@@ -110,6 +115,46 @@ assert(!isTestAccountEmail("test1@example.com"), "the tag must be a plus-address
 assert(!isTestAccountEmail("+test1@example.com"), "the local part needs a name before the tag");
 assert(normalizeLookupEmail(" A@Example.com ") === "a@example.com", "lookup email is trimmed");
 assert(normalizeLookupEmail("not-an-email") === null, "lookup rejects a fragment");
+
+assert(INITIAL_ADMIN_EMAIL === "admin@investsalsa.com", "the seeded admin email is the dedicated login");
+assert(
+  normalizeAdminEmail(" Admin@InvestSalsa.com ") === INITIAL_ADMIN_EMAIL,
+  "admin email compare ignores case and surrounding space",
+);
+assert(
+  normalizeAdminEmail("admin+test@investsalsa.com") !== INITIAL_ADMIN_EMAIL,
+  "a plus-address is not the admin login",
+);
+const allow = new Set([INITIAL_ADMIN_EMAIL]);
+assert(
+  isListedAdminEmail(
+    { email: INITIAL_ADMIN_EMAIL, email_confirmed_at: "2026-10-01T00:00:00.000Z" },
+    allow,
+  ) === true,
+  "a confirmed allowlisted email is admin",
+);
+assert(
+  isListedAdminEmail({ email: INITIAL_ADMIN_EMAIL, email_confirmed_at: null }, allow) ===
+    false,
+  "an unconfirmed allowlisted email is not admin",
+);
+assert(
+  isListedAdminEmail(
+    { email: "other@example.com", email_confirmed_at: "2026-10-01T00:00:00.000Z" },
+    allow,
+  ) === false,
+  "a confirmed email that is not listed is not admin",
+);
+assert(
+  isListedAdminEmail(
+    {
+      email: "admin@investsalsa.com.example",
+      email_confirmed_at: "2026-10-01T00:00:00.000Z",
+    },
+    allow,
+  ) === false,
+  "a lookalike domain is not the admin login",
+);
 
 const allowlist = parseFmpDisplayAllowlist("allowed@example.com");
 assert(
@@ -240,6 +285,43 @@ assert(
   "the admin migration does not read bank tokens",
 );
 
+const emailMigration = readFileSync("supabase/migrations/019_admin_email.sql", "utf8");
+assert(
+  emailMigration.includes("alter table public.app_admin_emails enable row level security"),
+  "admin emails enable row level security",
+);
+assert(
+  emailMigration.includes(
+    "revoke all on table public.app_admin_emails from public, anon, authenticated",
+  ),
+  "admin emails are revoked from browser roles",
+);
+assert(!/create policy/i.test(emailMigration), "admin emails have no browser policy");
+assert(
+  emailMigration.includes(`'${INITIAL_ADMIN_EMAIL}'`),
+  "migration seeds the dedicated admin email",
+);
+assert(
+  emailMigration.includes("from auth.users"),
+  "migration links an existing auth user by email",
+);
+assert(
+  emailMigration.includes("email_confirmed_at is not null"),
+  "migration does not grant an unconfirmed account",
+);
+
+const adminCheck = readFileSync("src/lib/admin/is-admin.ts", "utf8");
+assert(adminCheck.includes('from("app_admins")'), "admin check reads user ids");
+assert(adminCheck.includes('from("app_admin_emails")'), "admin check reads the email allowlist");
+assert(
+  readFileSync("src/lib/supabase/middleware.ts", "utf8").includes("grantListedAdminOnSignIn"),
+  "sign-in grants a listed confirmed email",
+);
+assert(
+  readFileSync("src/app/auth/callback/route.ts", "utf8").includes("grantListedAdminOnSignIn"),
+  "the confirmation link grants a listed confirmed email",
+);
+
 const adminPage = readFileSync("src/app/admin/page.tsx", "utf8");
 assert(adminPage.includes("notFound("), "non-admins get a 404");
 assert(adminPage.includes("isAdmin("), "the page checks isAdmin");
@@ -274,6 +356,7 @@ for (const file of walk("src")) {
   const client = source.includes('"use client"') || source.includes("'use client'");
   if (!client) continue;
   assert(!source.includes("app_admins"), `${file} must not read app_admins`);
+  assert(!source.includes("app_admin_emails"), `${file} must not read admin emails`);
   assert(
     !source.includes("feature_flag_overrides"),
     `${file} must not read feature flag rows`,
@@ -284,6 +367,11 @@ for (const file of walk("src")) {
 
 const adminDoc = readFileSync("docs/admin.md", "utf8");
 assert(adminDoc.includes("app_admins"), "admin doc explains how to add an admin");
+assert(adminDoc.includes(INITIAL_ADMIN_EMAIL), "admin doc names the dedicated login");
+assert(
+  /not Amar's personal/i.test(adminDoc),
+  "admin doc says the dedicated login is not a personal account",
+);
 assert(adminDoc.includes("name+test1@example.com"), "admin doc shows the test-account alias");
 assert(/cannot see/i.test(adminDoc), "admin doc says what admins cannot see");
 assert(!/ynab|simply wall st/i.test(adminDoc), "admin doc does not name other products");

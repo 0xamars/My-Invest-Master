@@ -70,7 +70,7 @@ Sandbox and production setup are in `docs/plaid.md`.
 
 ## 10. Admin and a test account
 
-Use a confirmed plus-address such as `name+test1@example.com`. The signed-in admin is a row in `app_admins`. See `docs/admin.md`.
+Sign in as `admin@investsalsa.com` after that email is confirmed. That is the dedicated admin login, not a personal account. Use a separate plus-address such as `name+test1@example.com` for sample data. See `docs/admin.md`.
 
 1. Signed out, open `/admin`. The response is a 404. A normal signed-in account that is not an admin also gets a 404.
 2. Sign in as an admin and open `/admin`. Look up the test account by email. The page shows created date, Free or Premium, and counts. It does not show transaction text, balances, holdings, or bank links. Recent errors says the app does not store error reports.
