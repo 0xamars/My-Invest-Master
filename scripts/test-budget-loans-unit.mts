@@ -13,11 +13,20 @@ import {
   getReadyToAssign,
 } from "../src/lib/budget/calculations.ts";
 import {
+  applyAccountEdits,
+  applyLoanTermsToPlan,
   estimateNextMonthlyInterest,
   interestRateOn,
   normalizeInterestRates,
   readLoanTerms,
+  syncOpeningBalanceTransaction,
 } from "../src/lib/budget/loans.ts";
+import {
+  ensureCreditCardPaymentCategories,
+  paymentCategoryForAccount,
+} from "../src/lib/budget/credit-card-payments.ts";
+import { envelopeRequiredForTransfer, transferLeavesBudget } from "../src/lib/budget/on-budget.ts";
+import { STARTING_BALANCE_PAYEE } from "../src/lib/budget/starting-balance.ts";
 import { normalizeBudgetPlan } from "../src/lib/budget/migrate-plan.ts";
 import { getNetWorthSnapshot, getSpendingByCategory } from "../src/lib/budget/reports.ts";
 import { materializeDueSchedules } from "../src/lib/budget/scheduled.ts";
@@ -264,12 +273,16 @@ const brokeragePay = makePlan({
   monthBudgets: { "2026-01": { assignments: { groceries: 200 } } },
 });
 assert(
-  getReadyToAssign(brokeragePay, "2026-01") === 800,
-  "A categorized transfer to any off-budget account leaves Ready to Assign alone except for the assignment",
+  transferLeavesBudget(chequing, brokeragePay.accounts[1]) === false,
+  "A transfer to an off-budget investment account does not require an envelope",
 );
 assert(
-  getCategoryAvailable(brokeragePay, "groceries", "2026-01") === 0,
-  "That transfer spends the chosen envelope",
+  getReadyToAssign(brokeragePay, "2026-01") === 600,
+  "A transfer to an off-budget investment account reduces Ready to Assign (1000 − 200 assigned − 200 transfer)",
+);
+assert(
+  getCategoryAvailable(brokeragePay, "groceries", "2026-01") === 200,
+  "A transfer to an off-budget investment account does not spend the envelope",
 );
 
 const autoPlan = makePlan({
@@ -511,6 +524,278 @@ assert(
   getReadyToAssign(scheduled, "2026-01") === 2100 &&
     getCategoryAvailable(scheduled, "mortgage-cat", "2026-01") === 0,
   "The posted payment spends the envelope and leaves Ready to Assign at 3000 − 900",
+);
+
+const brokerStripped = normalizeBudgetPlan(brokeragePay);
+assert(
+  brokerStripped.transactions.find((row) => row.id === "to-broker")?.categoryId == null,
+  "Normalize drops a category on a transfer to an off-budget investment account",
+);
+
+const termsPlan = applyLoanTermsToPlan(
+  makePlan({
+    accounts: [{ ...autoLoan, interestRates: undefined, minimumPayment: undefined }],
+    transactions: [],
+  }),
+  autoLoan.id,
+  {
+    interestRates: [
+      { effectiveDate: "2026-01-01", annualPercent: 6.5 },
+      { effectiveDate: "2026-06-01", annualPercent: 4.9 },
+    ],
+    minimumPayment: 400,
+    paymentDueDay: 12,
+    openingBalance: { amount: 11600, date: "2026-01-01" },
+  },
+);
+const termsAccount = termsPlan.accounts.find((account) => account.id === autoLoan.id);
+const termsOpening = termsPlan.transactions.find(
+  (row) => row.payee === STARTING_BALANCE_PAYEE,
+);
+assert(
+  termsAccount?.minimumPayment === 400 &&
+    termsAccount.paymentDueDay === 12 &&
+    termsAccount.openingBalance === 11600 &&
+    termsAccount.interestRates?.length === 2 &&
+    termsOpening?.amount === 11600 &&
+    termsOpening.type === "outflow" &&
+    termsOpening.memo === "Balance when the account was added",
+  "applyLoanTermsToPlan stores terms and adds a Starting Balance outflow",
+);
+
+const blanked = syncOpeningBalanceTransaction(
+  termsPlan.transactions,
+  autoLoan,
+  null,
+);
+const blankedRow = blanked.find((row) => row.payee === STARTING_BALANCE_PAYEE);
+assert(
+  blankedRow?.id === termsOpening?.id &&
+    blankedRow?.amount === 11600 &&
+    blankedRow?.memo === termsOpening?.memo,
+  "Clearing the opening balance field does not delete the Starting Balance row",
+);
+
+const reconciledSource = termsPlan.transactions.map((row) =>
+  row.payee === STARTING_BALANCE_PAYEE
+    ? { ...row, cleared: "reconciled" as const, memo: "Matched the statement" }
+    : row,
+);
+const reconciledPlan = applyLoanTermsToPlan(
+  { ...termsPlan, transactions: reconciledSource },
+  autoLoan.id,
+  {
+    interestRates: [{ effectiveDate: "2026-01-01", annualPercent: 3 }],
+    minimumPayment: 400,
+    paymentDueDay: 12,
+    openingBalance: { amount: 500, date: "2026-03-01" },
+  },
+);
+const reconciledRow = reconciledPlan.transactions.find(
+  (row) => row.payee === STARTING_BALANCE_PAYEE,
+);
+const reconciledAccount = reconciledPlan.accounts.find(
+  (account) => account.id === autoLoan.id,
+);
+assert(
+  reconciledRow?.amount === 11600 &&
+    reconciledRow.date === "2026-01-01" &&
+    reconciledRow.memo === "Matched the statement" &&
+    reconciledRow.cleared === "reconciled" &&
+    reconciledAccount?.openingBalance === 11600 &&
+    reconciledAccount.openingBalanceDate === "2026-01-01" &&
+    reconciledAccount.interestRates?.[0]?.annualPercent === 3,
+  "A reconciled Starting Balance row and its memo are left alone",
+);
+
+const memoEdit = {
+  ...paid,
+  transactions: paid.transactions.map((row) =>
+    row.id === "pay-mortgage" ? { ...row, memo: "March extra", date: "2026-01-16" } : row,
+  ),
+};
+assert(
+  envelopeRequiredForTransfer({
+    needsCategory: true,
+    isNew: false,
+    amountChanged: false,
+    accountsChanged: false,
+  }) === false,
+  "A memo or date edit does not require an envelope",
+);
+assert(
+  getReadyToAssign(memoEdit, "2026-01") === 8500 &&
+    getCategoryAvailable(memoEdit, "mortgage-cat", "2026-01") === 0 &&
+    getAccountBalance(mortgage, memoEdit.transactions) === 198500 &&
+    memoEdit.transactions.find((row) => row.id === "pay-mortgage")?.categoryId ===
+      "mortgage-cat",
+  "Editing the memo and date keeps the categorized loan payment",
+);
+
+const amountEdit = {
+  ...paid,
+  transactions: paid.transactions.map((row) =>
+    row.id === "pay-mortgage" ? { ...row, amount: 1000 } : row,
+  ),
+};
+assert(
+  envelopeRequiredForTransfer({
+    needsCategory: true,
+    isNew: false,
+    amountChanged: true,
+    accountsChanged: false,
+  }) === true &&
+    envelopeRequiredForTransfer({
+      needsCategory: true,
+      isNew: true,
+      amountChanged: false,
+      accountsChanged: false,
+    }) === true &&
+    envelopeRequiredForTransfer({
+      needsCategory: false,
+      isNew: true,
+      amountChanged: true,
+      accountsChanged: true,
+    }) === false,
+  "An envelope is required for a new liability transfer or an amount or account change",
+);
+assert(
+  getCategoryAvailable(amountEdit, "mortgage-cat", "2026-01") === 500 &&
+    getAccountBalance(chequing, amountEdit.transactions) === 9000 &&
+    getAccountBalance(mortgage, amountEdit.transactions) === 199000 &&
+    getReadyToAssign(amountEdit, "2026-01") === 8500,
+  "Editing the payment amount updates the envelope and both balances",
+);
+
+const deleted = {
+  ...paid,
+  transactions: paid.transactions.filter((row) => row.id !== "pay-mortgage"),
+};
+assert(
+  getCategoryAvailable(deleted, "mortgage-cat", "2026-01") === 1500 &&
+    getAccountBalance(chequing, deleted.transactions) === 10000 &&
+    getAccountBalance(mortgage, deleted.transactions) === 200000 &&
+    getReadyToAssign(deleted, "2026-01") === 8500,
+  "Deleting the categorized payment restores the envelope and both balances",
+);
+
+const trackedMortgage = applyAccountEdits(paid, mortgage.id, { onBudget: true });
+assert(
+  getCategoryAvailable(trackedMortgage, "mortgage-cat", "2026-01") === 1500 &&
+    getReadyToAssign(trackedMortgage, "2026-01") === 8500 &&
+    getAccountBalance(mortgage, trackedMortgage.transactions) === 198500,
+  "Moving the mortgage on-budget stops the payment from spending the envelope",
+);
+const trackingAgain = applyAccountEdits(trackedMortgage, mortgage.id, {
+  onBudget: false,
+});
+assert(
+  trackingAgain.accounts.find((account) => account.id === mortgage.id)?.onBudget ===
+    false &&
+    getCategoryAvailable(trackingAgain, "mortgage-cat", "2026-01") === 0,
+  "Moving the mortgage back to tracking spends the envelope again",
+);
+
+const locOff: BudgetAccount = {
+  id: "acct-loc",
+  name: "Line",
+  type: "line-of-credit",
+  onBudget: false,
+  sortOrder: 5,
+  interestRates: [{ effectiveDate: "2026-01-01", annualPercent: 9 }],
+  minimumPayment: 50,
+};
+const locOn = ensureCreditCardPaymentCategories(
+  applyAccountEdits(makePlan({ accounts: [chequing, locOff] }), locOff.id, {
+    onBudget: true,
+  }),
+);
+assert(
+  paymentCategoryForAccount(locOn.categories, locOff.id) != null,
+  "An on-budget line of credit gets a payment envelope",
+);
+const locBack = ensureCreditCardPaymentCategories(
+  applyAccountEdits(locOn, locOff.id, { onBudget: false }),
+);
+assert(
+  paymentCategoryForAccount(locBack.categories, locOff.id) == null,
+  "A tracking line of credit does not keep a payment envelope",
+);
+
+const typedAway = applyAccountEdits(
+  makePlan({
+    accounts: [autoLoan],
+    transactions: [
+      tx({
+        id: "auto-open",
+        date: "2026-01-01",
+        amount: 11600,
+        type: "outflow",
+        accountId: autoLoan.id,
+        payee: STARTING_BALANCE_PAYEE,
+        memo: "Balance when the account was added",
+      }),
+    ],
+  }),
+  autoLoan.id,
+  { type: "brokerage", onBudget: false },
+);
+const typedAccount = typedAway.accounts.find((account) => account.id === autoLoan.id);
+assert(
+  typedAccount?.type === "brokerage" &&
+    typedAccount.interestRates == null &&
+    typedAccount.minimumPayment == null &&
+    typedAccount.paymentDueDay == null &&
+    typedAccount.openingBalance == null &&
+    typedAccount.openingBalanceDate == null &&
+    typedAway.transactions.some(
+      (row) => row.payee === STARTING_BALANCE_PAYEE && row.amount === 11600,
+    ),
+  "Changing away from a loan drops loan-only fields and keeps the Starting Balance row",
+);
+
+const card: BudgetAccount = {
+  id: "acct-card",
+  name: "Visa",
+  type: "credit-card",
+  onBudget: true,
+  sortOrder: 6,
+};
+const cardPlan = ensureCreditCardPaymentCategories(
+  makePlan({
+    accounts: [chequing, card, autoLoan],
+    transactions: [
+      tx({
+        id: "income",
+        date: "2026-01-02",
+        amount: 1000,
+        type: "inflow",
+        accountId: chequing.id,
+      }),
+      tx({
+        id: "card-to-loan",
+        date: "2026-01-18",
+        amount: 200,
+        type: "transfer",
+        accountId: card.id,
+        transferAccountId: autoLoan.id,
+        categoryId: "groceries",
+        payee: "Transfer to Car loan",
+      }),
+    ],
+    monthBudgets: { "2026-01": { assignments: { groceries: 200 } } },
+  }),
+);
+const cardPayment = paymentCategoryForAccount(cardPlan.categories, card.id);
+assert(
+  transferLeavesBudget(card, autoLoan) === true &&
+    getReadyToAssign(cardPlan, "2026-01") === 800 &&
+    getCategoryAvailable(cardPlan, "groceries", "2026-01") === 0 &&
+    cardPayment != null &&
+    getCategoryAvailable(cardPlan, cardPayment.id, "2026-01") === 200 &&
+    getAccountBalance(card, cardPlan.transactions) === 200 &&
+    getAccountBalance(autoLoan, cardPlan.transactions) === -200,
+  "A categorized card payment to an off-budget loan spends the envelope, funds the card payment envelope, and lowers the loan",
 );
 
 if (failed > 0) {

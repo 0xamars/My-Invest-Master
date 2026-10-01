@@ -94,7 +94,7 @@ export function BudgetReportsContent() {
   } satisfies ChartConfig;
 
   const availableConfig = {
-    available: { label: "Available to Budget", color: BRAND_GREEN },
+    available: { label: "Ready to Assign", color: BRAND_GREEN },
   } satisfies ChartConfig;
 
   const rangeLabel =
@@ -238,7 +238,7 @@ export function BudgetReportsContent() {
       </ChartFrame>
 
       <ChartFrame
-        title="Leftover"
+        title="Ready to Assign"
         description="Balance over the last 6 months"
       >
         {availableSeries.every((row) => row.available === 0) ? (

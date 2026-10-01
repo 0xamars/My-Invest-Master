@@ -69,8 +69,13 @@ Sandbox and production setup are in `docs/plaid.md`.
 1. Add an Auto Loan, a Mortgage, and a Line of Credit. Each starts as Tracking. You can switch the line of credit to On-budget. Chequing still starts On-budget.
 2. On the auto loan, enter an opening balance owed, a minimum payment, a due day, and an annual rate with a start date. Save. The account row shows those figures and the balance owed. Blank fields stay “not set”. No dollar estimate appears until a rate is saved.
 3. Add a second rate on a later date. The first rate is still listed. The estimate uses the rate in effect today: balance owed times the annual rate, divided by 12. The note says it is a simple estimate for learning, not a payment schedule or advice.
-4. Assign money to a Mortgage envelope. Transfer that amount from chequing to the off-budget mortgage and choose the Mortgage envelope. The transfer cannot be saved without an envelope. Ready to Assign does not drop again. Mortgage Available goes down. Chequing goes down. The balance owed goes down by the same amount. Net worth does not change from the payment itself.
-5. A transfer between two on-budget accounts still needs no envelope and does not change Ready to Assign.
+4. Assign money to a Mortgage envelope. Transfer that amount from chequing to the off-budget mortgage and choose the Mortgage envelope. A new transfer cannot be saved without an envelope. Ready to Assign does not drop again. Mortgage Available goes down. Chequing goes down. The balance owed goes down by the same amount. Net worth does not change from the payment itself.
+5. Transfer from chequing to an off-budget brokerage or other tracking asset. The form does not ask for an envelope. Ready to Assign goes down. Envelope Available does not change.
+6. Open an older uncategorized transfer to a loan and change only the memo or the date. It saves without an envelope. Change the amount or the accounts and an envelope is required.
+7. On the loan, remove a rate. It disappears from the list. Add it again on the same date and only that day is replaced.
+8. Reconcile the Starting Balance row, then edit the loan. The dialog says a reconciled starting balance can’t be changed here, and the amount and date fields stay disabled. Clearing the opening balance on a loan that is not reconciled does not delete the Starting Balance row.
+9. Change the auto loan’s type to Brokerage. The rate, minimum payment, due day, and opening balance fields are gone. The Starting Balance transaction is still on the register.
+10. Switch a tracking line of credit to On-budget, then back to Tracking. On-budget, it gets a payment envelope. Tracking, that envelope is gone. A transfer between two on-budget accounts still needs no envelope and does not change Ready to Assign.
 
 ## 10. Admin and a test account
 

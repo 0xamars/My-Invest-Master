@@ -24,11 +24,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ACCOUNT_TYPE_LABELS,
   isCreditCardPaymentAccount,
-  isLiabilityAccount,
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
-import { transferLeavesBudget } from "@/lib/budget/on-budget";
+import {
+  envelopeRequiredForTransfer,
+  transferLeavesBudget,
+} from "@/lib/budget/on-budget";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
@@ -84,6 +86,27 @@ function getCurrentMonthKey(): string {
 
 function newSplitLine(amount = ""): SplitLineDraft {
   return { key: crypto.randomUUID(), categoryId: "none", amount };
+}
+
+function transferAmountChanged(
+  nextAmount: number,
+  transaction: BudgetTransaction | null | undefined,
+): boolean {
+  if (!transaction || transaction.type !== "transfer") return true;
+  if (!Number.isFinite(nextAmount)) return true;
+  return Math.round(nextAmount * 100) !== Math.round(transaction.amount * 100);
+}
+
+function transferAccountsChanged(
+  accountId: string,
+  transferAccountId: string,
+  transaction: BudgetTransaction | null | undefined,
+): boolean {
+  if (!transaction || transaction.type !== "transfer") return true;
+  return (
+    accountId !== transaction.accountId ||
+    transferAccountId !== (transaction.transferAccountId ?? "")
+  );
 }
 
 export function BudgetTransactionDialog({
@@ -344,7 +367,17 @@ export function BudgetTransactionDialog({
         (account) => account.id === transferAccountId,
       );
       const needsCategory = transferLeavesBudget(fromAccount, toAccount);
-      if (needsCategory && categoryId === "none") return;
+      const requireEnvelope = envelopeRequiredForTransfer({
+        needsCategory,
+        isNew: !transaction,
+        amountChanged: transferAmountChanged(parsedAmount, transaction),
+        accountsChanged: transferAccountsChanged(
+          accountId,
+          transferAccountId,
+          transaction,
+        ),
+      });
+      if (requireEnvelope && categoryId === "none") return;
       const toName = toAccount?.name ?? "account";
       onSave({
         date,
@@ -353,8 +386,8 @@ export function BudgetTransactionDialog({
         transferAccountId,
         amount: parsedAmount,
         type: "transfer",
-        categoryId: needsCategory ? categoryId : null,
-        categoryManual: needsCategory ? true : undefined,
+        categoryId: needsCategory && categoryId !== "none" ? categoryId : null,
+        categoryManual: needsCategory && categoryId !== "none" ? true : undefined,
         memo: memo.trim() || undefined,
         cleared: transaction?.cleared ?? "uncleared",
       });
@@ -426,12 +459,22 @@ export function BudgetTransactionDialog({
     selectedOnBudget !== transferOnBudget;
   const transferNeedsCategory =
     type === "transfer" && transferLeavesBudget(selectedAccount, transferAccount);
+  const envelopeRequired = envelopeRequiredForTransfer({
+    needsCategory: transferNeedsCategory,
+    isNew: !transaction,
+    amountChanged: transferAmountChanged(parsedAmount, transaction),
+    accountsChanged: transferAccountsChanged(
+      accountId,
+      transferAccountId,
+      transaction,
+    ),
+  });
 
   const canSubmit = (() => {
     if (!accountId || !hasValidAmount) return false;
     if (type === "transfer") {
       if (!transferAccountId || transferAccountId === accountId) return false;
-      if (transferNeedsCategory && categoryId === "none") return false;
+      if (envelopeRequired && categoryId === "none") return false;
       return true;
     }
     if (!payee.trim()) return false;
@@ -467,15 +510,15 @@ export function BudgetTransactionDialog({
         ? "This pays the card. It uses the card payment envelope. Ready to Assign does not change."
         : cashAdvance
           ? "Cash advance. Ready to Assign goes up and the balance owed goes up. Assign that money to the payment envelope to cover it."
-          : transferCrossesBudget
-            ? selectedOnBudget && selectedAccount && isCreditCardPaymentAccount(selectedAccount)
+          : transferNeedsCategory
+            ? selectedAccount && isCreditCardPaymentAccount(selectedAccount)
               ? "Choose an envelope. That envelope’s Available goes down and the card payment envelope goes up. Ready to Assign stays the same."
-              : selectedOnBudget
-                ? transferAccount && isLiabilityAccount(transferAccount.type)
-                  ? "This payment leaves the budget. Choose an envelope, such as Mortgage. Ready to Assign stays the same, that envelope’s Available goes down, and the balance owed goes down."
-                  : "This leaves the budget. Choose an envelope. Ready to Assign stays the same, and that envelope’s Available goes down."
+              : "This payment leaves the budget. Choose an envelope, such as Mortgage. Ready to Assign stays the same, that envelope’s Available goes down, and the balance owed goes down."
+            : transferCrossesBudget
+              ? selectedOnBudget
+                ? "This leaves the budget for a tracking account. Ready to Assign goes down by the transfer amount."
                 : "This enters the budget. Ready to Assign goes up by the transfer amount."
-            : "Move money between accounts. Transfers between the same budget side do not change Ready to Assign."
+              : "Move money between accounts. Transfers between the same budget side do not change Ready to Assign."
       : type === "inflow"
         ? returningOnCard
           ? "A return to an envelope puts those dollars back and takes them out of the payment envelope. Leave it unassigned to free Ready to Assign, but only up to what that envelope already holds."
@@ -741,8 +784,11 @@ export function BudgetTransactionDialog({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Required. This is spending from that envelope. Ready to Assign
-                does not change.
+                {envelopeRequired
+                  ? "Required. This is spending from that envelope. Ready to Assign does not change."
+                  : categoryId === "none"
+                    ? "This saved transfer has no envelope. You can add one. Change the amount or the accounts and an envelope is required."
+                    : "This envelope is already on the transfer. Ready to Assign does not change."}
               </p>
             </div>
           ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,6 +39,8 @@ import type {
 } from "@/types/budget";
 
 const ACCOUNT_TYPES = Object.keys(ACCOUNT_TYPE_LABELS) as BudgetAccountType[];
+const EMPTY_TRANSACTIONS: BudgetTransaction[] = [];
+const EMPTY_RATES: BudgetInterestRate[] = [];
 
 interface AccountDialogProps {
   open: boolean;
@@ -72,16 +74,18 @@ export function AccountDialog({
   open,
   onOpenChange,
   account,
-  transactions = [],
+  transactions = EMPTY_TRANSACTIONS,
   onSave,
 }: AccountDialogProps) {
   const isEdit = Boolean(account);
+  const transactionsRef = useRef(transactions);
+  transactionsRef.current = transactions;
   const [name, setName] = useState("");
   const [type, setType] = useState<BudgetAccountType>("chequing");
   const [onBudget, setOnBudget] = useState(true);
   const [startingBalance, setStartingBalance] = useState("");
   const [startingDate, setStartingDate] = useState(todayKey);
-  const [rates, setRates] = useState<BudgetInterestRate[]>([]);
+  const [rates, setRates] = useState<BudgetInterestRate[]>(EMPTY_RATES);
   const [draftRate, setDraftRate] = useState("");
   const [draftRateDate, setDraftRateDate] = useState(todayKey);
   const [minimumPayment, setMinimumPayment] = useState("");
@@ -91,12 +95,17 @@ export function AccountDialog({
   useEffect(() => {
     if (!open) return;
     const nextType = account?.type ?? "chequing";
+    const rows = transactionsRef.current;
     setName(account?.name ?? "");
     setType(nextType);
     setOnBudget(
       account ? isOnBudgetAccount(account) : defaultOnBudgetForType(nextType),
     );
-    setRates(account?.interestRates ?? []);
+    setRates(
+      account?.interestRates && account.interestRates.length > 0
+        ? account.interestRates
+        : EMPTY_RATES,
+    );
     setDraftRate("");
     setDraftRateDate(todayKey());
     setMinimumPayment(
@@ -106,7 +115,7 @@ export function AccountDialog({
     setFormError(null);
 
     const startingTx = account
-      ? transactions.find(
+      ? rows.find(
           (tx) =>
             tx.accountId === account.id && tx.payee === STARTING_BALANCE_PAYEE,
         )
@@ -114,14 +123,14 @@ export function AccountDialog({
     if (account?.openingBalance != null && account.openingBalance > 0) {
       setStartingBalance(String(account.openingBalance));
       setStartingDate(account.openingBalanceDate ?? startingTx?.date ?? todayKey());
-    } else if (isEdit && isLoanAccount(nextType) && startingTx) {
+    } else if (account && isLoanAccount(nextType) && startingTx) {
       setStartingBalance(String(startingTx.amount));
       setStartingDate(startingTx.date);
     } else {
       setStartingBalance("");
       setStartingDate(todayKey());
     }
-  }, [open, account, transactions, isEdit]);
+  }, [open, account]);
 
   function handleTypeChange(nextType: BudgetAccountType) {
     setType(nextType);
@@ -159,6 +168,13 @@ export function AccountDialog({
     setRates(merged.rates);
     setDraftRate("");
     setFormError(null);
+  }
+
+  function handleRemoveRate(effectiveDate: string) {
+    setRates((current) => {
+      const next = current.filter((rate) => rate.effectiveDate !== effectiveDate);
+      return next.length > 0 ? next : EMPTY_RATES;
+    });
   }
 
   function handleSubmit() {
@@ -229,6 +245,13 @@ export function AccountDialog({
     : isLiabilityAccount(type)
       ? "Current balance owed"
       : "Current balance";
+  const startingTransaction = account
+    ? transactions.find(
+        (tx) =>
+          tx.accountId === account.id && tx.payee === STARTING_BALANCE_PAYEE,
+      )
+    : undefined;
+  const startingReconciled = startingTransaction?.cleared === "reconciled";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -294,7 +317,9 @@ export function AccountDialog({
                 ? "A payment envelope is created automatically. Card spend moves dollars there; paying the card uses that envelope."
                 : onBudget
                   ? "Inflows go to Ready to Assign. Spending hits envelope Activity."
-                  : "Off-budget. Activity does not change Ready to Assign or envelope Activity. A transfer from an on-budget account needs an envelope."}
+                  : isLiabilityAccount(type)
+                    ? "Off-budget. A payment from an on-budget account needs an envelope. Ready to Assign stays the same, and the balance owed goes down."
+                    : "Off-budget. Activity here does not change Ready to Assign or envelope Activity. A transfer from an on-budget account lowers Ready to Assign."}
             </p>
           </div>
 
@@ -310,6 +335,7 @@ export function AccountDialog({
                   inputMode="decimal"
                   placeholder="Leave blank if unknown"
                   value={startingBalance}
+                  disabled={startingReconciled}
                   onChange={(event) => setStartingBalance(event.target.value)}
                 />
               </div>
@@ -319,11 +345,14 @@ export function AccountDialog({
                   id="account-starting-date"
                   type="date"
                   value={startingDate}
+                  disabled={startingReconciled}
                   onChange={(event) => setStartingDate(event.target.value)}
                 />
               </div>
               <p className="text-xs text-muted-foreground sm:col-span-2">
-                {isCreditCardPaymentAccount({ type, onBudget })
+                {startingReconciled
+                  ? "This starting balance is reconciled, so it can’t be changed here."
+                  : isCreditCardPaymentAccount({ type, onBudget })
                   ? "Existing debt is not funded. Assign money to the payment envelope when you are ready to pay it. Interest and fees are later transactions on this card."
                   : loanType
                     ? "Leave this blank if you do not know the balance owed yet. A saved balance does not change Ready to Assign."
@@ -349,9 +378,24 @@ export function AccountDialog({
                   {[...rates]
                     .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate))
                     .map((rate) => (
-                      <li key={rate.effectiveDate}>
-                        {formatPercent(rate.annualPercent)} from{" "}
-                        {formatBudgetDate(rate.effectiveDate)}
+                      <li
+                        key={rate.effectiveDate}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span>
+                          {formatPercent(rate.annualPercent)} from{" "}
+                          {formatBudgetDate(rate.effectiveDate)}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          aria-label={`Remove rate from ${formatBudgetDate(rate.effectiveDate)}`}
+                          onClick={() => handleRemoveRate(rate.effectiveDate)}
+                        >
+                          Remove
+                        </Button>
                       </li>
                     ))}
                 </ul>

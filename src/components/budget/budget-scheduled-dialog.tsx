@@ -23,11 +23,13 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ACCOUNT_TYPE_LABELS,
-  isLiabilityAccount,
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
-import { transferLeavesBudget } from "@/lib/budget/on-budget";
+import {
+  envelopeRequiredForTransfer,
+  transferLeavesBudget,
+} from "@/lib/budget/on-budget";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import {
@@ -70,6 +72,27 @@ type RepeatUntil = "forever" | "date" | "count";
 
 function newSplitLine(amount = ""): SplitLineDraft {
   return { key: crypto.randomUUID(), categoryId: "none", amount };
+}
+
+function scheduleAmountChanged(
+  nextAmount: number,
+  schedule: BudgetScheduledTransaction | null | undefined,
+): boolean {
+  if (!schedule || schedule.type !== "transfer") return true;
+  if (!Number.isFinite(nextAmount)) return true;
+  return Math.round(nextAmount * 100) !== Math.round(schedule.amount * 100);
+}
+
+function scheduleAccountsChanged(
+  accountId: string,
+  transferAccountId: string,
+  schedule: BudgetScheduledTransaction | null | undefined,
+): boolean {
+  if (!schedule || schedule.type !== "transfer") return true;
+  return (
+    accountId !== schedule.accountId ||
+    transferAccountId !== (schedule.transferAccountId ?? "")
+  );
 }
 
 export function BudgetScheduledDialog({
@@ -208,6 +231,16 @@ export function BudgetScheduledDialog({
   const selectedOnBudget = isOnBudgetAccount(selectedAccount);
   const transferNeedsCategory =
     type === "transfer" && transferLeavesBudget(selectedAccount, transferAccount);
+  const envelopeRequired = envelopeRequiredForTransfer({
+    needsCategory: transferNeedsCategory,
+    isNew: !schedule,
+    amountChanged: scheduleAmountChanged(parsedAmount, schedule),
+    accountsChanged: scheduleAccountsChanged(
+      accountId,
+      transferAccountId,
+      schedule,
+    ),
+  });
 
   function handleTypeChange(nextType: BudgetTransactionType) {
     if (nextType === "transfer" && !canTransfer) return;
@@ -245,7 +278,7 @@ export function BudgetScheduledDialog({
 
     if (type === "transfer") {
       if (!transferAccountId || transferAccountId === accountId) return;
-      if (transferNeedsCategory && categoryId === "none") return;
+      if (envelopeRequired && categoryId === "none") return;
       const toName = transferAccount?.name ?? "account";
       onSave({
         nextDate,
@@ -255,7 +288,8 @@ export function BudgetScheduledDialog({
         transferAccountId,
         amount: parsedAmount,
         type: "transfer",
-        categoryId: transferNeedsCategory ? categoryId : null,
+        categoryId:
+          transferNeedsCategory && categoryId !== "none" ? categoryId : null,
         memo: memo.trim() || undefined,
         ...end,
       });
@@ -308,7 +342,7 @@ export function BudgetScheduledDialog({
     if (repeatUntil === "count" && !hasValidCount) return false;
     if (type === "transfer") {
       if (!transferAccountId || transferAccountId === accountId) return false;
-      if (transferNeedsCategory && categoryId === "none") return false;
+      if (envelopeRequired && categoryId === "none") return false;
       return true;
     }
     if (!payee.trim()) return false;
@@ -552,9 +586,11 @@ export function BudgetScheduledDialog({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {transferAccount && isLiabilityAccount(transferAccount.type)
+                {envelopeRequired
                   ? "Required. Each posted payment spends this envelope and lowers the balance owed. Ready to Assign stays the same."
-                  : "Required. Each posted transfer spends this envelope. Ready to Assign stays the same."}
+                  : categoryId === "none"
+                    ? "This saved transfer has no envelope. You can add one. Change the amount or the accounts and an envelope is required."
+                    : "This envelope is already on the transfer. Each posted payment spends it. Ready to Assign stays the same."}
               </p>
             </div>
           ) : null}

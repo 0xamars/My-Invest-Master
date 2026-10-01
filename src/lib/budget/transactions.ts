@@ -64,7 +64,7 @@ export function getOutflowActivityForCategory(
 /**
  * Envelope activity. Spending is positive. A categorized inflow (refund or
  * reimbursement) is negative. Tracking accounts are 0.
- * A categorized transfer from an on-budget account to an off-budget account
+ * A categorized transfer from an on-budget account to an off-budget liability
  * spends the chosen envelope. Other transfers are 0.
  */
 export function getEnvelopeActivityForCategory(

@@ -34,7 +34,7 @@ import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
 import { accountById, defaultOnBudgetForType } from "@/lib/budget/accounts";
 import {
-  applyLoanTermsToPlan,
+  applyAccountEdits,
   loanFieldsFromDraft,
   type LoanTermsDraft,
 } from "@/lib/budget/loans";
@@ -903,25 +903,11 @@ export function useBudgetPlanMutations(planId: string) {
         loan?: LoanTermsDraft;
       },
     ) => {
-      commitPlan((current) => {
-        const renamed = {
-          ...current,
-          accounts: current.accounts.map((account) =>
-            account.id === accountId
-              ? {
-                  ...account,
-                  name: updates.name?.trim() || account.name,
-                  type: updates.type ?? account.type,
-                  onBudget: updates.onBudget ?? account.onBudget,
-                }
-              : account,
-          ),
-        };
-        const withLoan = updates.loan
-          ? applyLoanTermsToPlan(renamed, accountId, updates.loan)
-          : renamed;
-        return ensureCreditCardPaymentCategories(withLoan);
-      });
+      commitPlan((current) =>
+        ensureCreditCardPaymentCategories(
+          applyAccountEdits(current, accountId, updates),
+        ),
+      );
     },
     [commitPlan],
   );

@@ -181,47 +181,93 @@ export function loanFieldsFromDraft(
   };
 }
 
-export function withLoanFields(
+const LOAN_ONLY_FIELDS = [
+  "interestRates",
+  "minimumPayment",
+  "paymentDueDay",
+  "openingBalance",
+  "openingBalanceDate",
+] as const;
+
+/** Drop rate, minimum, due day, and opening-balance fields. The register is untouched. */
+export function stripLoanFields(account: BudgetAccount): BudgetAccount {
+  const next: BudgetAccount = { ...account };
+  for (const key of LOAN_ONLY_FIELDS) {
+    delete next[key];
+  }
+  return next;
+}
+
+export function accountWithEdits(
   account: BudgetAccount,
-  draft: LoanTermsDraft | undefined,
+  updates: {
+    name?: string;
+    type?: BudgetAccountType;
+    onBudget?: boolean;
+  },
 ): BudgetAccount {
-  if (!draft || !isLoanAccount(account.type)) return account;
-  return {
+  const type = updates.type ?? account.type;
+  const next: BudgetAccount = {
     ...account,
-    ...loanFieldsFromDraft(account.type, draft),
+    name: updates.name?.trim() || account.name,
+    type,
+    onBudget: updates.onBudget ?? account.onBudget,
   };
+  return isLoanAccount(type) ? next : stripLoanFields(next);
+}
+
+function startingBalanceRows(
+  transactions: BudgetTransaction[],
+  accountId: string,
+): BudgetTransaction[] {
+  return transactions.filter(
+    (tx) => tx.accountId === accountId && tx.payee === STARTING_BALANCE_PAYEE,
+  );
+}
+
+export function startingBalanceIsReconciled(
+  transactions: BudgetTransaction[],
+  accountId: string,
+): boolean {
+  return startingBalanceRows(transactions, accountId).some(
+    (tx) => tx.cleared === "reconciled",
+  );
 }
 
 /**
- * Keep the opening balance and the Starting Balance transaction in step.
- * Other register rows are left alone.
+ * Keep a new opening balance and the Starting Balance transaction in step.
+ * Clearing the field does not delete an existing row. A reconciled row,
+ * including its memo, is left alone. Other register rows are left alone.
  */
 export function syncOpeningBalanceTransaction(
   transactions: BudgetTransaction[],
   account: Pick<BudgetAccount, "id" | "type">,
   opening: { amount: number; date: string } | null,
 ): BudgetTransaction[] {
-  const matches = transactions.filter(
-    (tx) => tx.accountId === account.id && tx.payee === STARTING_BALANCE_PAYEE,
-  );
-  const rest = transactions.filter(
-    (tx) => !(tx.accountId === account.id && tx.payee === STARTING_BALANCE_PAYEE),
-  );
+  const matches = startingBalanceRows(transactions, account.id);
+  if (matches.some((tx) => tx.cleared === "reconciled")) return transactions;
+
   const amount = normalizeOpeningBalance(opening?.amount);
   const date = opening && isDateKey(opening.date) ? opening.date : undefined;
-  if (amount == null || !date) return rest;
+  if (amount == null || !date) return transactions;
 
+  const target = matches[0];
   const built = buildStartingBalanceTransaction({
-    id: matches[0]?.id ?? crypto.randomUUID(),
+    id: target?.id ?? crypto.randomUUID(),
     account,
     amount,
     date,
   });
   if (!built) return transactions;
-  const kept: BudgetTransaction = matches[0]
-    ? { ...built, cleared: matches[0].cleared, approved: matches[0].approved }
-    : built;
-  return [...rest, kept];
+  if (!target) return [...transactions, built];
+
+  const kept: BudgetTransaction = {
+    ...built,
+    cleared: target.cleared,
+    approved: target.approved,
+    memo: target.memo,
+  };
+  return transactions.map((tx) => (tx.id === target.id ? kept : tx));
 }
 
 export function applyLoanTermsToPlan(
@@ -230,22 +276,53 @@ export function applyLoanTermsToPlan(
   draft: LoanTermsDraft,
 ): BudgetPlan {
   const current = plan.accounts.find((account) => account.id === accountId);
-  if (!current) return plan;
-  const nextAccount = withLoanFields(
-    { ...current },
-    draft,
-  );
-  if (!isLoanAccount(nextAccount.type)) return plan;
+  if (!current || !isLoanAccount(current.type)) return plan;
+
+  const reconciled = startingBalanceIsReconciled(plan.transactions, accountId);
+  const fields = loanFieldsFromDraft(current.type, draft);
+  const nextAccount: BudgetAccount = {
+    ...current,
+    interestRates: fields.interestRates,
+    minimumPayment: fields.minimumPayment,
+    paymentDueDay: fields.paymentDueDay,
+    openingBalance: reconciled ? current.openingBalance : fields.openingBalance,
+    openingBalanceDate: reconciled
+      ? current.openingBalanceDate
+      : fields.openingBalanceDate,
+  };
   const accounts = plan.accounts.map((account) =>
     account.id === accountId ? nextAccount : account,
   );
   return {
     ...plan,
     accounts,
-    transactions: syncOpeningBalanceTransaction(
-      plan.transactions,
-      nextAccount,
-      draft.openingBalance,
+    transactions: reconciled
+      ? plan.transactions
+      : syncOpeningBalanceTransaction(
+          plan.transactions,
+          nextAccount,
+          draft.openingBalance,
+        ),
+  };
+}
+
+export function applyAccountEdits(
+  plan: BudgetPlan,
+  accountId: string,
+  updates: {
+    name?: string;
+    type?: BudgetAccountType;
+    onBudget?: boolean;
+    loan?: LoanTermsDraft;
+  },
+): BudgetPlan {
+  const renamed: BudgetPlan = {
+    ...plan,
+    accounts: plan.accounts.map((account) =>
+      account.id === accountId ? accountWithEdits(account, updates) : account,
     ),
   };
+  const edited = renamed.accounts.find((account) => account.id === accountId);
+  if (!updates.loan || !edited || !isLoanAccount(edited.type)) return renamed;
+  return applyLoanTermsToPlan(renamed, accountId, updates.loan);
 }

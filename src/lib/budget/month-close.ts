@@ -44,7 +44,8 @@ export function canCloseMonth(
   if (leftover < 0) {
     return {
       ok: false,
-      reason: "Leftover is negative. Assign less or add income before closing.",
+      reason:
+        "Ready to Assign is negative. Assign less or add income before closing.",
     };
   }
 
