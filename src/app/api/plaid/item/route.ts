@@ -4,7 +4,7 @@ import { deletePlaidItemRow } from "@/lib/plaid/store";
 import { jsonError, plaidSetupError, requirePlaidUser } from "@/lib/plaid/http";
 
 export async function DELETE(request: Request) {
-  const auth = await requirePlaidUser(request);
+  const auth = await requirePlaidUser(request, { requireBankFlag: false });
   if ("error" in auth && auth.error) return auth.error;
   const setup = plaidSetupError();
   if (setup) return setup;

@@ -16,3 +16,18 @@ export function isBankConnectEnabled(
   const pub = env.NEXT_PUBLIC_BANK_CONNECT_ENABLED?.trim().toLowerCase();
   return pub === "1" || pub === "true";
 }
+
+/**
+ * Per-account bank connection.
+ * `BANK_CONNECT_ENABLED=0` turns it off for every account.
+ * Otherwise an override wins, and no override uses the server switch above.
+ */
+export function resolveBankConnectForAccount(
+  override: boolean | null,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const server = env.BANK_CONNECT_ENABLED?.trim().toLowerCase();
+  if (server === "0" || server === "false") return false;
+  if (override !== null) return override;
+  return isBankConnectEnabled(env);
+}

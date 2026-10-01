@@ -11,7 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AccountDialog } from "@/components/budget/account-dialog";
-import { BudgetBankLink } from "@/components/budget/budget-bank-link";
+import { BudgetBankLinkGate } from "@/components/budget/budget-bank-link-gate";
 import { BudgetReconcileDialog } from "@/components/budget/budget-reconcile-dialog";
 import { PayCardDialog } from "@/components/budget/pay-card-dialog";
 import { DeleteAccountDialog } from "@/components/budget/delete-account-dialog";
@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useBudget } from "@/contexts/budget-context";
-import { isBankConnectEnabled } from "@/lib/plaid/feature";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import {
   ACCOUNT_TYPE_LABELS,
   formatAccountBalanceLabel,
@@ -57,6 +57,7 @@ function formatReconciledDate(iso?: string): string | null {
 }
 
 export function BudgetAccountsContent() {
+  const bankConnect = useFeatureFlag("bank_connect") === true;
   const {
     budget,
     addAccount,
@@ -101,7 +102,7 @@ export function BudgetAccountsContent() {
       <BudgetPageHeader
         title="Accounts"
         description={
-          isBankConnectEnabled()
+          bankConnect
             ? "Connect a bank to pull transactions, or add an account by hand. Import a CSV, OFX, or QFX file from the register."
             : "Add an account by hand. Import a CSV, OFX, or QFX file from the register."
         }
@@ -113,7 +114,7 @@ export function BudgetAccountsContent() {
         }
       />
 
-      <BudgetBankLink primary />
+      <BudgetBankLinkGate primary />
 
       {accounts.length === 0 ? (
         <BudgetPanel>

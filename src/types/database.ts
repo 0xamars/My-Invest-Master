@@ -273,6 +273,74 @@ export interface Database {
         };
         Relationships: [];
       };
+      app_admin_emails: {
+        Row: {
+          email: string;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+        };
+        Relationships: [];
+      };
+      app_admins: {
+        Row: {
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      feature_flag_overrides: {
+        Row: {
+          user_id: string;
+          flag: string;
+          enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          flag: string;
+          enabled: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_audit_log: {
+        Row: {
+          id: string;
+          admin_id: string;
+          action: string;
+          target_user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_id: string;
+          action: string;
+          target_user_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          action?: string;
+          target_user_id?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
