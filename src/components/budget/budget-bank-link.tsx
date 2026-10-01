@@ -14,7 +14,6 @@ import {
   type PlaidAccountChoice,
 } from "@/lib/budget/plaid";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/budget/accounts";
-import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import {
   formatPlaidItemSyncLine,
   plaidItemNeedsUserReconnect,
@@ -187,11 +186,10 @@ export function BudgetBankLink({
 }: {
   primary?: boolean;
 }) {
-  const flagOn = isBankConnectEnabled();
   const { planId, budget, importFromPlaid, unlinkPlaidItem } = useBudget();
   const { enqueuePlanSave } = useBudgetPlans();
   const [status, setStatus] = useState<PlaidStatusResponse | null>(null);
-  const [loading, setLoading] = useState(flagOn);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
@@ -228,9 +226,8 @@ export function BudgetBankLink({
   }, [planId]);
 
   useEffect(() => {
-    if (!flagOn) return;
     void refreshStatus();
-  }, [flagOn, refreshStatus]);
+  }, [refreshStatus]);
 
   const applyPayload = useCallback(
     async (payload: PlaidSyncPayload, choices?: PlaidAccountChoice[]) => {
@@ -445,7 +442,9 @@ export function BudgetBankLink({
     }
   };
 
-  if (!flagOn || status?.enabled === false) return null;
+  if (loading || !status) return null;
+  const canLink = status.enabled === true;
+  if (!canLink && status.items.length === 0) return null;
 
   const configured = status?.configured === true && status.storageReady === true;
   const disabledReason = !status
@@ -470,25 +469,31 @@ export function BudgetBankLink({
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold">Connect bank</p>
+          <p className="text-sm font-semibold">
+            {canLink ? "Connect bank" : "Linked bank"}
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {disabledReason ??
-              "Pull transactions into the inbox, then assign envelopes. You can also import a CSV, OFX, or QFX file from the register."}
+            {canLink
+              ? (disabledReason ??
+                "Pull transactions into the inbox, then assign envelopes. You can also import a CSV, OFX, or QFX file from the register.")
+              : "Bank linking is off for this account. You can still disconnect a bank that is already linked."}
           </p>
         </div>
-        <Button
-          type="button"
-          variant={primary ? "default" : "outline"}
-          disabled={!configured || busy || loading}
-          onClick={() => void startLink()}
-        >
-          {busy || loading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Landmark className="size-4" />
-          )}
-          Connect bank
-        </Button>
+        {canLink ? (
+          <Button
+            type="button"
+            variant={primary ? "default" : "outline"}
+            disabled={!configured || busy || loading}
+            onClick={() => void startLink()}
+          >
+            {busy || loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Landmark className="size-4" />
+            )}
+            Connect bank
+          </Button>
+        ) : null}
       </div>
 
       {loading ? (
@@ -527,7 +532,7 @@ export function BudgetBankLink({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {needsReconnect ? (
+                  {canLink && needsReconnect ? (
                     <Button
                       type="button"
                       size="sm"
@@ -537,7 +542,8 @@ export function BudgetBankLink({
                       <Plug className="size-3.5" />
                       Reconnect
                     </Button>
-                  ) : (
+                  ) : null}
+                  {canLink && !needsReconnect ? (
                     <Button
                       type="button"
                       size="sm"
@@ -548,7 +554,7 @@ export function BudgetBankLink({
                       <RefreshCw className="size-3.5" />
                       Sync now
                     </Button>
-                  )}
+                  ) : null}
                   <Button
                     type="button"
                     size="sm"

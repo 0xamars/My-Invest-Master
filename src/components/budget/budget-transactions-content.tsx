@@ -18,9 +18,9 @@ import {
   X,
 } from "lucide-react";
 import { BudgetBankLinkGate } from "@/components/budget/budget-bank-link-gate";
-import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import { BudgetCsvImportDialog } from "@/components/budget/budget-csv-import-dialog";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { BudgetUpcomingList } from "@/components/budget/budget-upcoming-list";
 import {
   BudgetEmptyState,
@@ -75,6 +75,7 @@ import {
 } from "@/components/ui/dialog";
 
 export function BudgetTransactionsContent() {
+  const bankConnect = useFeatureFlag("bank_connect") === true;
   const {
     budget,
     planId,
@@ -303,7 +304,7 @@ export function BudgetTransactionsContent() {
         description={
           lastImportedDate
             ? `Income, spending, and transfers. Latest imported row dated ${formatBudgetDate(lastImportedDate)}.`
-            : isBankConnectEnabled()
+            : bankConnect
               ? "Income, spending, and transfers. Import a CSV, OFX, or QFX file, or connect a bank, then assign envelopes."
               : "Income, spending, and transfers. Import a CSV, OFX, or QFX file, then assign envelopes."
         }

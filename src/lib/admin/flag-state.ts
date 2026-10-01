@@ -5,6 +5,10 @@ import {
   type FeatureFlagId,
   type FeatureFlagKind,
 } from "@/lib/flags/catalog";
+import {
+  isBankConnectEnabled,
+  resolveBankConnectForAccount,
+} from "@/lib/plaid/feature";
 
 export type AdminFlagState = {
   id: FeatureFlagId;
@@ -27,10 +31,19 @@ export function describeFlagsForAdmin(
   env: Record<string, string | undefined> = process.env,
 ): AdminFlagState[] {
   return FEATURE_FLAGS.map((flag) => {
-    const serverOn = envEnablesFlag(flag.id, env);
     const override = overrides.has(flag.id)
       ? (overrides.get(flag.id) ?? null)
       : null;
+    const serverOn =
+      flag.id === "bank_connect"
+        ? isBankConnectEnabled(env)
+        : envEnablesFlag(flag.id, env);
+    const effective =
+      flag.kind === "fmp_display"
+        ? null
+        : flag.id === "bank_connect"
+          ? resolveBankConnectForAccount(override, env)
+          : resolveFeatureFlag(flag.id, serverOn, override);
     return {
       id: flag.id,
       label: flag.label,
@@ -38,10 +51,7 @@ export function describeFlagsForAdmin(
       kind: flag.kind,
       serverOn,
       override,
-      effective:
-        flag.kind === "fmp_display"
-          ? null
-          : resolveFeatureFlag(flag.id, serverOn, override),
+      effective,
     };
   });
 }

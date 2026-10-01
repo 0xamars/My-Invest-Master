@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useBudget } from "@/contexts/budget-context";
-import { isBankConnectEnabled } from "@/lib/plaid/feature";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import {
   ACCOUNT_TYPE_LABELS,
   formatAccountBalanceLabel,
@@ -57,6 +57,7 @@ function formatReconciledDate(iso?: string): string | null {
 }
 
 export function BudgetAccountsContent() {
+  const bankConnect = useFeatureFlag("bank_connect") === true;
   const {
     budget,
     addAccount,
@@ -101,7 +102,7 @@ export function BudgetAccountsContent() {
       <BudgetPageHeader
         title="Accounts"
         description={
-          isBankConnectEnabled()
+          bankConnect
             ? "Connect a bank to pull transactions, or add an account by hand. Import a CSV, OFX, or QFX file from the register."
             : "Add an account by hand. Import a CSV, OFX, or QFX file from the register."
         }

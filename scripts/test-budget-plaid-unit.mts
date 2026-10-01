@@ -319,7 +319,11 @@ const ui = readFileSync(
 );
 assert(!/YNAB/i.test(ui), "bank link UI does not name YNAB");
 assert(ui.includes("Connect bank"), "primary CTA is Connect bank");
-assert(ui.includes("isBankConnectEnabled"), "connect bank is behind the flag");
+assert(ui.includes("status.enabled"), "connect bank follows the account flag");
+assert(
+  ui.includes("You can still disconnect"),
+  "an existing bank can be disconnected when the flag is off",
+);
 assert(ui.includes("Sync now"), "sync action says Sync now");
 assert(ui.includes("Create a new account"), "mapping can create a budget account");
 assert(ui.includes("Reconnect"), "item errors offer Reconnect");

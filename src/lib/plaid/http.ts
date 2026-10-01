@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { isFeatureEnabled } from "@/lib/flags/server";
 import { isPlaidConfigured, isPlaidStorageReady } from "@/lib/plaid/config";
 import { isPlaidEncryptionReady } from "@/lib/plaid/crypto";
-import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
@@ -36,11 +35,11 @@ export function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
-/** Flag, keys, encryption key, and the service-role database. Null when ready. */
+/**
+ * Keys, encryption key, and the service-role database. Null when ready.
+ * The account flag is checked in requirePlaidUser, so disconnect can skip it.
+ */
 export function plaidSetupError(): Response | null {
-  if (!isBankConnectEnabled()) {
-    return jsonError("Bank connection is not available.", 404);
-  }
   if (!isPlaidConfigured() || !isPlaidEncryptionReady()) {
     return jsonError("Bank linking is not set up on this server.", 503);
   }

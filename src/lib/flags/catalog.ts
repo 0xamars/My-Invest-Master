@@ -29,7 +29,7 @@ export const FEATURE_FLAGS: readonly FeatureFlagDefinition[] = [
     id: "bank_connect",
     label: "Bank connection",
     description:
-      "Shows bank linking in Budget for this account. Off for everyone unless this is on, or the server setting is on.",
+      "Shows bank linking in Budget for this account. Off for everyone unless this is on, or the server setting is on. BANK_CONNECT_ENABLED=0 turns it off for every account.",
     env: "NEXT_PUBLIC_BANK_CONNECT_ENABLED",
     kind: "default",
   },

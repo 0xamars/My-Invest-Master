@@ -42,6 +42,7 @@ import {
   envEnablesFlag,
   resolveFeatureFlag,
 } from "../src/lib/flags/catalog.ts";
+import { resolveBankConnectForAccount } from "../src/lib/plaid/feature.ts";
 import { parseEnvFlag } from "../src/lib/flags/env.ts";
 import {
   fmpDisplayAllowsEmail,
@@ -78,6 +79,26 @@ assert(
   "an override can turn bank connection on for one account",
 );
 assert(
+  resolveBankConnectForAccount(true, {}) === true,
+  "an override turns bank connection on while the server setting is off",
+);
+assert(
+  resolveBankConnectForAccount(null, {}) === false,
+  "no override stays off when the server setting is off",
+);
+assert(
+  resolveBankConnectForAccount(true, { BANK_CONNECT_ENABLED: "0" }) === false,
+  "BANK_CONNECT_ENABLED=0 turns an override off",
+);
+assert(
+  resolveBankConnectForAccount(false, { BANK_CONNECT_ENABLED: "1" }) === false,
+  "an override can turn one account off while the server switch is on",
+);
+assert(
+  resolveBankConnectForAccount(null, { BANK_CONNECT_ENABLED: "1" }) === true,
+  "no override follows a server switch that is on",
+);
+assert(
   resolveFeatureFlag("bank_connect", true, false) === false,
   "an override can turn a flag off for one account",
 );
@@ -102,6 +123,16 @@ const bank = flags.find((flag) => flag.id === "bank_connect");
 const market = flags.find((flag) => flag.id === "fmp_display");
 assert(bank?.effective === true, "admin state shows bank connection on for that person");
 assert(bank?.serverOn === false, "admin state still shows the server setting as off");
+const forcedOff = describeFlagsForAdmin(new Map([["bank_connect", true]]), {
+  NEXT_PUBLIC_BANK_CONNECT_ENABLED: "1",
+  BANK_CONNECT_ENABLED: "0",
+});
+const forcedBank = forcedOff.find((flag) => flag.id === "bank_connect");
+assert(
+  forcedBank?.effective === false,
+  "BANK_CONNECT_ENABLED=0 turns bank connection off even with an override",
+);
+assert(forcedBank?.serverOn === false, "the server switch is off for every account");
 assert(market?.effective === null, "market data access is not a simple on/off result");
 assert(market?.serverOn === true, "market data server state is the gate");
 assert(
@@ -379,6 +410,15 @@ const plaidHttp = readFileSync("src/lib/plaid/http.ts", "utf8");
 assert(
   plaidHttp.includes('isFeatureEnabled("bank_connect"'),
   "bank routes require the bank connection flag",
+);
+const setupFn = plaidHttp.slice(plaidHttp.indexOf("function plaidSetupError"));
+assert(
+  !setupFn.includes("isBankConnectEnabled"),
+  "credential setup does not apply the global bank switch",
+);
+assert(
+  readFileSync("src/lib/flags/server.ts", "utf8").includes("resolveBankConnectForAccount"),
+  "the bank flag goes through the server switch",
 );
 const itemRoute = readFileSync("src/app/api/plaid/item/route.ts", "utf8");
 assert(

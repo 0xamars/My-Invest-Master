@@ -34,7 +34,7 @@ When the flag is `1`, or an admin sets Bank connection to On for this account, a
 2. Connect bank. In the bank window use username `user_good` and password `pass_good`. Pick a sandbox institution.
 3. The next step lists each bank account. Choose an existing budget account, or create a new one, then Save and sync. Transactions show up in the register as normal rows waiting to be assigned.
 4. Import an OFX or QFX file of the same activity into that same budget account. Rows that match amount, account, and a close date are not added again.
-5. The connection list shows the institution, Sync now, and Disconnect. Sync now pulls newer rows. Disconnect removes the bank link and keeps the transactions already saved.
+5. The connection list shows the institution, Sync now, and Disconnect. Sync now pulls newer rows. Disconnect removes the bank link and keeps the transactions already saved. Disconnect still works after the flag is turned off for that account.
 6. If the bank sign-in expires, the row asks you to reconnect instead of Sync now. A failed request shows a short sentence, not a stack trace.
 
 Sandbox and production setup are in `docs/plaid.md`.
