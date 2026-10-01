@@ -343,7 +343,7 @@ function NetWorthReport({
   return (
     <ChartFrame
       title="Net worth"
-      description="On-budget and tracking balances. Assets minus liabilities (cards, lines of credit, mortgages)."
+      description="On-budget and tracking balances. Assets minus liabilities (cards, lines of credit, mortgages, and auto loans)."
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <NetWorthStat label="Assets" value={snapshot.assets} />

@@ -6,7 +6,16 @@ export type BudgetAccountType =
   | "line-of-credit"
   | "brokerage"
   | "mortgage"
+  | "auto-loan"
   | "other";
+
+/** One annual rate, kept from the date it takes effect. */
+export interface BudgetInterestRate {
+  /** YYYY-MM-DD. A later date does not erase earlier rates. */
+  effectiveDate: string;
+  /** Annual percent. 5.25 means 5.25% per year. */
+  annualPercent: number;
+}
 
 export interface BudgetAccount {
   id: string;
@@ -15,10 +24,23 @@ export interface BudgetAccount {
   sortOrder: number;
   /**
    * On-budget accounts affect Ready to Assign and category Activity.
-   * Tracking / off-budget accounts (brokerage, mortgage, etc.) do not.
+   * Tracking / off-budget accounts (brokerage, mortgage, auto loan, etc.) do not.
    * Missing or true means on-budget; normalize writes this explicitly.
    */
   onBudget?: boolean;
+  /**
+   * Rate history for a mortgage, auto loan, or line of credit.
+   * Each effective date is kept. Missing means no rate has been entered.
+   */
+  interestRates?: BudgetInterestRate[];
+  /** Minimum payment. Missing means not set. */
+  minimumPayment?: number;
+  /** Day of the month the payment is due, from 1 to 31. Missing means not set. */
+  paymentDueDay?: number;
+  /** Balance owed when the loan was added. Missing means not set. */
+  openingBalance?: number;
+  /** Date of that opening balance, YYYY-MM-DD. */
+  openingBalanceDate?: string;
   lastReconciledAt?: string;
   /** Bank-linked account id from Plaid. */
   plaidAccountId?: string;

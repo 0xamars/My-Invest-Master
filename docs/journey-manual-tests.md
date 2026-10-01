@@ -64,9 +64,13 @@ Sandbox and production setup are in `docs/plaid.md`.
 2. Assign every dollar in a budget that also has a holding. The Retire card does not say the setup is missing just because Ready to Assign is zero.
 3. With a saved Retire plan that has a real path, the Retire card uses that plan.
 
-## 9. Typecheck and units
+## 9. Loans and mortgages
 
-`npx tsc --noEmit` and the journey / invest / ticker / budget / retire / early-opp / admin unit scripts pass. Admin units: `npm run test:admin`.
+1. Add an Auto Loan, a Mortgage, and a Line of Credit. Each starts as Tracking. You can switch the line of credit to On-budget. Chequing still starts On-budget.
+2. On the auto loan, enter an opening balance owed, a minimum payment, a due day, and an annual rate with a start date. Save. The account row shows those figures and the balance owed. Blank fields stay “not set”. No dollar estimate appears until a rate is saved.
+3. Add a second rate on a later date. The first rate is still listed. The estimate uses the rate in effect today: balance owed times the annual rate, divided by 12. The note says it is a simple estimate for learning, not a payment schedule or advice.
+4. Assign money to a Mortgage envelope. Transfer that amount from chequing to the off-budget mortgage and choose the Mortgage envelope. The transfer cannot be saved without an envelope. Ready to Assign does not drop again. Mortgage Available goes down. Chequing goes down. The balance owed goes down by the same amount. Net worth does not change from the payment itself.
+5. A transfer between two on-budget accounts still needs no envelope and does not change Ready to Assign.
 
 ## 10. Admin and a test account
 
@@ -78,3 +82,7 @@ Sign in as `admin@investsalsa.com` after that email is confirmed. That is the de
 4. On the signed-in admin login, choose **Add sample data**. Budget shows Sample budget with Sample chequing and Sample savings. Invest shows Sample portfolio. Retire shows Sample Retire plan with no invented age or retire date. Names say Sample. Amounts are placeholders.
 5. Choose **Reset this account**, then confirm. The sample plans are gone. The sign-in still works. A signed-in admin whose email is not a plus-address test login and is not `admin@investsalsa.com` has no sample-data controls.
 6. In the Supabase SQL editor, `select action, target_user_id, created_at from admin_audit_log order by created_at desc limit 20` shows the lookup. It does not show balances or transaction text.
+
+## 11. Typecheck and units
+
+`npx tsc --noEmit` and the journey / invest / ticker / budget / retire / early-opp / admin unit scripts pass. Admin units: `npm run test:admin`.

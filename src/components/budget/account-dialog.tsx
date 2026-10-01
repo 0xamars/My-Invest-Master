@@ -25,9 +25,18 @@ import {
   defaultOnBudgetForType,
   isCreditCardPaymentAccount,
   isLiabilityAccount,
+  isLoanAccount,
   isOnBudgetAccount,
 } from "@/lib/budget/accounts";
-import type { BudgetAccount, BudgetAccountType } from "@/types/budget";
+import { formatBudgetDate } from "@/lib/budget/format";
+import type { LoanTermsDraft } from "@/lib/budget/loans";
+import { STARTING_BALANCE_PAYEE } from "@/lib/budget/starting-balance";
+import type {
+  BudgetAccount,
+  BudgetAccountType,
+  BudgetInterestRate,
+  BudgetTransaction,
+} from "@/types/budget";
 
 const ACCOUNT_TYPES = Object.keys(ACCOUNT_TYPE_LABELS) as BudgetAccountType[];
 
@@ -35,12 +44,14 @@ interface AccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: BudgetAccount | null;
-  onSave: (
-    name: string,
-    type: BudgetAccountType,
-    onBudget: boolean,
-    startingBalance?: { amount: number; date: string },
-  ) => void;
+  transactions?: BudgetTransaction[];
+  onSave: (input: {
+    name: string;
+    type: BudgetAccountType;
+    onBudget: boolean;
+    startingBalance?: { amount: number; date: string };
+    loan?: LoanTermsDraft;
+  }) => void;
 }
 
 function todayKey(): string {
@@ -50,10 +61,18 @@ function todayKey(): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+function formatPercent(value: number): string {
+  return `${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  }).format(value)}%`;
+}
+
 export function AccountDialog({
   open,
   onOpenChange,
   account,
+  transactions = [],
   onSave,
 }: AccountDialogProps) {
   const isEdit = Boolean(account);
@@ -62,6 +81,12 @@ export function AccountDialog({
   const [onBudget, setOnBudget] = useState(true);
   const [startingBalance, setStartingBalance] = useState("");
   const [startingDate, setStartingDate] = useState(todayKey);
+  const [rates, setRates] = useState<BudgetInterestRate[]>([]);
+  const [draftRate, setDraftRate] = useState("");
+  const [draftRateDate, setDraftRateDate] = useState(todayKey);
+  const [minimumPayment, setMinimumPayment] = useState("");
+  const [dueDay, setDueDay] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -71,9 +96,32 @@ export function AccountDialog({
     setOnBudget(
       account ? isOnBudgetAccount(account) : defaultOnBudgetForType(nextType),
     );
-    setStartingBalance("");
-    setStartingDate(todayKey());
-  }, [open, account]);
+    setRates(account?.interestRates ?? []);
+    setDraftRate("");
+    setDraftRateDate(todayKey());
+    setMinimumPayment(
+      account?.minimumPayment != null ? String(account.minimumPayment) : "",
+    );
+    setDueDay(account?.paymentDueDay != null ? String(account.paymentDueDay) : "");
+    setFormError(null);
+
+    const startingTx = account
+      ? transactions.find(
+          (tx) =>
+            tx.accountId === account.id && tx.payee === STARTING_BALANCE_PAYEE,
+        )
+      : undefined;
+    if (account?.openingBalance != null && account.openingBalance > 0) {
+      setStartingBalance(String(account.openingBalance));
+      setStartingDate(account.openingBalanceDate ?? startingTx?.date ?? todayKey());
+    } else if (isEdit && isLoanAccount(nextType) && startingTx) {
+      setStartingBalance(String(startingTx.amount));
+      setStartingDate(startingTx.date);
+    } else {
+      setStartingBalance("");
+      setStartingDate(todayKey());
+    }
+  }, [open, account, transactions, isEdit]);
 
   function handleTypeChange(nextType: BudgetAccountType) {
     setType(nextType);
@@ -82,30 +130,119 @@ export function AccountDialog({
     }
   }
 
+  function mergeDraftRate(
+    current: BudgetInterestRate[],
+  ): { rates: BudgetInterestRate[]; error?: string } {
+    if (!draftRate.trim()) return { rates: current };
+    const parsed = Number.parseFloat(draftRate);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+      return {
+        rates: current,
+        error: "Enter an annual rate from 0 to 100, or leave it blank.",
+      };
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(draftRateDate)) {
+      return { rates: current, error: "Enter the date this rate starts." };
+    }
+    const next = current.filter((rate) => rate.effectiveDate !== draftRateDate);
+    next.push({ effectiveDate: draftRateDate, annualPercent: parsed });
+    return { rates: next };
+  }
+
+  function handleAddRate() {
+    const merged = mergeDraftRate(rates);
+    if (merged.error) {
+      setFormError(merged.error);
+      return;
+    }
+    if (!draftRate.trim()) return;
+    setRates(merged.rates);
+    setDraftRate("");
+    setFormError(null);
+  }
+
   function handleSubmit() {
     if (!name.trim()) return;
-    const parsed = Number.parseFloat(startingBalance);
+    const loanType = isLoanAccount(type);
+    const parsedBalance = Number.parseFloat(startingBalance);
+    const hasOpening = startingBalance.trim().length > 0;
+    if (hasOpening && (!Number.isFinite(parsedBalance) || parsedBalance <= 0)) {
+      setFormError("Enter an opening balance above zero, or leave it blank.");
+      return;
+    }
+    if (hasOpening && !/^\d{4}-\d{2}-\d{2}$/.test(startingDate)) {
+      setFormError("Enter the date of the opening balance.");
+      return;
+    }
+
+    let minimum: number | null = null;
+    if (loanType && minimumPayment.trim()) {
+      const parsed = Number.parseFloat(minimumPayment);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        setFormError("Enter a minimum payment above zero, or leave it blank.");
+        return;
+      }
+      minimum = parsed;
+    }
+
+    let paymentDueDay: number | null = null;
+    if (loanType && dueDay.trim()) {
+      const parsed = Number.parseInt(dueDay, 10);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 31) {
+        setFormError("Payment due day is from 1 to 31, or leave it blank.");
+        return;
+      }
+      paymentDueDay = parsed;
+    }
+
+    const merged = loanType ? mergeDraftRate(rates) : { rates };
+    if (merged.error) {
+      setFormError(merged.error);
+      return;
+    }
+
     const opening =
-      !isEdit && Number.isFinite(parsed) && parsed > 0 && startingDate
-        ? { amount: parsed, date: startingDate }
+      hasOpening && Number.isFinite(parsedBalance) && parsedBalance > 0
+        ? { amount: parsedBalance, date: startingDate }
         : undefined;
-    onSave(name, type, onBudget, opening);
+
+    onSave({
+      name: name.trim(),
+      type,
+      onBudget,
+      startingBalance: isEdit ? undefined : opening,
+      loan: loanType
+        ? {
+            interestRates: merged.rates,
+            minimumPayment: minimum,
+            paymentDueDay,
+            openingBalance: opening ?? null,
+          }
+        : undefined,
+    });
     onOpenChange(false);
   }
 
+  const loanType = isLoanAccount(type);
+  const balanceLabel = loanType
+    ? "Opening balance owed"
+    : isLiabilityAccount(type)
+      ? "Current balance owed"
+      : "Current balance";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="budget-dialog sm:max-w-md">
+      <DialogContent className={loanType ? "budget-dialog sm:max-w-lg" : "budget-dialog sm:max-w-md"}>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Account" : "Add Account"}</DialogTitle>
           <DialogDescription>
             {isEdit
               ? "Update the name, type, or convert between on-budget and tracking."
-              : "A spending account is enough. Tracking accounts stay off-budget."}
+              : "A spending account is enough. Loans, mortgages, and lines of credit start off-budget."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
+        <div className="max-h-[65vh] space-y-4 overflow-y-auto py-1">
           <div className="space-y-1.5">
             <Label htmlFor="account-name">Account name</Label>
             <Input
@@ -119,66 +256,6 @@ export function AccountDialog({
               autoFocus
             />
           </div>
-
-          <div className="space-y-1.5">
-            <Label>Budget</Label>
-            <Tabs
-              value={onBudget ? "on-budget" : "tracking"}
-              onValueChange={(value) => setOnBudget(value === "on-budget")}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="on-budget">
-                  On-budget
-                </TabsTrigger>
-                <TabsTrigger value="tracking">
-                  Tracking
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <p className="text-xs text-muted-foreground">
-              {onBudget && isCreditCardPaymentAccount({ type, onBudget })
-                ? "A payment envelope is created automatically. Card spend moves dollars there; paying the card uses that envelope."
-                : onBudget
-                  ? "Inflows go to Ready to Assign. Spending hits envelope Activity."
-                  : "Off-budget. Activity does not change Ready to Assign or envelope Activity. Transfers in or out of the budget do."}
-            </p>
-          </div>
-
-          {!isEdit ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="account-starting-balance">
-                  {isLiabilityAccount(type) ? "Current balance owed" : "Current balance"}
-                </Label>
-                <Input
-                  id="account-starting-balance"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={startingBalance}
-                  onChange={(event) => setStartingBalance(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="account-starting-date">As of</Label>
-                <Input
-                  id="account-starting-date"
-                  type="date"
-                  value={startingDate}
-                  onChange={(event) => setStartingDate(event.target.value)}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground sm:col-span-2">
-                {isCreditCardPaymentAccount({ type, onBudget })
-                  ? "Existing debt is not funded. Assign money to the payment envelope when you are ready to pay it. Interest and fees are later transactions on this card."
-                  : onBudget
-                    ? "A positive balance is income in Ready to Assign, ready to give a job."
-                    : "Tracking only. This balance does not change Ready to Assign."}
-              </p>
-            </div>
-          ) : null}
 
           <div className="space-y-1.5">
             <Label>Account type</Label>
@@ -200,6 +277,150 @@ export function AccountDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-1.5">
+            <Label>Budget</Label>
+            <Tabs
+              value={onBudget ? "on-budget" : "tracking"}
+              onValueChange={(value) => setOnBudget(value === "on-budget")}
+            >
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="on-budget">On-budget</TabsTrigger>
+                <TabsTrigger value="tracking">Tracking</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <p className="text-xs text-muted-foreground">
+              {onBudget && isCreditCardPaymentAccount({ type, onBudget })
+                ? "A payment envelope is created automatically. Card spend moves dollars there; paying the card uses that envelope."
+                : onBudget
+                  ? "Inflows go to Ready to Assign. Spending hits envelope Activity."
+                  : "Off-budget. Activity does not change Ready to Assign or envelope Activity. A transfer from an on-budget account needs an envelope."}
+            </p>
+          </div>
+
+          {!isEdit || loanType ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="account-starting-balance">{balanceLabel}</Label>
+                <Input
+                  id="account-starting-balance"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="Leave blank if unknown"
+                  value={startingBalance}
+                  onChange={(event) => setStartingBalance(event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="account-starting-date">As of</Label>
+                <Input
+                  id="account-starting-date"
+                  type="date"
+                  value={startingDate}
+                  onChange={(event) => setStartingDate(event.target.value)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                {isCreditCardPaymentAccount({ type, onBudget })
+                  ? "Existing debt is not funded. Assign money to the payment envelope when you are ready to pay it. Interest and fees are later transactions on this card."
+                  : loanType
+                    ? "Leave this blank if you do not know the balance owed yet. A saved balance does not change Ready to Assign."
+                    : onBudget
+                      ? "A positive balance is income in Ready to Assign, ready to give a job. Leave it blank to add none."
+                      : "Tracking only. This balance does not change Ready to Assign. Leave it blank to add none."}
+              </p>
+            </div>
+          ) : null}
+
+          {loanType ? (
+            <div className="space-y-3 rounded-md border border-border/60 p-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Loan terms</p>
+                <p className="text-xs text-muted-foreground">
+                  Leave a field blank when you do not have it. A new rate on a
+                  later date keeps the earlier rate. The same date replaces
+                  that day only.
+                </p>
+              </div>
+              {rates.length > 0 ? (
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  {[...rates]
+                    .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate))
+                    .map((rate) => (
+                      <li key={rate.effectiveDate}>
+                        {formatPercent(rate.annualPercent)} from{" "}
+                        {formatBudgetDate(rate.effectiveDate)}
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">No rate saved yet.</p>
+              )}
+              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                <div className="space-y-1.5">
+                  <Label htmlFor="account-rate">Annual rate (%)</Label>
+                  <Input
+                    id="account-rate"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.001"
+                    inputMode="decimal"
+                    placeholder="Not set"
+                    value={draftRate}
+                    onChange={(event) => setDraftRate(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="account-rate-date">Rate starts</Label>
+                  <Input
+                    id="account-rate-date"
+                    type="date"
+                    value={draftRateDate}
+                    onChange={(event) => setDraftRateDate(event.target.value)}
+                  />
+                </div>
+                <Button type="button" variant="outline" onClick={handleAddRate}>
+                  Add rate
+                </Button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="account-minimum">Minimum payment</Label>
+                  <Input
+                    id="account-minimum"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="Not set"
+                    value={minimumPayment}
+                    onChange={(event) => setMinimumPayment(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="account-due-day">Payment due day</Label>
+                  <Input
+                    id="account-due-day"
+                    type="number"
+                    min={1}
+                    max={31}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="Optional"
+                    value={dueDay}
+                    onChange={(event) => setDueDay(event.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {formError ? (
+            <p className="text-xs text-[var(--brand-orange)]">{formError}</p>
+          ) : null}
         </div>
 
         <DialogFooter>

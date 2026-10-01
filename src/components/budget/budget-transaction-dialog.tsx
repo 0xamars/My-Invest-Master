@@ -24,9 +24,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ACCOUNT_TYPE_LABELS,
   isCreditCardPaymentAccount,
+  isLiabilityAccount,
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
+import { transferLeavesBudget } from "@/lib/budget/on-budget";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
@@ -337,9 +339,13 @@ export function BudgetTransactionDialog({
 
     if (type === "transfer") {
       if (!transferAccountId || transferAccountId === accountId) return;
-      const toName =
-        orderedAccounts.find((account) => account.id === transferAccountId)
-          ?.name ?? "account";
+      const fromAccount = orderedAccounts.find((account) => account.id === accountId);
+      const toAccount = orderedAccounts.find(
+        (account) => account.id === transferAccountId,
+      );
+      const needsCategory = transferLeavesBudget(fromAccount, toAccount);
+      if (needsCategory && categoryId === "none") return;
+      const toName = toAccount?.name ?? "account";
       onSave({
         date,
         payee: buildTransferPayee(toName),
@@ -347,7 +353,8 @@ export function BudgetTransactionDialog({
         transferAccountId,
         amount: parsedAmount,
         type: "transfer",
-        categoryId: null,
+        categoryId: needsCategory ? categoryId : null,
+        categoryManual: needsCategory ? true : undefined,
         memo: memo.trim() || undefined,
         cleared: transaction?.cleared ?? "uncleared",
       });
@@ -417,11 +424,15 @@ export function BudgetTransactionDialog({
     type === "transfer" &&
     Boolean(transferAccountId) &&
     selectedOnBudget !== transferOnBudget;
+  const transferNeedsCategory =
+    type === "transfer" && transferLeavesBudget(selectedAccount, transferAccount);
 
   const canSubmit = (() => {
     if (!accountId || !hasValidAmount) return false;
     if (type === "transfer") {
-      return Boolean(transferAccountId) && transferAccountId !== accountId;
+      if (!transferAccountId || transferAccountId === accountId) return false;
+      if (transferNeedsCategory && categoryId === "none") return false;
+      return true;
     }
     if (!payee.trim()) return false;
     if (type === "outflow" && splitEnabled && selectedOnBudget) {
@@ -453,15 +464,17 @@ export function BudgetTransactionDialog({
   const description =
     type === "transfer"
       ? payingCard
-        ? "This pays the card. It uses the card payment envelope. Leftover does not change."
+        ? "This pays the card. It uses the card payment envelope. Ready to Assign does not change."
         : cashAdvance
           ? "Cash advance. Ready to Assign goes up and the balance owed goes up. Assign that money to the payment envelope to cover it."
           : transferCrossesBudget
             ? selectedOnBudget && selectedAccount && isCreditCardPaymentAccount(selectedAccount)
-              ? "Spending off-budget with this card pulls Ready to Assign into the payment envelope."
+              ? "Choose an envelope. That envelope’s Available goes down and the card payment envelope goes up. Ready to Assign stays the same."
               : selectedOnBudget
-                ? "This leaves the budget. Leftover goes down by the transfer amount."
-                : "This enters the budget. Leftover goes up by the transfer amount."
+                ? transferAccount && isLiabilityAccount(transferAccount.type)
+                  ? "This payment leaves the budget. Choose an envelope, such as Mortgage. Ready to Assign stays the same, that envelope’s Available goes down, and the balance owed goes down."
+                  : "This leaves the budget. Choose an envelope. Ready to Assign stays the same, and that envelope’s Available goes down."
+                : "This enters the budget. Ready to Assign goes up by the transfer amount."
             : "Move money between accounts. Transfers between the same budget side do not change Ready to Assign."
       : type === "inflow"
         ? returningOnCard
@@ -699,6 +712,41 @@ export function BudgetTransactionDialog({
             </div>
           )}
 
+          {transferNeedsCategory ? (
+            <div className="space-y-1.5">
+              <Label>Envelope</Label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => {
+                  setCategoryTouched(true);
+                  setCategoryId(value ?? "none");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an envelope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Choose an envelope</SelectItem>
+                  {sortedGroups.flatMap((group) => {
+                    const groupCategories = assignableCategories
+                      .filter((category) => category.groupId === group.id)
+                      .sort((a, b) => a.sortOrder - b.sortOrder);
+
+                    return groupCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {group.name} · {category.name}
+                      </SelectItem>
+                    ));
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Required. This is spending from that envelope. Ready to Assign
+                does not change.
+              </p>
+            </div>
+          ) : null}
+
           {type === "inflow" && selectedOnBudget ? (
             <div className="space-y-1.5">
               <Label>Envelope</Label>
@@ -710,10 +758,10 @@ export function BudgetTransactionDialog({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Leftover" />
+                  <SelectValue placeholder="Ready to Assign" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Leftover</SelectItem>
+                  <SelectItem value="none">Ready to Assign</SelectItem>
                   {sortedGroups.flatMap((group) => {
                     const groupCategories = assignableCategories
                       .filter((category) => category.groupId === group.id)

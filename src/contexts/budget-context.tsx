@@ -6,6 +6,7 @@ import {
   type AddBudgetScheduledTransactionInput,
   type AddBudgetTransactionInput,
 } from "@/hooks/use-budget-plan-mutations";
+import type { LoanTermsDraft } from "@/lib/budget/loans";
 import type { PayeeRuleDraft } from "@/lib/budget/payee-rules";
 import type {
   BudgetAccount,
@@ -105,15 +106,21 @@ interface BudgetContextValue {
     label?: string;
   }) => void;
   removeCategoryGoal: (categoryId: string) => void;
-  addAccount: (
-    name: string,
-    type: BudgetAccountType,
-    onBudget?: boolean,
-    startingBalance?: { amount: number; date: string },
-  ) => void;
+  addAccount: (input: {
+    name: string;
+    type: BudgetAccountType;
+    onBudget?: boolean;
+    startingBalance?: { amount: number; date: string };
+    loan?: LoanTermsDraft;
+  }) => void;
   updateAccount: (
     accountId: string,
-    updates: { name?: string; type?: BudgetAccountType; onBudget?: boolean },
+    updates: {
+      name?: string;
+      type?: BudgetAccountType;
+      onBudget?: boolean;
+      loan?: LoanTermsDraft;
+    },
   ) => void;
   deleteAccount: (
     accountId: string,

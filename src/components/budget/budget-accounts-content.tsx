@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { AccountDialog } from "@/components/budget/account-dialog";
 import { BudgetBankLinkGate } from "@/components/budget/budget-bank-link-gate";
+import { LoanAccountSummary } from "@/components/budget/loan-account-summary";
 import { BudgetReconcileDialog } from "@/components/budget/budget-reconcile-dialog";
 import { PayCardDialog } from "@/components/budget/pay-card-dialog";
 import { DeleteAccountDialog } from "@/components/budget/delete-account-dialog";
@@ -156,7 +157,7 @@ export function BudgetAccountsContent() {
           />
           <AccountSection
             title="Tracking"
-            empty="No tracking accounts yet. Add a brokerage, mortgage, or convert an account."
+            empty="No tracking accounts yet. Add a brokerage, mortgage, auto loan, or line of credit, or convert an account."
             accounts={trackingAccounts}
             allAccounts={accounts}
             budget={budget}
@@ -174,18 +175,17 @@ export function BudgetAccountsContent() {
       <AccountDialog
         open={addOpen}
         onOpenChange={setAddOpen}
-        onSave={(name, type, onBudget, startingBalance) =>
-          addAccount(name, type, onBudget, startingBalance)
-        }
+        onSave={(input) => addAccount(input)}
       />
 
       <AccountDialog
         open={Boolean(editingAccount)}
         onOpenChange={(open) => !open && setEditingAccount(null)}
         account={editingAccount}
-        onSave={(name, type, onBudget) => {
+        transactions={budget.transactions}
+        onSave={(input) => {
           if (editingAccount) {
-            updateAccount(editingAccount.id, { name, type, onBudget });
+            updateAccount(editingAccount.id, input);
           }
         }}
       />
@@ -294,10 +294,8 @@ function AccountSection({
               : null;
 
             return (
-              <div
-                key={account.id}
-                className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1.4fr)_8rem_7rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] md:items-center md:gap-3 sm:px-5"
-              >
+              <div key={account.id} className="px-4 py-3 sm:px-5">
+              <div className="grid gap-2 md:grid-cols-[minmax(0,1.4fr)_8rem_7rem_minmax(6rem,1fr)_minmax(6rem,1fr)_auto] md:items-center md:gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{account.name}</p>
                   <p className="text-[11px] text-muted-foreground">
@@ -372,7 +370,7 @@ function AccountSection({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(account)}>
                         <Pencil className="size-4" />
-                        Rename
+                        Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -386,6 +384,12 @@ function AccountSection({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+              </div>
+              <LoanAccountSummary
+                account={account}
+                balance={balance}
+                currency={currency}
+              />
               </div>
             );
           })}

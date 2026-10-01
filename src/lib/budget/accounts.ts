@@ -14,6 +14,7 @@ export const ACCOUNT_TYPE_LABELS: Record<BudgetAccountType, string> = {
   "line-of-credit": "Line of Credit",
   brokerage: "Brokerage",
   mortgage: "Mortgage",
+  "auto-loan": "Auto Loan",
   other: "Other",
 };
 
@@ -25,8 +26,15 @@ export function isBudgetAccountType(value: string): value is BudgetAccountType {
   return ACCOUNT_TYPES.has(value as BudgetAccountType);
 }
 
+const OFF_BUDGET_BY_DEFAULT = new Set<BudgetAccountType>([
+  "brokerage",
+  "mortgage",
+  "auto-loan",
+  "line-of-credit",
+]);
+
 export function defaultOnBudgetForType(type: BudgetAccountType): boolean {
-  return type !== "brokerage" && type !== "mortgage";
+  return !OFF_BUDGET_BY_DEFAULT.has(type);
 }
 
 export function isOnBudgetAccount(
@@ -45,8 +53,16 @@ export function accountById(
 
 export function isLiabilityAccount(type: BudgetAccountType): boolean {
   return (
-    type === "credit-card" || type === "line-of-credit" || type === "mortgage"
+    type === "credit-card" ||
+    type === "line-of-credit" ||
+    type === "mortgage" ||
+    type === "auto-loan"
   );
+}
+
+/** Mortgage, auto loan, and line of credit. These carry loan terms. */
+export function isLoanAccount(type: BudgetAccountType): boolean {
+  return type === "mortgage" || type === "auto-loan" || type === "line-of-credit";
 }
 
 /** On-budget credit cards and lines of credit get a payment category. */

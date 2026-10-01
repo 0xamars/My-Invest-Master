@@ -129,9 +129,7 @@ export function scheduledToPostedTransaction(
     payee: schedule.payee,
     accountId: schedule.accountId,
     categoryId:
-      schedule.type === "inflow" || schedule.type === "transfer" || splits
-        ? null
-        : schedule.categoryId,
+      splits || schedule.type === "inflow" ? null : schedule.categoryId,
     amount: Math.abs(schedule.amount),
     type: schedule.type,
     cleared: "uncleared",

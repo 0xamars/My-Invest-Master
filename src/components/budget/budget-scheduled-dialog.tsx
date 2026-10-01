@@ -23,9 +23,11 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ACCOUNT_TYPE_LABELS,
+  isLiabilityAccount,
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
+import { transferLeavesBudget } from "@/lib/budget/on-budget";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import {
@@ -199,9 +201,13 @@ export function BudgetScheduledDialog({
   const destinationAccounts = orderedAccounts.filter(
     (account) => account.id !== accountId,
   );
-  const selectedOnBudget = isOnBudgetAccount(
-    orderedAccounts.find((account) => account.id === accountId),
+  const selectedAccount = orderedAccounts.find((account) => account.id === accountId);
+  const transferAccount = orderedAccounts.find(
+    (account) => account.id === transferAccountId,
   );
+  const selectedOnBudget = isOnBudgetAccount(selectedAccount);
+  const transferNeedsCategory =
+    type === "transfer" && transferLeavesBudget(selectedAccount, transferAccount);
 
   function handleTypeChange(nextType: BudgetTransactionType) {
     if (nextType === "transfer" && !canTransfer) return;
@@ -239,9 +245,8 @@ export function BudgetScheduledDialog({
 
     if (type === "transfer") {
       if (!transferAccountId || transferAccountId === accountId) return;
-      const toName =
-        orderedAccounts.find((account) => account.id === transferAccountId)
-          ?.name ?? "account";
+      if (transferNeedsCategory && categoryId === "none") return;
+      const toName = transferAccount?.name ?? "account";
       onSave({
         nextDate,
         frequency,
@@ -250,7 +255,7 @@ export function BudgetScheduledDialog({
         transferAccountId,
         amount: parsedAmount,
         type: "transfer",
-        categoryId: null,
+        categoryId: transferNeedsCategory ? categoryId : null,
         memo: memo.trim() || undefined,
         ...end,
       });
@@ -302,7 +307,9 @@ export function BudgetScheduledDialog({
     if (repeatUntil === "date" && !endDate) return false;
     if (repeatUntil === "count" && !hasValidCount) return false;
     if (type === "transfer") {
-      return Boolean(transferAccountId) && transferAccountId !== accountId;
+      if (!transferAccountId || transferAccountId === accountId) return false;
+      if (transferNeedsCategory && categoryId === "none") return false;
+      return true;
     }
     if (!payee.trim()) return false;
     if (type === "outflow" && splitEnabled && selectedOnBudget) {
@@ -529,6 +536,29 @@ export function BudgetScheduledDialog({
             </div>
           )}
 
+          {transferNeedsCategory ? (
+            <div className="space-y-1.5">
+              <Label>Envelope</Label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => setCategoryId(value ?? "none")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an envelope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Choose an envelope</SelectItem>
+                  {categoryOptions()}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {transferAccount && isLiabilityAccount(transferAccount.type)
+                  ? "Required. Each posted payment spends this envelope and lowers the balance owed. Ready to Assign stays the same."
+                  : "Required. Each posted transfer spends this envelope. Ready to Assign stays the same."}
+              </p>
+            </div>
+          ) : null}
+
           {type === "inflow" && selectedOnBudget ? (
             <div className="space-y-1.5">
               <Label>Envelope</Label>
@@ -537,10 +567,10 @@ export function BudgetScheduledDialog({
                 onValueChange={(value) => setCategoryId(value ?? "none")}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Leftover" />
+                  <SelectValue placeholder="Ready to Assign" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Leftover</SelectItem>
+                  <SelectItem value="none">Ready to Assign</SelectItem>
                   {categoryOptions()}
                 </SelectContent>
               </Select>

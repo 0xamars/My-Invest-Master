@@ -1,4 +1,5 @@
 import { accountById, isOnBudgetAccount } from "@/lib/budget/accounts";
+import { keptOffBudgetTransferCategory } from "@/lib/budget/on-budget";
 import type {
   BudgetAccount,
   BudgetCategory,
@@ -62,14 +63,23 @@ export function getOutflowActivityForCategory(
 
 /**
  * Envelope activity. Spending is positive. A categorized inflow (refund or
- * reimbursement) is negative. Transfers are 0. Tracking accounts are 0.
+ * reimbursement) is negative. Tracking accounts are 0.
+ * A categorized transfer from an on-budget account to an off-budget account
+ * spends the chosen envelope. Other transfers are 0.
  */
 export function getEnvelopeActivityForCategory(
   tx: BudgetTransaction,
   categoryId: string,
   accounts?: BudgetAccount[],
 ): number {
-  if (isTransferTransaction(tx)) return 0;
+  if (isTransferTransaction(tx)) {
+    const category = keptOffBudgetTransferCategory(
+      tx.categoryId,
+      accountById(accounts, tx.accountId),
+      accountById(accounts, tx.transferAccountId),
+    );
+    return category === categoryId ? tx.amount : 0;
+  }
   const account = accountById(accounts, tx.accountId);
   if (account && !isOnBudgetAccount(account)) return 0;
   if (isExpenseTransaction(tx)) return getOutflowActivityForCategory(tx, categoryId);
@@ -128,9 +138,19 @@ export function getTransactionDisplay(
       accountById(accounts, tx.transferAccountId),
     );
     const crossesBudget = fromOnBudget !== toOnBudget;
+    const categorized =
+      keptOffBudgetTransferCategory(
+        tx.categoryId,
+        accountById(accounts, tx.accountId),
+        accountById(accounts, tx.transferAccountId),
+      ) != null;
     return {
       payee: incoming ? `Transfer from ${fromName}` : `Transfer to ${toName}`,
-      categoryLabel: crossesBudget ? "Leftover" : "Transfer",
+      categoryLabel: categorized
+        ? categoryNameById(categories, tx.categoryId)
+        : crossesBudget
+          ? "Ready to Assign"
+          : "Transfer",
       isInflowLike: incoming || (!viewingAccountId && !fromOnBudget && toOnBudget),
       isTransfer: true,
       isSplit: false,
@@ -156,7 +176,9 @@ export function getTransactionDisplay(
     payee: tx.payee,
     categoryLabel:
       tx.type === "inflow"
-        ? "Leftover"
+        ? tx.categoryId
+          ? categoryNameById(categories, tx.categoryId)
+          : "Ready to Assign"
         : categoryNameById(categories, tx.categoryId),
     isInflowLike: tx.type === "inflow",
     isTransfer: false,
