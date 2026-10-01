@@ -11,7 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { AccountDialog } from "@/components/budget/account-dialog";
-import { BudgetBankLink } from "@/components/budget/budget-bank-link";
+import { BudgetBankLinkGate } from "@/components/budget/budget-bank-link-gate";
 import { BudgetReconcileDialog } from "@/components/budget/budget-reconcile-dialog";
 import { PayCardDialog } from "@/components/budget/pay-card-dialog";
 import { DeleteAccountDialog } from "@/components/budget/delete-account-dialog";
@@ -113,7 +113,7 @@ export function BudgetAccountsContent() {
         }
       />
 
-      <BudgetBankLink primary />
+      <BudgetBankLinkGate primary />
 
       {accounts.length === 0 ? (
         <BudgetPanel>

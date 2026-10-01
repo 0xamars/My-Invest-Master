@@ -21,7 +21,7 @@ This is not advice. The app will not invent leftover, income, holdings, cash, or
 **Sign in → Home → Budget / Invest / Retire.**
 
 1. **Home** (`/home`) — signed-in hub. Three blocks only: Budget to-assign, Invest top weight, Retire path to target. One number + one spark each. Empty cards use a short status and a different one-line caption. Ready to Assign of zero is not a missing Retire setup. The Budget card opens the last plan you opened when that plan still exists and can be opened. Not a fourth nav item.
-2. **Budget** (`/budget`) — leftover, envelopes, register, Plaid Connect, credit-card payment envelopes. Empty offers the first-run kit.
+2. **Budget** (`/budget`) — leftover, envelopes, register, credit-card payment envelopes. Bank linking shows when that flag is on for the account. Empty offers the first-run kit.
 3. **Invest** (`/invest`) — the public-stock book. Search a name or ticker. Rating Engine (section scores, spider/radar, street forecast) sits above Score and Past / Now / Future. Empty offers the first-book wizard. An existing book is never hidden or deleted. **Early Opp** (`/invest/early-opp`) is the 16-step decision aid under Invest — not a fourth nav pillar.
 4. **Retire** (`/retire`) — one date from leftover and the book. Target, on-track, and the lever. A date still needs leftover and the book.
 

@@ -16,6 +16,7 @@
     "test:early-opp": "npx --yes tsx --tsconfig tsconfig.json scripts/test-early-opp-unit.mts",
     "smoke:early-opp": "npx --yes tsx --tsconfig tsconfig.json scripts/smoke-early-opp.mts",
     "test:journey": "npx --yes tsx --tsconfig tsconfig.json scripts/test-journey-unit.mts",
+    "test:admin": "npx --yes tsx --tsconfig tsconfig.json scripts/test-admin-unit.mts",
     "test:ticker": "npx --yes tsx --tsconfig tsconfig.json scripts/test-ticker-unit.mts && npx --yes tsx --tsconfig tsconfig.json scripts/test-ticker-score-unit.mts"
   },
   "dependencies": {

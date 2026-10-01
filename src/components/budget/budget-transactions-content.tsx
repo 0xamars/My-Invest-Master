@@ -17,7 +17,7 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { BudgetBankLink } from "@/components/budget/budget-bank-link";
+import { BudgetBankLinkGate } from "@/components/budget/budget-bank-link-gate";
 import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import { BudgetCsvImportDialog } from "@/components/budget/budget-csv-import-dialog";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
@@ -337,7 +337,7 @@ export function BudgetTransactionsContent() {
         }
       />
 
-      <BudgetBankLink primary />
+      <BudgetBankLinkGate primary />
 
       <BudgetUpcomingList
         instances={upcoming}

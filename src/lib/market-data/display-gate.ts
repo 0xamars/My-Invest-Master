@@ -1,3 +1,5 @@
+import { parseEnvFlag } from "@/lib/flags/env";
+
 /** Neutral copy when FMP market data is withheld. */
 export const FMP_DISPLAY_UNAVAILABLE =
   "Market data is not available on your account yet";
@@ -9,8 +11,7 @@ export const FMP_DISPLAY_UNAVAILABLE =
 export function isFmpDisplayGateEnabled(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
-  const raw = env.FMP_DISPLAY_GATE_ENABLED?.trim().toLowerCase();
-  return raw === "1" || raw === "true";
+  return parseEnvFlag(env.FMP_DISPLAY_GATE_ENABLED);
 }
 
 export function parseFmpDisplayAllowlist(
@@ -26,8 +27,11 @@ export function parseFmpDisplayAllowlist(
 }
 
 /**
- * Gate off: everyone, including signed-out visitors.
- * Gate on: only an allowlisted email whose address is confirmed.
+ * Gate off: everyone, including signed-out visitors. Overrides are ignored
+ * so today's behavior stays. Turn the gate on before a per-user override
+ * can grant or remove market data.
+ * Gate on: a confirmed account with an override of on, or a confirmed
+ * allowlisted email. An override of off denies even an allowlisted email.
  * Missing email, or an unconfirmed signup, is denied.
  */
 export function fmpDisplayAllowsEmail(
@@ -36,9 +40,14 @@ export function fmpDisplayAllowsEmail(
     enabled: boolean;
     allowlist: ReadonlySet<string>;
     emailConfirmed?: boolean;
+    userOverride?: boolean | null;
   },
 ): boolean {
   if (!options.enabled) return true;
+  if (options.userOverride === false) return false;
+  if (options.userOverride === true && options.emailConfirmed === true) {
+    return true;
+  }
   if (options.emailConfirmed !== true) return false;
   if (!email) return false;
   return options.allowlist.has(email.trim().toLowerCase());

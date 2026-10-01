@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { isPlaidEncryptionReady } from "@/lib/plaid/crypto";
+import { isFeatureEnabled } from "@/lib/flags/server";
 import { isPlaidConfigured, isPlaidStorageReady } from "@/lib/plaid/config";
+import { isPlaidEncryptionReady } from "@/lib/plaid/crypto";
 import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
@@ -16,6 +17,11 @@ export async function requirePlaidUser(request: Request) {
   if (!user) {
     return {
       error: NextResponse.json({ error: "Sign in required" }, { status: 401 }),
+    };
+  }
+  if (!(await isFeatureEnabled("bank_connect", user.id))) {
+    return {
+      error: NextResponse.json({ error: "Not found" }, { status: 404 }),
     };
   }
   return { user, supabase };

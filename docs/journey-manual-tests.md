@@ -26,9 +26,9 @@ Use a real signed-in account. Do not invent leftover, income, holdings, or a Ret
 
 ## 4. Budget bank and cards
 
-With `NEXT_PUBLIC_BANK_CONNECT_ENABLED` unset, Accounts and the register do not show Connect bank. Import a CSV, OFX, or QFX file still works. Envelopes stay the source of truth. A credit card can be paid from an on-budget account into its payment envelope.
+With `NEXT_PUBLIC_BANK_CONNECT_ENABLED` unset and no per-user override, Accounts and the register do not show Connect bank. Import a CSV, OFX, or QFX file still works. Envelopes stay the source of truth. A credit card can be paid from an on-budget account into its payment envelope. `BANK_CONNECT_ENABLED=0` keeps Connect bank off for every account.
 
-When the flag is `1`, the encryption key is set, and Plaid sandbox keys are set:
+When the flag is `1`, or an admin sets Bank connection to On for this account, and the encryption key and Plaid sandbox keys are set:
 
 1. Open Accounts. Connect bank is visible. Unassigned money is called Ready to Assign. The screen does not name another budgeting app.
 2. Connect bank. In the bank window use username `user_good` and password `pass_good`. Pick a sandbox institution.
@@ -66,4 +66,15 @@ Sandbox and production setup are in `docs/plaid.md`.
 
 ## 9. Typecheck and units
 
-`npx tsc --noEmit` and the journey / invest / ticker / budget / retire / early-opp unit scripts pass.
+`npx tsc --noEmit` and the journey / invest / ticker / budget / retire / early-opp / admin unit scripts pass. Admin units: `npm run test:admin`.
+
+## 10. Admin and a test account
+
+Use a confirmed plus-address such as `name+test1@example.com`. The signed-in admin is a row in `app_admins`. See `docs/admin.md`.
+
+1. Signed out, open `/admin`. The response is a 404. A normal signed-in account that is not an admin also gets a 404.
+2. Sign in as an admin and open `/admin`. Look up the test account by email. The page shows created date, Free or Premium, and counts. It does not show transaction text, balances, holdings, or bank links. Recent errors says the app does not store error reports.
+3. Set Bank connection to **On for this person**. Sign in as the test account, open Budget, and confirm bank linking is visible. Set it back to **Use server setting** and confirm bank linking is hidden again when the environment flag is off.
+4. On the test account, choose **Add sample data**. Budget shows Sample budget with Sample chequing and Sample savings. Invest shows Sample portfolio. Retire shows Sample Retire plan with no invented age or retire date. Names say Sample. Amounts are placeholders.
+5. Choose **Reset this account**, then confirm. The sample plans are gone. The test sign-in still works. A non-test email has no sample-data button that can wipe that account.
+6. In the Supabase SQL editor, `select action, target_user_id, created_at from admin_audit_log order by created_at desc limit 20` shows the lookup. It does not show balances or transaction text.

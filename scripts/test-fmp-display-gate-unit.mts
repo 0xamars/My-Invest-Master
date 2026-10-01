@@ -101,6 +101,41 @@ assert(
   "gate on with an empty allowlist denies everyone",
 );
 assert(
+  fmpDisplayAllowsEmail("tester@example.com", {
+    enabled: true,
+    allowlist,
+    emailConfirmed: true,
+    userOverride: true,
+  }) === true,
+  "gate on allows a confirmed account with an override",
+);
+assert(
+  fmpDisplayAllowsEmail("tester@example.com", {
+    enabled: true,
+    allowlist,
+    emailConfirmed: false,
+    userOverride: true,
+  }) === false,
+  "an override does not allow an unconfirmed email",
+);
+assert(
+  fmpDisplayAllowsEmail("allowed@example.com", {
+    enabled: true,
+    allowlist,
+    emailConfirmed: true,
+    userOverride: false,
+  }) === false,
+  "an override of off denies an allowlisted email while the gate is on",
+);
+assert(
+  fmpDisplayAllowsEmail("stranger@example.com", {
+    enabled: false,
+    allowlist,
+    userOverride: false,
+  }) === true,
+  "gate off ignores an override and still allows the account",
+);
+assert(
   !FMP_DISPLAY_UNAVAILABLE.toLowerCase().includes("freedom"),
   "display copy says Retire, not a retired product name",
 );
