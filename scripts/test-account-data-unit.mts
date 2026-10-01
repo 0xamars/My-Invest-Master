@@ -6,6 +6,8 @@
 import { readFileSync } from "node:fs";
 import {
   planAccountDeletion,
+  plaidLookupFailureIsNothingToRevoke,
+  plaidTableDeleteIsSkippable,
   revokePlaidItemsBeforeDrop,
   userOwnedDeleteOrder,
 } from "../src/lib/account/delete-account.ts";
@@ -352,6 +354,114 @@ assert(
   "plan caps stay off",
 );
 
+const missingPlaidTable = {
+  code: "42P01",
+  message: 'relation "public.user_plaid_items" does not exist',
+};
+assert(
+  plaidLookupFailureIsNothingToRevoke({
+    error: missingPlaidTable,
+    bankConnectEnabled: false,
+  }),
+  "a missing plaid table is nothing to revoke when bank connect is disabled",
+);
+assert(
+  plaidLookupFailureIsNothingToRevoke({
+    error: missingPlaidTable,
+    bankConnectEnabled: true,
+  }),
+  "a missing plaid table is nothing to revoke when bank connect is enabled",
+);
+assert(
+  plaidLookupFailureIsNothingToRevoke({
+    error: {
+      code: "PGRST205",
+      message: "Could not find the table 'public.user_plaid_items' in the schema cache",
+    },
+    bankConnectEnabled: false,
+  }),
+  "a schema-cache miss is nothing to revoke",
+);
+assert(
+  !plaidLookupFailureIsNothingToRevoke({
+    error: { code: "42501", message: "permission denied for table user_plaid_items" },
+    bankConnectEnabled: false,
+  }),
+  "a real read error still blocks deletion when bank connect is disabled",
+);
+assert(
+  plaidTableDeleteIsSkippable("user_plaid_items", missingPlaidTable),
+  "deleting a missing plaid items table is skipped",
+);
+assert(
+  plaidTableDeleteIsSkippable("user_plaid_accounts", {
+    code: "PGRST205",
+    message: "Could not find the table 'public.user_plaid_accounts' in the schema cache",
+  }),
+  "deleting a missing plaid accounts table is skipped",
+);
+assert(
+  !plaidTableDeleteIsSkippable("user_budget_plans", missingPlaidTable),
+  "a missing-table error on another user table is not skipped",
+);
+
+for (const file of [
+  "supabase/migrations/013_user_plaid_items.sql",
+  "supabase/migrations/018_plaid_access_token_encryption.sql",
+] as const) {
+  const sql = readFileSync(file, "utf8").replace(/\s+/g, " ");
+  assert(
+    sql.includes(
+      "revoke all on public.user_plaid_items from anon, authenticated, public",
+    ),
+    `${file} revokes every table privilege from authenticated before re-granting`,
+  );
+  assert(
+    sql.includes(
+      "revoke all on public.user_plaid_accounts from anon, authenticated, public",
+    ),
+    `${file} revokes every account-table privilege from authenticated`,
+  );
+  assert(
+    !/grant\s+select\s+\([^)]*\baccess_token\b/i.test(sql),
+    `${file} does not grant access_token`,
+  );
+  assert(
+    !/grant\s+select\s+\([^)]*\btransactions_cursor\b/i.test(sql),
+    `${file} does not grant transactions_cursor`,
+  );
+  assert(
+    sql.includes("grant delete on public.user_plaid_items to authenticated"),
+    `${file} still lets the browser delete its own items`,
+  );
+  assert(
+    !/grant\s+delete\s+on\s+public\.user_plaid_accounts/i.test(sql),
+    `${file} does not grant browser delete on plaid accounts`,
+  );
+}
+
+const payeeRulesMigration = readFileSync(
+  "supabase/migrations/014_budget_payee_rules.sql",
+  "utf8",
+);
+assert(!/create\s+table/i.test(payeeRulesMigration), "014 does not create a table");
+assert(!/\bgrant\b/i.test(payeeRulesMigration), "014 does not grant table privileges");
+
+const plaidDocs = readFileSync("docs/plaid.md", "utf8");
+assert(
+  plaidDocs.includes(
+    "has_column_privilege('authenticated','public.user_plaid_items','access_token','select')",
+  ),
+  "docs require access_token select to be false",
+);
+assert(
+  plaidDocs.includes(
+    "has_table_privilege('authenticated','public.user_plaid_items','truncate')",
+  ),
+  "docs require truncate to be false",
+);
+assert(plaidDocs.includes("014_budget_payee_rules.sql"), "docs say to check migration 014");
+
 const deleteRoute = readFileSync("src/app/api/account/delete/route.ts", "utf8");
 assert(deleteRoute.includes("removePlaidItemForDeletion"), "account delete calls Plaid item remove");
 assert(
@@ -359,6 +469,18 @@ assert(
   "account delete revokes before dropping rows",
 );
 assert(deleteRoute.includes("planAccountDeletion"), "account delete refuses to drop tokens it cannot revoke");
+assert(
+  deleteRoute.includes("plaidLookupFailureIsNothingToRevoke"),
+  "account delete treats a missing plaid table as nothing to revoke",
+);
+assert(
+  deleteRoute.includes("isBankConnectEnabled"),
+  "account delete considers bank connect when the plaid table is missing",
+);
+assert(
+  deleteRoute.includes("plaidTableDeleteIsSkippable"),
+  "account delete skips a missing plaid table while dropping rows",
+);
 
 if (failed) {
   console.error(`\n${failed} account-data assertion(s) failed`);

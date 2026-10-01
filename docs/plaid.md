@@ -31,7 +31,16 @@ Apply these on the Supabase project, in order:
 
 `user_plaid_items` stores one bank connection per person: institution name, encrypted access token, sync cursor, and status. `user_plaid_accounts` maps each bank account to a budget account.
 
-Row level security limits rows to that person. The access token column is not granted to the browser role. Routes read and write it with the service role after checking the signed-in user. Tokens are encrypted with AES-256-GCM before they are stored.
+Row level security limits rows to that person. That is not enough on its own. This project's default privileges grant `authenticated` every right on a new table in `public`, including `TRUNCATE`, and `TRUNCATE` ignores row level security. A column-level `REVOKE` of `access_token` does nothing while that table grant is still there. Both migrations revoke all rights on both tables from `anon`, `authenticated`, and `public`, then grant `authenticated` only the columns the browser reads, plus `DELETE` on `user_plaid_items`. `access_token` and `transactions_cursor` are not in that list. Account rows are select-only for the browser; the service role deletes them. Routes read and write tokens with the service role after checking the signed-in user. Tokens are encrypted with AES-256-GCM before they are stored.
+
+Also check `supabase/migrations/014_budget_payee_rules.sql`. It does not create a table. It only adds a check constraint on `user_budget_plans`, so the default-privilege grant on new tables does not apply. It should not `GRANT` anything.
+
+After both Plaid migrations, these must both return false:
+
+```sql
+select has_column_privilege('authenticated','public.user_plaid_items','access_token','select');
+select has_table_privilege('authenticated','public.user_plaid_items','truncate');
+```
 
 ## Sandbox
 
@@ -59,6 +68,7 @@ Sandbox is not real bank data. Before a real bank can connect:
 ## Security
 
 - Link tokens, token exchange, sync, and disconnect run in route handlers. The secret stays on the server.
+- `authenticated` has no table-level grant on the Plaid tables, so it cannot `SELECT` `access_token` and cannot `TRUNCATE` the connections. Confirm with the two privilege queries in Database.
 - Access tokens are encrypted at rest (AES-256-GCM, random 12-byte IV, authentication tag). The key is `PLAID_TOKEN_ENCRYPTION_KEY`.
 - Webhooks are ignored unless the `Plaid-Verification` signature checks out: ES256, SHA-256 of the raw body, and a five-minute window.
 - The sync cursor moves only after the budget plan is saved, so a failed save does not skip transactions.

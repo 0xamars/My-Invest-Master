@@ -8,15 +8,14 @@ comment on column public.user_plaid_items.access_token is
 comment on column public.user_plaid_accounts.budget_account_id is
   'Budget account id this bank account feeds. Transactions live in the budget plan.';
 
-revoke all on public.user_plaid_items from anon, public;
-revoke all on public.user_plaid_accounts from anon, public;
-
-revoke select (access_token, transactions_cursor)
-  on public.user_plaid_items
-  from anon, authenticated, public;
-
-revoke insert, update on public.user_plaid_items from anon, authenticated, public;
-revoke insert, update, delete on public.user_plaid_accounts from anon, authenticated, public;
+-- Idempotent lock for databases where 013 already ran. Default privileges
+-- grant authenticated ALL (including TRUNCATE, which ignores RLS) at
+-- CREATE TABLE. A later column-level REVOKE of access_token does nothing
+-- while that table-level GRANT remains. Revoke every privilege, then
+-- grant only the columns and commands the browser uses. Never grant
+-- access_token or transactions_cursor. Service role is not revoked.
+revoke all on public.user_plaid_items from anon, authenticated, public;
+revoke all on public.user_plaid_accounts from anon, authenticated, public;
 
 grant select (
   id, user_id, plan_id, item_id, institution_id, institution_name,
@@ -25,4 +24,7 @@ grant select (
 
 grant delete on public.user_plaid_items to authenticated;
 
-grant select on public.user_plaid_accounts to authenticated;
+grant select (
+  id, user_id, item_row_id, plaid_account_id, budget_account_id,
+  name, official_name, mask, type, subtype, created_at
+) on public.user_plaid_accounts to authenticated;
