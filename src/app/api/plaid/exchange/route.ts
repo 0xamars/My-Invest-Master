@@ -5,20 +5,15 @@ import {
   PlaidRequestError,
   syncPlaidTransactions,
 } from "@/lib/plaid/client";
-import { isPlaidConfigured, isPlaidStorageReady } from "@/lib/plaid/config";
 import { toPlaidSyncPayload } from "@/lib/plaid/sync-delta";
 import { loadPlaidItemForUser, upsertPlaidItem } from "@/lib/plaid/store";
-import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
+import { jsonError, plaidSetupError, requirePlaidUser } from "@/lib/plaid/http";
 
 export async function POST(request: Request) {
   const auth = await requirePlaidUser(request);
   if ("error" in auth && auth.error) return auth.error;
-  if (!isPlaidConfigured()) {
-    return jsonError("Bank linking is not configured on this server.", 503);
-  }
-  if (!isPlaidStorageReady()) {
-    return jsonError("Bank linking needs a server database key.", 503);
-  }
+  const setup = plaidSetupError();
+  if (setup) return setup;
 
   let body: {
     publicToken?: string;

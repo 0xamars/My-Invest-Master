@@ -33,7 +33,11 @@ import { buildStartingBalanceTransaction } from "@/lib/budget/starting-balance";
 import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
-import { applyPlaidImport, unlinkPlaidItemFromPlan } from "@/lib/budget/plaid";
+import {
+  applyPlaidImport,
+  unlinkPlaidItemFromPlan,
+  type PlaidAccountChoice,
+} from "@/lib/budget/plaid";
 import {
   addPayeeRule,
   applyPayeeRulesToTransaction,
@@ -303,10 +307,18 @@ export function useBudgetPlanMutations(planId: string) {
   );
 
   const importFromPlaid = useCallback(
-    (payload: PlaidSyncPayload): BudgetPlan | null => {
+    (
+      payload: PlaidSyncPayload,
+      choices?: readonly PlaidAccountChoice[],
+    ): BudgetPlan | null => {
       const current = getPlan(planId);
       if (!current) return null;
-      const applied = applyPlaidImport(current, payload).next;
+      const applied = applyPlaidImport(
+        current,
+        payload,
+        undefined,
+        choices ?? payload.accountChoices,
+      ).next;
       if (applied === current) return current;
       const stamped: BudgetPlan = {
         ...applied,

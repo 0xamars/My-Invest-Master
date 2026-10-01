@@ -4,6 +4,7 @@ import {
   userOwnedDeleteOrder,
 } from "@/lib/account/delete-account";
 import { isPlaidConfigured } from "@/lib/plaid/config";
+import { PlaidTokenLockedError, openStoredPlaidAccessToken, readPlaidTokenKey } from "@/lib/plaid/crypto";
 import { removePlaidItemForDeletion } from "@/lib/plaid/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -64,11 +65,32 @@ export async function POST() {
     );
   }
 
-  const plan = planAccountDeletion({
-    plaidItems: (items ?? []).map((row) => ({
+  let plaidItems: Array<{ itemId: string; accessToken: string }>;
+  try {
+    const key = readPlaidTokenKey();
+    plaidItems = (items ?? []).map((row) => ({
       itemId: String(row.item_id ?? ""),
-      accessToken: String(row.access_token ?? ""),
-    })),
+      accessToken: openStoredPlaidAccessToken(String(row.access_token ?? ""), key),
+    }));
+  } catch (error) {
+    if (error instanceof PlaidTokenLockedError) {
+      return Response.json(
+        {
+          ok: false,
+          authUserDeleted: false,
+          dataDeleted: false,
+          plaidItemsRevoked: 0,
+          error:
+            "Linked banks could not be disconnected because bank linking is not fully set up. The account was not deleted.",
+        },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
+
+  const plan = planAccountDeletion({
+    plaidItems,
     plaidConfigured: isPlaidConfigured(),
   });
 

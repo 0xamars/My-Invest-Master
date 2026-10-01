@@ -58,27 +58,17 @@ Built with Next.js, Supabase, and Tailwind CSS.
 | `FMP_API_BASE` | No | Override FMP API base (default `https://financialmodelingprep.com/stable`) |
 | `FMP_DISPLAY_GATE_ENABLED` | No | `1` or `true` limits FMP-backed market data to confirmed emails in `FMP_DISPLAY_ALLOWED_EMAILS`. Unset or `0` leaves every surface unchanged. Turning this on needs a Vercel env change and a redeploy |
 | `FMP_DISPLAY_ALLOWED_EMAILS` | No | Comma-separated emails that may see FMP data while the display gate is on. Do not commit a real address. Changing the list needs a Vercel env change and a redeploy |
-| `PLAID_CLIENT_ID` | No | Plaid client id. Budget Connect bank stays disabled until set |
+| `NEXT_PUBLIC_BANK_CONNECT_ENABLED` | No | `1` or `true` shows Connect bank. Unset keeps it hidden. Changing it needs a redeploy |
+| `BANK_CONNECT_ENABLED` | No | Server switch. `1` or `true` turns the API on. `0` turns it off even if the public flag is on |
+| `PLAID_CLIENT_ID` | No | Plaid client id. Server-only |
 | `PLAID_SECRET` | No | Plaid secret. Server-only |
 | `PLAID_ENV` | No | `sandbox` (default), `development`, or `production` |
 | `PLAID_WEBHOOK_URL` | No | `https://<domain>/api/plaid/webhook` — set in the Plaid dashboard |
 | `PLAID_REDIRECT_URI` | No | OAuth redirect for some banks. Usually `https://<domain>/budget` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes for bank link | Stores Plaid access tokens. Never expose to the browser |
+| `PLAID_TOKEN_ENCRYPTION_KEY` | No | 32-byte key for access tokens at rest. Server-only. `openssl rand -base64 32` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes for bank link | Stores encrypted Plaid access tokens. Never expose to the browser |
 
-Apply `supabase/migrations/013_user_plaid_items.sql` before the first bank link.
-
-### Plaid dashboard (Amar)
-
-1. Create a Plaid app. Start in **sandbox**.
-2. Enable the **Transactions** product.
-3. Copy `client_id` and `sandbox` secret into Vercel / `.env.local`. Do not commit secrets.
-4. Set webhook to `https://<production-domain>/api/plaid/webhook`.
-5. Add an allowed redirect URI for OAuth banks (`https://<production-domain>/budget`).
-6. Apply migration `013_user_plaid_items.sql` on the Supabase project.
-7. Confirm `SUPABASE_SERVICE_ROLE_KEY` is set on the server.
-8. Sandbox test users: `user_good` / `pass_good` (Plaid sandbox docs).
-
-The app boots without Plaid credentials. Connect bank is visible and disabled until env + service role are set.
+Bank connection setup, sandbox credentials, production access, and security notes are in [docs/plaid.md](docs/plaid.md). The flag stays off until those steps are done. Apply `supabase/migrations/013_user_plaid_items.sql` and `supabase/migrations/018_plaid_access_token_encryption.sql` before the first bank link.
 
 Crypto prices, charts, and headlines come from FMP (cached). CoinGecko remains for crypto search and logos, because those responses carry CoinGecko ids the logo route still uses. Set `FMP_API_KEY` in Vercel project settings for production. Apply `supabase/migrations/015_market_cache.sql` so news and symbol search share one warehouse row. That table has row level security and no anon or authenticated policies, so only the server (service role) reads and writes it. If production already ran the older 015 that created a public read policy, run `drop policy if exists "Public read market_cache" on public.market_cache;` in the Supabase SQL editor. Search and news rows older than 7 days are deleted opportunistically on later writes.
 

@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useBudget } from "@/contexts/budget-context";
+import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import {
   ACCOUNT_TYPE_LABELS,
   formatAccountBalanceLabel,
@@ -99,7 +100,11 @@ export function BudgetAccountsContent() {
     <div className="flex flex-1 flex-col gap-5">
       <BudgetPageHeader
         title="Accounts"
-        description="Connect a bank to pull transactions, or add an account by hand. Import a CSV, OFX, or QFX file from the register."
+        description={
+          isBankConnectEnabled()
+            ? "Connect a bank to pull transactions, or add an account by hand. Import a CSV, OFX, or QFX file from the register."
+            : "Add an account by hand. Import a CSV, OFX, or QFX file from the register."
+        }
         action={
           <Button type="button" variant="outline" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" />
