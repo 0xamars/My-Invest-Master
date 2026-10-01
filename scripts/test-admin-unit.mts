@@ -28,7 +28,15 @@ import {
   isListedAdminEmail,
   normalizeAdminEmail,
 } from "../src/lib/admin/admin-email.ts";
-import { isTestAccountEmail, normalizeLookupEmail } from "../src/lib/admin/test-account.ts";
+import {
+  canSeedOwnAccount,
+  isTestAccountEmail,
+  normalizeLookupEmail,
+} from "../src/lib/admin/test-account.ts";
+import {
+  ADMIN_LOOKUP_ERROR_CACHE_MS,
+  adminLookupErrorIsCached,
+} from "../src/lib/admin/is-admin.ts";
 import {
   FEATURE_FLAG_IDS,
   envEnablesFlag,
@@ -113,6 +121,20 @@ assert(!isTestAccountEmail("founder+test1a@example.com"), "letters after the tag
 assert(!isTestAccountEmail("founder@example.com"), "a normal address is not a test account");
 assert(!isTestAccountEmail("test1@example.com"), "the tag must be a plus-address");
 assert(!isTestAccountEmail("+test1@example.com"), "the local part needs a name before the tag");
+assert(
+  canSeedOwnAccount("admin@investsalsa.com"),
+  "the dedicated admin login can seed its own account",
+);
+assert(
+  canSeedOwnAccount(" Admin@InvestSalsa.com "),
+  "the dedicated admin login match ignores case",
+);
+assert(canSeedOwnAccount("founder+test1@example.com"), "a plus-address can seed its own account");
+assert(
+  canSeedOwnAccount("admin+test@investsalsa.com"),
+  "a plus-address on the admin domain can seed itself",
+);
+assert(!canSeedOwnAccount("founder@example.com"), "a normal address cannot seed itself");
 assert(normalizeLookupEmail(" A@Example.com ") === "a@example.com", "lookup email is trimmed");
 assert(normalizeLookupEmail("not-an-email") === null, "lookup rejects a fragment");
 
@@ -257,7 +279,7 @@ function walk(dir: string): string[] {
   return files;
 }
 
-const migration = readFileSync("supabase/migrations/018_admin_and_flags.sql", "utf8");
+const migration = readFileSync("supabase/migrations/019_admin_and_flags.sql", "utf8");
 for (const table of ["app_admins", "feature_flag_overrides", "admin_audit_log"]) {
   assert(
     migration.includes(`alter table public.${table} enable row level security`),
@@ -284,8 +306,16 @@ assert(
   !migration.includes("access_token"),
   "the admin migration does not read bank tokens",
 );
+for (const fn of ["admin_lookup_user_by_email", "admin_user_health"]) {
+  const match = migration.match(
+    new RegExp(`function public\\.${fn}[\\s\\S]*?set search_path = ([^\\n]+)`),
+  );
+  assert(match, `${fn} sets search_path`);
+  const parts = match[1].replace(/;/g, "").split(",").map((part) => part.trim());
+  assert(parts.at(-1) === "pg_temp", `${fn} search_path ends with pg_temp`);
+}
 
-const emailMigration = readFileSync("supabase/migrations/019_admin_email.sql", "utf8");
+const emailMigration = readFileSync("supabase/migrations/020_admin_email.sql", "utf8");
 assert(
   emailMigration.includes("alter table public.app_admin_emails enable row level security"),
   "admin emails enable row level security",
@@ -310,9 +340,23 @@ assert(
   "migration does not grant an unconfirmed account",
 );
 
+assert(ADMIN_LOOKUP_ERROR_CACHE_MS === 60_000, "a failed admin lookup stays quiet for 60 seconds");
+assert(adminLookupErrorIsCached(1_000, 500), "a future expiry means the failure is cached");
+assert(!adminLookupErrorIsCached(1_000, 1_000), "an expiry at the current time is not cached");
+assert(!adminLookupErrorIsCached(undefined, 1), "a missing expiry is not cached");
+
 const adminCheck = readFileSync("src/lib/admin/is-admin.ts", "utf8");
 assert(adminCheck.includes('from("app_admins")'), "admin check reads user ids");
 assert(adminCheck.includes('from("app_admin_emails")'), "admin check reads the email allowlist");
+assert(
+  adminCheck.includes("grantErrorUntil"),
+  "the sign-in path caches a failed admin lookup",
+);
+const isAdminFn = adminCheck.slice(
+  adminCheck.indexOf("export async function isAdmin"),
+  adminCheck.indexOf("export async function grantListedAdminOnSignIn"),
+);
+assert(!isAdminFn.includes("grantErrorUntil"), "isAdmin does not use the failure cache");
 assert(
   readFileSync("src/lib/supabase/middleware.ts", "utf8").includes("grantListedAdminOnSignIn"),
   "sign-in grants a listed confirmed email",
@@ -335,6 +379,46 @@ const plaidHttp = readFileSync("src/lib/plaid/http.ts", "utf8");
 assert(
   plaidHttp.includes('isFeatureEnabled("bank_connect"'),
   "bank routes require the bank connection flag",
+);
+const itemRoute = readFileSync("src/app/api/plaid/item/route.ts", "utf8");
+assert(
+  itemRoute.includes("requireBankFlag: false"),
+  "disconnect still runs when the bank flag is off",
+);
+const demoRoute = readFileSync("src/app/api/admin/demo/route.ts", "utf8");
+assert(!demoRoute.includes("userId"), "the demo route ignores a user id from the body");
+assert(demoRoute.includes("auth.user.id"), "the demo route uses the signed-in admin id");
+assert(demoRoute.includes("canSeedOwnAccount"), "the demo route checks the signed-in email");
+assert(
+  demoRoute.includes('body.confirm !== "reset"'),
+  "reset requires the confirm flag on the server",
+);
+const demoBody = demoRoute.slice(demoRoute.indexOf("export async function POST"));
+assert(
+  demoBody.indexOf("writeAdminAudit") < demoBody.indexOf("seedTestAccountDemo"),
+  "sample data is audited before it is written",
+);
+const flagsRoute = readFileSync("src/app/api/admin/flags/route.ts", "utf8");
+const flagsBody = flagsRoute.slice(flagsRoute.indexOf("export async function POST"));
+assert(
+  flagsBody.indexOf("writeAdminAudit") < flagsBody.indexOf("setFlagOverride"),
+  "a flag change is audited before it is saved",
+);
+const consoleSource = readFileSync("src/components/admin/admin-console.tsx", "utf8");
+assert(consoleSource.includes('confirm: "reset"'), "the console sends the reset confirmation");
+const runDemo = consoleSource.slice(
+  consoleSource.indexOf("async function runDemo"),
+  consoleSource.indexOf("return ("),
+);
+assert(!runDemo.includes("userId"), "sample data is not sent for a looked-up account");
+assert(
+  consoleSource.includes("signedInCanSeed"),
+  "sample data is offered only for the signed-in account",
+);
+const catalog = readFileSync("src/lib/flags/catalog.ts", "utf8");
+assert(
+  catalog.includes("supabase/migrations/019_admin_and_flags.sql"),
+  "the flag catalog names the admin migration",
 );
 assert(
   readFileSync("src/app/api/plaid/webhook/route.ts", "utf8").includes("requirePlaidUser") ===

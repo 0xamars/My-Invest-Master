@@ -1,3 +1,5 @@
+import { INITIAL_ADMIN_EMAIL, normalizeAdminEmail } from "@/lib/admin/admin-email";
+
 /**
  * Test accounts are plus-addresses: name+test@example.com or name+test1@example.com.
  * Mail still arrives at name@example.com. The tag must be `test` or `test` plus digits.
@@ -13,6 +15,16 @@ export function isTestAccountEmail(email: string | null | undefined): boolean {
     return false;
   }
   return /^.+\+test\d*$/.test(local);
+}
+
+/**
+ * Sample data may be written only into the signed-in account, and only when
+ * that account is a plus-address test login or the dedicated admin login.
+ */
+export function canSeedOwnAccount(email: string | null | undefined): boolean {
+  const normalized = normalizeAdminEmail(email);
+  if (!normalized) return false;
+  return normalized === INITIAL_ADMIN_EMAIL || isTestAccountEmail(normalized);
 }
 
 export function normalizeLookupEmail(raw: string): string | null {

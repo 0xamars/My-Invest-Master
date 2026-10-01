@@ -8,7 +8,7 @@
  * Needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
  * Does not print plan contents.
  */
-import { isTestAccountEmail } from "../src/lib/admin/test-account.ts";
+import { canSeedOwnAccount } from "../src/lib/admin/test-account.ts";
 import {
   AdminServiceError,
   lookupAccountByEmail,
@@ -26,9 +26,9 @@ if (!email) {
   process.exit(1);
 }
 
-if (!isTestAccountEmail(email)) {
+if (!canSeedOwnAccount(email)) {
   console.error(
-    "Refusing to continue. Demo data is only for a test account such as name+test1@example.com.",
+    "Refusing to continue. Demo data is only for a plus-address test account or admin@investsalsa.com.",
   );
   process.exit(1);
 }

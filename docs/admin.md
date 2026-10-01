@@ -8,14 +8,14 @@ Admins can turn a feature on for one account and can see counts for support. The
 
 In the Supabase SQL editor, run these in order:
 
-1. `supabase/migrations/018_admin_and_flags.sql`
-2. `supabase/migrations/019_admin_email.sql`
+1. `supabase/migrations/019_admin_and_flags.sql`
+2. `supabase/migrations/020_admin_email.sql`
 
 Row level security is on and there are no policies for the browser roles, so a signed-in user cannot read or write `app_admins` or `app_admin_emails`. The server uses the service role key.
 
 `SUPABASE_SERVICE_ROLE_KEY` must be set on the server. Without it, `/admin` stays a 404.
 
-`019` seeds `admin@investsalsa.com` in `app_admin_emails`. That address is the dedicated test/admin login, not Amar's personal account. If that user already exists and the email is confirmed, the migration also inserts their user id into `app_admins`.
+`020` seeds `admin@investsalsa.com` in `app_admin_emails`. That address is the dedicated test/admin login, not Amar's personal account. If that user already exists and the email is confirmed, the migration also inserts their user id into `app_admins`.
 
 ## 2. The admin login
 
@@ -70,7 +70,7 @@ Flags stay off for everyone until the matching environment variable is `1` or `t
 
 | Flag | Environment variable | What on means |
 | --- | --- | --- |
-| Bank connection | `NEXT_PUBLIC_BANK_CONNECT_ENABLED` | Bank linking shows in Budget, and the bank routes accept that account. |
+| Bank connection | `NEXT_PUBLIC_BANK_CONNECT_ENABLED` and `BANK_CONNECT_ENABLED` | Bank linking shows in Budget, and the bank routes accept that account. `BANK_CONNECT_ENABLED=0` turns it off for every account. |
 | Market data | `FMP_DISPLAY_GATE_ENABLED` | This variable is a gate. When it is on, market data is limited to confirmed emails in `FMP_DISPLAY_ALLOWED_EMAILS`, plus any confirmed account you set to On. |
 | Retire planner without sign-in | `NEXT_PUBLIC_RETIRE_NO_LOGIN_PLANNER_ENABLED` | Reserved for a future public Retire page. That page is not published. Turning the flag on does not add a page. |
 
@@ -80,7 +80,7 @@ On `/admin`, look the account up by email, then choose:
 - **On for this person** — on for this account only.
 - **Off for this person** — off for this account even if the environment variable is on.
 
-Changing `NEXT_PUBLIC_BANK_CONNECT_ENABLED` or the market-data gate in Vercel needs a redeploy. A per-user override does not.
+Changing `NEXT_PUBLIC_BANK_CONNECT_ENABLED`, `BANK_CONNECT_ENABLED`, or the market-data gate in Vercel needs a redeploy. A per-user override does not.
 
 Market data notes:
 
@@ -91,14 +91,18 @@ Market data notes:
 
 Bank connection notes:
 
-- Unset means hidden, including for existing bank routes (except the bank webhook, which can still update a link that already exists).
-- Turn the flag back on for that account if you need to disconnect a bank. Reset does not remove bank links.
+- Unset means hidden. Existing bank routes stay closed for that account, except the bank webhook, which can still update a link that already exists, and disconnect, which still works when the flag is off.
+- `BANK_CONNECT_ENABLED=0` (or `false`) turns bank connection off for every account, including one set to On. `BANK_CONNECT_ENABLED=1` turns the server setting on. When that variable is unset, `NEXT_PUBLIC_BANK_CONNECT_ENABLED` is the server setting.
+- On for one account turns bank linking on for that account while everyone else stays off, unless the server switch above forces it off.
+- Reset does not remove bank links. Disconnect still works from Budget when the flag is off for that account.
 
 The public Retire planner is not in the app yet. When it is added, it must call `isFeatureEnabled("retire_no_login_planner", userId)` and stay off in production.
 
 ## 5. Sample data
 
-On `/admin`, for a test account, **Add sample data** inserts:
+Sample data is only for the account you are signed in as. `/admin` does not seed or reset an account you looked up. The signed-in email must be a plus-address test login, or `admin@investsalsa.com` itself.
+
+**Add sample data** inserts:
 
 - a budget named Sample budget, with Sample chequing, Sample savings, and two sample transactions
 - a portfolio named Sample portfolio, with one custom holding named Sample shares
@@ -106,9 +110,9 @@ On `/admin`, for a test account, **Add sample data** inserts:
 
 Names start with Sample. Amounts are placeholders. The Retire plan does not set an age, spending, income, or a retire date. Adding sample data again replaces those three named plans and leaves other plans alone.
 
-**Reset this account** deletes that account's budgets, portfolios, watchlists, options, and Retire plans. It does not delete the sign-in, the plan tier, bank links, feature flags, or the admin row.
+**Reset this account** asks you to confirm, then deletes that signed-in account's budgets, portfolios, watchlists, options, and Retire plans. The server rejects a reset that does not send that confirmation. It does not delete the sign-in, the plan tier, bank links, feature flags, or the admin row.
 
-The same actions exist as a script. It refuses any email that is not a test account.
+The same actions exist as a script. It refuses any email that is not a plus-address test account or `admin@investsalsa.com`.
 
 ```bash
 TEST_ACCOUNT_EMAIL=name+test1@example.com npx tsx --tsconfig tsconfig.json scripts/seed-test-account.mts

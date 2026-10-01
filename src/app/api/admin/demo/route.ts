@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminErrorResponse, requireAdmin } from "@/lib/admin/access";
 import { resetTestAccountData, seedTestAccountDemo, writeAdminAudit } from "@/lib/admin/service";
+import { canSeedOwnAccount } from "@/lib/admin/test-account";
 
 export const dynamic = "force-dynamic";
 
@@ -10,37 +11,48 @@ export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if ("response" in auth) return auth.response;
 
-  let body: { userId?: unknown; action?: unknown } = {};
+  let body: { action?: unknown; confirm?: unknown } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
     body = {};
   }
 
-  const userId = typeof body.userId === "string" ? body.userId : "";
   const action = body.action === "seed" || body.action === "reset" ? body.action : null;
-  if (!userId || !action) {
+  if (!action) {
     return NextResponse.json(
-      { error: "Choose a test account and an action." },
+      { error: "Choose an action." },
+      { status: 400, headers: noStore },
+    );
+  }
+  if (!canSeedOwnAccount(auth.user.email)) {
+    return NextResponse.json(
+      { error: "Demo data is only for this signed-in test login." },
+      { status: 400, headers: noStore },
+    );
+  }
+  if (action === "reset" && body.confirm !== "reset") {
+    return NextResponse.json(
+      { error: "Reset needs confirmation." },
       { status: 400, headers: noStore },
     );
   }
 
   try {
-    if (action === "seed") await seedTestAccountDemo(userId);
-    else await resetTestAccountData(userId);
     await writeAdminAudit({
       adminId: auth.user.id,
       action: action === "seed" ? "seed_demo" : "reset_demo",
-      targetUserId: userId,
+      targetUserId: auth.user.id,
     });
+    if (action === "seed") await seedTestAccountDemo(auth.user.id);
+    else await resetTestAccountData(auth.user.id);
     return NextResponse.json(
       {
         ok: true,
         message:
           action === "seed"
             ? "Sample budget, portfolio, and Retire plan were added."
-            : "That account's plans were removed. The sign-in is unchanged.",
+            : "This account's plans were removed. The sign-in is unchanged.",
       },
       { headers: noStore },
     );

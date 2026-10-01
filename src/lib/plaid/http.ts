@@ -6,7 +6,10 @@ import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimitJsonResponse } from "@/lib/security/rate-limit";
 
-export async function requirePlaidUser(request: Request) {
+export async function requirePlaidUser(
+  request: Request,
+  options?: { requireBankFlag?: boolean },
+) {
   const limited = rateLimitJsonResponse(request, "plaid", { max: 30 });
   if (limited) return { error: limited as Response };
 
@@ -19,10 +22,12 @@ export async function requirePlaidUser(request: Request) {
       error: NextResponse.json({ error: "Sign in required" }, { status: 401 }),
     };
   }
-  if (!(await isFeatureEnabled("bank_connect", user.id))) {
-    return {
-      error: NextResponse.json({ error: "Not found" }, { status: 404 }),
-    };
+  if (options?.requireBankFlag !== false) {
+    if (!(await isFeatureEnabled("bank_connect", user.id))) {
+      return {
+        error: NextResponse.json({ error: "Not found" }, { status: 404 }),
+      };
+    }
   }
   return { user, supabase };
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdminConsole } from "@/components/admin/admin-console";
 import { isAdmin } from "@/lib/admin/is-admin";
-import { isTestAccountEmail } from "@/lib/admin/test-account";
+import { canSeedOwnAccount } from "@/lib/admin/test-account";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,9 +24,8 @@ export default async function AdminPage() {
 
   return (
     <AdminConsole
-      signedInUserId={user.id}
       signedInEmail={user.email ?? ""}
-      signedInIsTest={isTestAccountEmail(user.email)}
+      signedInCanSeed={canSeedOwnAccount(user.email)}
     />
   );
 }

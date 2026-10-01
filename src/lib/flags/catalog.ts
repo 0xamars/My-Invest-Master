@@ -4,7 +4,7 @@ import { parseEnvFlag } from "@/lib/flags/env";
  * Product flags. Environment variables are the default for every account.
  * A row in feature_flag_overrides replaces that default for one account.
  * Adding a flag here also requires the check constraint in
- * supabase/migrations/018_admin_and_flags.sql.
+ * supabase/migrations/019_admin_and_flags.sql.
  */
 export const FEATURE_FLAG_IDS = [
   "bank_connect",

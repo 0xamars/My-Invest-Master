@@ -1,6 +1,6 @@
 -- Admin role, per-user feature flags, and an audit log.
--- Apply in the Supabase SQL editor (or CLI), then apply 019_admin_email.sql.
--- 019 seeds admin@investsalsa.com. There is no in-app way to become an admin.
+-- Apply in the Supabase SQL editor (or CLI), then apply 020_admin_email.sql.
+-- 020 seeds admin@investsalsa.com. There is no in-app way to become an admin.
 --
 -- app_admins, feature_flag_overrides, and admin_audit_log:
 -- row level security is on and there are no policies, so the anon and
@@ -64,7 +64,7 @@ returns table (id uuid, email text, created_at timestamptz)
 language sql
 stable
 security definer
-set search_path = auth, public
+set search_path = auth, public, pg_temp
 as $$
   select u.id, u.email::text, u.created_at
   from auth.users u
@@ -88,7 +88,7 @@ returns table (
 language sql
 stable
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
   select
     (select count(*)::integer from public.user_budget_plans where user_id = target),

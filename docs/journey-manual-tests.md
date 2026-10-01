@@ -70,11 +70,11 @@ Sandbox and production setup are in `docs/plaid.md`.
 
 ## 10. Admin and a test account
 
-Sign in as `admin@investsalsa.com` after that email is confirmed. That is the dedicated admin login, not a personal account. Use a separate plus-address such as `name+test1@example.com` for sample data. See `docs/admin.md`.
+Sign in as `admin@investsalsa.com` after that email is confirmed. That is the dedicated admin login, not a personal account. Sample data is added to that signed-in login. A looked-up account has no sample-data controls. See `docs/admin.md`.
 
 1. Signed out, open `/admin`. The response is a 404. A normal signed-in account that is not an admin also gets a 404.
-2. Sign in as an admin and open `/admin`. Look up the test account by email. The page shows created date, Free or Premium, and counts. It does not show transaction text, balances, holdings, or bank links. Recent errors says the app does not store error reports.
-3. Set Bank connection to **On for this person**. Sign in as the test account, open Budget, and confirm bank linking is visible. Set it back to **Use server setting** and confirm bank linking is hidden again when the environment flag is off.
-4. On the test account, choose **Add sample data**. Budget shows Sample budget with Sample chequing and Sample savings. Invest shows Sample portfolio. Retire shows Sample Retire plan with no invented age or retire date. Names say Sample. Amounts are placeholders.
-5. Choose **Reset this account**, then confirm. The sample plans are gone. The test sign-in still works. A non-test email has no sample-data button that can wipe that account.
+2. Sign in as an admin and open `/admin`. Look up another account by email. The page shows created date, Free or Premium, and counts. It does not show transaction text, balances, holdings, or bank links. Recent errors says the app does not store error reports. The looked-up account has no **Add sample data** or **Reset this account** control.
+3. Set Bank connection to **On for this person** on a looked-up account. Sign in as that account, open Budget, and confirm bank linking is visible while it stays hidden for an account with no override. Set it back to **Use server setting** and confirm bank linking is hidden again when the environment flag is off. With `BANK_CONNECT_ENABLED=0`, bank linking stays hidden even for an account set to On. Disconnect an existing bank still works while the flag is off.
+4. On the signed-in admin login, choose **Add sample data**. Budget shows Sample budget with Sample chequing and Sample savings. Invest shows Sample portfolio. Retire shows Sample Retire plan with no invented age or retire date. Names say Sample. Amounts are placeholders.
+5. Choose **Reset this account**, then confirm. The sample plans are gone. The sign-in still works. A signed-in admin whose email is not a plus-address test login and is not `admin@investsalsa.com` has no sample-data controls.
 6. In the Supabase SQL editor, `select action, target_user_id, created_at from admin_audit_log order by created_at desc limit 20` shows the lookup. It does not show balances or transaction text.

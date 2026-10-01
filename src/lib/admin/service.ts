@@ -6,7 +6,7 @@ import {
   TEST_ACCOUNT_RESET_TABLES,
 } from "@/lib/admin/demo-data";
 import { buildUserHealth, type UserHealth } from "@/lib/admin/health";
-import { isTestAccountEmail, isUserId } from "@/lib/admin/test-account";
+import { canSeedOwnAccount, isTestAccountEmail, isUserId } from "@/lib/admin/test-account";
 import { isFeatureFlagId, type FeatureFlagId } from "@/lib/flags/catalog";
 import { readFlagOverrides } from "@/lib/flags/overrides";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -196,9 +196,9 @@ async function requireTestAccount(userId: string): Promise<AccountIdentity> {
   if (!account) {
     throw new AdminServiceError("No account uses that id.", 404);
   }
-  if (!isTestAccountEmail(account.email)) {
+  if (!canSeedOwnAccount(account.email)) {
     throw new AdminServiceError(
-      "Demo data is only for a test account, such as name+test1@example.com.",
+      "Demo data is only for this signed-in test login.",
       400,
     );
   }

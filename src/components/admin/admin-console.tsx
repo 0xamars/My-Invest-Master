@@ -46,13 +46,11 @@ async function readError(response: Response): Promise<string> {
 }
 
 export function AdminConsole({
-  signedInUserId,
   signedInEmail,
-  signedInIsTest,
+  signedInCanSeed,
 }: {
-  signedInUserId: string;
   signedInEmail: string;
-  signedInIsTest: boolean;
+  signedInCanSeed: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [result, setResult] = useState<LookupResult | null>(null);
@@ -111,7 +109,7 @@ export function AdminConsole({
     }
   }
 
-  async function runDemo(userId: string, action: "seed" | "reset") {
+  async function runDemo(action: "seed" | "reset") {
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -119,7 +117,9 @@ export function AdminConsole({
       const response = await fetch("/api/admin/demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, action }),
+        body: JSON.stringify(
+          action === "reset" ? { action, confirm: "reset" } : { action },
+        ),
       });
       const body = (await response.json()) as { error?: string; message?: string };
       if (!response.ok) {
@@ -127,7 +127,11 @@ export function AdminConsole({
         return;
       }
       setNotice(body.message ?? "Done.");
-      if (result?.health.userId === userId && email.trim()) {
+      if (
+        result &&
+        email.trim() &&
+        result.health.email.toLowerCase() === signedInEmail.trim().toLowerCase()
+      ) {
         await lookup(email, { keepNotice: true });
       }
     } catch {
@@ -147,13 +151,13 @@ export function AdminConsole({
         </p>
       </div>
 
-      {signedInIsTest ? (
+      {signedInCanSeed ? (
         <DemoCard
-          title="This signed-in test account"
+          title="This signed-in account"
           detail={signedInEmail}
           busy={busy}
-          onSeed={() => runDemo(signedInUserId, "seed")}
-          onReset={() => runDemo(signedInUserId, "reset")}
+          onSeed={() => runDemo("seed")}
+          onReset={() => runDemo("reset")}
         />
       ) : null}
 
@@ -214,25 +218,6 @@ export function AdminConsole({
               ))}
             </CardContent>
           </Card>
-          {result.health.testAccount ? (
-            <DemoCard
-              title="Sample data for this test account"
-              detail={result.health.email}
-              busy={busy}
-              onSeed={() => runDemo(result.health.userId, "seed")}
-              onReset={() => runDemo(result.health.userId, "reset")}
-            />
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Sample data</CardTitle>
-                <CardDescription>
-                  Sample data can be added only to a test account. Use a plus
-                  address such as name+test1@example.com.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          )}
         </>
       ) : null}
     </div>

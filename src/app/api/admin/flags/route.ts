@@ -6,6 +6,7 @@ import {
   setFlagOverride,
   writeAdminAudit,
 } from "@/lib/admin/service";
+import { isFeatureFlagId } from "@/lib/flags/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     body.enabled === null || typeof body.enabled === "boolean"
       ? body.enabled
       : undefined;
-  if (!userId || !flag || enabled === undefined) {
+  if (!userId || !flag || enabled === undefined || !isFeatureFlagId(flag)) {
     return NextResponse.json(
       { error: "Choose an account and a flag." },
       { status: 400, headers: noStore },
@@ -36,12 +37,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const saved = await setFlagOverride({ userId, flag, enabled });
     await writeAdminAudit({
       adminId: auth.user.id,
-      action: flagAuditAction(saved, enabled),
+      action: flagAuditAction(flag, enabled),
       targetUserId: userId,
     });
+    await setFlagOverride({ userId, flag, enabled });
     const flags = describeFlagsForAdmin(await overridesForUser(userId));
     return NextResponse.json({ flags }, { headers: noStore });
   } catch (error) {
