@@ -25,8 +25,8 @@ import {
   type CategoryGoalProgress,
 } from "@/lib/budget/goals";
 import {
+  countsAsBudgetSpending,
   getReadyToAssignEffect,
-  isOnBudgetOutflow,
 } from "@/lib/budget/on-budget";
 import {
   getAbsorbedCashOverspend,
@@ -257,7 +257,7 @@ export function computeMonthSummary(
       0,
     ) + Math.max(0, getCardInflowReleaseInMonth(budget, monthKey));
   const totalSpent = monthTransactions.reduce((sum, tx) => {
-    if (isOnBudgetOutflow(tx, budget.accounts)) return sum + tx.amount;
+    if (countsAsBudgetSpending(tx, budget.accounts)) return sum + tx.amount;
     if (tx.type !== "inflow" || !tx.categoryId) return sum;
     const account = accountById(budget.accounts, tx.accountId);
     if (account && !isOnBudgetAccount(account)) return sum;

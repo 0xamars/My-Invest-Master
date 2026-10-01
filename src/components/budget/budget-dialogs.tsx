@@ -248,7 +248,7 @@ export function CoverOverspendDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rta">
-                    Leftover ({formatBudgetMoney(Math.max(0, readyToAssign), currency)})
+                    Ready to Assign ({formatBudgetMoney(Math.max(0, readyToAssign), currency)})
                   </SelectItem>
                   {sources.map((source) => (
                     <SelectItem key={source.id} value={source.id}>

@@ -8,7 +8,7 @@ import {
   getCategoryActivity,
   getSortedTransactions,
 } from "@/lib/budget/calculations";
-import { isOnBudgetOutflow } from "@/lib/budget/on-budget";
+import { countsAsBudgetSpending } from "@/lib/budget/on-budget";
 import { getEnvelopeActivityForCategory } from "@/lib/budget/transactions";
 import { getMonthKey, parseMonthKey, shiftMonthKey } from "@/types/budget";
 
@@ -264,7 +264,7 @@ export function getSpendingByPayee(
 
   for (const tx of budget.transactions) {
     if (!isInDateRange(tx.date, fromDate, toDate)) continue;
-    if (!isOnBudgetOutflow(tx, budget.accounts)) continue;
+    if (!countsAsBudgetSpending(tx, budget.accounts)) continue;
     const name = tx.payee.trim();
     if (!name) continue;
     const key = name.toLowerCase().replace(/\s+/g, " ");

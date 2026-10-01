@@ -86,7 +86,7 @@ export function PayCardDialog({
           </DialogTitle>
           <DialogDescription>
             Transfer from a spending account. This uses the card payment
-            envelope. Leftover does not change.
+            envelope. Ready to Assign does not change.
           </DialogDescription>
         </DialogHeader>
 

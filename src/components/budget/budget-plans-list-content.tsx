@@ -151,7 +151,7 @@ export function BudgetPlansListContent() {
                     onClick={() => openPlan(summary.id)}
                     className="mt-4 block w-full text-left"
                   >
-                    <p className="budget-metric-label">Leftover</p>
+                    <p className="budget-metric-label">Ready to Assign</p>
                     <p
                       className={cn(
                         "mt-1 text-[1.65rem] font-semibold tracking-tight tabular-nums",

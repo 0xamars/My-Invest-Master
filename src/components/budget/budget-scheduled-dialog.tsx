@@ -26,6 +26,10 @@ import {
   isOnBudgetAccount,
   sortedAccounts,
 } from "@/lib/budget/accounts";
+import {
+  envelopeRequiredForTransfer,
+  transferLeavesBudget,
+} from "@/lib/budget/on-budget";
 import { userAssignableCategories } from "@/lib/budget/credit-card-payments";
 import { formatBudgetMoney } from "@/lib/budget/format";
 import {
@@ -68,6 +72,27 @@ type RepeatUntil = "forever" | "date" | "count";
 
 function newSplitLine(amount = ""): SplitLineDraft {
   return { key: crypto.randomUUID(), categoryId: "none", amount };
+}
+
+function scheduleAmountChanged(
+  nextAmount: number,
+  schedule: BudgetScheduledTransaction | null | undefined,
+): boolean {
+  if (!schedule || schedule.type !== "transfer") return true;
+  if (!Number.isFinite(nextAmount)) return true;
+  return Math.round(nextAmount * 100) !== Math.round(schedule.amount * 100);
+}
+
+function scheduleAccountsChanged(
+  accountId: string,
+  transferAccountId: string,
+  schedule: BudgetScheduledTransaction | null | undefined,
+): boolean {
+  if (!schedule || schedule.type !== "transfer") return true;
+  return (
+    accountId !== schedule.accountId ||
+    transferAccountId !== (schedule.transferAccountId ?? "")
+  );
 }
 
 export function BudgetScheduledDialog({
@@ -199,9 +224,23 @@ export function BudgetScheduledDialog({
   const destinationAccounts = orderedAccounts.filter(
     (account) => account.id !== accountId,
   );
-  const selectedOnBudget = isOnBudgetAccount(
-    orderedAccounts.find((account) => account.id === accountId),
+  const selectedAccount = orderedAccounts.find((account) => account.id === accountId);
+  const transferAccount = orderedAccounts.find(
+    (account) => account.id === transferAccountId,
   );
+  const selectedOnBudget = isOnBudgetAccount(selectedAccount);
+  const transferNeedsCategory =
+    type === "transfer" && transferLeavesBudget(selectedAccount, transferAccount);
+  const envelopeRequired = envelopeRequiredForTransfer({
+    needsCategory: transferNeedsCategory,
+    isNew: !schedule,
+    amountChanged: scheduleAmountChanged(parsedAmount, schedule),
+    accountsChanged: scheduleAccountsChanged(
+      accountId,
+      transferAccountId,
+      schedule,
+    ),
+  });
 
   function handleTypeChange(nextType: BudgetTransactionType) {
     if (nextType === "transfer" && !canTransfer) return;
@@ -239,9 +278,8 @@ export function BudgetScheduledDialog({
 
     if (type === "transfer") {
       if (!transferAccountId || transferAccountId === accountId) return;
-      const toName =
-        orderedAccounts.find((account) => account.id === transferAccountId)
-          ?.name ?? "account";
+      if (envelopeRequired && categoryId === "none") return;
+      const toName = transferAccount?.name ?? "account";
       onSave({
         nextDate,
         frequency,
@@ -250,7 +288,8 @@ export function BudgetScheduledDialog({
         transferAccountId,
         amount: parsedAmount,
         type: "transfer",
-        categoryId: null,
+        categoryId:
+          transferNeedsCategory && categoryId !== "none" ? categoryId : null,
         memo: memo.trim() || undefined,
         ...end,
       });
@@ -302,7 +341,9 @@ export function BudgetScheduledDialog({
     if (repeatUntil === "date" && !endDate) return false;
     if (repeatUntil === "count" && !hasValidCount) return false;
     if (type === "transfer") {
-      return Boolean(transferAccountId) && transferAccountId !== accountId;
+      if (!transferAccountId || transferAccountId === accountId) return false;
+      if (envelopeRequired && categoryId === "none") return false;
+      return true;
     }
     if (!payee.trim()) return false;
     if (type === "outflow" && splitEnabled && selectedOnBudget) {
@@ -529,6 +570,31 @@ export function BudgetScheduledDialog({
             </div>
           )}
 
+          {transferNeedsCategory ? (
+            <div className="space-y-1.5">
+              <Label>Envelope</Label>
+              <Select
+                value={categoryId}
+                onValueChange={(value) => setCategoryId(value ?? "none")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an envelope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Choose an envelope</SelectItem>
+                  {categoryOptions()}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {envelopeRequired
+                  ? "Required. Each posted payment spends this envelope and lowers the balance owed. Ready to Assign stays the same."
+                  : categoryId === "none"
+                    ? "This saved transfer has no envelope. You can add one. Change the amount or the accounts and an envelope is required."
+                    : "This envelope is already on the transfer. Each posted payment spends it. Ready to Assign stays the same."}
+              </p>
+            </div>
+          ) : null}
+
           {type === "inflow" && selectedOnBudget ? (
             <div className="space-y-1.5">
               <Label>Envelope</Label>
@@ -537,10 +603,10 @@ export function BudgetScheduledDialog({
                 onValueChange={(value) => setCategoryId(value ?? "none")}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Leftover" />
+                  <SelectValue placeholder="Ready to Assign" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Leftover</SelectItem>
+                  <SelectItem value="none">Ready to Assign</SelectItem>
                   {categoryOptions()}
                 </SelectContent>
               </Select>

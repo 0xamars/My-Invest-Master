@@ -32,7 +32,13 @@ import { applyMonthClose } from "@/lib/budget/month-close";
 import { buildStartingBalanceTransaction } from "@/lib/budget/starting-balance";
 import { applyResetAvailable } from "@/lib/budget/reset-available";
 import { enterScheduledNow, materializeDueSchedules } from "@/lib/budget/scheduled";
-import { defaultOnBudgetForType } from "@/lib/budget/accounts";
+import { accountById, defaultOnBudgetForType } from "@/lib/budget/accounts";
+import {
+  applyAccountEdits,
+  loanFieldsFromDraft,
+  type LoanTermsDraft,
+} from "@/lib/budget/loans";
+import { keptOffBudgetTransferCategory } from "@/lib/budget/on-budget";
 import {
   applyPlaidImport,
   unlinkPlaidItemFromPlan,
@@ -52,6 +58,7 @@ import {
 import { transactionTouchesAccount } from "@/lib/budget/transactions";
 import type { PlaidSyncPayload } from "@/lib/plaid/types";
 import type {
+  BudgetAccount,
   BudgetAccountType,
   BudgetCategory,
   BudgetCategoryGroup,
@@ -116,7 +123,9 @@ export interface AddBudgetScheduledTransactionInput {
 
 function toStoredTransaction(
   input: AddBudgetTransactionInput,
-  existing?: BudgetTransaction,
+  existing: BudgetTransaction | undefined,
+  accounts: BudgetAccount[],
+  categories: BudgetCategory[],
 ): BudgetTransaction {
   const type = input.type;
   const splits =
@@ -128,14 +137,26 @@ function toStoredTransaction(
           memo: line.memo?.trim() || undefined,
         }))
       : undefined;
+  const transferAccountId =
+    type === "transfer" && input.transferAccountId
+      ? input.transferAccountId
+      : undefined;
 
   return {
     id: existing?.id ?? crypto.randomUUID(),
     date: input.date,
     payee: input.payee.trim(),
     accountId: input.accountId,
-    categoryId:
-      type === "transfer" || splits ? null : input.categoryId,
+    categoryId: splits
+      ? null
+      : type === "transfer"
+        ? keptOffBudgetTransferCategory(
+            input.categoryId,
+            accountById(accounts, input.accountId),
+            accountById(accounts, transferAccountId),
+            categories,
+          )
+        : input.categoryId,
     amount: Math.abs(input.amount),
     type,
     cleared: normalizeClearedState(input.cleared ?? existing?.cleared),
@@ -176,7 +197,9 @@ function withPayeeRules(
 
 function toStoredSchedule(
   input: AddBudgetScheduledTransactionInput,
-  existing?: BudgetScheduledTransaction,
+  existing: BudgetScheduledTransaction | undefined,
+  accounts: BudgetAccount[],
+  categories: BudgetCategory[],
 ): BudgetScheduledTransaction {
   const type = input.type;
   const splits =
@@ -200,8 +223,16 @@ function toStoredSchedule(
     frequency: input.frequency,
     payee: input.payee.trim(),
     accountId: input.accountId,
-    categoryId:
-      type === "transfer" || splits ? null : input.categoryId,
+    categoryId: splits
+      ? null
+      : type === "transfer"
+        ? keptOffBudgetTransferCategory(
+            input.categoryId,
+            accountById(accounts, input.accountId),
+            accountById(accounts, input.transferAccountId),
+            categories,
+          )
+        : input.categoryId,
     amount: Math.abs(input.amount),
     type,
     memo: input.memo?.trim() || undefined,
@@ -273,7 +304,12 @@ export function useBudgetPlanMutations(planId: string) {
     (input: AddBudgetTransactionInput) => {
       commitPlan(
         (current) => {
-          const stored = toStoredTransaction(input);
+          const stored = toStoredTransaction(
+            input,
+            undefined,
+            current.accounts,
+            current.categories,
+          );
           return {
             ...current,
             transactions: [...current.transactions, withPayeeRules(current, stored, input)],
@@ -293,10 +329,15 @@ export function useBudgetPlanMutations(planId: string) {
           applyRulesToImportedTransactions(
             current,
             inputs.map((input) =>
-              toStoredTransaction({
-                ...input,
-                approved: input.approved ?? false,
-              }),
+              toStoredTransaction(
+                {
+                  ...input,
+                  approved: input.approved ?? false,
+                },
+                undefined,
+                current.accounts,
+                current.categories,
+              ),
             ),
             [],
           ),
@@ -353,10 +394,15 @@ export function useBudgetPlanMutations(planId: string) {
           applyRulesToImportedTransactions(
             current,
             inputs.map((input) =>
-              toStoredTransaction({
-                ...input,
-                approved: false,
-              }),
+              toStoredTransaction(
+                {
+                  ...input,
+                  approved: false,
+                },
+                undefined,
+                current.accounts,
+                current.categories,
+              ),
             ),
             matches,
           ),
@@ -397,7 +443,12 @@ export function useBudgetPlanMutations(planId: string) {
         ...current,
         transactions: current.transactions.map((tx) => {
           if (tx.id !== transactionId) return tx;
-          const stored = toStoredTransaction(input, tx);
+          const stored = toStoredTransaction(
+            input,
+            tx,
+            current.accounts,
+            current.categories,
+          );
           return withPayeeRules(current, stored, input);
         }),
       }));
@@ -806,26 +857,28 @@ export function useBudgetPlanMutations(planId: string) {
   );
 
   const addAccount = useCallback(
-    (
-      name: string,
-      type: BudgetAccountType,
-      onBudget?: boolean,
-      startingBalance?: { amount: number; date: string },
-    ) => {
+    (input: {
+      name: string;
+      type: BudgetAccountType;
+      onBudget?: boolean;
+      startingBalance?: { amount: number; date: string };
+      loan?: LoanTermsDraft;
+    }) => {
       commitPlan((current) => {
         const account = {
           id: crypto.randomUUID(),
-          name: name.trim(),
-          type,
-          onBudget: onBudget ?? defaultOnBudgetForType(type),
+          name: input.name.trim(),
+          type: input.type,
+          onBudget: input.onBudget ?? defaultOnBudgetForType(input.type),
           sortOrder: current.accounts.length,
+          ...loanFieldsFromDraft(input.type, input.loan),
         };
-        const opening = startingBalance
+        const opening = input.startingBalance
           ? buildStartingBalanceTransaction({
               id: crypto.randomUUID(),
               account,
-              amount: startingBalance.amount,
-              date: startingBalance.date,
+              amount: input.startingBalance.amount,
+              date: input.startingBalance.date,
             })
           : null;
         return ensureCreditCardPaymentCategories({
@@ -847,22 +900,13 @@ export function useBudgetPlanMutations(planId: string) {
         name?: string;
         type?: BudgetAccountType;
         onBudget?: boolean;
+        loan?: LoanTermsDraft;
       },
     ) => {
       commitPlan((current) =>
-        ensureCreditCardPaymentCategories({
-          ...current,
-          accounts: current.accounts.map((account) =>
-            account.id === accountId
-              ? {
-                  ...account,
-                  name: updates.name?.trim() || account.name,
-                  type: updates.type ?? account.type,
-                  onBudget: updates.onBudget ?? account.onBudget,
-                }
-              : account,
-          ),
-        }),
+        ensureCreditCardPaymentCategories(
+          applyAccountEdits(current, accountId, updates),
+        ),
       );
     },
     [commitPlan],
@@ -923,7 +967,7 @@ export function useBudgetPlanMutations(planId: string) {
           ...current,
           scheduledTransactions: [
             ...(current.scheduledTransactions ?? []),
-            toStoredSchedule(input),
+            toStoredSchedule(input, undefined, current.accounts, current.categories),
           ],
         }),
       );
@@ -939,7 +983,12 @@ export function useBudgetPlanMutations(planId: string) {
           scheduledTransactions: (current.scheduledTransactions ?? []).map(
             (schedule) =>
               schedule.id === scheduleId
-                ? toStoredSchedule(input, { ...schedule, active: true })
+                ? toStoredSchedule(
+                    input,
+                    { ...schedule, active: true },
+                    current.accounts,
+                    current.categories,
+                  )
                 : schedule,
           ),
         }),

@@ -1,8 +1,16 @@
-import { isBudgetAccountType } from "@/lib/budget/accounts";
+import { accountById, isBudgetAccountType } from "@/lib/budget/accounts";
 import { normalizeClearedState } from "@/lib/budget/cleared";
 import { ensureCreditCardPaymentCategories } from "@/lib/budget/credit-card-payments";
 import { resolveBudgetCurrency } from "@/lib/budget/format";
 import { isCategoryGoalType } from "@/lib/budget/goals";
+import {
+  normalizeInterestRates,
+  normalizeMinimumPayment,
+  normalizeOpeningBalance,
+  normalizePaymentDueDay,
+  isDateKey,
+} from "@/lib/budget/loans";
+import { keptOffBudgetTransferCategory } from "@/lib/budget/on-budget";
 import { normalizePayeeRules } from "@/lib/budget/payee-rules";
 import {
   createDefaultAccount,
@@ -115,9 +123,11 @@ function normalizeFrequency(value: unknown): RecurringFrequency {
 
 function normalizeScheduledTransactions(
   schedules: LegacyScheduled[] | undefined,
-  accountIds: Set<string>,
+  accounts: BudgetAccount[],
+  categories: BudgetPlan["categories"],
   fallbackAccountId: string,
 ): BudgetScheduledTransaction[] {
+  const accountIds = new Set(accounts.map((account) => account.id));
   if (!Array.isArray(schedules) || schedules.length === 0) return [];
 
   return schedules
@@ -155,8 +165,16 @@ function normalizeScheduledTransactions(
         frequency: normalizeFrequency(row.frequency),
         payee: typeof row.payee === "string" ? row.payee : "",
         accountId,
-        categoryId:
-          type === "transfer" || splits ? null : (row.categoryId ?? null),
+        categoryId: splits
+          ? null
+          : type === "transfer"
+            ? keptOffBudgetTransferCategory(
+                row.categoryId,
+                accountById(accounts, accountId),
+                accountById(accounts, transferAccountId),
+                categories,
+              )
+            : (row.categoryId ?? null),
         amount: Math.abs(typeof row.amount === "number" ? row.amount : 0),
         type,
         memo: typeof row.memo === "string" && row.memo.trim() ? row.memo.trim() : undefined,
@@ -209,6 +227,23 @@ function normalizeAccount(account: LegacyAccount, index: number): BudgetAccount 
       typeof account.lastSyncedAt === "string" && account.lastSyncedAt
         ? account.lastSyncedAt
         : undefined,
+    interestRates: normalizeInterestRates(account.interestRates),
+    minimumPayment: normalizeMinimumPayment(account.minimumPayment),
+    paymentDueDay: normalizePaymentDueDay(account.paymentDueDay),
+    ...normalizedOpeningBalance(account),
+  };
+}
+
+function normalizedOpeningBalance(
+  account: LegacyAccount,
+): Pick<BudgetAccount, "openingBalance" | "openingBalanceDate"> {
+  const openingBalance = normalizeOpeningBalance(account.openingBalance);
+  if (openingBalance == null) return {};
+  return {
+    openingBalance,
+    openingBalanceDate: isDateKey(account.openingBalanceDate)
+      ? account.openingBalanceDate
+      : undefined,
   };
 }
 
@@ -353,8 +388,16 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
       type,
       accountId: legacyTx.accountId ?? fallbackAccountId,
       cleared: normalizeClearedState(legacyTx.cleared),
-      categoryId:
-        type === "transfer" || splits ? null : (tx.categoryId ?? null),
+      categoryId: splits
+        ? null
+        : type === "transfer"
+          ? keptOffBudgetTransferCategory(
+              tx.categoryId,
+              accountById(accounts, legacyTx.accountId ?? fallbackAccountId),
+              accountById(accounts, transferAccountId),
+              plan.categories,
+            )
+          : (tx.categoryId ?? null),
       transferAccountId,
       splits,
       scheduledTransactionId,
@@ -368,7 +411,8 @@ export function normalizeBudgetPlan(plan: BudgetPlan): BudgetPlan {
 
   const scheduledTransactions = normalizeScheduledTransactions(
     legacy.scheduledTransactions,
-    accountIds,
+    accounts,
+    plan.categories,
     fallbackAccountId,
   );
 
