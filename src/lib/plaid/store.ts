@@ -1,3 +1,8 @@
+import {
+  openStoredPlaidAccessToken,
+  readPlaidTokenKey,
+  sealPlaidAccessToken,
+} from "@/lib/plaid/crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PlaidItemSummary, PlaidLinkedAccount } from "@/lib/plaid/types";
 
@@ -22,6 +27,10 @@ function requireAdmin() {
   return admin;
 }
 
+function plainToken(stored: string): string {
+  return openStoredPlaidAccessToken(stored, readPlaidTokenKey());
+}
+
 function toSummary(row: ItemRow): PlaidItemSummary {
   return {
     id: row.id,
@@ -42,7 +51,7 @@ export async function listPlaidItemsForPlan(
   const { data, error } = await admin
     .from("user_plaid_items")
     .select(
-      "id, user_id, plan_id, item_id, access_token, institution_id, institution_name, transactions_cursor, status, last_synced_at",
+      "id, user_id, plan_id, item_id, institution_id, institution_name, status, last_synced_at",
     )
     .eq("user_id", userId)
     .eq("plan_id", planId)
@@ -70,7 +79,7 @@ export async function upsertPlaidItem(input: {
         user_id: input.userId,
         plan_id: input.planId,
         item_id: input.itemId,
-        access_token: input.accessToken,
+        access_token: sealPlaidAccessToken(input.accessToken, readPlaidTokenKey()),
         institution_id: input.institutionId,
         institution_name: input.institutionName,
         status: "active",
@@ -119,7 +128,9 @@ export async function loadPlaidItemForUser(input: {
     .eq("item_id", input.itemId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return (data as ItemRow | null) ?? null;
+  const row = (data as ItemRow | null) ?? null;
+  if (!row) return null;
+  return { ...row, access_token: plainToken(row.access_token) };
 }
 
 export async function loadPlaidItemByPlaidId(itemId: string): Promise<ItemRow | null> {
@@ -132,7 +143,9 @@ export async function loadPlaidItemByPlaidId(itemId: string): Promise<ItemRow | 
     .eq("item_id", itemId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return (data as ItemRow | null) ?? null;
+  const row = (data as ItemRow | null) ?? null;
+  if (!row) return null;
+  return { ...row, access_token: plainToken(row.access_token) };
 }
 
 /**
@@ -213,4 +226,30 @@ export async function deletePlaidItemRow(input: {
     .eq("user_id", input.userId);
   if (error) throw new Error(error.message);
   return existing;
+}
+
+export async function savePlaidAccountBudgetIds(input: {
+  userId: string;
+  itemId: string;
+  mappings: ReadonlyArray<{ plaidAccountId: string; budgetAccountId: string }>;
+}): Promise<void> {
+  if (input.mappings.length === 0) return;
+  const item = await loadPlaidItemForUser({
+    userId: input.userId,
+    itemId: input.itemId,
+  });
+  if (!item) throw new Error("Bank connection not found");
+  const admin = requireAdmin();
+  for (const mapping of input.mappings) {
+    const plaidAccountId = mapping.plaidAccountId.trim();
+    const budgetAccountId = mapping.budgetAccountId.trim();
+    if (!plaidAccountId || !budgetAccountId) continue;
+    const { error } = await admin
+      .from("user_plaid_accounts")
+      .update({ budget_account_id: budgetAccountId })
+      .eq("user_id", input.userId)
+      .eq("item_row_id", item.id)
+      .eq("plaid_account_id", plaidAccountId);
+    if (error) throw new Error(error.message);
+  }
 }

@@ -8,6 +8,14 @@ import { BudgetPanel } from "@/components/budget/budget-ui";
 import { useBudget } from "@/contexts/budget-context";
 import { useBudgetPlans } from "@/contexts/budget-plans-context";
 import {
+  formatLinkedAccountName,
+  mapPlaidAccountType,
+  plaidAccountsNeedingMap,
+  type PlaidAccountChoice,
+} from "@/lib/budget/plaid";
+import { ACCOUNT_TYPE_LABELS } from "@/lib/budget/accounts";
+import { isBankConnectEnabled } from "@/lib/plaid/feature";
+import {
   formatPlaidItemSyncLine,
   plaidItemNeedsUserReconnect,
 } from "@/lib/plaid/item-status";
@@ -16,6 +24,7 @@ import {
   plaidSyncNeedsDurableSave,
 } from "@/lib/plaid/cursor";
 import type { PlaidItemSummary, PlaidStatusResponse, PlaidSyncPayload } from "@/lib/plaid/types";
+import type { BudgetAccount, BudgetPlan, BudgetTransaction } from "@/types/budget";
 
 function PlaidOpen({
   token,
@@ -48,25 +57,153 @@ function PlaidOpen({
   return null;
 }
 
+function suggestBudgetAccountId(
+  bankType: string,
+  bankSubtype: string | null,
+  accounts: BudgetAccount[],
+  transactions: BudgetTransaction[],
+  taken: Set<string>,
+): string {
+  const type = mapPlaidAccountType(bankType, bankSubtype);
+  const unused = accounts.filter(
+    (account) =>
+      account.type === type &&
+      !account.plaidAccountId &&
+      !taken.has(account.id) &&
+      !transactions.some((tx) => tx.accountId === account.id),
+  );
+  return unused.length === 1 ? unused[0]!.id : "";
+}
+
+function AccountMapping({
+  payload,
+  accounts,
+  transactions,
+  busy,
+  onCancel,
+  onSave,
+}: {
+  payload: PlaidSyncPayload;
+  accounts: BudgetAccount[];
+  transactions: BudgetTransaction[];
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (choices: PlaidAccountChoice[]) => void;
+}) {
+  const unmapped = plaidAccountsNeedingMap({ accounts }, payload.accounts);
+  const [choices, setChoices] = useState<Record<string, string>>(() => {
+    const taken = new Set<string>();
+    const next: Record<string, string> = {};
+    for (const account of unmapped) {
+      const suggested = suggestBudgetAccountId(
+        account.type,
+        account.subtype,
+        accounts,
+        transactions,
+        taken,
+      );
+      next[account.plaidAccountId] = suggested;
+      if (suggested) taken.add(suggested);
+    }
+    return next;
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const save = () => {
+    const selected = Object.values(choices).filter((id) => id);
+    if (new Set(selected).size !== selected.length) {
+      setError("Each bank account needs its own budget account.");
+      return;
+    }
+    setError(null);
+    onSave(
+      unmapped.map((account) => ({
+        plaidAccountId: account.plaidAccountId,
+        budgetAccountId: choices[account.plaidAccountId] || null,
+      })),
+    );
+  };
+
+  return (
+    <div className="mt-4 border-t border-border/50 pt-4" data-bank-account-map="1">
+      <p className="text-sm font-semibold">Choose budget accounts</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Pick the budget account each bank account should feed, or create a new one.
+        Use the account you already import files into so those rows are not added twice.
+      </p>
+      <ul className="mt-3 flex flex-col gap-3">
+        {unmapped.map((account) => (
+          <li key={account.plaidAccountId} className="flex flex-col gap-1">
+            <label className="text-sm font-medium" htmlFor={`bank-map-${account.plaidAccountId}`}>
+              {formatLinkedAccountName(account.name, account.mask)}
+              <span className="ml-2 font-normal text-muted-foreground">
+                {ACCOUNT_TYPE_LABELS[mapPlaidAccountType(account.type, account.subtype)]}
+              </span>
+            </label>
+            <select
+              id={`bank-map-${account.plaidAccountId}`}
+              className="h-10 w-full rounded-[var(--radius)] border border-border bg-muted px-3 text-sm"
+              value={choices[account.plaidAccountId] ?? ""}
+              disabled={busy}
+              onChange={(event) => {
+                setChoices((current) => ({
+                  ...current,
+                  [account.plaidAccountId]: event.target.value,
+                }));
+              }}
+            >
+              <option value="">Create a new account</option>
+              {accounts
+                .filter((budgetAccount) => !budgetAccount.plaidAccountId)
+                .map((budgetAccount) => (
+                  <option key={budgetAccount.id} value={budgetAccount.id}>
+                    {budgetAccount.name}
+                  </option>
+                ))}
+            </select>
+          </li>
+        ))}
+      </ul>
+      {error ? (
+        <p className="mt-3 text-sm text-[var(--brand-orange)]" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button type="button" disabled={busy} onClick={save}>
+          {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+          Save and sync
+        </Button>
+        <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
+          Not now
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function BudgetBankLink({
   primary = false,
 }: {
   primary?: boolean;
 }) {
-  const { planId, importFromPlaid, unlinkPlaidItem } = useBudget();
+  const flagOn = isBankConnectEnabled();
+  const { planId, budget, importFromPlaid, unlinkPlaidItem } = useBudget();
   const { enqueuePlanSave } = useBudgetPlans();
   const [status, setStatus] = useState<PlaidStatusResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(flagOn);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [updateItemId, setUpdateItemId] = useState<string | null>(null);
+  const [pending, setPending] = useState<PlaidSyncPayload | null>(null);
 
   const refreshStatus = useCallback(async () => {
     try {
       const response = await fetch(`/api/plaid/status?planId=${encodeURIComponent(planId)}`);
       if (!response.ok) {
         setStatus({
+          enabled: true,
           configured: false,
           storageReady: false,
           env: "sandbox",
@@ -78,6 +215,7 @@ export function BudgetBankLink({
       setStatus((await response.json()) as PlaidStatusResponse);
     } catch {
       setStatus({
+        enabled: true,
         configured: false,
         storageReady: false,
         env: "sandbox",
@@ -90,11 +228,15 @@ export function BudgetBankLink({
   }, [planId]);
 
   useEffect(() => {
+    if (!flagOn) return;
     void refreshStatus();
-  }, [refreshStatus]);
+  }, [flagOn, refreshStatus]);
 
   const applyPayload = useCallback(
-    async (payload: PlaidSyncPayload) => {
+    async (payload: PlaidSyncPayload, choices?: PlaidAccountChoice[]) => {
+      if (choices) {
+        payload = { ...payload, accountChoices: choices };
+      }
       const plan = importFromPlaid(payload);
       await commitPlaidCursorAfterSave({
         needsSave: plaidSyncNeedsDurableSave(payload),
@@ -123,8 +265,45 @@ export function BudgetBankLink({
           }
         },
       });
+      if (!choices || !plan) return;
+      const mappings = plan.accounts
+        .filter(
+          (account) =>
+            account.plaidItemId === payload.itemId && account.plaidAccountId,
+        )
+        .map((account) => ({
+          plaidAccountId: account.plaidAccountId ?? "",
+          budgetAccountId: account.id,
+        }))
+        .filter((row) => row.plaidAccountId);
+      if (mappings.length === 0) return;
+      const response = await fetch("/api/plaid/map", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: payload.itemId, mappings }),
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Saved transactions, but the account link was not stored.");
+      }
     },
     [enqueuePlanSave, importFromPlaid],
+  );
+
+  const beginImport = useCallback(
+    async (payload: PlaidSyncPayload) => {
+      const current: BudgetPlan | undefined = budget;
+      if (
+        current &&
+        plaidAccountsNeedingMap(current, payload.accounts).length > 0
+      ) {
+        setPending(payload);
+        return;
+      }
+      await applyPayload(payload);
+      setPending(null);
+    },
+    [applyPayload, budget],
   );
 
   const startLink = async (itemId?: string) => {
@@ -172,7 +351,7 @@ export function BudgetBankLink({
         if (!response.ok || !data.payload) {
           throw new Error(data.error ?? "Could not reconnect bank");
         }
-        await applyPayload(data.payload);
+        await beginImport(data.payload);
         await refreshStatus();
         return;
       }
@@ -193,7 +372,7 @@ export function BudgetBankLink({
       if (!response.ok || !data.payload) {
         throw new Error(data.error ?? "Could not connect bank");
       }
-      await applyPayload(data.payload);
+      await beginImport(data.payload);
       await refreshStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect bank");
@@ -218,7 +397,7 @@ export function BudgetBankLink({
       if (!response.ok || !data.payload) {
         throw new Error(data.error ?? "Could not sync bank");
       }
-      await applyPayload(data.payload);
+      await beginImport(data.payload);
       await refreshStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sync bank");
@@ -241,6 +420,7 @@ export function BudgetBankLink({
         const data = (await response.json()) as { error?: string };
         throw new Error(data.error ?? "Could not disconnect");
       }
+      if (pending?.itemId === item.itemId) setPending(null);
       unlinkPlaidItem(item.itemId);
       await refreshStatus();
     } catch (err) {
@@ -249,6 +429,23 @@ export function BudgetBankLink({
       setBusy(false);
     }
   };
+
+  const saveMapping = async (choices: PlaidAccountChoice[]) => {
+    if (!pending) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await applyPayload(pending, choices);
+      setPending(null);
+      await refreshStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sync bank");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!flagOn || status?.enabled === false) return null;
 
   const configured = status?.configured === true && status.storageReady === true;
   const disabledReason = !status
@@ -300,6 +497,17 @@ export function BudgetBankLink({
         </p>
       ) : null}
 
+      {pending && budget ? (
+        <AccountMapping
+          payload={pending}
+          accounts={budget.accounts}
+          transactions={budget.transactions}
+          busy={busy}
+          onCancel={() => setPending(null)}
+          onSave={(choices) => void saveMapping(choices)}
+        />
+      ) : null}
+
       {status?.items.length ? (
         <ul className="mt-4 divide-y divide-border/50">
           {status.items.map((item) => {
@@ -338,7 +546,7 @@ export function BudgetBankLink({
                       onClick={() => void syncItem(item)}
                     >
                       <RefreshCw className="size-3.5" />
-                      Sync
+                      Sync now
                     </Button>
                   )}
                   <Button

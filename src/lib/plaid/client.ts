@@ -1,7 +1,22 @@
+import axios, {
+  AxiosError,
+  AxiosHeaders,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from "axios";
+import {
+  Configuration,
+  CountryCode,
+  PlaidApi,
+  PlaidEnvironments,
+  Products,
+  type LinkTokenCreateRequest,
+} from "plaid";
 import {
   plaidHost,
   readPlaidConfig,
   type PlaidConfig,
+  type PlaidEnv,
 } from "@/lib/plaid/config";
 import {
   foldPlaidSyncPages,
@@ -11,6 +26,9 @@ import type {
   PlaidImportedTransaction,
   PlaidLinkedAccount,
 } from "@/lib/plaid/types";
+
+/** Link shows US and Canadian institutions. Sandbox enables both. */
+export const PLAID_LINK_COUNTRY_CODES = [CountryCode.Us, CountryCode.Ca] as const;
 
 export class PlaidRequestError extends Error {
   status: number;
@@ -29,25 +47,166 @@ export class PlaidRequestError extends Error {
   }
 }
 
-export async function plaidPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
-  const config = readPlaidConfig();
-  if (!config) {
-    throw new Error("Bank linking is not configured");
+function plaidBasePath(env: PlaidEnv): string {
+  if (env === "production") return PlaidEnvironments.production;
+  if (env === "sandbox") return PlaidEnvironments.sandbox;
+  return plaidHost(env);
+}
+
+function headerRecord(
+  headers: InternalAxiosRequestConfig["headers"],
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!headers) return out;
+  const source =
+    typeof (headers as AxiosHeaders).toJSON === "function"
+      ? (headers as AxiosHeaders).toJSON()
+      : headers;
+  for (const [key, value] of Object.entries(source as Record<string, unknown>)) {
+    if (value == null) continue;
+    out[key] = Array.isArray(value) ? value.map(String).join(", ") : String(value);
   }
-  const response = await fetch(`${plaidHost(config.env)}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "PLAID-CLIENT-ID": config.clientId,
-      "PLAID-SECRET": config.secret,
+  return out;
+}
+
+/**
+ * The official SDK talks through axios. This adapter uses fetch so a test
+ * can stub `globalThis.fetch` and still exercise /item/remove errors.
+ */
+function plaidAxios() {
+  return axios.create({
+    adapter: async (config) => {
+      const response = await fetch(axios.getUri(config), {
+        method: (config.method ?? "POST").toUpperCase(),
+        headers: headerRecord(config.headers),
+        body:
+          config.data == null
+            ? undefined
+            : typeof config.data === "string"
+              ? config.data
+              : JSON.stringify(config.data),
+      });
+      const text = await response.text();
+      let data: unknown = {};
+      if (text) {
+        try {
+          data = JSON.parse(text) as unknown;
+        } catch {
+          data = { error_message: "Plaid request failed" };
+        }
+      }
+      const axiosResponse = {
+        data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: {},
+        config,
+      } as AxiosResponse;
+      if (response.status >= 400) {
+        throw new AxiosError(
+          `Request failed with status code ${response.status}`,
+          AxiosError.ERR_BAD_REQUEST,
+          config,
+          null,
+          axiosResponse,
+        );
+      }
+      return axiosResponse;
     },
-    body: JSON.stringify(body),
   });
-  const json: unknown = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new PlaidRequestError(response.status, json);
+}
+
+let cached: { key: string; api: PlaidApi } | null = null;
+
+export function getPlaidApi(config: PlaidConfig = requiredConfig()): PlaidApi {
+  const key = `${config.env}:${config.clientId}:${config.secret}`;
+  if (cached?.key === key) return cached.api;
+  const configuration = new Configuration({
+    basePath: plaidBasePath(config.env),
+    baseOptions: {
+      headers: {
+        "PLAID-CLIENT-ID": config.clientId,
+        "PLAID-SECRET": config.secret,
+      },
+    },
+  });
+  const api = new PlaidApi(
+    configuration,
+    configuration.basePath,
+    plaidAxios(),
+  );
+  cached = { key, api };
+  return api;
+}
+
+function requiredConfig(): PlaidConfig {
+  const config = readPlaidConfig();
+  if (!config) throw new Error("Bank linking is not configured");
+  return config;
+}
+
+function toPlaidRequestError(error: unknown): Error {
+  if (error instanceof PlaidRequestError) return error;
+  if (axios.isAxiosError(error)) {
+    return new PlaidRequestError(
+      error.response?.status ?? 502,
+      error.response?.data ?? {},
+    );
   }
-  return json as T;
+  if (error instanceof Error) return error;
+  return new Error("Plaid request failed");
+}
+
+async function plaidCall<T>(
+  run: (api: PlaidApi) => Promise<{ data: T }>,
+): Promise<T> {
+  try {
+    const response = await run(getPlaidApi());
+    return response.data;
+  } catch (error) {
+    throw toPlaidRequestError(error);
+  }
+}
+
+/** Low-level SDK dispatch. Webhook key fetch and the sync loop use this. */
+export async function plaidPost<T>(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  switch (path) {
+    case "/link/token/create":
+      return plaidCall((api) =>
+        api.linkTokenCreate(body as unknown as LinkTokenCreateRequest),
+      ) as Promise<T>;
+    case "/item/public_token/exchange":
+      return plaidCall((api) =>
+        api.itemPublicTokenExchange({
+          public_token: String(body.public_token ?? ""),
+        }),
+      ) as Promise<T>;
+    case "/item/remove":
+      return plaidCall((api) =>
+        api.itemRemove({ access_token: String(body.access_token ?? "") }),
+      ) as Promise<T>;
+    case "/accounts/get":
+      return plaidCall((api) =>
+        api.accountsGet({ access_token: String(body.access_token ?? "") }),
+      ) as Promise<T>;
+    case "/transactions/sync":
+      return plaidCall((api) =>
+        api.transactionsSync({
+          access_token: String(body.access_token ?? ""),
+          cursor: typeof body.cursor === "string" ? body.cursor : undefined,
+          count: typeof body.count === "number" ? body.count : undefined,
+        }),
+      ) as Promise<T>;
+    case "/webhook_verification_key/get":
+      return plaidCall((api) =>
+        api.webhookVerificationKeyGet({ key_id: String(body.key_id ?? "") }),
+      ) as Promise<T>;
+    default:
+      throw new Error("Plaid request failed");
+  }
 }
 
 export async function createPlaidLinkToken(input: {
@@ -58,23 +217,20 @@ export async function createPlaidLinkToken(input: {
 }): Promise<string> {
   const config = input.config ?? readPlaidConfig();
   if (!config) throw new Error("Bank linking is not configured");
-  const body: Record<string, unknown> = {
+  const request: LinkTokenCreateRequest = {
     user: { client_user_id: input.userId },
     client_name: "InvestSalsa",
-    country_codes: ["US", "CA"],
+    country_codes: [...PLAID_LINK_COUNTRY_CODES],
     language: "en",
   };
   if (input.accessToken) {
-    body.access_token = input.accessToken;
+    request.access_token = input.accessToken;
   } else {
-    body.products = ["transactions"];
+    request.products = [Products.Transactions];
   }
-  if (config.webhookUrl) body.webhook = config.webhookUrl;
-  if (config.redirectUri) body.redirect_uri = config.redirectUri;
-  const data = await plaidPost<{ link_token: string }>(
-    "/link/token/create",
-    body,
-  );
+  if (config.webhookUrl) request.webhook = config.webhookUrl;
+  if (config.redirectUri) request.redirect_uri = config.redirectUri;
+  const data = await plaidCall((api) => api.linkTokenCreate(request));
   return data.link_token;
 }
 
@@ -164,7 +320,7 @@ export type PlaidTransactionSync = {
 export async function syncPlaidTransactions(input: {
   accessToken: string;
   cursor: string | null;
-  /** Test seam. Production uses the Plaid HTTP client. */
+  /** Test seam. Production uses the Plaid SDK. */
   post?: <T>(path: string, body: Record<string, unknown>) => Promise<T>;
 }): Promise<PlaidTransactionSync> {
   const post = input.post ?? plaidPost;

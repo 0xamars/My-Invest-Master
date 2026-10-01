@@ -4,11 +4,10 @@ import {
   PlaidRequestError,
   syncPlaidTransactions,
 } from "@/lib/plaid/client";
-import { isPlaidConfigured, isPlaidStorageReady } from "@/lib/plaid/config";
 import { plaidErrorNeedsReconnect } from "@/lib/plaid/item-status";
 import { toPlaidSyncPayload } from "@/lib/plaid/sync-delta";
 import { loadPlaidItemForUser, markPlaidItemStatus } from "@/lib/plaid/store";
-import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
+import { jsonError, plaidSetupError, requirePlaidUser } from "@/lib/plaid/http";
 
 /**
  * After Plaid Link update-mode success: do not re-exchange the public token.
@@ -17,12 +16,8 @@ import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
 export async function POST(request: Request) {
   const auth = await requirePlaidUser(request);
   if ("error" in auth && auth.error) return auth.error;
-  if (!isPlaidConfigured()) {
-    return jsonError("Bank linking is not configured on this server.", 503);
-  }
-  if (!isPlaidStorageReady()) {
-    return jsonError("Bank linking needs a server database key.", 503);
-  }
+  const setup = plaidSetupError();
+  if (setup) return setup;
 
   let body: { itemId?: string };
   try {

@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { BudgetBankLink } from "@/components/budget/budget-bank-link";
+import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import { BudgetCsvImportDialog } from "@/components/budget/budget-csv-import-dialog";
 import { useBudgetDialog } from "@/components/budget/budget-dialog-provider";
 import { BudgetUpcomingList } from "@/components/budget/budget-upcoming-list";
@@ -302,7 +303,9 @@ export function BudgetTransactionsContent() {
         description={
           lastImportedDate
             ? `Income, spending, and transfers. Latest imported row dated ${formatBudgetDate(lastImportedDate)}.`
-            : "Income, spending, and transfers. Import a CSV, OFX, or QFX file, or connect a bank, then assign envelopes."
+            : isBankConnectEnabled()
+              ? "Income, spending, and transfers. Import a CSV, OFX, or QFX file, or connect a bank, then assign envelopes."
+              : "Income, spending, and transfers. Import a CSV, OFX, or QFX file, then assign envelopes."
         }
         action={
           <>

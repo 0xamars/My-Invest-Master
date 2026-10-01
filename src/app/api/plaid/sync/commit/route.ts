@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { isPlaidConfigured, isPlaidStorageReady } from "@/lib/plaid/config";
-import { jsonError, requirePlaidUser } from "@/lib/plaid/http";
+import { jsonError, plaidSetupError, requirePlaidUser } from "@/lib/plaid/http";
 import { commitPlaidItemCursor, loadPlaidItemForUser } from "@/lib/plaid/store";
 
 /**
@@ -10,12 +9,8 @@ import { commitPlaidItemCursor, loadPlaidItemForUser } from "@/lib/plaid/store";
 export async function POST(request: Request) {
   const auth = await requirePlaidUser(request);
   if ("error" in auth && auth.error) return auth.error;
-  if (!isPlaidConfigured()) {
-    return jsonError("Bank linking is not configured on this server.", 503);
-  }
-  if (!isPlaidStorageReady()) {
-    return jsonError("Bank linking needs a server database key.", 503);
-  }
+  const setup = plaidSetupError();
+  if (setup) return setup;
 
   let body: { itemId?: string; previousCursor?: string | null; nextCursor?: string };
   try {

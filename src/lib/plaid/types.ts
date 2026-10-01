@@ -51,9 +51,19 @@ export type PlaidSyncPayload = {
   /** Plaid transaction ids reported as removed. */
   removedTransactionIds?: string[];
   cursor?: PlaidSyncCursor;
+  /**
+   * Set by the account-mapping step. Null budgetAccountId creates an account.
+   * Omitted keeps the older automatic match.
+   */
+  accountChoices?: ReadonlyArray<{
+    plaidAccountId: string;
+    budgetAccountId: string | null;
+  }>;
 };
 
 export type PlaidStatusResponse = {
+  /** False unless the bank-connect flag is on. The button stays hidden. */
+  enabled: boolean;
   configured: boolean;
   storageReady: boolean;
   env: "sandbox" | "development" | "production";

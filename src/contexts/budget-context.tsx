@@ -30,6 +30,7 @@ interface BudgetContextValue {
   importTransactions: (inputs: AddBudgetTransactionInput[]) => void;
   importFromPlaid: (
     payload: import("@/lib/plaid/types").PlaidSyncPayload,
+    choices?: readonly import("@/lib/budget/plaid").PlaidAccountChoice[],
   ) => import("@/types/budget").BudgetPlan | null;
   unlinkPlaidItem: (itemId: string) => void;
   importFromCsv: (

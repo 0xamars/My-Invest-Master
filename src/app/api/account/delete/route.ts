@@ -1,9 +1,13 @@
 import {
   planAccountDeletion,
+  plaidLookupFailureIsNothingToRevoke,
+  plaidTableDeleteIsSkippable,
   revokePlaidItemsBeforeDrop,
   userOwnedDeleteOrder,
 } from "@/lib/account/delete-account";
 import { isPlaidConfigured } from "@/lib/plaid/config";
+import { PlaidTokenLockedError, openStoredPlaidAccessToken, readPlaidTokenKey } from "@/lib/plaid/crypto";
+import { isBankConnectEnabled } from "@/lib/plaid/feature";
 import { removePlaidItemForDeletion } from "@/lib/plaid/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -53,7 +57,15 @@ export async function POST() {
     .select("item_id, access_token")
     .eq("user_id", user.id);
 
-  if (itemsError) {
+  // Bank connect is off by default, and 013 may not be applied yet.
+  // A missing user_plaid_items table is nothing to revoke.
+  if (
+    itemsError &&
+    !plaidLookupFailureIsNothingToRevoke({
+      error: itemsError,
+      bankConnectEnabled: isBankConnectEnabled(),
+    })
+  ) {
     return Response.json(
       {
         error: itemsError.message,
@@ -64,11 +76,32 @@ export async function POST() {
     );
   }
 
-  const plan = planAccountDeletion({
-    plaidItems: (items ?? []).map((row) => ({
+  let plaidItems: Array<{ itemId: string; accessToken: string }>;
+  try {
+    const key = readPlaidTokenKey();
+    plaidItems = (itemsError ? [] : (items ?? [])).map((row) => ({
       itemId: String(row.item_id ?? ""),
-      accessToken: String(row.access_token ?? ""),
-    })),
+      accessToken: openStoredPlaidAccessToken(String(row.access_token ?? ""), key),
+    }));
+  } catch (error) {
+    if (error instanceof PlaidTokenLockedError) {
+      return Response.json(
+        {
+          ok: false,
+          authUserDeleted: false,
+          dataDeleted: false,
+          plaidItemsRevoked: 0,
+          error:
+            "Linked banks could not be disconnected because bank linking is not fully set up. The account was not deleted.",
+        },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
+
+  const plan = planAccountDeletion({
+    plaidItems,
     plaidConfigured: isPlaidConfigured(),
   });
 
@@ -96,7 +129,9 @@ export async function POST() {
             .from(table)
             .delete()
             .eq("user_id", user.id);
-          if (deleteError) throw new Error(deleteError.message);
+          if (deleteError && !plaidTableDeleteIsSkippable(table, deleteError)) {
+            throw new Error(deleteError.message);
+          }
         }
       },
     });

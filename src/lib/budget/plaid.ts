@@ -1,5 +1,5 @@
 import { defaultOnBudgetForType } from "@/lib/budget/accounts";
-import { findImportMatch } from "@/lib/budget/csv";
+import { findImportedFileOverlap, findImportMatch } from "@/lib/budget/csv";
 import { ensureCreditCardPaymentCategories } from "@/lib/budget/credit-card-payments";
 import { normalizePayeeName } from "@/lib/budget/payees";
 import { applyPayeeRulesToTransaction } from "@/lib/budget/payee-rules";
@@ -68,6 +68,22 @@ function findReusableAccount(
       !transactions.some((tx) => tx.accountId === account.id),
   );
   return unused.length === 1 ? unused[0] : undefined;
+}
+
+/** Where one bank account should land. Null creates a new budget account. */
+export type PlaidAccountChoice = {
+  plaidAccountId: string;
+  budgetAccountId: string | null;
+};
+
+export function plaidAccountsNeedingMap(
+  plan: Pick<BudgetPlan, "accounts">,
+  accounts: readonly PlaidLinkedAccount[],
+): PlaidLinkedAccount[] {
+  return accounts.filter(
+    (account) =>
+      !plan.accounts.some((row) => row.plaidAccountId === account.plaidAccountId),
+  );
 }
 
 export type PlaidImportResult = {
@@ -139,10 +155,44 @@ function reviseImportedTransaction(
   });
 }
 
+function stampLinkedAccount(
+  account: BudgetAccount,
+  incoming: PlaidLinkedAccount,
+  payload: PlaidSyncPayload,
+): void {
+  account.plaidAccountId = incoming.plaidAccountId;
+  account.plaidItemId = payload.itemId;
+  account.plaidMask = incoming.mask ?? account.plaidMask;
+  account.lastSyncedAt = payload.syncedAt;
+}
+
+function createLinkedAccount(
+  accounts: BudgetAccount[],
+  incoming: PlaidLinkedAccount,
+  payload: PlaidSyncPayload,
+  createId: () => string,
+): BudgetAccount {
+  const type = mapPlaidAccountType(incoming.type, incoming.subtype);
+  const created: BudgetAccount = {
+    id: createId(),
+    name: formatLinkedAccountName(incoming.name, incoming.mask),
+    type,
+    onBudget: defaultOnBudgetForType(type),
+    sortOrder: accounts.length,
+    plaidAccountId: incoming.plaidAccountId,
+    plaidItemId: payload.itemId,
+    plaidMask: incoming.mask ?? undefined,
+    lastSyncedAt: payload.syncedAt,
+  };
+  accounts.push(created);
+  return created;
+}
+
 export function applyPlaidImport(
   plan: BudgetPlan,
   payload: PlaidSyncPayload,
   createId: () => string = () => crypto.randomUUID(),
+  choices?: readonly PlaidAccountChoice[],
 ): PlaidImportResult {
   const accounts = plan.accounts.map((account) => ({ ...account }));
   const accountIdByPlaid = new Map<string, string>();
@@ -152,37 +202,43 @@ export function applyPlaidImport(
       (account) => account.plaidAccountId === incoming.plaidAccountId,
     );
     if (existing) {
-      existing.plaidItemId = payload.itemId;
-      existing.plaidMask = incoming.mask ?? existing.plaidMask;
-      existing.lastSyncedAt = payload.syncedAt;
+      stampLinkedAccount(existing, incoming, payload);
       accountIdByPlaid.set(incoming.plaidAccountId, existing.id);
+      continue;
+    }
+    if (choices) {
+      const choice = choices.find(
+        (row) => row.plaidAccountId === incoming.plaidAccountId,
+      );
+      if (!choice) continue;
+      if (choice.budgetAccountId) {
+        const target = accounts.find((account) => account.id === choice.budgetAccountId);
+        if (
+          !target ||
+          (target.plaidAccountId &&
+            target.plaidAccountId !== incoming.plaidAccountId)
+        ) {
+          continue;
+        }
+        stampLinkedAccount(target, incoming, payload);
+        accountIdByPlaid.set(incoming.plaidAccountId, target.id);
+        continue;
+      }
+      const created = createLinkedAccount(accounts, incoming, payload, createId);
+      accountIdByPlaid.set(incoming.plaidAccountId, created.id);
       continue;
     }
     const type = mapPlaidAccountType(incoming.type, incoming.subtype);
     const reusable = findReusableAccount(accounts, plan.transactions, type);
     if (reusable) {
-      reusable.plaidAccountId = incoming.plaidAccountId;
-      reusable.plaidItemId = payload.itemId;
-      reusable.plaidMask = incoming.mask ?? undefined;
-      reusable.lastSyncedAt = payload.syncedAt;
+      stampLinkedAccount(reusable, incoming, payload);
       if (!reusable.name.trim() || reusable.name === "Spending") {
         reusable.name = formatLinkedAccountName(incoming.name, incoming.mask);
       }
       accountIdByPlaid.set(incoming.plaidAccountId, reusable.id);
       continue;
     }
-    const created: BudgetAccount = {
-      id: createId(),
-      name: formatLinkedAccountName(incoming.name, incoming.mask),
-      type,
-      onBudget: defaultOnBudgetForType(type),
-      sortOrder: accounts.length,
-      plaidAccountId: incoming.plaidAccountId,
-      plaidItemId: payload.itemId,
-      plaidMask: incoming.mask ?? undefined,
-      lastSyncedAt: payload.syncedAt,
-    };
-    accounts.push(created);
+    const created = createLinkedAccount(accounts, incoming, payload, createId);
     accountIdByPlaid.set(incoming.plaidAccountId, created.id);
   }
 
@@ -246,6 +302,22 @@ export function applyPlaidImport(
         continue;
       }
     }
+    const { matchText: bankText, displayPayee } = bankTexts(row);
+    const fileMatchId = findImportedFileOverlap(
+      {
+        date: row.date,
+        amount: signed.amount,
+        accountId,
+        payee: bankText,
+      },
+      nextTransactions,
+      usedMatchIds,
+    );
+    if (fileMatchId) {
+      usedMatchIds.add(fileMatchId);
+      duplicates += 1;
+      continue;
+    }
     const matchId = findImportMatch(
       {
         date: row.date,
@@ -256,8 +328,6 @@ export function applyPlaidImport(
       nextTransactions,
       usedMatchIds,
     );
-    const bankText = (row.name || row.merchantName || "Bank transaction").trim();
-    const displayPayee = (row.merchantName || row.name || "Bank transaction").trim();
     if (matchId) {
       usedMatchIds.add(matchId);
       const index = nextTransactions.findIndex((tx) => tx.id === matchId);

@@ -15,6 +15,8 @@ import {
   parsePlaidEnv,
   readPlaidConfig,
 } from "../src/lib/plaid/config.ts";
+import { PLAID_LINK_COUNTRY_CODES } from "../src/lib/plaid/client.ts";
+import { isBankConnectEnabled } from "../src/lib/plaid/feature.ts";
 import {
   formatPlaidItemSyncLine,
   parsePlaidWebhookBody,
@@ -36,6 +38,32 @@ assert(parsePlaidEnv("sandbox") === "sandbox", "sandbox stays sandbox");
 assert(parsePlaidEnv("production") === "production", "production is accepted");
 assert(readPlaidConfig() == null, "missing Plaid env is not configured");
 assert(isPlaidConfigured() === false, "app runs without Plaid creds");
+assert(isBankConnectEnabled({}) === false, "bank connect is off when unset");
+assert(
+  isBankConnectEnabled({ NEXT_PUBLIC_BANK_CONNECT_ENABLED: "1" }) === true,
+  "the public flag turns bank connect on",
+);
+assert(
+  isBankConnectEnabled({ BANK_CONNECT_ENABLED: "true" }) === true,
+  "the server flag turns bank connect on",
+);
+assert(
+  isBankConnectEnabled({
+    NEXT_PUBLIC_BANK_CONNECT_ENABLED: "1",
+    BANK_CONNECT_ENABLED: "0",
+  }) === false,
+  "an explicit server off switch wins",
+);
+assert(
+  PLAID_LINK_COUNTRY_CODES.includes("US") &&
+    PLAID_LINK_COUNTRY_CODES.includes("CA"),
+  "Link offers the US and Canada",
+);
+const plaidClientSource = readFileSync(
+  join(process.cwd(), "src/lib/plaid/client.ts"),
+  "utf8",
+);
+assert(plaidClientSource.includes('from "plaid"'), "Plaid calls use the official SDK");
 
 assert(plaidImportId("tx_1") === "plaid:tx_1", "import id is prefixed");
 assert(
@@ -141,6 +169,143 @@ const again = applyPlaidImport(result.next, {
 assert(again.duplicates === 1, "same Plaid id is skipped");
 assert(again.imported === 0, "no second coffee");
 
+const ofxPlan = createEmptyBudgetPlan("Household");
+const ofxAccountId = ofxPlan.accounts[0]!.id;
+ofxPlan.accounts[0]!.plaidAccountId = "acc_1";
+ofxPlan.accounts[0]!.plaidItemId = "item_1";
+ofxPlan.transactions = [
+  {
+    id: "ofx-grocery",
+    date: "2026-03-02",
+    payee: "Maple Grocery",
+    accountId: ofxAccountId,
+    categoryId: null,
+    amount: 84.5,
+    type: "outflow",
+    cleared: "cleared",
+    approved: true,
+    importId: "ofx:fit-grocery-1",
+  },
+  {
+    id: "ofx-rent",
+    date: "2026-03-02",
+    payee: "Landlord",
+    accountId: ofxAccountId,
+    categoryId: null,
+    amount: 84.5,
+    type: "outflow",
+    cleared: "cleared",
+    approved: true,
+    importId: "ofx:fit-rent-1",
+  },
+];
+const ofxSync = applyPlaidImport(ofxPlan, {
+  itemId: "item_1",
+  institutionName: "Test Bank",
+  syncedAt: "2026-03-03T00:00:00.000Z",
+  accounts: [
+    {
+      plaidAccountId: "acc_1",
+      name: "Checking",
+      officialName: null,
+      mask: "1234",
+      type: "depository",
+      subtype: "checking",
+    },
+  ],
+  transactions: [
+    {
+      transactionId: "tx_grocery",
+      plaidAccountId: "acc_1",
+      date: "2026-03-02",
+      name: "MAPLE GROCERY #100 TORONTO",
+      merchantName: "Maple Grocery",
+      amount: 84.5,
+      pending: false,
+    },
+    {
+      transactionId: "tx_payroll",
+      plaidAccountId: "acc_1",
+      date: "2026-03-01",
+      name: "Acme Payroll",
+      merchantName: "Acme Payroll",
+      amount: -3200,
+      pending: false,
+    },
+  ],
+});
+assert(ofxSync.duplicates === 1, "an OFX grocery row is not imported again from the bank");
+assert(ofxSync.imported === 1, "a different bank row is still imported");
+assert(
+  ofxSync.next.transactions.some((tx) => tx.importId === "ofx:fit-grocery-1"),
+  "the OFX row stays the budget transaction",
+);
+assert(
+  !ofxSync.next.transactions.some((tx) => tx.importId === "plaid:tx_grocery"),
+  "the matching bank row does not become a second transaction",
+);
+assert(
+  ofxSync.next.transactions.some((tx) => tx.importId === "plaid:tx_payroll"),
+  "payroll from the bank is a new transaction",
+);
+
+const mapPlan = createEmptyBudgetPlan("Map");
+const starterAccountId = mapPlan.accounts[0]!.id;
+let mapIds = 0;
+const created = applyPlaidImport(
+  mapPlan,
+  {
+    itemId: "item_map",
+    institutionName: "Test Bank",
+    syncedAt: "2026-03-03T00:00:00.000Z",
+    accounts: [
+      {
+        plaidAccountId: "acc_new",
+        name: "Everyday",
+        officialName: null,
+        mask: "9999",
+        type: "depository",
+        subtype: "checking",
+      },
+    ],
+    transactions: [],
+  },
+  () => `map-${(mapIds += 1)}`,
+  [{ plaidAccountId: "acc_new", budgetAccountId: null }],
+);
+assert(created.createdAccounts === 1, "create choice adds a budget account");
+assert(
+  created.next.accounts[0]!.id === starterAccountId &&
+    !created.next.accounts[0]!.plaidAccountId,
+  "create choice does not take the existing account",
+);
+const linked = applyPlaidImport(
+  mapPlan,
+  {
+    itemId: "item_map",
+    institutionName: "Test Bank",
+    syncedAt: "2026-03-03T00:00:00.000Z",
+    accounts: [
+      {
+        plaidAccountId: "acc_new",
+        name: "Everyday",
+        officialName: null,
+        mask: "9999",
+        type: "depository",
+        subtype: "checking",
+      },
+    ],
+    transactions: [],
+  },
+  () => "unused",
+  [{ plaidAccountId: "acc_new", budgetAccountId: starterAccountId }],
+);
+assert(linked.createdAccounts === 0, "picking an account does not create another");
+assert(
+  linked.next.accounts[0]!.plaidAccountId === "acc_new",
+  "the chosen budget account is linked",
+);
+
 const unlinked = unlinkPlaidItemFromPlan(result.next, "item_1");
 assert(
   unlinked.accounts.every((account) => !account.plaidAccountId),
@@ -154,6 +319,9 @@ const ui = readFileSync(
 );
 assert(!/YNAB/i.test(ui), "bank link UI does not name YNAB");
 assert(ui.includes("Connect bank"), "primary CTA is Connect bank");
+assert(ui.includes("isBankConnectEnabled"), "connect bank is behind the flag");
+assert(ui.includes("Sync now"), "sync action says Sync now");
+assert(ui.includes("Create a new account"), "mapping can create a budget account");
 assert(ui.includes("Reconnect"), "item errors offer Reconnect");
 assert(ui.includes("/api/plaid/reconnect"), "update mode does not re-exchange");
 assert(

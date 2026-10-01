@@ -909,15 +909,16 @@ export function payeesLikelyMatch(a: string, b: string): boolean {
   return leftTokens.some((word) => rightTokens.has(word));
 }
 
-function findPlaidOverlap(
+function findBankImportOverlap(
   row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "payee">,
   existing: ParseBudgetCsvOptions["existingTransactions"],
   usedMatchIds: Set<string>,
+  importPrefix: "plaid:" | "ofx:",
 ): string | undefined {
   const cents = Math.round(Math.abs(row.amount) * 100);
   const candidates = existing.filter((tx) => {
     if (!tx.id || usedMatchIds.has(tx.id)) return false;
-    if (!tx.importId?.startsWith("plaid:")) return false;
+    if (!tx.importId?.startsWith(importPrefix)) return false;
     if (tx.accountId !== row.accountId) return false;
     if (Math.round(Math.abs(tx.amount) * 100) !== cents) return false;
     return daysBetweenDateKeys(tx.date, row.date) <= PLAID_MATCH_DAY_WINDOW;
@@ -939,6 +940,23 @@ function findPlaidOverlap(
     return (a.id ?? "").localeCompare(b.id ?? "");
   });
   return pool[0]?.id;
+}
+
+function findPlaidOverlap(
+  row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "payee">,
+  existing: ParseBudgetCsvOptions["existingTransactions"],
+  usedMatchIds: Set<string>,
+): string | undefined {
+  return findBankImportOverlap(row, existing, usedMatchIds, "plaid:");
+}
+
+/** Plaid sync skips an OFX/QFX row that is already the same bank activity. */
+export function findImportedFileOverlap(
+  row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "payee">,
+  existing: ParseBudgetCsvOptions["existingTransactions"],
+  usedMatchIds: Set<string>,
+): string | undefined {
+  return findBankImportOverlap(row, existing, usedMatchIds, "ofx:");
 }
 
 export function classifyImportCandidates(
