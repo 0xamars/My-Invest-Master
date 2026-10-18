@@ -4,10 +4,7 @@ import {
   PlaidRequestError,
   syncPlaidTransactions,
 } from "@/lib/plaid/client";
-import {
-  nextPlaidItemStatusAfterSyncFailure,
-  normalizePlaidItemStatus,
-} from "@/lib/plaid/item-status";
+import { nextPlaidItemStatusAfterSyncFailure } from "@/lib/plaid/item-status";
 import { toPlaidSyncPayload } from "@/lib/plaid/sync-delta";
 import { loadPlaidItemForUser, markPlaidItemStatus } from "@/lib/plaid/store";
 import { jsonError, plaidSetupError, requirePlaidUser } from "@/lib/plaid/http";
@@ -44,9 +41,8 @@ export async function POST(request: Request) {
       cursor: row.transactions_cursor,
     });
     const syncedAt = new Date().toISOString();
-    if (normalizePlaidItemStatus(row.status) !== "active") {
-      await markPlaidItemStatus({ id: row.id, status: "active" });
-    }
+    // Status stays as it is until /api/plaid/sync/commit. That step marks
+    // the item active in the same write as the cursor, after the budget save.
 
     return NextResponse.json({
       payload: toPlaidSyncPayload({

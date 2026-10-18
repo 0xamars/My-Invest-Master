@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       nextCursor,
       syncedAt: new Date().toISOString(),
     });
+    // commitPlaidItemCursor sets status to active only when this compare matches.
     return NextResponse.json({ advanced: committed.advanced });
   } catch (error) {
     return jsonError(

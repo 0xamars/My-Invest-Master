@@ -300,6 +300,11 @@ const bankLink = readFileSync(
   "utf8",
 );
 assert(!syncRoute.includes("markPlaidItemSynced"), "sync route does not store the cursor");
+const syncSuccess = syncRoute.slice(0, syncRoute.indexOf("} catch"));
+assert(
+  !syncSuccess.includes('status: "active"'),
+  "sync does not mark the connection active before the budget save and cursor commit",
+);
 assert(!exchangeRoute.includes("markPlaidItemSynced"), "exchange route does not store the cursor");
 assert(!reconnectRoute.includes("markPlaidItemSynced"), "reconnect route does not store the cursor");
 assert(

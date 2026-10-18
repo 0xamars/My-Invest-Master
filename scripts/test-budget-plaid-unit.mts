@@ -2,6 +2,7 @@
  * Plaid → Budget mapping. No live Plaid calls.
  *   npx tsx --tsconfig tsconfig.json scripts/test-budget-plaid-unit.mts
  */
+import { findImportedFileOverlap } from "../src/lib/budget/csv.ts";
 import {
   applyPlaidImport,
   formatLinkedAccountName,
@@ -339,6 +340,198 @@ assert(
   "transit from the bank is a new transaction",
 );
 
+function overlapSync(
+  fileRows: Array<{
+    id: string;
+    date: string;
+    payee: string;
+    amount: number;
+    originalPayee?: string;
+    importPrefix?: "csv" | "ofx";
+  }>,
+  bankRows: Array<{ id: string; date: string; name: string; amount: number }>,
+) {
+  const plan = createEmptyBudgetPlan("Overlap");
+  const accountId = plan.accounts[0]!.id;
+  plan.accounts[0]!.plaidAccountId = "acc_overlap";
+  plan.accounts[0]!.plaidItemId = "item_overlap";
+  plan.transactions = fileRows.map((row) => {
+    const prefix = row.importPrefix ?? "csv";
+    const importId =
+      prefix === "ofx"
+        ? `ofx:${row.id}`
+        : `csv:${row.date}|${row.payee.trim().toLowerCase()}|${Math.round(row.amount * 100)}|${accountId}`;
+    return {
+      id: row.id,
+      date: row.date,
+      payee: row.payee,
+      originalPayee: row.originalPayee,
+      accountId,
+      categoryId: null,
+      amount: row.amount,
+      type: "outflow" as const,
+      cleared: "cleared" as const,
+      approved: true,
+      importId,
+    };
+  });
+  return applyPlaidImport(plan, {
+    itemId: "item_overlap",
+    institutionName: "Sandbox Bank",
+    syncedAt: "2026-07-04T00:00:00.000Z",
+    accounts: [
+      {
+        plaidAccountId: "acc_overlap",
+        name: "Sandbox Checking",
+        officialName: null,
+        mask: "0000",
+        type: "depository",
+        subtype: "checking",
+      },
+    ],
+    transactions: bankRows.map((row) => ({
+      transactionId: row.id,
+      plaidAccountId: "acc_overlap",
+      date: row.date,
+      name: row.name,
+      merchantName: row.name,
+      amount: row.amount,
+      pending: false,
+    })),
+  });
+}
+
+const twoDaysApart = overlapSync(
+  [{ id: "csv-two-days", date: "2026-07-01", payee: "Sandbox Coffee", amount: 9 }],
+  [{ id: "bank_two_days", date: "2026-07-03", name: "Sandbox Coffee", amount: 9 }],
+);
+assert(
+  twoDaysApart.imported === 1 && twoDaysApart.duplicates === 0,
+  "the same payee and amount two days apart is not the same purchase",
+);
+assert(
+  twoDaysApart.next.transactions.some((tx) => tx.importId === "plaid:bank_two_days"),
+  "a purchase two days later is imported",
+);
+
+const oneDayBeside = overlapSync(
+  [{ id: "csv-one-day", date: "2026-07-01", payee: "Sandbox Coffee", amount: 9 }],
+  [{ id: "bank_one_day", date: "2026-07-02", name: "Sandbox Coffee", amount: 9 }],
+);
+assert(
+  oneDayBeside.duplicates === 1 && oneDayBeside.imported === 0,
+  "the same payee and amount one day apart is the same purchase",
+);
+
+const differentPayee = overlapSync(
+  [{ id: "csv-only-amount", date: "2026-07-06", payee: "Other Shop", amount: 18 }],
+  [{ id: "bank_other_payee", date: "2026-07-06", name: "Sandbox Coffee", amount: 18 }],
+);
+assert(
+  differentPayee.imported === 1 && differentPayee.duplicates === 0,
+  "a different payee with the same amount on the same day is imported",
+);
+assert(
+  differentPayee.next.transactions.some((tx) => tx.id === "csv-only-amount") &&
+    differentPayee.next.transactions.some(
+      (tx) => tx.importId === "plaid:bank_other_payee",
+    ),
+  "the only same-day amount in the file does not swallow a different payee",
+);
+
+const renamedToken = overlapSync(
+  [
+    {
+      id: "csv-renamed",
+      date: "2026-07-08",
+      payee: "Maple Market",
+      originalPayee: "Weekly shop",
+      amount: 22,
+    },
+  ],
+  [{ id: "bank_maple", date: "2026-07-08", name: "MAPLE GROCERY #100", amount: 22 }],
+);
+assert(
+  renamedToken.duplicates === 1 && renamedToken.imported === 0,
+  "a renamed payee that still shares a token on the same day is the same purchase",
+);
+assert(
+  !renamedToken.next.transactions.some((tx) => tx.importId === "plaid:bank_maple"),
+  "the renamed payee stays the budget transaction",
+);
+
+const oneFileTwoBank = overlapSync(
+  [{ id: "csv-one-coffee", date: "2026-07-09", payee: "Sandbox Coffee", amount: 12 }],
+  [
+    { id: "bank_coffee_a", date: "2026-07-09", name: "Sandbox Coffee", amount: 12 },
+    { id: "bank_coffee_b", date: "2026-07-09", name: "Sandbox Coffee", amount: 12 },
+  ],
+);
+assert(oneFileTwoBank.duplicates === 1, "one file row pairs with one bank row");
+assert(
+  oneFileTwoBank.imported === 1 &&
+    oneFileTwoBank.next.transactions.some((tx) => tx.importId === "plaid:bank_coffee_b") &&
+    !oneFileTwoBank.next.transactions.some((tx) => tx.importId === "plaid:bank_coffee_a"),
+  "a second bank row with the same payee, amount, and day is imported",
+);
+
+const overlapAccountId = "acct-overlap";
+const exactBeforeNearby = findImportedFileOverlap(
+  {
+    date: "2026-07-11",
+    amount: 7,
+    accountId: overlapAccountId,
+    payee: "Sandbox Coffee",
+  },
+  [
+    {
+      id: "csv-nearby",
+      date: "2026-07-10",
+      payee: "Sandbox Coffee",
+      amount: 7,
+      accountId: overlapAccountId,
+      importId: "csv:nearby",
+    },
+    {
+      id: "csv-exact",
+      date: "2026-07-11",
+      payee: "Sandbox Coffee",
+      amount: 7,
+      accountId: overlapAccountId,
+      importId: "csv:exact",
+    },
+  ],
+  new Set(),
+);
+assert(
+  exactBeforeNearby === "csv-exact",
+  "an exact-date row is chosen before the day beside it",
+);
+
+const ofxOnly = findImportedFileOverlap(
+  {
+    date: "2026-07-12",
+    amount: 40,
+    accountId: overlapAccountId,
+    payee: "City Hydro",
+  },
+  [
+    {
+      id: "ofx-fit-only",
+      date: "2026-07-12",
+      payee: "HYDRO BILL 8841",
+      amount: 40,
+      accountId: overlapAccountId,
+      importId: "ofx:fit-hydro-8841",
+    },
+  ],
+  new Set(),
+);
+assert(
+  ofxOnly === "ofx-fit-only",
+  "one same-day OFX FITID row can match when the payee text does not",
+);
+
 const mapPlan = createEmptyBudgetPlan("Map");
 const starterAccountId = mapPlan.accounts[0]!.id;
 let mapIds = 0;
@@ -514,6 +707,27 @@ const syncRoute = readFileSync(
 assert(
   syncRoute.includes("nextPlaidItemStatusAfterSyncFailure"),
   "a failed sync stores the connection state",
+);
+const syncSuccess = syncRoute.slice(0, syncRoute.indexOf("} catch"));
+assert(
+  !syncSuccess.includes('status: "active"'),
+  "a fetched sync does not mark the connection active before the budget save",
+);
+const commitRoute = readFileSync(
+  join(process.cwd(), "src/app/api/plaid/sync/commit/route.ts"),
+  "utf8",
+);
+const plaidStore = readFileSync(
+  join(process.cwd(), "src/lib/plaid/store.ts"),
+  "utf8",
+);
+const commitCursor = plaidStore.slice(
+  plaidStore.indexOf("export async function commitPlaidItemCursor"),
+  plaidStore.indexOf("export async function markPlaidWebhook"),
+);
+assert(
+  commitRoute.includes("commitPlaidItemCursor") && commitCursor.includes('status: "active"'),
+  "the cursor commit is what marks the connection active",
 );
 const register = readFileSync(
   join(process.cwd(), "src/components/budget/budget-transactions-content.tsx"),
