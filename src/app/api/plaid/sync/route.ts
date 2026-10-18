@@ -4,7 +4,7 @@ import {
   PlaidRequestError,
   syncPlaidTransactions,
 } from "@/lib/plaid/client";
-import { plaidErrorNeedsReconnect } from "@/lib/plaid/item-status";
+import { nextPlaidItemStatusAfterSyncFailure } from "@/lib/plaid/item-status";
 import { toPlaidSyncPayload } from "@/lib/plaid/sync-delta";
 import { loadPlaidItemForUser, markPlaidItemStatus } from "@/lib/plaid/store";
 import { jsonError, plaidSetupError, requirePlaidUser } from "@/lib/plaid/http";
@@ -24,12 +24,16 @@ export async function POST(request: Request) {
   const itemId = body.itemId?.trim() ?? "";
   if (!itemId) return jsonError("itemId is required", 400);
 
+  let loadedId: string | null = null;
+  let loadedStatus: string | null = null;
   try {
     const row = await loadPlaidItemForUser({
       userId: auth.user!.id,
       itemId,
     });
     if (!row) return jsonError("Bank connection not found", 404);
+    loadedId = row.id;
+    loadedStatus = row.status;
 
     const accounts = await fetchPlaidAccounts(row.access_token);
     const sync = await syncPlaidTransactions({
@@ -37,6 +41,8 @@ export async function POST(request: Request) {
       cursor: row.transactions_cursor,
     });
     const syncedAt = new Date().toISOString();
+    // Status stays as it is until /api/plaid/sync/commit. That step marks
+    // the item active in the same write as the cursor, after the budget save.
 
     return NextResponse.json({
       payload: toPlaidSyncPayload({
@@ -49,17 +55,20 @@ export async function POST(request: Request) {
       }),
     });
   } catch (error) {
-    if (error instanceof PlaidRequestError) {
-      if (plaidErrorNeedsReconnect(error.errorCode) && itemId) {
-        try {
-          await markPlaidItemStatus({
-            itemId,
-            status: "needs_reconnect",
-          });
-        } catch {
-          // Best-effort; the sync error still returns.
-        }
+    if (loadedId) {
+      try {
+        await markPlaidItemStatus({
+          id: loadedId,
+          status: nextPlaidItemStatusAfterSyncFailure(
+            loadedStatus,
+            error instanceof PlaidRequestError ? error.errorCode : null,
+          ),
+        });
+      } catch {
+        // Best-effort; the sync error still returns.
       }
+    }
+    if (error instanceof PlaidRequestError) {
       return jsonError(error.message, error.status || 502);
     }
     return jsonError(

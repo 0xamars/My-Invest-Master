@@ -6,6 +6,7 @@ import { useUserPlan } from "@/hooks/use-user-preferences";
 import { computeMonthSummary } from "@/lib/budget/calculations";
 import { normalizeBudgetPlans } from "@/lib/budget/migrate-plan";
 import {
+  budgetPlanBaseForSync,
   debouncedPlanSaveIsStale,
   flushQueuedPlanSave,
 } from "@/lib/budget/plan-save-queue";
@@ -378,6 +379,15 @@ export function useBudgetPlansStorage() {
     [plans],
   );
 
+  const readLatestPlan = useCallback(
+    (id: string) =>
+      budgetPlanBaseForSync(
+        pendingSaveRef.current.get(id),
+        plans.find((plan) => plan.id === id),
+      ),
+    [plans],
+  );
+
   const summaries = plans.map(toSummary);
 
   return {
@@ -390,6 +400,7 @@ export function useBudgetPlansStorage() {
     renamePlan,
     deletePlan,
     getPlan,
+    readLatestPlan,
     isLoaded,
     syncError,
     isCloudSynced: Boolean(user && isSupabaseConfigured()),

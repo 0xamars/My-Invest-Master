@@ -300,6 +300,11 @@ const bankLink = readFileSync(
   "utf8",
 );
 assert(!syncRoute.includes("markPlaidItemSynced"), "sync route does not store the cursor");
+const syncSuccess = syncRoute.slice(0, syncRoute.indexOf("} catch"));
+assert(
+  !syncSuccess.includes('status: "active"'),
+  "sync does not mark the connection active before the budget save and cursor commit",
+);
 assert(!exchangeRoute.includes("markPlaidItemSynced"), "exchange route does not store the cursor");
 assert(!reconnectRoute.includes("markPlaidItemSynced"), "reconnect route does not store the cursor");
 assert(
@@ -326,6 +331,10 @@ assert(
 assert(
   mutationsHook.includes("persist: false"),
   "scheduled transactions stay local until a user edit",
+);
+assert(
+  mutationsHook.includes("readLatestPlan(planId)"),
+  "bank sync applies onto the edit that is still waiting to save",
 );
 assert(
   storageHook.includes("conflictedRef") && storageHook.includes("inflightRef"),

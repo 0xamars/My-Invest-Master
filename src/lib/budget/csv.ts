@@ -176,7 +176,10 @@ export interface ParseBudgetCsvOptions {
   existingTransactions: Array<
     Pick<BudgetTransaction, "date" | "payee" | "amount" | "accountId"> &
       Partial<
-        Pick<BudgetTransaction, "id" | "type" | "importId" | "transferAccountId">
+        Pick<
+          BudgetTransaction,
+          "id" | "type" | "importId" | "transferAccountId" | "originalPayee"
+        >
       >
   >;
   fallbackAccountId?: string;
@@ -879,7 +882,8 @@ function findHeaderIndex(rows: string[][]): number {
   return -1;
 }
 
-const PLAID_MATCH_DAY_WINDOW = 2;
+/** Same calendar day, or one day on either side. Two days apart stays a new row. */
+const BANK_IMPORT_MATCH_DAY_WINDOW = 1;
 
 export function payeesLikelyMatch(a: string, b: string): boolean {
   const normalize = (value: string) =>
@@ -909,36 +913,47 @@ export function payeesLikelyMatch(a: string, b: string): boolean {
   return leftTokens.some((word) => rightTokens.has(word));
 }
 
+function fileRowMatchesPayee(
+  tx: { payee: string; originalPayee?: string },
+  payee: string,
+): boolean {
+  if (payeesLikelyMatch(tx.payee, payee)) return true;
+  const original = tx.originalPayee?.trim();
+  return Boolean(original && payeesLikelyMatch(original, payee));
+}
+
 function findBankImportOverlap(
   row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "payee">,
   existing: ParseBudgetCsvOptions["existingTransactions"],
   usedMatchIds: Set<string>,
-  importPrefix: "plaid:" | "ofx:",
+  importPrefixes: readonly string[],
 ): string | undefined {
   const cents = Math.round(Math.abs(row.amount) * 100);
   const candidates = existing.filter((tx) => {
     if (!tx.id || usedMatchIds.has(tx.id)) return false;
-    if (!tx.importId?.startsWith(importPrefix)) return false;
+    if (!importPrefixes.some((prefix) => tx.importId?.startsWith(prefix))) return false;
     if (tx.accountId !== row.accountId) return false;
     if (Math.round(Math.abs(tx.amount) * 100) !== cents) return false;
-    return daysBetweenDateKeys(tx.date, row.date) <= PLAID_MATCH_DAY_WINDOW;
+    return daysBetweenDateKeys(tx.date, row.date) <= BANK_IMPORT_MATCH_DAY_WINDOW;
   });
   if (candidates.length === 0) return undefined;
 
-  const similar = candidates.filter((tx) => payeesLikelyMatch(tx.payee, row.payee));
-  let pool = similar;
+  const payeeMatches = candidates.filter((tx) => fileRowMatchesPayee(tx, row.payee));
+  const exactPayee = payeeMatches.filter((tx) => tx.date === row.date);
+  const nearbyPayee = payeeMatches.filter((tx) => tx.date !== row.date);
+  let pool = exactPayee.length > 0 ? exactPayee : nearbyPayee;
   if (pool.length === 0) {
-    const sameDay = candidates.filter((tx) => tx.date === row.date);
-    if (sameDay.length === 1) pool = sameDay;
+    // CSV ids have no bank FITID, so a different payee is a different purchase
+    // even when it is the only same-day amount. OFX and QFX ids are `ofx:`
+    // plus that FITID; one same-day FITID row can still be the same activity.
+    const sameDayOfx = candidates.filter(
+      (tx) => tx.date === row.date && tx.importId?.startsWith("ofx:"),
+    );
+    if (sameDayOfx.length === 1) pool = sameDayOfx;
   }
   if (pool.length === 0) return undefined;
 
-  pool.sort((a, b) => {
-    const dateDelta =
-      daysBetweenDateKeys(a.date, row.date) - daysBetweenDateKeys(b.date, row.date);
-    if (dateDelta !== 0) return dateDelta;
-    return (a.id ?? "").localeCompare(b.id ?? "");
-  });
+  pool.sort((a, b) => (a.id ?? "").localeCompare(b.id ?? ""));
   return pool[0]?.id;
 }
 
@@ -947,16 +962,19 @@ function findPlaidOverlap(
   existing: ParseBudgetCsvOptions["existingTransactions"],
   usedMatchIds: Set<string>,
 ): string | undefined {
-  return findBankImportOverlap(row, existing, usedMatchIds, "plaid:");
+  return findBankImportOverlap(row, existing, usedMatchIds, ["plaid:"]);
 }
 
-/** Plaid sync skips an OFX/QFX row that is already the same bank activity. */
+/**
+ * Plaid sync skips a file row that is already the same bank activity.
+ * OFX and QFX ids start with `ofx:`. CSV ids start with `csv:`.
+ */
 export function findImportedFileOverlap(
   row: Pick<ParsedCsvTransaction, "date" | "amount" | "accountId" | "payee">,
   existing: ParseBudgetCsvOptions["existingTransactions"],
   usedMatchIds: Set<string>,
 ): string | undefined {
-  return findBankImportOverlap(row, existing, usedMatchIds, "ofx:");
+  return findBankImportOverlap(row, existing, usedMatchIds, ["ofx:", "csv:"]);
 }
 
 export function classifyImportCandidates(

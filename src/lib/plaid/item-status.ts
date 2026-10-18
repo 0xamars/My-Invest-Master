@@ -93,18 +93,40 @@ export function resolvePlaidWebhookItemStatus(
   return null;
 }
 
+/**
+ * A login failure stays needs-reconnect. Any other sync failure is error.
+ * A later non-login failure must not clear a sign-in expiry.
+ */
+export function nextPlaidItemStatusAfterSyncFailure(
+  current: string | null | undefined,
+  errorCode: string | null | undefined,
+): PlaidItemStatus {
+  if (plaidErrorNeedsReconnect(errorCode)) return "needs_reconnect";
+  if (normalizePlaidItemStatus(current) === "needs_reconnect") return "needs_reconnect";
+  return "error";
+}
+
+function formatLastSync(lastSyncedAt: string | null): string | null {
+  if (!lastSyncedAt) return null;
+  const at = Date.parse(lastSyncedAt);
+  if (!Number.isFinite(at)) return null;
+  return `Last sync ${new Date(at).toLocaleString()}`;
+}
+
 export function formatPlaidItemSyncLine(item: {
   status: string;
   lastSyncedAt: string | null;
 }): string {
-  if (plaidItemNeedsUserReconnect(item.status)) {
-    return "Sign-in expired · reconnect to keep pulling transactions";
+  const synced = formatLastSync(item.lastSyncedAt);
+  const status = normalizePlaidItemStatus(item.status);
+  if (status === "needs_reconnect") {
+    const prompt = "Sign-in expired. Reconnect to keep pulling transactions.";
+    return synced ? `${synced} · ${prompt}` : prompt;
   }
-  if (item.lastSyncedAt) {
-    const at = Date.parse(item.lastSyncedAt);
-    if (Number.isFinite(at)) {
-      return `Last sync ${new Date(at).toLocaleString()}`;
-    }
+  if (status === "error") {
+    const prompt = "Sync failed. Try again, reconnect, or import a file.";
+    return synced ? `${synced} · ${prompt}` : prompt;
   }
+  if (synced) return synced;
   return "Connected · sync to pull transactions";
 }

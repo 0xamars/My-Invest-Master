@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarClock,
   Check,
@@ -92,6 +92,8 @@ export function BudgetTransactionsContent() {
   const { openAddTransaction, openEditTransaction, openAddScheduled, openEditScheduled } =
     useBudgetDialog();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const [importOpen, setImportOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
@@ -124,6 +126,15 @@ export function BudgetTransactionsContent() {
     else if (month) setMonthFilter(month);
     if (inbox === "unapproved") setInboxFilter("unapproved");
   }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("import") !== "1") return;
+    setImportOpen(true);
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("import");
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [pathname, router, searchParams]);
 
   const accounts = useMemo(
     () => sortedAccounts(budget.accounts),
