@@ -328,6 +328,10 @@ assert(
   "scheduled transactions stay local until a user edit",
 );
 assert(
+  mutationsHook.includes("readLatestPlan(planId)"),
+  "bank sync applies onto the edit that is still waiting to save",
+);
+assert(
   storageHook.includes("conflictedRef") && storageHook.includes("inflightRef"),
   "a conflict stops later saves and flush waits for the in-flight write",
 );

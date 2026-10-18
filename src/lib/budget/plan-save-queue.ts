@@ -20,6 +20,17 @@ export async function flushQueuedPlanSave<T>(input: {
   }
 }
 
+/**
+ * A bank sync has to start from the edit still waiting to save.
+ * The rendered plan can lag that edit by one frame.
+ */
+export function budgetPlanBaseForSync<T>(
+  pending: T | undefined,
+  rendered: T | undefined,
+): T | undefined {
+  return pending ?? rendered;
+}
+
 /** A debounced snapshot is stale once a newer save for that plan has been enqueued. */
 export function debouncedPlanSaveIsStale(
   epochAtDequeue: number,

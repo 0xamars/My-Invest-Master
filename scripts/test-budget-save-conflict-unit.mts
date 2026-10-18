@@ -12,6 +12,7 @@ import {
   isMissingBudgetPlanVersionColumn,
   nextBudgetPlanVersion,
 } from "../src/lib/budget/plan-version.ts";
+import { budgetPlanBaseForSync } from "../src/lib/budget/plan-save-queue.ts";
 
 function assert(condition: unknown, message: string) {
   if (!condition) throw new Error(message);
@@ -149,6 +150,22 @@ const conflictUi = readFileSync(
 assert(
   conflictUi.includes("BUDGET_PLAN_CONFLICT_MESSAGE") && conflictUi.includes("Reload"),
   "a conflict shows a reload prompt",
+);
+const shell = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-shell.tsx"),
+  "utf8",
+);
+assert(
+  shell.includes("BudgetSyncError") && shell.includes("syncError"),
+  "every budget page shows the conflict",
+);
+assert(
+  budgetPlanBaseForSync("pending-edit", "rendered") === "pending-edit",
+  "a bank sync starts from the edit that has not saved yet",
+);
+assert(
+  budgetPlanBaseForSync(undefined, "rendered") === "rendered",
+  "a bank sync uses the open plan when nothing is waiting",
 );
 assert(
   new BudgetPlanConflictError().message === BUDGET_PLAN_CONFLICT_MESSAGE,

@@ -303,16 +303,22 @@ export function applyPlaidImport(
       }
     }
     const { matchText: bankText, displayPayee } = bankTexts(row);
-    const fileMatchId = findImportedFileOverlap(
-      {
-        date: row.date,
-        amount: signed.amount,
-        accountId,
-        payee: bankText,
-      },
-      nextTransactions,
-      usedMatchIds,
-    );
+    const fileOverlap = (payee: string) =>
+      findImportedFileOverlap(
+        {
+          date: row.date,
+          amount: signed.amount,
+          accountId,
+          payee,
+        },
+        nextTransactions,
+        usedMatchIds,
+      );
+    let fileMatchId = fileOverlap(bankText);
+    const merchant = row.merchantName?.trim();
+    if (!fileMatchId && merchant && merchant !== bankText) {
+      fileMatchId = fileOverlap(merchant);
+    }
     if (fileMatchId) {
       usedMatchIds.add(fileMatchId);
       duplicates += 1;

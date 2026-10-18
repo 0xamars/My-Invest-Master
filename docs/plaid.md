@@ -50,7 +50,9 @@ select has_table_privilege('authenticated','public.user_plaid_items','truncate')
 4. Choose which budget account each bank account feeds, or create a new one.
 5. Transactions land in the register like any other imported row. Assign them to envelopes. Ready to Assign is unchanged until you assign those inflows.
 
-Importing the same activity later as OFX or QFX does not add a second row when the amount, account, and date line up with a bank row, and a later bank sync does not add a second row for an OFX/QFX line already on that account.
+Importing the same activity later as CSV, OFX, or QFX does not add a second row when the amount, account, and date line up with a bank row, and a later bank sync does not add a second row for a CSV, OFX, or QFX line already on that account.
+
+Each connection shows when it last synced. A failed sync stays on that connection until a later sync works. A sign-in expiry asks you to reconnect. From either state, Import a file instead opens the register import.
 
 ## Production
 

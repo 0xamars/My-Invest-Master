@@ -19,11 +19,13 @@ import { PLAID_LINK_COUNTRY_CODES } from "../src/lib/plaid/client.ts";
 import { isBankConnectEnabled } from "../src/lib/plaid/feature.ts";
 import {
   formatPlaidItemSyncLine,
+  nextPlaidItemStatusAfterSyncFailure,
   parsePlaidWebhookBody,
   plaidErrorNeedsReconnect,
   plaidItemNeedsUserReconnect,
   resolvePlaidWebhookItemStatus,
 } from "../src/lib/plaid/item-status.ts";
+import { budgetPlanBaseForSync } from "../src/lib/budget/plan-save-queue.ts";
 import { createEmptyBudgetPlan } from "../src/types/budget.ts";
 import { PRIMARY_NAV_TITLES } from "../src/lib/chrome/nav.ts";
 import { existsSync, readFileSync } from "node:fs";
@@ -249,6 +251,94 @@ assert(
   "payroll from the bank is a new transaction",
 );
 
+const csvPlan = createEmptyBudgetPlan("Household");
+const csvAccountId = csvPlan.accounts[0]!.id;
+csvPlan.accounts[0]!.plaidAccountId = "acc_csv";
+csvPlan.accounts[0]!.plaidItemId = "item_csv";
+csvPlan.transactions = [
+  {
+    id: "csv-coffee",
+    date: "2026-04-02",
+    payee: "Corner cafe",
+    originalPayee: "Sandbox Coffee",
+    accountId: csvAccountId,
+    categoryId: "sandbox-dining",
+    amount: 12,
+    type: "outflow",
+    cleared: "cleared",
+    approved: true,
+    importId: "csv:2026-04-02|sandbox coffee|1200|" + csvAccountId,
+  },
+  {
+    id: "csv-other",
+    date: "2026-04-02",
+    payee: "Other Shop",
+    accountId: csvAccountId,
+    categoryId: null,
+    amount: 12,
+    type: "outflow",
+    cleared: "cleared",
+    approved: true,
+    importId: "csv:2026-04-02|other shop|1200|" + csvAccountId,
+  },
+];
+const edited = {
+  ...csvPlan,
+  transactions: csvPlan.transactions.map((tx) =>
+    tx.id === "csv-coffee" ? { ...tx, memo: "Friday" } : tx,
+  ),
+};
+const syncBase = budgetPlanBaseForSync(edited, csvPlan);
+const csvSync = applyPlaidImport(syncBase!, {
+  itemId: "item_csv",
+  institutionName: "Sandbox Bank",
+  syncedAt: "2026-04-03T00:00:00.000Z",
+  accounts: [
+    {
+      plaidAccountId: "acc_csv",
+      name: "Sandbox Checking",
+      officialName: null,
+      mask: "0000",
+      type: "depository",
+      subtype: "checking",
+    },
+  ],
+  transactions: [
+    {
+      transactionId: "sandbox_tx_coffee",
+      plaidAccountId: "acc_csv",
+      date: "2026-04-02",
+      name: "POS 9981",
+      merchantName: "Sandbox Coffee",
+      amount: 12,
+      pending: false,
+    },
+    {
+      transactionId: "sandbox_tx_bus",
+      plaidAccountId: "acc_csv",
+      date: "2026-04-03",
+      name: "SANDBOX TRANSIT",
+      merchantName: "Sandbox Transit",
+      amount: 3.25,
+      pending: false,
+    },
+  ],
+});
+assert(csvSync.duplicates === 1, "a CSV coffee row is not imported again from the bank");
+assert(csvSync.imported === 1, "a bank row that is not in the file is still imported");
+assert(
+  csvSync.next.transactions.some((tx) => tx.id === "csv-coffee" && tx.memo === "Friday"),
+  "bank sync keeps the edit that was waiting to save",
+);
+assert(
+  !csvSync.next.transactions.some((tx) => tx.importId === "plaid:sandbox_tx_coffee"),
+  "the matching CSV row does not become a second transaction",
+);
+assert(
+  csvSync.next.transactions.some((tx) => tx.importId === "plaid:sandbox_tx_bus"),
+  "transit from the bank is a new transaction",
+);
+
 const mapPlan = createEmptyBudgetPlan("Map");
 const starterAccountId = mapPlan.accounts[0]!.id;
 let mapIds = 0;
@@ -327,6 +417,11 @@ assert(
 assert(ui.includes("Sync now"), "sync action says Sync now");
 assert(ui.includes("Create a new account"), "mapping can create a budget account");
 assert(ui.includes("Reconnect"), "item errors offer Reconnect");
+assert(ui.includes("Import a file instead"), "a failed connection can import a file");
+assert(
+  ui.includes("/transactions?import=1"),
+  "import a file opens the register import",
+);
 assert(ui.includes("/api/plaid/reconnect"), "update mode does not re-exchange");
 assert(
   existsSync(join(process.cwd(), "supabase/migrations/013_user_plaid_items.sql")),
@@ -375,12 +470,58 @@ assert(
   }) === null,
   "transaction webhooks do not change status",
 );
+const reconnectLine = formatPlaidItemSyncLine({
+  status: "needs_reconnect",
+  lastSyncedAt: "2026-09-01T15:00:00.000Z",
+});
+assert(reconnectLine.includes("Last sync"), "reconnect still shows when it last synced");
 assert(
-  formatPlaidItemSyncLine({
-    status: "needs_reconnect",
-    lastSyncedAt: "2026-09-01T00:00:00.000Z",
-  }).includes("reconnect"),
+  reconnectLine.toLowerCase().includes("reconnect"),
   "expired item copy asks to reconnect",
+);
+assert(
+  !reconnectLine.toLowerCase().includes("sync failed"),
+  "a sign-in expiry is not described as a generic failure",
+);
+const failedLine = formatPlaidItemSyncLine({
+  status: "error",
+  lastSyncedAt: "2026-09-01T15:00:00.000Z",
+});
+assert(failedLine.includes("Last sync"), "a failed connection still shows when it last synced");
+assert(failedLine.toLowerCase().includes("sync failed"), "a failed sync says it failed");
+assert(
+  !failedLine.toLowerCase().includes("sign-in expired"),
+  "a failed sync does not claim the sign-in expired",
+);
+assert(
+  nextPlaidItemStatusAfterSyncFailure("active", "ITEM_LOGIN_REQUIRED") ===
+    "needs_reconnect",
+  "a login error marks reconnect",
+);
+assert(
+  nextPlaidItemStatusAfterSyncFailure("active", "RATE_LIMIT") === "error",
+  "a non-login sync error marks failure",
+);
+assert(
+  nextPlaidItemStatusAfterSyncFailure("needs_reconnect", "RATE_LIMIT") ===
+    "needs_reconnect",
+  "a later non-login error does not clear sign-in expiry",
+);
+const syncRoute = readFileSync(
+  join(process.cwd(), "src/app/api/plaid/sync/route.ts"),
+  "utf8",
+);
+assert(
+  syncRoute.includes("nextPlaidItemStatusAfterSyncFailure"),
+  "a failed sync stores the connection state",
+);
+const register = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-transactions-content.tsx"),
+  "utf8",
+);
+assert(
+  register.includes('searchParams.get("import")') && register.includes("setImportOpen(true)"),
+  "the register opens file import from the bank connection",
 );
 
 const webhookRoute = readFileSync(

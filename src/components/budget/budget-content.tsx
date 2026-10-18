@@ -26,7 +26,6 @@ import {
 } from "@/components/budget/budget-dialogs";
 import { useBudgetMonth } from "@/components/budget/budget-shell";
 import { BudgetSummaryStats } from "@/components/budget/budget-summary-stats";
-import { BudgetSyncError } from "@/components/budget/budget-sync-error";
 import { Button } from "@/components/ui/button";
 import { PayCardDialog } from "@/components/budget/pay-card-dialog";
 import { useBudget } from "@/contexts/budget-context";
@@ -46,7 +45,6 @@ export function BudgetContent() {
     budget,
     planId,
     isLoaded,
-    syncError,
     updateCategoryGroup,
     moveCategoryGroup,
     moveCategory,
@@ -151,8 +149,6 @@ export function BudgetContent() {
 
   return (
     <div className="desk-stack">
-      {syncError && <BudgetSyncError message={syncError} />}
-
       {habit.needsAttention ? (
         <BudgetPanel className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">

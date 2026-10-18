@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Landmark, Loader2, Plug, RefreshCw, Unplug } from "lucide-react";
+import Link from "next/link";
+import { Landmark, Loader2, Plug, RefreshCw, Unplug, Upload } from "lucide-react";
 import { usePlaidLink } from "react-plaid-link";
 import { Button } from "@/components/ui/button";
 import { BudgetPanel } from "@/components/budget/budget-ui";
@@ -14,9 +15,10 @@ import {
   type PlaidAccountChoice,
 } from "@/lib/budget/plaid";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/budget/accounts";
+import { isBudgetPlanConflict } from "@/lib/budget/plan-version";
 import {
   formatPlaidItemSyncLine,
-  plaidItemNeedsUserReconnect,
+  normalizePlaidItemStatus,
 } from "@/lib/plaid/item-status";
 import {
   commitPlaidCursorAfterSave,
@@ -372,7 +374,9 @@ export function BudgetBankLink({
       await beginImport(data.payload);
       await refreshStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not connect bank");
+      if (!isBudgetPlanConflict(err)) {
+        setError(err instanceof Error ? err.message : "Could not connect bank");
+      }
     } finally {
       setBusy(false);
     }
@@ -397,7 +401,9 @@ export function BudgetBankLink({
       await beginImport(data.payload);
       await refreshStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not sync bank");
+      if (!isBudgetPlanConflict(err)) {
+        setError(err instanceof Error ? err.message : "Could not sync bank");
+      }
       await refreshStatus();
     } finally {
       setBusy(false);
@@ -436,7 +442,9 @@ export function BudgetBankLink({
       setPending(null);
       await refreshStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not sync bank");
+      if (!isBudgetPlanConflict(err)) {
+        setError(err instanceof Error ? err.message : "Could not sync bank");
+      }
     } finally {
       setBusy(false);
     }
@@ -516,7 +524,10 @@ export function BudgetBankLink({
       {status?.items.length ? (
         <ul className="mt-4 divide-y divide-border/50">
           {status.items.map((item) => {
-            const needsReconnect = plaidItemNeedsUserReconnect(item.status);
+            const itemStatus = normalizePlaidItemStatus(item.status);
+            const needsReconnect = itemStatus === "needs_reconnect";
+            const syncFailed = itemStatus === "error";
+            const unhealthy = needsReconnect || syncFailed;
             return (
               <li
                 key={item.itemId}
@@ -527,15 +538,35 @@ export function BudgetBankLink({
                   <p className="text-sm font-medium">
                     {item.institutionName ?? "Linked bank"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p
+                    className={
+                      unhealthy
+                        ? "text-xs text-[var(--brand-orange)]"
+                        : "text-xs text-muted-foreground"
+                    }
+                    role={unhealthy ? "status" : undefined}
+                  >
                     {formatPlaidItemSyncLine(item)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {canLink && needsReconnect ? (
+                  {canLink && !needsReconnect ? (
                     <Button
                       type="button"
                       size="sm"
+                      variant={syncFailed ? "default" : "outline"}
+                      disabled={busy}
+                      onClick={() => void syncItem(item)}
+                    >
+                      <RefreshCw className="size-3.5" />
+                      Sync now
+                    </Button>
+                  ) : null}
+                  {canLink && unhealthy ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={needsReconnect ? "default" : "outline"}
                       disabled={busy || !configured}
                       onClick={() => void startLink(item.itemId)}
                     >
@@ -543,16 +574,20 @@ export function BudgetBankLink({
                       Reconnect
                     </Button>
                   ) : null}
-                  {canLink && !needsReconnect ? (
+                  {unhealthy ? (
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       disabled={busy}
-                      onClick={() => void syncItem(item)}
+                      render={
+                        <Link
+                          href={`/budget/plans/${planId}/transactions?import=1`}
+                        />
+                      }
                     >
-                      <RefreshCw className="size-3.5" />
-                      Sync now
+                      <Upload className="size-3.5" />
+                      Import a file instead
                     </Button>
                   ) : null}
                   <Button

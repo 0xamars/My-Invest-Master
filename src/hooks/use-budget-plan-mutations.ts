@@ -248,7 +248,7 @@ function toStoredSchedule(
 }
 
 export function useBudgetPlanMutations(planId: string) {
-  const { getPlan, updatePlan, isLoaded, syncError, isCloudSynced } =
+  const { getPlan, readLatestPlan, updatePlan, isLoaded, syncError, isCloudSynced } =
     useBudgetPlans();
   const plan = getPlan(planId);
   const [undoStack, setUndoStack] = useState<BudgetPlan[]>([]);
@@ -352,7 +352,7 @@ export function useBudgetPlanMutations(planId: string) {
       payload: PlaidSyncPayload,
       choices?: readonly PlaidAccountChoice[],
     ): BudgetPlan | null => {
-      const current = getPlan(planId);
+      const current = readLatestPlan(planId);
       if (!current) return null;
       const applied = applyPlaidImport(
         current,
@@ -370,7 +370,7 @@ export function useBudgetPlanMutations(planId: string) {
       setLastMutationLabel("Undo bank import");
       return stamped;
     },
-    [getPlan, planId, updatePlan],
+    [readLatestPlan, planId, updatePlan],
   );
 
   const unlinkPlaidItem = useCallback(
