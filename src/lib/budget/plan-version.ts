@@ -4,7 +4,7 @@
  * Inserts are only for plans that are not on the server yet.
  */
 export const BUDGET_PLAN_CONFLICT_MESSAGE =
-  "This budget was updated in another tab or device. This tab did not overwrite it. Reload the page to see the latest version.";
+  "This budget was updated in another tab or device. This tab did not overwrite it. Reload replaces what you see here with the saved budget.";
 
 export class BudgetPlanConflictError extends Error {
   constructor(message = BUDGET_PLAN_CONFLICT_MESSAGE) {

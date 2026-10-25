@@ -308,6 +308,11 @@ assert(
 assert(!exchangeRoute.includes("markPlaidItemSynced"), "exchange route does not store the cursor");
 assert(!reconnectRoute.includes("markPlaidItemSynced"), "reconnect route does not store the cursor");
 assert(
+  !reconnectRoute.includes('status: "active"') &&
+    reconnectRoute.includes("nextPlaidItemStatusAfterSyncFailure"),
+  "reconnect does not mark the connection active before the budget save",
+);
+assert(
   bankLink.includes("commitPlaidCursorAfterSave") &&
     bankLink.includes("enqueuePlanSave") &&
     bankLink.includes("plaidSyncNeedsDurableSave") &&

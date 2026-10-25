@@ -43,6 +43,14 @@ export function plaidItemNeedsUserReconnect(status: string | null | undefined): 
   return normalized === "needs_reconnect" || normalized === "error";
 }
 
+/**
+ * Accounts and the register already list each connection.
+ * Other budget pages still need the same last-sync line and prompt.
+ */
+export function budgetPageListsBankConnections(pathname: string): boolean {
+  return pathname.endsWith("/accounts") || pathname.endsWith("/transactions");
+}
+
 export function plaidErrorNeedsReconnect(errorCode: string | null | undefined): boolean {
   return RECONNECT_ERROR_CODES.has((errorCode ?? "").trim().toUpperCase());
 }

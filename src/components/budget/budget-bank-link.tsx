@@ -253,10 +253,11 @@ export function BudgetBankLink({
               nextCursor,
             }),
           });
-          if (!response.ok) {
-            const data = (await response.json().catch(() => ({}))) as {
-              error?: string;
-            };
+          const data = (await response.json().catch(() => ({}))) as {
+            error?: string;
+            advanced?: boolean;
+          };
+          if (!response.ok || data.advanced === false) {
             throw new Error(
               data.error ??
                 "Saved transactions, but the bank bookmark did not update. Sync again.",
