@@ -11,6 +11,11 @@ import {
   flushQueuedPlanSave,
 } from "@/lib/budget/plan-save-queue";
 import {
+  budgetPlanReloadAction,
+  remoteBudgetLoadAction,
+  shouldFlushBudgetPlanOnLeave,
+} from "@/lib/budget/plan-session";
+import {
   BUDGET_PLAN_CONFLICT_MESSAGE,
   BudgetPlanConflictError,
   isBudgetPlanConflict,
@@ -73,6 +78,8 @@ export function useBudgetPlansStorage() {
   );
   const saveTailRef = useRef<Map<string, Promise<void>>>(new Map());
   const inflightRef = useRef<Map<string, Promise<void>>>(new Map());
+  const loadedForUserRef = useRef<string | null | undefined>(undefined);
+  const userId = user?.id ?? null;
 
   const queueSave = useCallback((plan: BudgetPlan) => {
     pendingSaveRef.current.set(plan.id, plan);
@@ -96,14 +103,33 @@ export function useBudgetPlansStorage() {
   useEffect(() => {
     if (isAuthLoading) return;
 
+    const action = budgetPlanReloadAction({
+      loadedUserId: loadedForUserRef.current,
+      nextUserId: userId,
+    });
+    if (action === "keep") return;
+
+    const previousUserId = loadedForUserRef.current;
+    const switchingUser = previousUserId !== undefined && previousUserId !== userId;
+    const firstLoad = previousUserId === undefined;
+    loadedForUserRef.current = userId;
+    if (switchingUser) {
+      pendingSaveRef.current.clear();
+      latestSaveRef.current.clear();
+      conflictedRef.current = new Set();
+      baseVersionRef.current = new Map();
+    }
+
     const version = ++loadVersionRef.current;
     let cancelled = false;
 
     async function load() {
-      setIsLoaded(false);
-      setSyncError(null);
+      if (firstLoad || switchingUser) {
+        setIsLoaded(false);
+        setSyncError(null);
+      }
 
-      if (!user || !isSupabaseConfigured()) {
+      if (!userId || !isSupabaseConfigured()) {
         if (!cancelled && version === loadVersionRef.current) {
           setPlans([]);
           setIsLoaded(true);
@@ -112,8 +138,36 @@ export function useBudgetPlansStorage() {
       }
 
       try {
-        const remote = await loadBudgetPlansFromCloud(user.id);
+        const remote = await loadBudgetPlansFromCloud(userId);
         if (!cancelled && version === loadVersionRef.current) {
+          const pendingIds = [...pendingSaveRef.current.keys()];
+          // A sign-in change already dropped the previous session's edit.
+          // A same-session reload must not write that edit at a newer version.
+          const loadAction =
+            firstLoad || switchingUser
+              ? "replace"
+              : remoteBudgetLoadAction({
+                  pendingPlanIds: pendingIds,
+                  baseVersions: baseVersionRef.current,
+                  serverVersions: remote.versions,
+                });
+          if (loadAction === "keep-conflict") {
+            for (const id of pendingIds) {
+              const base = baseVersionRef.current.get(id);
+              const server = remote.versions[id];
+              if (
+                typeof base === "number" &&
+                typeof server === "number" &&
+                server !== base
+              ) {
+                conflictedRef.current.add(id);
+              }
+            }
+            setSyncError(BUDGET_PLAN_CONFLICT_MESSAGE);
+            return;
+          }
+          if (loadAction === "keep-pending") return;
+
           baseVersionRef.current = new Map(Object.entries(remote.versions));
           versioningRef.current = remote.versioning;
           conflictedRef.current = new Set();
@@ -129,7 +183,7 @@ export function useBudgetPlansStorage() {
           setSyncError(
             error instanceof Error ? error.message : "Failed to load budget plans.",
           );
-          setPlans([]);
+          if (firstLoad || switchingUser) setPlans([]);
         }
       } finally {
         if (!cancelled && version === loadVersionRef.current) {
@@ -143,7 +197,7 @@ export function useBudgetPlansStorage() {
     return () => {
       cancelled = true;
     };
-  }, [user, isAuthLoading]);
+  }, [userId, isAuthLoading]);
 
   const enqueuePlanSave = useCallback(
     (plan: BudgetPlan, options?: { epochAtDequeue?: number }) => {
@@ -259,6 +313,33 @@ export function useBudgetPlansStorage() {
 
     return () => window.clearTimeout(timer);
   }, [plans, isLoaded, isAuthLoading, user, enqueuePlanSave]);
+
+  useEffect(() => {
+    if (!isLoaded || isAuthLoading || !user || !isSupabaseConfigured()) return;
+
+    const flush = (reason: "visibilitychange" | "pagehide") => {
+      if (
+        !shouldFlushBudgetPlanOnLeave({
+          reason,
+          visibilityState: document.visibilityState,
+        })
+      ) {
+        return;
+      }
+      const waiting = [...pendingSaveRef.current.values()];
+      for (const plan of waiting) {
+        void enqueuePlanSave(plan).catch(() => undefined);
+      }
+    };
+    const onVisibility = () => flush("visibilitychange");
+    const onPageHide = () => flush("pagehide");
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [isLoaded, isAuthLoading, user, enqueuePlanSave]);
 
   const createPlan = useCallback(
     (name?: string): BudgetPlan => {

@@ -19,6 +19,7 @@ import {
 import { PLAID_LINK_COUNTRY_CODES } from "../src/lib/plaid/client.ts";
 import { isBankConnectEnabled } from "../src/lib/plaid/feature.ts";
 import {
+  budgetPageListsBankConnections,
   formatPlaidItemSyncLine,
   nextPlaidItemStatusAfterSyncFailure,
   parsePlaidWebhookBody,
@@ -700,6 +701,17 @@ assert(
     "needs_reconnect",
   "a later non-login error does not clear sign-in expiry",
 );
+assert(
+  budgetPageListsBankConnections("/budget/plans/plan_1/accounts") &&
+    budgetPageListsBankConnections("/budget/plans/plan_1/transactions"),
+  "accounts and the register already list each connection",
+);
+assert(
+  !budgetPageListsBankConnections("/budget/plans/plan_1") &&
+    !budgetPageListsBankConnections("/budget/plans/plan_1/reports") &&
+    !budgetPageListsBankConnections("/budget/plans/plan_1/payee-rules"),
+  "the daily budget pages do not already list the connection",
+);
 const syncRoute = readFileSync(
   join(process.cwd(), "src/app/api/plaid/sync/route.ts"),
   "utf8",
@@ -736,6 +748,27 @@ const register = readFileSync(
 assert(
   register.includes('searchParams.get("import")') && register.includes("setImportOpen(true)"),
   "the register opens file import from the bank connection",
+);
+const health = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-connection-health.tsx"),
+  "utf8",
+);
+const shell = readFileSync(
+  join(process.cwd(), "src/components/budget/budget-shell.tsx"),
+  "utf8",
+);
+assert(
+  shell.includes("BudgetConnectionHealth") &&
+    health.includes("formatPlaidItemSyncLine") &&
+    health.includes("Import a file instead") &&
+    health.includes("/transactions?import=1") &&
+    health.includes("budgetPageListsBankConnections") &&
+    !health.includes("Connect bank"),
+  "other budget pages show last sync and a one-tap file import",
+);
+assert(
+  ui.includes("data.advanced === false"),
+  "a bookmark that did not move is not treated as a finished sync",
 );
 
 const webhookRoute = readFileSync(

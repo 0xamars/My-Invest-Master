@@ -24,6 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { BudgetPlanNameDialog } from "@/components/budget/budget-plan-name-dialog";
+import { BudgetConnectionHealth } from "@/components/budget/budget-connection-health";
 import { BudgetSyncError } from "@/components/budget/budget-sync-error";
 import { CloseMonthDialog } from "@/components/budget/budget-dialogs";
 import { BudgetMonthNav } from "@/components/budget/budget-month-nav";
@@ -362,6 +363,8 @@ export function BudgetShell({ planId, planName, children }: BudgetShellProps) {
           <BudgetSyncError message={syncError} />
         </div>
       ) : null}
+
+      <BudgetConnectionHealth planId={planId} />
 
       {canUndo ? (
         <div className="budget-undo-bar mb-4">

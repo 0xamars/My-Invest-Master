@@ -13,6 +13,11 @@ import {
   nextBudgetPlanVersion,
 } from "../src/lib/budget/plan-version.ts";
 import { budgetPlanBaseForSync } from "../src/lib/budget/plan-save-queue.ts";
+import {
+  budgetPlanReloadAction,
+  remoteBudgetLoadAction,
+  shouldFlushBudgetPlanOnLeave,
+} from "../src/lib/budget/plan-session.ts";
 
 function assert(condition: unknown, message: string) {
   if (!condition) throw new Error(message);
@@ -170,6 +175,92 @@ assert(
 assert(
   new BudgetPlanConflictError().message === BUDGET_PLAN_CONFLICT_MESSAGE,
   "the conflict error tells the user to reload the page",
+);
+assert(
+  BUDGET_PLAN_CONFLICT_MESSAGE.toLowerCase().includes("replaces") &&
+    BUDGET_PLAN_CONFLICT_MESSAGE.toLowerCase().includes("saved budget"),
+  "the warning says reload replaces this tab before those edits are discarded",
+);
+
+assert(
+  budgetPlanReloadAction({ loadedUserId: undefined, nextUserId: "user_a" }) === "reload",
+  "the first load reads the server",
+);
+assert(
+  budgetPlanReloadAction({ loadedUserId: "user_a", nextUserId: "user_a" }) === "keep",
+  "a token refresh is the same session and does not reload",
+);
+assert(
+  budgetPlanReloadAction({ loadedUserId: "user_a", nextUserId: "user_b" }) === "reload",
+  "a different sign-in reloads",
+);
+assert(
+  budgetPlanReloadAction({ loadedUserId: "user_a", nextUserId: null }) === "reload",
+  "sign-out reloads",
+);
+assert(
+  budgetPlanReloadAction({ loadedUserId: null, nextUserId: null }) === "keep",
+  "staying signed out does not reload again",
+);
+
+const base = new Map<string, number>([["plan_sandbox", 2]]);
+assert(
+  remoteBudgetLoadAction({
+    pendingPlanIds: ["plan_sandbox"],
+    baseVersions: base,
+    serverVersions: { plan_sandbox: 3 },
+  }) === "keep-conflict",
+  "a pending edit is not saved on top of a newer server version",
+);
+assert(
+  remoteBudgetLoadAction({
+    pendingPlanIds: ["plan_sandbox"],
+    baseVersions: base,
+    serverVersions: { plan_sandbox: 2 },
+  }) === "keep-pending",
+  "a pending edit at the same version stays on screen so it can save",
+);
+assert(
+  remoteBudgetLoadAction({
+    pendingPlanIds: [],
+    baseVersions: base,
+    serverVersions: { plan_sandbox: 4 },
+  }) === "replace",
+  "a reload with nothing waiting takes the server snapshot",
+);
+assert(
+  remoteBudgetLoadAction({
+    pendingPlanIds: ["plan_new"],
+    baseVersions: base,
+    serverVersions: { plan_sandbox: 2 },
+  }) === "keep-pending",
+  "a plan that is not on the server yet is not dropped by a reload",
+);
+
+assert(
+  shouldFlushBudgetPlanOnLeave({ reason: "visibilitychange", visibilityState: "hidden" }),
+  "hiding the tab flushes a waiting edit",
+);
+assert(
+  !shouldFlushBudgetPlanOnLeave({ reason: "visibilitychange", visibilityState: "visible" }),
+  "a visible tab keeps the debounce",
+);
+assert(
+  shouldFlushBudgetPlanOnLeave({ reason: "pagehide", visibilityState: "visible" }),
+  "leaving the page flushes a waiting edit",
+);
+
+const storageHook = readFileSync(
+  join(process.cwd(), "src/hooks/use-budget-plans-storage.ts"),
+  "utf8",
+);
+assert(
+  storageHook.includes("budgetPlanReloadAction") &&
+    storageHook.includes("remoteBudgetLoadAction") &&
+    storageHook.includes("shouldFlushBudgetPlanOnLeave") &&
+    storageHook.includes("}, [userId, isAuthLoading]);") &&
+    !storageHook.includes("}, [user, isAuthLoading]);"),
+  "the budget load follows the signed-in id, not a new user object",
 );
 
 console.log("budget save conflict unit tests passed");
